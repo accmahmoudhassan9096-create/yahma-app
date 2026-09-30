@@ -67,7 +67,7 @@
   function textTag(value) {
     const t = String(value ?? '').trim();
     if (!t) return { level: 'grey', label: 'غير محدد' };
-    if (t === 'نشط' || t === 'ساري' || t === 'سليم') return { level: 'green', label: t };
+    if (t === 'نشط' || t === 'سليم' || t === 'ساري' || t.startsWith('ساري ')) return { level: 'green', label: t };
     if (t.includes('يحتاج')) return { level: 'amber', label: t };
     if (t.includes('منتهي') || t.includes('ملغ') || t.includes('موقوف') || t.includes('لا يوجد') || t.includes('لم يتم')) return { level: 'red', label: t };
     return { level: 'grey', label: t };
