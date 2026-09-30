@@ -79,13 +79,13 @@ function renderRenewals(content, mode='inspection'){
           <th>الماركة</th>
           <th>النوع</th>
           <th>الموديل</th>
-          <th>حالة الفحص</th>
+          ${licenseMode?'':'<th>حالة الفحص</th>'}
           ${(licenseMode||insuranceMode)?'<th>تاريخ انتهاء الرخصة</th><th>حالة الرخصة</th>':''}
           ${insuranceMode?'<th>حالة التأمين</th>':''}
           <th>الفرع</th>
           <th>حالة السيارة</th>
           <th>إجراء</th>
-          ${(!licenseMode&&!insuranceMode)?'<th>ملاحظات</th>':''}
+          ${insuranceMode?'':'<th>ملاحظات</th>'}
         </tr></thead>
         <tbody id="ren-tbody"></tbody>
       </table>
@@ -188,14 +188,14 @@ function renderRenewals(content, mode='inspection'){
         const lic=(typeof licenseDisplayStatus==='function'?licenseDisplayStatus(c.licenseExpiry):dateStatus(c.licenseExpiry));
         const ins=textTag(c.insuranceStatus);
         const carTag=textTag(c.carStatus);
-        const inspMode=!licenseMode&&!insuranceMode;
-        const noteEditable=inspMode&&!(typeof currentRole!=='undefined'&&currentRole==='view');
+        const noteMode=!insuranceMode;
+        const noteEditable=noteMode&&!(typeof currentRole!=='undefined'&&currentRole==='view');
         return `<tr data-id="${escapeHtml(c.id)}">
         <td class="plate">${escapeHtml(c.plate||'—')}</td>
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>
         <td>${escapeHtml(c.model||'—')}</td>
-        <td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>
+        ${licenseMode?'':`<td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>`}
         ${(licenseMode||insuranceMode)?`<td>${fmtDate(c.licenseExpiry)}</td>
         <td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td>`:''}
         ${insuranceMode?`<td><span class="tag ${ins.level}">${escapeHtml(ins.label)}</span></td>`:''}
@@ -206,7 +206,7 @@ function renderRenewals(content, mode='inspection'){
           ${licenseMode?`<button class="btn btn-ghost btn-small" data-renew-lic="${escapeHtml(c.id)}">تجديد رخصة</button>`:''}
           ${insuranceMode?`<button class="btn btn-ghost btn-small" data-renew-ins="${escapeHtml(c.id)}">تجديد تأمين</button>`:''}
         </td>
-        ${inspMode?`<td><input class="ren-note-input" data-note-id="${escapeHtml(c.id)}" value="${escapeHtml(c.notes||'')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(c.plate||'—')}"${noteEditable?'':' readonly'}></td>`:''}
+        ${noteMode?`<td><input class="ren-note-input" data-note-id="${escapeHtml(c.id)}" value="${escapeHtml(c.notes||'')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(c.plate||'—')}"${noteEditable?'':' readonly'}></td>`:''}
       </tr>`;
       }
       if(window.YahmaVTable && scrollEl){
