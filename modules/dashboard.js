@@ -238,41 +238,6 @@ function renderDashboard(content, context){
         </div>
       </div>
 
-      
-      <div class="home-cta">
-        <div class="home-cta-visual" aria-hidden="true">
-          <svg viewBox="0 0 420 160" preserveAspectRatio="xMidYMid slice">
-            <defs>
-              <linearGradient id="ctaSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#b6e6e3"/><stop offset="100%" stop-color="#e8f6f5"/></linearGradient>
-              <linearGradient id="ctaCar1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f1f5f9"/><stop offset="100%" stop-color="#cbd5e1"/></linearGradient>
-              <linearGradient id="ctaCar2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e2e8f0"/><stop offset="100%" stop-color="#94a3b8"/></linearGradient>
-            </defs>
-            <rect width="420" height="160" fill="url(#ctaSky)"/>
-            <!-- soft hills -->
-            <ellipse cx="210" cy="150" rx="240" ry="30" fill="#9fd5d2" opacity=".35"/>
-            <!-- car left -->
-            <g transform="translate(30,48)">
-              <path d="M20 70c6-8 18-22 32-28 16-8 34-10 54-6 14 3 28 12 38 22l16 14v12H28c-6 0-10-4-10-10v-4z" fill="url(#ctaCar1)"/>
-              <path d="M55 42c12-10 28-14 48-12 14 1 26 8 36 16l-8 6c-10-6-20-10-32-10-16 0-30 4-40 12z" fill="#7dd3fc" opacity=".7"/>
-              <circle cx="55" cy="88" r="12" fill="#1e293b"/><circle cx="120" cy="88" r="12" fill="#1e293b"/>
-              <circle cx="55" cy="88" r="5" fill="#94a3b8"/><circle cx="120" cy="88" r="5" fill="#94a3b8"/>
-            </g>
-            <!-- car right -->
-            <g transform="translate(180,58)">
-              <path d="M18 62c6-8 16-20 30-26 14-6 30-8 48-4 12 3 24 10 34 20l14 12v10H26c-6 0-10-4-10-10v-2z" fill="url(#ctaCar2)"/>
-              <path d="M50 38c10-8 24-12 40-10 12 1 22 6 30 14l-6 5c-8-5-16-8-26-8-14 0-26 4-34 10z" fill="#38bdf8" opacity=".55"/>
-              <circle cx="52" cy="80" r="11" fill="#0f172a"/><circle cx="112" cy="80" r="11" fill="#0f172a"/>
-              <circle cx="52" cy="80" r="4.5" fill="#94a3b8"/><circle cx="112" cy="80" r="4.5" fill="#94a3b8"/>
-            </g>
-          </svg>
-        </div>
-        <div class="home-cta-body">
-          <h3>📋 غرفة تجهيز الأسطول</h3>
-          <p>تابع حالة السيارات ومهام التجهيز</p>
-          <button class="btn btn-primary" id="dash-go-prep">عرض جميع السيارات ←</button>
-        </div>
-      </div>
-
       <div class="home-card">
         <div class="home-card-head">
           <h3>مهامي اليوم</h3>
@@ -289,23 +254,6 @@ function renderDashboard(content, context){
         <button type="button" class="home-link-all" data-go="preparation">عرض كل المهام ←</button>
       </div>
     </div>
-
-    <!-- Urgent operations -->
-    <div class="home-urgent">
-      <div class="home-urgent-head">
-        <h3>🚨 السيارات التي تحتاج تدخل الآن</h3>
-        <span class="home-urgent-count">${fleet.filter(c=>!vehicleReadiness(c).ready).length} سيارة</span>
-      </div>
-      <div class="home-urgent-table">
-        <table>
-          <thead><tr><th>اللوحة</th><th>الفرع</th><th>الحالة</th><th>المشاكل</th><th>الإجراء</th></tr></thead>
-          <tbody>
-            ${fleet.filter(c=>!vehicleReadiness(c).ready).sort((a,b)=>vehicleReadiness(b).failed.length-vehicleReadiness(a).failed.length).slice(0,8).map(c=>{const r=vehicleReadiness(c);return `<tr><td class="home-urgent-plate">${escapeHtml(c.plate||'—')}</td><td>${escapeHtml(c.branch||'—')}</td><td><span class="readiness-pill ${r.level}">${escapeHtml(r.label)}</span></td><td class="home-urgent-issues">${r.failed.map(f=>escapeHtml(f.label)).join('، ')||'—'}</td><td><button class="btn btn-ghost btn-small home-urgent-open" data-urgent-edit="${escapeHtml(c.id)}">فتح السيارة ←</button></td></tr>`}).join('')||'<tr><td colspan="5"><div class="empty">ممتاز — لا توجد سيارات تحتاج تدخل حاليًا 👍</div></td></tr>'}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
     <!-- Bottom row -->
     <div class="home-bottom">
       <div class="home-card">
@@ -386,10 +334,6 @@ function renderDashboard(content, context){
       if (tab) goTab(tab, filter);
     });
   });
-  document.getElementById('dash-go-prep')?.addEventListener('click', () => goTab('preparation'));
-
-  content.querySelectorAll('[data-urgent-edit]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openModal(btn.dataset.urgentEdit)}));
-
   // Animate bars after paint
   requestAnimationFrame(() => {
     setTimeout(() => {
