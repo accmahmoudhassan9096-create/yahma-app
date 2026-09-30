@@ -896,3 +896,8 @@ body.dark-mode .branch-scope-chip{background:#193B43;color:#7FD1CC}
 /* حقل الملاحظات — الوضع الليلي */
 body.dark-mode .ren-note-input{background:#263442;border-color:#3A4A5E;color:#E7EEF5}
 body.dark-mode .ren-note-input[readonly]{background:transparent;border-color:transparent}
+/* نسبة التأجير — الوضع الليلي */
+body.dark-mode .home-util{background:#1E2A38;border-color:#2E3D4F}
+body.dark-mode .home-util-total{background:#193B43;color:#7FD1CC}
+body.dark-mode .home-util-col b{color:#7FD1CC}
+body.dark-mode .home-util-track{background:#263442}

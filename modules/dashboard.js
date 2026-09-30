@@ -51,6 +51,25 @@ function renderDashboard(content, context){
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
 
+  // نسبة التأجير: أيام التأجير المسجلة ÷ (السيارات النشطة × 30) — إجمالي ولكل فرع
+  // (لا يوجد سجل زمني للإيجارات في البيانات، فالتفاوت يُعرض عبر الفروع)
+  const isActiveCar = c => { const s = String(c.carStatus || ''); return !s.includes('صيانة') && !s.includes('خارج') && !['مباعة', 'مؤرشفة'].includes(s); };
+  const rentDays = c => { const n = parseFloat(c.rentedDaysMonth); return isNaN(n) ? 0 : Math.max(0, n); };
+  const activeFleet = fleet.filter(isActiveCar);
+  const totalRentDays = activeFleet.reduce((s, c) => s + rentDays(c), 0);
+  const utilPct = activeFleet.length ? Math.round(totalRentDays / (activeFleet.length * 30) * 1000) / 10 : 0;
+  const utilByBranch = {};
+  activeFleet.forEach(c => {
+    const b = String(c.branch || 'غير محدد').trim() || 'غير محدد';
+    utilByBranch[b] = utilByBranch[b] || { days: 0, cars: 0 };
+    utilByBranch[b].days += rentDays(c);
+    utilByBranch[b].cars++;
+  });
+  const utilBranches = Object.entries(utilByBranch)
+    .map(([name, x]) => ({ name, days: Math.round(x.days * 10) / 10, cars: x.cars, pct: x.cars ? Math.round(x.days / (x.cars * 30) * 1000) / 10 : 0 }))
+    .sort((a, b) => b.pct - a.pct);
+  const maxUtil = Math.max(1, ...utilBranches.map(b => b.pct));
+
   // أسباب عدم الجاهزية بنسب
   const reasonTotal = reasons.reduce((s, [, v]) => s + v, 0) || 1;
   const reasonRows = reasons.slice(0, 5).map(([k, v]) => ({
@@ -254,6 +273,23 @@ function renderDashboard(content, context){
         <button type="button" class="home-link-all" data-go="preparation">عرض كل المهام ←</button>
       </div>
     </div>
+    <!-- Rental rate -->
+    <div class="home-util">
+      <div class="home-util-head">
+        <h3>📈 نسبة التأجير</h3>
+        <span class="home-util-total">${utilPct}% إجمالي</span>
+      </div>
+      <p class="muted-small">أيام التأجير المسجلة ÷ (السيارات النشطة × 30 يوم) — الأعلى أولًا</p>
+      <div class="home-util-chart">
+        ${utilBranches.length ? utilBranches.map(b => `
+        <div class="home-util-col" title="${escapeHtml(b.name)}: ${b.pct}% — ${b.days} يوم / ${b.cars} سيارة">
+          <b>${b.pct}%</b>
+          <div class="home-util-track"><i style="height:${Math.max(3, Math.round(b.pct / maxUtil * 100))}%"></i></div>
+          <span>${escapeHtml(b.name)}</span>
+        </div>`).join('') : '<div class="empty">أدخل «أيام التأجير هذا الشهر» من نافذة تعديل السيارة لعرض نسبة التأجير.</div>'}
+      </div>
+    </div>
+
     <!-- Bottom row -->
     <div class="home-bottom">
       <div class="home-card">

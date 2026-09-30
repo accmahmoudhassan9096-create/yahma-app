@@ -884,4 +884,16 @@ input:focus, select:focus, textarea:focus, .search input:focus, .topbar-search-w
 .ren-note-input:focus{outline:2px solid #168A81;outline-offset:0;border-color:#168A81}
 .ren-note-input[readonly]{background:transparent;border-color:transparent;cursor:default}
 .ren-note-input.saving{opacity:.55}
+/* نسبة التأجير في الرئيسية */
+.home-util{background:var(--panel,#fff);border:1px solid var(--line,#E8EEF2);border-radius:14px;padding:16px;margin-top:14px}
+.home-util-head{display:flex;justify-content:space-between;align-items:center}
+.home-util-head h3{margin:0;font-size:15px}
+.home-util-total{background:#E7F7F6;color:#0A5F5D;font-size:13px;font-weight:800;padding:3px 12px;border-radius:999px;white-space:nowrap}
+.home-util .muted-small{margin:6px 0 12px}
+.home-util-chart{display:flex;gap:14px;align-items:stretch;justify-content:flex-start;flex-wrap:wrap}
+.home-util-col{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:86px;flex:1;max-width:150px}
+.home-util-col b{font-size:15px;color:#0A5F5D}
+.home-util-track{height:120px;width:100%;max-width:64px;background:#F1F6F7;border-radius:8px;display:flex;align-items:flex-end;overflow:hidden}
+.home-util-track i{display:block;width:100%;background:linear-gradient(180deg,#12AAA6,#0A7C78);border-radius:8px;transition:height .5s ease}
+.home-util-col span{font-size:11.5px;color:var(--muted,#666E8C);text-align:center}
 
