@@ -57,6 +57,8 @@
         licenseExpiry: value('f-licenseexpiry'),
         inspectionStatus: trimmed('f-inspection'),
         insuranceStatus: trimmed('f-insurance'),
+        insuranceCompany: trimmed('f-insurancecompany'),
+        insuranceExpiry: value('f-insuranceexpiry'),
         owner: trimmed('f-owner'),
         ownerNumber: trimmed('f-ownernumber'),
         branch: trimmed('f-branch'),

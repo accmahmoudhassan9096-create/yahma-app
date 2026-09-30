@@ -14,6 +14,8 @@
       'f-licensestatus': value('licenseStatus'),
       'f-licenseexpiry': car ? normalizeDateValue(car.licenseExpiry) : '',
       'f-inspection': value('inspectionStatus'), 'f-insurance': value('insuranceStatus'),
+      'f-insurancecompany': value('insuranceCompany'),
+      'f-insuranceexpiry': car ? normalizeDateValue(car.insuranceExpiry) : '',
       'f-owner': value('owner'), 'f-ownernumber': value('ownerNumber'),
       'f-branch': value('branch'), 'f-carstatus': value('carStatus'), 'f-notes': value('notes'),
       'f-odometer': value('odometer'), 'f-dailyrate': value('dailyRate'),

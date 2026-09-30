@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
 
-  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','النوع','الموديل','سنة الصنع','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','المالك','رقم المالك','الفرع','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات'];
+  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','النوع','الموديل','سنة الصنع','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات'];
   const FIELD_ALIASES = {
     plate: ['رقم اللوحة','اللوحة','رقم السيارة','plate'],
     brand: ['الشركة','الماركة','ماركة','brand','make','company'],
@@ -16,6 +16,8 @@
     licenseExpiry: ['تاريخ انتهاء الرخصة','انتهاء الرخصة','تاريخ نهاية الرخصة','نهاية الرخصة','license expiry','تاريخ انتهاء الاستمارة'],
     inspectionStatus: ['حالة الفحص','inspection status'],
     insuranceStatus: ['حالة التامين','حالة التأمين','insurance status'],
+    insuranceCompany: ['شركة التأمين','شركة التامين','insurance company','insurer'],
+    insuranceExpiry: ['تاريخ انتهاء التأمين','انتهاء التأمين','تاريخ نهاية التأمين','نهاية التأمين','insurance expiry'],
     owner: ['المالك','owner'],
     ownerNumber: ['رقم المالك','owner number'],
     odometer: ['العداد','odometer','mileage'],
@@ -56,7 +58,11 @@
     if (has('رخصه')) return has('حاله') ? 'licenseStatus' : 'licenseExpiry';
     if (has('سياره') && has('حاله')) return 'carStatus';
     if (has('فحص')) return 'inspectionStatus';
-    if (has('تامين')) return 'insuranceStatus';
+    if (has('تامين')) {
+      if (has('شركه')) return 'insuranceCompany';
+      if (has('تاريخ') || has('انتهاء') || has('نهايه')) return 'insuranceExpiry';
+      return 'insuranceStatus';
+    }
     if (has('فرع')) return 'branch';
     if (has('لوحه')) return 'plate';
     if (has('شركه') || has('ماركه')) return 'brand';
@@ -106,7 +112,7 @@
 
   const IMPORT_FIELDS = [
     'plate','brand','type','model','year','serial','cardNumber','cardStatus','cardExpiry',
-    'licenseStatus','licenseExpiry','inspectionStatus','insuranceStatus','owner','ownerNumber',
+    'licenseStatus','licenseExpiry','inspectionStatus','insuranceStatus','insuranceCompany','insuranceExpiry','owner','ownerNumber',
     'odometer','nextService','lastMaintenance','maintenanceCost','workshop','documentUrl',
     'maintenanceNotes','branch','carStatus','notes'
   ];
@@ -118,7 +124,7 @@
 
   function normalizeImportValue(field, value) {
     if (value === undefined || value === null) return '';
-    return ['cardExpiry','licenseExpiry','nextService','lastMaintenance'].includes(field)
+    return ['cardExpiry','licenseExpiry','insuranceExpiry','nextService','lastMaintenance'].includes(field)
       ? toDateStr(value)
       : String(value).trim();
   }
@@ -170,7 +176,7 @@
       context.alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.');
       return;
     }
-    const example = ['ر ن س 6724','هيونداي','سيدان','اكسنت','2025','82433120','14-00719121','نشط','24/10/2026','نشط','24/10/2027','سليم','ساري','أحمد سعيد','10001','الفرع الرئيسي','نشط','','','','','','','',''];
+    const example = ['ر ن س 6724','هيونداي','سيدان','اكسنت','2025','82433120','14-00719121','نشط','24/10/2026','نشط','24/10/2027','سليم','ساري','التعاونية','24/10/2027','أحمد سعيد','10001','الفرع الرئيسي','نشط','','','','','','','','',''];
     const worksheet = global.XLSX.utils.aoa_to_sheet([EXCEL_HEADERS, example]);
     worksheet['!cols'] = EXCEL_HEADERS.map(() => ({ wch: 20 }));
     const workbook = global.XLSX.utils.book_new();
@@ -189,7 +195,7 @@
     }
     const rows = context.fleet.map(car => [
       car.plate, car.brand, car.type, car.model, car.year, car.serial, car.cardNumber, car.cardStatus, car.cardExpiry,
-      car.licenseStatus, car.licenseExpiry, car.inspectionStatus, car.insuranceStatus, car.owner,
+      car.licenseStatus, car.licenseExpiry, car.inspectionStatus, car.insuranceStatus, car.insuranceCompany, car.insuranceExpiry, car.owner,
       car.ownerNumber, car.branch, car.carStatus, car.odometer, car.nextService, car.lastMaintenance,
       car.maintenanceCost, car.workshop, car.documentUrl, car.maintenanceNotes, car.notes
     ]);

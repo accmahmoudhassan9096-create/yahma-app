@@ -79,9 +79,9 @@ function renderRenewals(content, mode='inspection'){
           <th>الماركة</th>
           <th>النوع</th>
           <th>الموديل</th>
-          ${licenseMode?'':'<th>حالة الفحص</th>'}
-          ${(licenseMode||insuranceMode)?'<th>تاريخ انتهاء الرخصة</th><th>حالة الرخصة</th>':''}
-          ${insuranceMode?'<th>حالة التأمين</th>':''}
+          ${(!licenseMode&&!insuranceMode)?'<th>حالة الفحص</th>':''}
+          ${licenseMode?'<th>تاريخ انتهاء الرخصة</th><th>حالة الرخصة</th>':''}
+          ${insuranceMode?'<th>حالة التأمين</th><th>تاريخ الانتهاء</th><th>شركة التأمين</th><th>المالك</th>':''}
           <th>الفرع</th>
           <th>حالة السيارة</th>
           <th>إجراء</th>
@@ -125,7 +125,7 @@ function renderRenewals(content, mode='inspection'){
       if(licenseMode&&dateStatus(c.licenseExpiry).level==='green') return false;
       if(!licenseMode&&(inspectionDisplayStatus(c.inspectionStatus).level==='green'||pendingIds.has(String(c.id)))) return false;
       if(q){
-        const hay=[c.plate,c.brand,c.model,c.owner,c.branch,c.carStatus,c.inspectionStatus].map(v=>String(v||'').toLowerCase()).join(' ');
+        const hay=[c.plate,c.brand,c.model,c.owner,c.branch,c.carStatus,c.inspectionStatus,c.insuranceCompany].map(v=>String(v||'').toLowerCase()).join(' ');
         if(!hay.includes(q)) return false;
       }
       if(val('ren-branch') && !eq(c.branch,val('ren-branch'))) return false;
@@ -169,7 +169,10 @@ function renderRenewals(content, mode='inspection'){
       return av-bv;
     });
   }
-  window._yahmaCurrentPdfData=()=>({title:insuranceMode?'التأمين المفلتر':licenseMode?'تجديد الرخص المفلترة':'الفحص المفلتر',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','حالة الفحص','انتهاء الرخصة','حالة الرخصة',...(insuranceMode?['حالة التأمين']:[]),'الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',inspectionDisplayStatus(c.inspectionStatus).label,c.licenseExpiry||'—',dateStatus(c.licenseExpiry).label,...(insuranceMode?[textTag(c.insuranceStatus).label]:[]),c.branch||'—',c.carStatus||'—'])});
+  window._yahmaCurrentPdfData=()=>{
+    if(insuranceMode) return {title:'التأمين المفلتر',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','حالة التأمين','انتهاء التأمين','شركة التأمين','المالك','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',textTag(c.insuranceStatus).label,c.insuranceExpiry||'—',c.insuranceCompany||'—',c.owner||'—',c.branch||'—',c.carStatus||'—'])};
+    return {title:licenseMode?'تجديد الرخص المفلترة':'الفحص المفلتر',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','حالة الفحص','انتهاء الرخصة','حالة الرخصة','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',inspectionDisplayStatus(c.inspectionStatus).label,c.licenseExpiry||'—',dateStatus(c.licenseExpiry).label,c.branch||'—',c.carStatus||'—'])};
+  };
 
   function draw(){
     const all=getRows();
@@ -195,10 +198,10 @@ function renderRenewals(content, mode='inspection'){
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>
         <td>${escapeHtml(c.model||'—')}</td>
-        ${licenseMode?'':`<td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>`}
-        ${(licenseMode||insuranceMode)?`<td>${fmtDate(c.licenseExpiry)}</td>
+        ${(!licenseMode&&!insuranceMode)?`<td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>`:''}
+        ${licenseMode?`<td>${fmtDate(c.licenseExpiry)}</td>
         <td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td>`:''}
-        ${insuranceMode?`<td><span class="tag ${ins.level}">${escapeHtml(ins.label)}</span></td>`:''}
+        ${insuranceMode?`<td><span class="tag ${ins.level}">${escapeHtml(ins.label)}</span></td><td>${fmtDate(c.insuranceExpiry)}</td><td>${escapeHtml(c.insuranceCompany||'—')}</td><td>${escapeHtml(c.owner||'—')}</td>`:''}
         <td>${escapeHtml(c.branch||'—')}</td>
         <td><span class="tag ${carTag.level}">${escapeHtml(carTag.label)}</span></td>
         <td style="white-space:nowrap">
@@ -319,11 +322,15 @@ function renderRenewals(content, mode='inspection'){
   async function exportRen(fmt){
     const rows=getRows();
     if(!rows.length){alert('لا توجد نتائج مطابقة للفلاتر.');return;}
-    const headers=['رقم اللوحة','الماركة','النوع','الموديل','الفرع','المالك','حالة السيارة','حالة الفحص','انتهاء الرخصة','حالة الرخصة',...(insuranceMode?['التأمين']:[])];
-    const data=rows.map(c=>[
+    const headers=insuranceMode?['رقم اللوحة','الماركة','النوع','الموديل','حالة التأمين','انتهاء التأمين','شركة التأمين','المالك','الفرع','حالة السيارة']:['رقم اللوحة','الماركة','النوع','الموديل','الفرع','المالك','حالة السيارة','حالة الفحص','انتهاء الرخصة','حالة الرخصة'];
+    const data=rows.map(c=>insuranceMode?[
+      c.plate||'',c.brand||'',c.type||'',c.model||'',
+      (typeof textTag==='function'?textTag(c.insuranceStatus).label:(c.insuranceStatus||'')),
+      c.insuranceExpiry||'',c.insuranceCompany||'',c.owner||'',c.branch||'',c.carStatus||''
+    ]:[
       c.plate||'',c.brand||'',c.type||'',c.model||'',c.branch||'',c.owner||'',c.carStatus||'',
       (typeof inspectionDisplayStatus==='function'?inspectionDisplayStatus(c.inspectionStatus).label:(c.inspectionStatus||'')),
-      c.licenseExpiry||'',c.licenseStatus||'',...(insuranceMode?[c.insuranceStatus||'']:[])
+      c.licenseExpiry||'',c.licenseStatus||''
     ]);
     window._yahmaGetFilteredCars = getRows;
     if(fmt==='pdf'){
