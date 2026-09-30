@@ -893,3 +893,6 @@ body.dark-mode .rd-doc-cell.warn{background:#493A22;color:#FCD34D}
 body.dark-mode .rd-doc-cell.info{background:#193B43;color:#67E8F9}
 /* شارة نطاق الفرع — الوضع الليلي */
 body.dark-mode .branch-scope-chip{background:#193B43;color:#7FD1CC}
+/* حقل الملاحظات — الوضع الليلي */
+body.dark-mode .ren-note-input{background:#263442;border-color:#3A4A5E;color:#E7EEF5}
+body.dark-mode .ren-note-input[readonly]{background:transparent;border-color:transparent}

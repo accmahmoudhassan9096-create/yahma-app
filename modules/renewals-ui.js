@@ -80,12 +80,12 @@ function renderRenewals(content, mode='inspection'){
           <th>النوع</th>
           <th>الموديل</th>
           <th>حالة الفحص</th>
-          <th>تاريخ انتهاء الرخصة</th>
-          <th>حالة الرخصة</th>
+          ${(licenseMode||insuranceMode)?'<th>تاريخ انتهاء الرخصة</th><th>حالة الرخصة</th>':''}
           ${insuranceMode?'<th>حالة التأمين</th>':''}
           <th>الفرع</th>
           <th>حالة السيارة</th>
           <th>إجراء</th>
+          ${(!licenseMode&&!insuranceMode)?'<th>ملاحظات</th>':''}
         </tr></thead>
         <tbody id="ren-tbody"></tbody>
       </table>
@@ -188,14 +188,16 @@ function renderRenewals(content, mode='inspection'){
         const lic=(typeof licenseDisplayStatus==='function'?licenseDisplayStatus(c.licenseExpiry):dateStatus(c.licenseExpiry));
         const ins=textTag(c.insuranceStatus);
         const carTag=textTag(c.carStatus);
+        const inspMode=!licenseMode&&!insuranceMode;
+        const noteEditable=inspMode&&!(typeof currentRole!=='undefined'&&currentRole==='view');
         return `<tr data-id="${escapeHtml(c.id)}">
         <td class="plate">${escapeHtml(c.plate||'—')}</td>
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>
         <td>${escapeHtml(c.model||'—')}</td>
         <td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>
-        <td>${fmtDate(c.licenseExpiry)}</td>
-        <td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td>
+        ${(licenseMode||insuranceMode)?`<td>${fmtDate(c.licenseExpiry)}</td>
+        <td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td>`:''}
         ${insuranceMode?`<td><span class="tag ${ins.level}">${escapeHtml(ins.label)}</span></td>`:''}
         <td>${escapeHtml(c.branch||'—')}</td>
         <td><span class="tag ${carTag.level}">${escapeHtml(carTag.label)}</span></td>
@@ -204,22 +206,23 @@ function renderRenewals(content, mode='inspection'){
           ${licenseMode?`<button class="btn btn-ghost btn-small" data-renew-lic="${escapeHtml(c.id)}">تجديد رخصة</button>`:''}
           ${insuranceMode?`<button class="btn btn-ghost btn-small" data-renew-ins="${escapeHtml(c.id)}">تجديد تأمين</button>`:''}
         </td>
+        ${inspMode?`<td><input class="ren-note-input" data-note-id="${escapeHtml(c.id)}" value="${escapeHtml(c.notes||'')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(c.plate||'—')}"${noteEditable?'':' readonly'}></td>`:''}
       </tr>`;
       }
       if(window.YahmaVTable && scrollEl){
         if(!window._renVT || window._renVT._tb !== tbody){
           if(window._renVT && window._renVT.destroy) try{window._renVT.destroy()}catch(e){}
           window._renVT = window.YahmaVTable.create({
-            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: insuranceMode?11:10,
+            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: insuranceMode?11:(licenseMode?10:9),
             renderRow: function(c){ return renderRenRow(c); },
             afterRender: function(){},
-            emptyHtml: `<tr><td colspan="${insuranceMode?11:10}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`
+            emptyHtml: `<tr><td colspan="${insuranceMode?11:(licenseMode?10:9)}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`
           });
           window._renVT._tb = tbody;
         }
         window._renVT.setItems(rows, true);
       } else {
-        tbody.innerHTML=rows.length?rows.map(renderRenRow).join(''):`<tr><td colspan="${insuranceMode?11:10}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`;
+        tbody.innerHTML=rows.length?rows.map(renderRenRow).join(''):`<tr><td colspan="${insuranceMode?11:(licenseMode?10:9)}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`;
       }
       // تفويض أحداث الأزرار مرة واحدة (متوافق مع Virtualization)
       if(!tbody._renDelegate){
@@ -252,6 +255,26 @@ function renderRenewals(content, mode='inspection'){
             if(!confirm('تعيين تأمين السيارة '+car.plate+' كـ «ساري»؟')) return;
             car.insuranceStatus='ساري'; await saveData([car.id]); render();
           }
+        });
+      }
+      // تفويض حفظ الملاحظات مرة واحدة (وضع الفحص فقط — متوافق مع Virtualization)
+      if(!tbody._renNoteDelegate){
+        tbody._renNoteDelegate = true;
+        tbody.addEventListener('change', async function(e){
+          const inp = e.target.closest ? e.target.closest('input[data-note-id]') : null;
+          if(!inp || inp.hasAttribute('readonly')) return;
+          const car = fleet.find(c=>String(c.id)===inp.dataset.noteId);
+          if(!car) return;
+          if(typeof currentRole!=='undefined'&&currentRole==='view'){ alert('ليس لديك صلاحية التعديل.'); inp.value=car.notes||''; return; }
+          const v = inp.value.trim();
+          if(String(car.notes||'')===v) return;
+          car.notes=v;
+          inp.classList.add('saving');
+          let ok=true;
+          try{ if(typeof saveData==='function') ok = await saveData([car.id]); }catch(_){ ok=false; }
+          inp.classList.remove('saving');
+          if(ok===false){ alert('تعذر الحفظ — تحقق من الاتصال.'); }
+          else { try{ if(typeof window.log==='function') window.log('ملاحظة فحص','السيارة '+(car.plate||'')); }catch(_){} }
         });
       }
     })();
