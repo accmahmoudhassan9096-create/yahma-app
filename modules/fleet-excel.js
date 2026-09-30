@@ -3,17 +3,17 @@
 
   const EXCEL_HEADERS = ['رقم اللوحة','الماركة','النوع','الموديل','سنة الصنع','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','المالك','رقم المالك','الفرع','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات'];
   const FIELD_ALIASES = {
-    plate: ['رقم اللوحة','اللوحة','plate'],
+    plate: ['رقم اللوحة','اللوحة','رقم السيارة','plate'],
     brand: ['الشركة','الماركة','ماركة','brand','make','company'],
     type: ['النوع','نوع السيارة','type','vehicle type'],
-    model: ['الموديل','الطراز','model'],
+    model: ['الموديل','الطراز','موديل السيارة','model'],
     year: ['سنة الصنع','سنة الصنع ','year'],
     serial: ['الرقم التسلسلي','رقم الشاسيه','serial','serial number','chassis'],
     cardNumber: ['رقم البطاقة','رقم الكارت','card number'],
-    cardStatus: ['حالة الكارت','card status'],
-    cardExpiry: ['تاريخ انتهاء الكارت','انتهاء الكارت','card expiry'],
+    cardStatus: ['حالة الكارت','حالة البطاقة','card status'],
+    cardExpiry: ['تاريخ انتهاء الكارت','انتهاء الكارت','تاريخ نهاية الكارت','نهاية الكارت','تاريخ نهاية البطاقة','نهاية البطاقة','انتهاء البطاقة','card expiry'],
     licenseStatus: ['حالة الرخصة','license status'],
-    licenseExpiry: ['تاريخ انتهاء الرخصة','انتهاء الرخصة','license expiry','تاريخ انتهاء الاستمارة'],
+    licenseExpiry: ['تاريخ انتهاء الرخصة','انتهاء الرخصة','تاريخ نهاية الرخصة','نهاية الرخصة','license expiry','تاريخ انتهاء الاستمارة'],
     inspectionStatus: ['حالة الفحص','inspection status'],
     insuranceStatus: ['حالة التامين','حالة التأمين','insurance status'],
     owner: ['المالك','owner'],
@@ -44,6 +44,12 @@
     const has = keyword => normalized.includes(normalizeHeader(keyword));
     if (has('كارت')) {
       if (has('تاريخ') || has('انتهاء')) return 'cardExpiry';
+      if (has('حاله')) return 'cardStatus';
+      return 'cardNumber';
+    }
+    // صيغ «البطاقة» (ترويسة القالب نفسه: تاريخ نهاية البطاقة / حالة البطاقة)
+    if (has('بطاقه')) {
+      if (has('تاريخ') || has('انتهاء') || has('نهايه')) return 'cardExpiry';
       if (has('حاله')) return 'cardStatus';
       return 'cardNumber';
     }

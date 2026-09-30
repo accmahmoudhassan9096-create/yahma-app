@@ -239,6 +239,9 @@ function normalizePlateKey(p){
     .replace(/[إأآٱ]/g,'ا')
     .replace(/ة/g,'ه')
     .replace(/ى/g,'ي')
+    // توحيد الأرقام العربية/الفارسية إلى لاتينية حتى تطابق اللوحة مهما كانت صيغة الإدخال
+    .replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])
+    .replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
     .replace(/\s+/g,'')
     .replace(/[-_]/g,'')
     .trim()
