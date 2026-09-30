@@ -257,8 +257,6 @@ function renderDashboard(content, context){
         </div>
         <button type="button" class="home-link-all" data-go="preparation">عرض كل المهام ←</button>
       </div>
-    </div>
-    <!-- Available vs rented -->
     <div class="home-avail">
       <div class="home-avail-head">
         <h3>🚗 المتاح والمؤجر — مستوى الشركة</h3>
@@ -275,7 +273,7 @@ function renderDashboard(content, context){
         </div>
       </div>
     </div>
-
+    </div>
     <!-- Bottom row -->
     <div class="home-bottom">
       <div class="home-card">

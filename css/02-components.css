@@ -885,7 +885,7 @@ input:focus, select:focus, textarea:focus, .search input:focus, .topbar-search-w
 .ren-note-input[readonly]{background:transparent;border-color:transparent;cursor:default}
 .ren-note-input.saving{opacity:.55}
 /* المتاح مقابل المؤجر في الرئيسية */
-.home-avail{background:var(--panel,#fff);border:1px solid var(--line,#E8EEF2);border-radius:14px;padding:16px;margin-top:14px}
+.home-avail{background:var(--panel,#fff);border:1px solid var(--line,#E8EEF2);border-radius:14px;padding:16px}
 .home-avail-head{display:flex;justify-content:space-between;align-items:center}
 .home-avail-head h3{margin:0;font-size:15px}
 .home-avail-total{background:#E7F7F6;color:#0A5F5D;font-size:12px;font-weight:800;padding:3px 12px;border-radius:999px;white-space:nowrap}
