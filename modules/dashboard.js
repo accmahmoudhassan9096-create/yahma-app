@@ -51,66 +51,10 @@ function renderDashboard(content, context){
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
 
-  // نسبة التأجير: أيام التأجير المسجلة ÷ (السيارات النشطة × 30) — إجمالي ولكل فرع
-  // (لا يوجد سجل زمني للإيجارات في البيانات، فالتفاوت يُعرض عبر الفروع)
-  const isActiveCar = c => { const s = String(c.carStatus || ''); return !s.includes('صيانة') && !s.includes('خارج') && !['مباعة', 'مؤرشفة'].includes(s); };
-  const rentDays = c => { const n = parseFloat(c.rentedDaysMonth); return isNaN(n) ? 0 : Math.max(0, n); };
-  const activeFleet = fleet.filter(isActiveCar);
-  const totalRentDays = activeFleet.reduce((s, c) => s + rentDays(c), 0);
-  const utilPct = activeFleet.length ? Math.round(totalRentDays / (activeFleet.length * 30) * 1000) / 10 : 0;
-  const utilByBranch = {};
-  activeFleet.forEach(c => {
-    const b = String(c.branch || 'غير محدد').trim() || 'غير محدد';
-    utilByBranch[b] = utilByBranch[b] || { days: 0, cars: 0 };
-    utilByBranch[b].days += rentDays(c);
-    utilByBranch[b].cars++;
-  });
-  const utilBranches = Object.entries(utilByBranch)
-    .map(([name, x]) => ({ name, days: Math.round(x.days * 10) / 10, cars: x.cars, pct: x.cars ? Math.round(x.days / (x.cars * 30) * 1000) / 10 : 0 }))
-    .sort((a, b) => b.pct - a.pct);
-  const maxUtil = Math.max(1, ...utilBranches.map(b => b.pct));
-
-  // التتبع الزمني: لقطة واحدة يوميًا تُسجَّل عند عرض اللوحة (محليًا لهذا الجهاز، آخر 365 يومًا)
-  const UTIL_HIST_KEY = 'yahma-util-history-v1';
-  function loadUtilHist(){
-    try{ const a = JSON.parse(localStorage.getItem(UTIL_HIST_KEY) || '[]'); return Array.isArray(a) ? a.filter(x => x && x.d) : []; }catch(_){ return []; }
-  }
-  let utilHist = loadUtilHist();
-  const utilDay = (typeof todayStr === 'function' ? todayStr() : new Date().toISOString().slice(0, 10));
-  (function recordUtilSnapshot(){
-    const entry = { d: utilDay, pct: utilPct, days: Math.round(totalRentDays * 10) / 10, cars: activeFleet.length, b: {} };
-    utilBranches.forEach(b => { entry.b[b.name] = b.pct; });
-    const last = utilHist[utilHist.length - 1];
-    if (last && last.d === utilDay) utilHist[utilHist.length - 1] = entry;
-    else utilHist.push(entry);
-    if (utilHist.length > 365) utilHist = utilHist.slice(-365);
-    try{ localStorage.setItem(UTIL_HIST_KEY, JSON.stringify(utilHist)); }catch(_){}
-  })();
-  function utilTrendSvg(hist){
-    if (!hist || hist.length < 2) return '<div class="empty">سيبدأ المنحنى الزمني من اليوم ويتراكم يوميًا — عُد غدًا لرؤية الاتجاه.</div>';
-    const W = 560, H = 150, padL = 36, padB = 22, padT = 12;
-    const vals = hist.map(h => h.pct);
-    let mn = Math.min(...vals), mx = Math.max(...vals);
-    if (mx - mn < 1) { mn -= 0.5; mx += 0.5; }
-    const X = i => padL + (W - padL - 8) * (hist.length === 1 ? 0.5 : i / (hist.length - 1));
-    const Y = v => padT + (H - padT - padB) * (1 - (v - mn) / (mx - mn));
-    const pts = hist.map((h, i) => X(i).toFixed(1) + ',' + Y(h.pct).toFixed(1)).join(' ');
-    const fdate = d => { try{ const p = String(d).split('-'); return p[2] + '/' + p[1]; }catch(_){ return d; } };
-    const grid = [mn, (mn + mx) / 2, mx].map(v => {
-      const y = Y(v).toFixed(1);
-      return `<line x1="${padL}" y1="${y}" x2="${W - 4}" y2="${y}"/><text x="${padL - 4}" y="${(+y + 3).toFixed(1)}">${v}%</text>`;
-    }).join('');
-    const dots = hist.map((h, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(h.pct).toFixed(1)}" r="3.5"><title>${fdate(h.d)}: ${h.pct}% (${h.cars} سيارة)</title></circle>`).join('');
-    const xi = [0, Math.floor((hist.length - 1) / 2), hist.length - 1].filter((v, i, a) => a.indexOf(v) === i);
-    const xlabels = xi.map(i => `<text x="${X(i).toFixed(1)}" y="${H - 6}">${fdate(hist[i].d)}</text>`).join('');
-    return `<svg class="home-util-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="الاتجاه الزمني لنسبة التأجير">`
-      + `<g class="grid">${grid}</g>`
-      + `<polygon points="${padL},${H - padB} ${pts} ${X(hist.length - 1).toFixed(1)},${H - padB}" class="area"/>`
-      + `<polyline points="${pts}" class="line"/>`
-      + `<g class="dots">${dots}</g>`
-      + `<g class="xlabels">${xlabels}</g></svg>`;
-  }
-
+  // المتاح مقابل المؤجر — مستوى الشركة (تقرير واحد)
+  const availN = available, rentN = rented;
+  const otherN = Math.max(0, total - availN - rentN);
+  const pAvail = pct(availN), pRent = pct(rentN), pOther = pct(otherN);
   // أسباب عدم الجاهزية بنسب
   const reasonTotal = reasons.reduce((s, [, v]) => s + v, 0) || 1;
   const reasonRows = reasons.slice(0, 5).map(([k, v]) => ({
@@ -314,24 +258,21 @@ function renderDashboard(content, context){
         <button type="button" class="home-link-all" data-go="preparation">عرض كل المهام ←</button>
       </div>
     </div>
-    <!-- Rental rate -->
-    <div class="home-util">
-      <div class="home-util-head">
-        <h3>📈 نسبة التأجير</h3>
-        <span class="home-util-total">${utilPct}% إجمالي</span>
+    <!-- Available vs rented -->
+    <div class="home-avail">
+      <div class="home-avail-head">
+        <h3>🚗 المتاح والمؤجر — مستوى الشركة</h3>
+        <span class="home-avail-total">${total} سيارة</span>
       </div>
-      <p class="muted-small">أيام التأجير المسجلة ÷ (السيارات النشطة × 30 يوم) — الأعلى أولًا</p>
-      <div class="home-util-chart">
-        ${utilBranches.length ? utilBranches.map(b => `
-        <div class="home-util-col" title="${escapeHtml(b.name)}: ${b.pct}% — ${b.days} يوم / ${b.cars} سيارة">
-          <b>${b.pct}%</b>
-          <div class="home-util-track"><i style="height:${Math.max(3, Math.round(b.pct / maxUtil * 100))}%"></i></div>
-          <span>${escapeHtml(b.name)}</span>
-        </div>`).join('') : '<div class="empty">أدخل «أيام التأجير هذا الشهر» من نافذة تعديل السيارة لعرض نسبة التأجير.</div>'}
-      </div>
-      <div class="home-util-trend">
-        <h4>الاتجاه الزمني (من تاريخ التفعيل — هذا الجهاز)</h4>
-        ${utilTrendSvg(utilHist)}
+      <div class="home-avail-row">
+        <div class="home-donut" style="background:conic-gradient(#0BAA86 0% ${pAvail}%, #3B82C4 ${pAvail}% ${pAvail + pRent}%, #E8EEF2 ${pAvail + pRent}% 100%)">
+          <div class="home-donut-hole"><b>${pAvail}%</b><span>متاح</span></div>
+        </div>
+        <div class="home-avail-legend">
+          <div class="home-avail-leg"><i style="background:#0BAA86"></i><span>متاحة للتأجير</span><b>${availN}</b><em>${pAvail}%</em></div>
+          <div class="home-avail-leg"><i style="background:#3B82C4"></i><span>مؤجرة حاليًا</span><b>${rentN}</b><em>${pRent}%</em></div>
+          <div class="home-avail-leg"><i style="background:#CBD5E1"></i><span>أخرى (صيانة/خارج الخدمة)</span><b>${otherN}</b><em>${pOther}%</em></div>
+        </div>
       </div>
     </div>
 
