@@ -121,9 +121,8 @@ function renderRenewals(content, mode='inspection'){
   function getRows(){
     const q=val('ren-search').toLowerCase();
     return fleet.filter(c=>{
-      // وضع التأمين يعرض كل السيارات (السارية أولًا حسب الفرز) — زر «يحتاج متابعة» يضيّق عند الحاجة
-      if(licenseMode&&dateStatus(c.licenseExpiry).level==='green') return false;
-      if(!licenseMode&&!insuranceMode&&(inspectionDisplayStatus(c.inspectionStatus).level==='green'||pendingIds.has(String(c.id)))) return false;
+      // تبويبات الفحص والرخص والتأمين تعرض كل السيارات (الأسوأ أولًا حسب الفرز) — الفلاتر السريعة تضيّق عند الحاجة
+      if(!licenseMode&&!insuranceMode&&pendingIds.has(String(c.id))) return false;
       if(q){
         const hay=[c.plate,c.brand,c.model,c.owner,c.branch,c.carStatus,c.inspectionStatus,c.insuranceCompany].map(v=>String(v||'').toLowerCase()).join(' ');
         if(!hay.includes(q)) return false;
