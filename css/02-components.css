@@ -896,4 +896,14 @@ input:focus, select:focus, textarea:focus, .search input:focus, .topbar-search-w
 .home-util-track{height:120px;width:100%;max-width:64px;background:#F1F6F7;border-radius:8px;display:flex;align-items:flex-end;overflow:hidden}
 .home-util-track i{display:block;width:100%;background:linear-gradient(180deg,#12AAA6,#0A7C78);border-radius:8px;transition:height .5s ease}
 .home-util-col span{font-size:11.5px;color:var(--muted,#666E8C);text-align:center}
+/* المنحنى الزمني لنسبة التأجير */
+.home-util-trend{margin-top:14px;border-top:1px solid var(--line,#E8EEF2);padding-top:12px}
+.home-util-trend h4{margin:0 0 8px;font-size:13px;color:#0A5F5D}
+.home-util-svg{width:100%;height:auto;display:block}
+.home-util-svg .grid line{stroke:#E4EAF1;stroke-width:1}
+.home-util-svg .grid text{fill:#8A94A6;font-size:10px;text-anchor:end}
+.home-util-svg .area{fill:rgba(18,170,166,.14)}
+.home-util-svg .line{fill:none;stroke:#0E8F8D;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.home-util-svg .dots circle{fill:#0A7C78;stroke:#fff;stroke-width:1.5}
+.home-util-svg .xlabels text{fill:#8A94A6;font-size:10px;text-anchor:middle}
 
