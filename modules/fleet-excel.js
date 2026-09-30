@@ -5,7 +5,7 @@
   const FIELD_ALIASES = {
     plate: ['رقم اللوحة','اللوحة','رقم السيارة','plate'],
     brand: ['الشركة','الماركة','ماركة','brand','make','company'],
-    type: ['النوع','نوع السيارة','type','vehicle type'],
+    type: ['النوع','نوع السيارة','نوع المركبة','نوع العربية','الفئة','فئة السيارة','نوع الهيكل','الشكل','type','vehicle type'],
     model: ['الموديل','الطراز','موديل السيارة','model'],
     year: ['سنة الصنع','سنة الصنع ','year'],
     serial: ['الرقم التسلسلي','رقم الشاسيه','serial','serial number','chassis'],
@@ -67,6 +67,7 @@
     if (has('لوحه')) return 'plate';
     if (has('شركه') || has('ماركه')) return 'brand';
     if (has('طراز') || has('موديل')) return 'model';
+    if (has('نوع') && !has('وقود')) return 'type';
     if (has('سنه')) return 'year';
     if (has('تسلسلي') || has('شاسيه')) return 'serial';
     if (has('المالك')) return has('رقم') ? 'ownerNumber' : 'owner';
@@ -132,6 +133,7 @@
   function parseImportRows(rows, uid) {
     let skipped = 0;
     const records = [];
+    const unknown = new Set();
     rows.forEach(row => {
       const values = {};
       const provided = new Set();
@@ -140,6 +142,8 @@
         if (field) {
           provided.add(field);
           values[field] = normalizeImportValue(field, row[header]);
+        } else if (header && !/^__EMPTY/.test(header)) {
+          unknown.add(String(header).trim());
         }
       });
       if (!values.plate) { skipped++; return; }
@@ -153,7 +157,7 @@
     const sold = records.filter(record => isSoldStatus(record.car.carStatus));
     const active = records.filter(record => !isSoldStatus(record.car.carStatus)
       && !soldKeys.has(normalizeHeader(record.car.plate).replace(/[^\p{L}\p{N}]/gu, '')));
-    return { active, sold, skipped };
+    return { active, sold, skipped, unknown: [...unknown].filter(Boolean) };
   }
 
   function mergeImportRecord(existing, record) {

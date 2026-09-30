@@ -32,7 +32,9 @@ async function handleExcelFile(file){
   const soldCount=fleet.filter(car=>soldMatches.has(normalizePlateKey(car.plate))).length;
   const shouldContinue=confirm(
     `معاينة تحديث الأسطول:\n${plan.active.length} صف نشط (${updateCandidates} موجود للتحديث، ${newCandidates} جديد)\n`+
-    `${soldCount} سيارة مباعة سيتم حذفها\n\nسيتم تحديث الحقول غير الفارغة فقط. السيارات غير الموجودة في الملف لن تُحذف.\nمتابعة؟`
+    `${soldCount} سيارة مباعة سيتم حذفها\n\nسيتم تحديث الحقول غير الفارغة فقط. السيارات غير الموجودة في الملف لن تُحذف.`+
+    ((plan.unknown&&plan.unknown.length)?`\n\n⚠ أعمدة غير معروفة سيتم تجاهلها: ${plan.unknown.slice(0,8).join('، ')}${plan.unknown.length>8?` (+${plan.unknown.length-8})`:''}`:'')+
+    `\nمتابعة؟`
   );
   if(!shouldContinue) return;
 
