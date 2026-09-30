@@ -739,7 +739,7 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
       <div id="snd-batch" style="margin-top:12px"></div>
       <div class="rd-card-h" style="margin-top:14px"><h3>سجل الإرسال</h3><span class="rd-chip">آخر 20 عملية</span></div>
       <div class="snd-log" id="snd-log-rows"></div>
-      <div class="snd-empty" id="snd-schedule-status">تصل التقارير المجدولة إلى جميع حسابات المنصة التي لديها بريد، حتى عند إغلاق المنصة. فعّل الجدولة واحفظها لبدء الإرسال.</div>
+      <div class="snd-empty" id="snd-schedule-status">تصل التقارير المجدولة إلى جميع حسابات المنصة التي لديها بريد، حتى عند إغلاق المنصة. فعّل الجدولة واحفظها لبدء الإرسال. (الإرسال التلقائي يتطلب نشر دالة send-user-email وإعداد مفاتيح Resend — راجع README)</div>
     </div>`;
 
   const applyFilters = () => {
@@ -1002,9 +1002,9 @@ ${d.accLine}
   const sndRenderAll = () => {
     if(window.currentRole==='admin' && window.supabaseReady && !window.__sndScheduleLoaded){
       window.__sndScheduleLoaded=true;
-      window.supabaseClient.from('email_schedule').select('enabled,daily_time,weekly_day,weekly_time').eq('id',1).maybeSingle().then(({data,error})=>{
+      window.supabaseClient.from('email_schedule').select('enabled,daily_time,weekly_day,weekly_time,last_daily_date,last_weekly_date').eq('id',1).maybeSingle().then(({data,error})=>{
         if(data){
-          try{localStorage.setItem(SND_SKEY,JSON.stringify({enabled:!!data.enabled,dailyTime:String(data.daily_time||'07:00').slice(0,5),weeklyDay:Number(data.weekly_day)||0,weeklyTime:String(data.weekly_time||'08:00').slice(0,5)}));}catch(_){}
+          try{localStorage.setItem(SND_SKEY,JSON.stringify({enabled:!!data.enabled,dailyTime:String(data.daily_time||'07:00').slice(0,5),weeklyDay:Number(data.weekly_day)||0,weeklyTime:String(data.weekly_time||'08:00').slice(0,5),lastDaily:data.last_daily_date||null,lastWeekly:data.last_weekly_date||null}));}catch(_){}
           sndRenderAll();
         }else if(!error){
           try{localStorage.setItem(SND_SKEY,JSON.stringify({enabled:false,dailyTime:'07:00',weeklyDay:0,weeklyTime:'08:00'}));}catch(_){}
@@ -1053,7 +1053,11 @@ ${d.accLine}
     const wt=document.getElementById('snd-weekly-time'); if(wt) wt.value=sc.weeklyTime;
     const wd=document.getElementById('snd-weekly-day'); if(wd) wd.value=String(sc.weeklyDay);
     const status=document.getElementById('snd-schedule-status');
-    if(status && sc.enabled) status.textContent='الجدولة السحابية مفعّلة: تقرير يومي '+sc.dailyTime+'، وتنبيه مستندات أسبوعي يوم '+['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][sc.weeklyDay]+' '+sc.weeklyTime+' بتوقيت الرياض.';
+    if(status && sc.enabled){
+      const fmtD=d=>{ try{ return d?new Date(d+'T00:00:00').toLocaleDateString('ar-SA'):'—'; }catch(_){ return d||'—'; } };
+      status.textContent='الجدولة السحابية مفعّلة: تقرير يومي '+sc.dailyTime+'، وتنبيه مستندات أسبوعي يوم '+['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][sc.weeklyDay]+' '+sc.weeklyTime+' بتوقيت الرياض.'
+        +' آخر إرسال تلقائي — يومي: '+fmtD(sc.lastDaily)+' · أسبوعي: '+fmtD(sc.lastWeekly)+'.';
+    }
   };
   window.sndPrep = (kind) => {
     const rec=loadRecipients().filter(r=> kind==='daily' ? r.daily : r.docs);
