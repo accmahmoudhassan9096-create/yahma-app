@@ -58,7 +58,7 @@
   function inspectionDisplayStatus(value) {
     const t = String(value ?? '').trim();
     if (!t || t === 'غير محدد') return { level: 'grey', label: 'غير محدد' };
-    if (t === 'سليم') return { level: 'green', label: 'سليم' };
+    if (t === 'سليم' || t === 'تم الفحص' || t === 'ساري' || t.startsWith('ساري ')) return { level: 'green', label: t };
     if (t.includes('يحتاج')) return { level: 'amber', label: 'يحتاج فحص' };
     if (t.includes('لم يتم') || t.includes('منتهي') || t.includes('غير سليم')) return { level: 'red', label: 'لم يتم الفحص' };
     return { level: 'grey', label: t };
