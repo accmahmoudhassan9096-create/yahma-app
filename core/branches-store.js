@@ -10,6 +10,41 @@ let branches = []; // {id,name,email,phone,manager,notes}
 let editingId = null;
 let editingBranchId = null;
 let currentTab = 'dashboard';
+
+/* ===== نطاق الفرع للمستخدم =====
+   المدير يرى كل الفروع. غير المدير المرتبط بفرع (profiles.branch_name)
+   يرى سيارات فرعه فقط — والتنفيذ الحقيقي على الخادم عبر RLS
+   (yahma_can_access_branch)، وهنا نطابق العرض والقفل في الواجهة. */
+function userBranchScope(){
+  if(window.currentRole==='admin') return null;
+  const b=String(window.currentUserBranch||'').trim();
+  return b||null;
+}
+function scopeFleetToUser(list){
+  const b=userBranchScope();
+  const arr=Array.isArray(list)?list:[];
+  if(!b) return arr;
+  return arr.filter(c=>String((c&&c.branch)||'').trim()===b);
+}
+/* قفل فلاتر الفروع على فرع المستخدم + شارة الفرع — تُستدعى في نهاية render() */
+function applyBranchScopeUI(){
+  const b=userBranchScope();
+  document.querySelectorAll('#ff-branch,#rd-branch,#ren-branch,#fu-branch').forEach(sel=>{
+    if(!b){ sel.disabled=false; sel.removeAttribute('data-locked'); sel.removeAttribute('title'); return; }
+    let opt=Array.from(sel.options).find(o=>o.value===b);
+    if(!opt){ opt=document.createElement('option'); opt.value=b; opt.textContent=b; sel.appendChild(opt); }
+    sel.value=b; sel.disabled=true; sel.setAttribute('data-locked','branch');
+    sel.title='مقيد على فرعك: '+b;
+  });
+  const sub=document.getElementById('topbar-sub');
+  if(sub){
+    let chip=document.getElementById('branch-scope-chip');
+    if(b){
+      if(!chip){ chip=document.createElement('span'); chip.id='branch-scope-chip'; chip.className='branch-scope-chip'; sub.appendChild(document.createTextNode(' ')); sub.appendChild(chip); }
+      chip.textContent='فرع: '+b;
+    }else if(chip){ chip.remove(); }
+  }
+}
 const PAGE_PERMISSION_OPTIONS=[
   {id:'fleet',label:'الأسطول'},{id:'branches',label:'الفروع'},{id:'renewals',label:'الفحص'},
   {id:'payments',label:'الدفع'},{id:'license-renewals',label:'تجديد الرخص'},

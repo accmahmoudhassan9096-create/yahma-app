@@ -161,6 +161,7 @@ if(currentTab === 'dashboard') renderDashboard(content);
       document.getElementById('reports-retry')?.addEventListener('click',()=>render());
     }else renderEmergencyFleet(content);
   }
+  try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){}
 }
 
 /* التغليف ضروري بعد التقسيم: openEmailFilteredPdfModal معرّفة في core/pdf-share.js

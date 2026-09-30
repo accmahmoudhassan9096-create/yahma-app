@@ -30,7 +30,9 @@ function updateLastSyncLabel(){
 function dataContext(){
   return {
     getFleet:()=>fleet,
-    setFleet:rows=>{ fleet=rows; },
+    // نطاق الفرع: المستخدم المرتبط بفرع تُحفظ في ذاكرته سيارات فرعه فقط،
+    // فكل التبويبات والعدادات والتصدير تقرأ النطاق تلقائيًا (والخادم يفرضه عبر RLS)
+    setFleet:rows=>{ fleet=(typeof scopeFleetToUser==='function')?scopeFleetToUser(rows):rows; },
     render,
     seedData,
     normalizeFleetDates,

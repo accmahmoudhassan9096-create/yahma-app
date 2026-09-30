@@ -26,6 +26,15 @@
     Object.entries(fields).forEach(([fieldId, fieldValue]) => {
       document.getElementById(fieldId).value = fieldValue;
     });
+    // نطاق الفرع: سيارة المستخدم المرتبط بفرع تُقيد على فرعه ولا يقبل تغييره من النموذج
+    try{
+      const scope=(typeof userBranchScope==='function')?userBranchScope():null;
+      const branchEl=document.getElementById('f-branch');
+      if(branchEl){
+        if(scope){ branchEl.value=scope; branchEl.setAttribute('readonly','readonly'); branchEl.title='مقيد على فرعك: '+scope; }
+        else branchEl.removeAttribute('readonly');
+      }
+    }catch(_){}
 
     const prep = car ? prepChecklistForCar(car) : { checks: [], final: false, finalNote: '' };
     const prepStatus = car ? prepStatusForCar(car) : { level: 'grey', label: 'غير محددة' };

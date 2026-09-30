@@ -165,7 +165,8 @@
           const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة الاتصال بـ Supabase بعد 30 ثانية')), 30000));
           const cloudRows = await Promise.race([fetchAllVehicles(global.supabaseClient), timeout]);
           if (cloudRows?.length) {
-            fleet = cloudRows.map(fromVehicleRow); setFleet(context, fleet);
+            fleet = (typeof scopeFleetToUser==='function') ? scopeFleetToUser(cloudRows.map(fromVehicleRow)) : cloudRows.map(fromVehicleRow);
+            setFleet(context, fleet);
             context.setCloudVehicleIds(fleet.map(car => String(car.id)));
             global.localStorage.setItem(STORAGE_KEY, JSON.stringify(fleet));
             global.localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());

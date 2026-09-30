@@ -97,6 +97,7 @@ window.yahmaSignOut = async function(){
     window.currentUser=null;
     window.currentUserPermissions=[];
     window.currentRole='view';
+    window.currentUserBranch='';
     showAuthScreen();
     return true;
   }catch(error){
@@ -126,6 +127,8 @@ function activateAuthenticatedSession(user){
       const role=await fetchUserRole(uid);
       if(!window.currentUser||window.currentUser.id!==uid) return;
       window.currentRole=role;
+      // نطاق الفرع: صفِّ أي بيانات متبقية من جلسة سابقة قبل العرض والتحميل
+      try{ if(typeof scopeFleetToUser==='function' && typeof fleet!=='undefined' && Array.isArray(fleet)) fleet=scopeFleetToUser(fleet); }catch(_){}
       if(typeof applyRole==='function') applyRole();
       showAppScreen();
       if(typeof loadData==='function') await loadData(false);
@@ -165,6 +168,7 @@ async function fetchUserRole(uid){
       if(data && ['admin','ops','view'].includes(data.role)){
         window.currentUserPermissions=Array.isArray(data.allowed_tabs)?data.allowed_tabs:[];
         if(data.branch_name) window.currentUserBranch = data.branch_name;
+        else window.currentUserBranch = '';
         if(data.full_name) window.currentUserName = data.full_name;
         if(data.full_name){
           const userNameEl=document.getElementById('topbar-user-name');
@@ -306,6 +310,7 @@ function initAuthUI(){
         window._demoMode=true;
         window._authResolved=true;
         window.currentRole='admin';
+        window.currentUserBranch='';
         window.currentUser={email:'demo@local',id:'demo-local',uid:'demo-local'};
         window.syncMessage='وضع محلي (تجريبي)';
         showAppScreen();

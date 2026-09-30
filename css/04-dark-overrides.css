@@ -891,3 +891,5 @@ body.dark-mode .rd-doc-cell{background:#263442;color:#E7EEF5}
 body.dark-mode .rd-doc-cell.bad{background:#4A292D;color:#FCA5A5}
 body.dark-mode .rd-doc-cell.warn{background:#493A22;color:#FCD34D}
 body.dark-mode .rd-doc-cell.info{background:#193B43;color:#67E8F9}
+/* شارة نطاق الفرع — الوضع الليلي */
+body.dark-mode .branch-scope-chip{background:#193B43;color:#7FD1CC}

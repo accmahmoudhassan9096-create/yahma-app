@@ -21,6 +21,7 @@ async function handleExcelFile(file){
 
   const plan=window.YahmaFleetExcel.parseImportRows(rows,uid);
   if(!plan.active.length&&!plan.sold.length){ alert('لم يتم العثور على صف يحتوي على رقم لوحة صحيح. تأكد من مطابقة أسماء الأعمدة لنموذج الإكسيل.'); return; }
+  try{ stampImportBranch(plan); }catch(_){}
   const existingByPlate=new Map(fleet.map(car=>[normalizePlateKey(car.plate),car]));
   let updateCandidates=0,newCandidates=0;
   plan.active.forEach(record=>{
@@ -233,8 +234,18 @@ function exportCurrentTabPDF(){
     fleet.slice(0,500).map(c=>[c.plate||'—',c.brand||'—',c.branch||'—',c.carStatus||'—']));
 }
 
-function normalizePlateKey(p){
-  return String(p||'')
+/* نطاق الفرع: مستوردات المستخدم المرتبط بفرع تُختم كلها بفرعه (جديد ومحدّث) */
+function stampImportBranch(plan){
+  const scope=(typeof userBranchScope==='function')?userBranchScope():null;
+  if(!scope||!plan||!Array.isArray(plan.active)) return 0;
+  plan.active.forEach(record=>{
+    if(!record||!record.car) return;
+    record.car.branch=scope;
+    if(Array.isArray(record.provided)&&!record.provided.includes('branch')) record.provided.push('branch');
+  });
+  return plan.active.length;
+}
+function normalizePlateKey(p){  return String(p||'')
     .replace(/[ً-ْ]/g,'')
     .replace(/[إأآٱ]/g,'ا')
     .replace(/ة/g,'ه')
