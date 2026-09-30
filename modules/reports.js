@@ -324,10 +324,16 @@
       '<div class="inf-foot"><span>منصة يهماء لتأجير السيارات — إنفوجرافيك مولّد آليًا</span><span>الإصدار v12</span><span>' + generated.toLocaleString('ar-SA') + '</span></div>';
   }
 
+function defaultReportFleet(){
+  try{ return (typeof fleet!=='undefined' && Array.isArray(fleet)) ? fleet : []; }catch(_){ return []; }
+}
+
 function renderReports(content, context){
-  const fleet = Array.isArray(context.fleet) ? context.fleet : [];
-  const REPORT_PRESETS_KEY = context.presetsKey;
-  const SND_SKEY = context.scheduleKey;
+  // الاستدعاءات الداخلية (الفلاتر/التحديث/المحفوظ) لا تمرر سياقًا — وفّر الافتراضيات من النطاق العام
+  const c = context || {};
+  const fleet = Array.isArray(c.fleet) ? c.fleet : defaultReportFleet();
+  const REPORT_PRESETS_KEY = c.presetsKey || PRESETS_KEY;
+  const SND_SKEY = c.scheduleKey || ((window.YahmaEmailSchedule && window.YahmaEmailSchedule.scheduleKey) || 'fleet-schedule-v1');
   const today = new Date();
   today.setHours(0,0,0,0);
   const expFields = ['cardExpiry','licenseExpiry','insuranceExpiry','inspectionExpiry','nextService'];
