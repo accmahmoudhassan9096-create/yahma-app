@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>يهماء لتأجير السيارات — منصة تحضير الأسطول للتأجير</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#152350">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=optional" rel="stylesheet">
+<link rel="stylesheet" href="css/01-base.css">
+<link rel="stylesheet" href="css/02-components.css">
+<link rel="stylesheet" href="css/03-motion-layout.css">
+<link rel="stylesheet" href="css/04-dark-overrides.css"><!-- لاحقًا: التراكبات المتأخرة والوضع الليلي يجب أن تبقى آخر ملف -->
+<!-- Dexie.js — IndexedDB خفيف وسريع -->
+<script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<!-- xlsx و jspdf و html2canvas لا تُحمَّل هنا أبدًا — modules/export.js بيحمّلها فقط
+     عند أول استخدام فعلي (زر تصدير/استيراد أو تحميل نموذج)، وapp-core.js بينتظرها
+     عبر ensureXlsxReady() قبل أي استخدام مباشر لـ XLSX. -->
+</head>
+<body>
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="brand yahma-brand">
+      <div class="yahma-logo-wrap"><img class="yahma-logo" src="data:image/png;base64,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" alt="يهماء لتأجير السيارات"></div>
+      <div class="yahma-brand-text"><div class="brand-name">يهماء لتأجير السيارات</div><div class="brand-sub">منصة تحضير الأسطول للتأجير</div></div>
+    </div>
+    <h2>تسجيل الدخول</h2>
+    <p class="sub">استخدم بيانات الحساب اللي أنشأها لك المدير</p>
+    <div class="auth-field"><label for="auth-email">البريد الإلكتروني</label><input type="email" id="auth-email" autocomplete="username"></div>
+    <div class="auth-field"><label for="auth-password">كلمة المرور</label><input type="password" id="auth-password" autocomplete="current-password"></div>
+    <div style="text-align:left;margin:-6px 0 10px"><a href="#" id="auth-forgot-link" style="font-size:12px;color:var(--muted);text-decoration:underline">نسيت كلمة المرور؟</a></div>
+    <div id="auth-error"></div>
+    <button class="btn btn-primary" id="auth-login-btn">دخول</button>
+    <div style="display:flex;align-items:center;gap:8px;margin:14px 0;color:var(--muted);font-size:11px"><span style="height:1px;background:var(--line);flex:1"></span><span>أو</span><span style="height:1px;background:var(--line);flex:1"></span></div>
+    <button class="btn btn-ghost" id="auth-google-btn" style="width:100%;justify-content:center;margin-top:0;padding:11px;border-color:#D6DCE7;font-weight:700"><span style="font-size:18px;line-height:1">G</span><span>الدخول باستخدام Google</span></button>
+    <button class="btn btn-ghost" id="auth-demo-btn" style="width:100%;justify-content:center;margin-top:10px;padding:11px;">تجربة بدون تسجيل (وضع محلي)</button>
+    <p style="margin:12px 0 0;font-size:11px;color:var(--muted);text-align:center;line-height:1.5">إذا لم يكن لديك حساب بعد، استخدم الوضع المحلي لتجربة النظام ببيانات تجريبية.</p>
+    <p id="auth-file-hint" style="display:none;margin:8px 0 0;font-size:11px;color:var(--amber);text-align:center;line-height:1.5">⚠️ أنت تفتح الملف مباشرة من الجهاز. تسجيل الدخول قد لا يعمل — استخدم «الوضع المحلي» أو ارفع الصفحة على استضافة.</p>
+    
+  </div>
+</div>
+<div class="app hidden" id="app-root">
+  <div class="sidebar">
+    <div class="brand yahma-brand">
+      <div class="yahma-logo-wrap"><img class="yahma-logo" src="data:image/png;base64,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" alt="يهماء لتأجير السيارات"></div>
+      <div class="yahma-brand-text"><div class="brand-name">يهماء لتأجير السيارات</div><div class="brand-sub">منصة تحضير الأسطول للتأجير</div></div>
+    </div>
+    <button type="button" class="nav-item active" data-tab="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      الرئيسية
+    </button>
+    <button type="button" class="nav-item" data-tab="fleet">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-5a2 2 0 0 1 2-1h10a2 2 0 0 1 2 1l2 5"/><rect x="2" y="12" width="20" height="6" rx="1.5"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/></svg>
+      الأسطول
+      <span class="nav-count" id="count-fleet">0</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="branches">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
+      الفروع
+      <span class="nav-count" id="count-branches">0</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="renewals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l2 2 4-4"/></svg>
+      الفحص
+      <span class="nav-count alert" id="count-renewals">0</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="payments">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
+      الدفع
+      <span class="nav-count alert" id="count-payments">0</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="license-renewals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+      تجديد الرخص
+      <span class="nav-count alert" id="count-license-renewals">0</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="insurance-renewals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"/><path d="m9 12 2 2 4-4"/></svg>
+      التأمين
+      <span class="nav-count alert" id="count-insurance-renewals">0</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="inspections">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="7.5" cy="15" r="1"/><circle cx="12" cy="15" r="1"/><circle cx="16.5" cy="15" r="1"/></svg>
+      بطاقات التشغيل
+      <span class="nav-count alert" id="count-inspections">0</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="reports">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-4"/><path d="M12 16V8"/><path d="M16 16v-7"/></svg>
+      التقارير
+    </button>
+    <button type="button" class="nav-item" data-tab="audit">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3h8l3 3v15H5V3z"/><path d="M8 11h8M8 15h6"/><path d="M8 7h4"/></svg>
+      سجل النشاط
+    </button>
+    <div class="sidebar-foot yahma-side-cta">
+      <div class="yahma-side-cta-inner">
+        <svg class="yahma-side-car" viewBox="0 0 200 80" aria-hidden="true">
+          <defs>
+            <linearGradient id="scg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5eead4"/><stop offset="100%" stop-color="#99f6e4"/></linearGradient>
+          </defs>
+          <path d="M18 52c8-18 28-28 52-28h48c18 0 32 6 42 16l14 12h8c4 0 6 3 6 6v6H12v-6c0-3 2-6 6-6z" fill="none" stroke="url(#scg)" stroke-width="2.2" opacity=".9"/>
+          <circle cx="52" cy="62" r="9" fill="none" stroke="url(#scg)" stroke-width="2"/>
+          <circle cx="138" cy="62" r="9" fill="none" stroke="url(#scg)" stroke-width="2"/>
+          <path d="M70 30h36c8 0 14 4 18 10" fill="none" stroke="url(#scg)" stroke-width="1.6" opacity=".7"/>
+        </svg>
+        <div class="yahma-side-cta-text">
+          <b>جاهزية..</b>
+          <span>لرحلة أفضل</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+
+<div id="platform-watermark" class="platform-watermark" aria-hidden="true">
+  <div class="wm-tile">
+    <svg class="wm-car" viewBox="0 0 240 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M28 62c6-10 18-24 34-30 14-6 30-8 48-6 20 2 38 10 52 22 8 7 14 14 18 20h22c4 0 6 2 6 5v6H22v-6c0-4 2-7 6-11z" stroke="currentColor" stroke-width="2.2" fill="none" opacity=".9"/>
+      <path d="M70 36c12-12 28-18 50-18 18 0 34 6 48 16" stroke="currentColor" stroke-width="1.8" fill="none" opacity=".75"/>
+      <circle cx="68" cy="78" r="11" stroke="currentColor" stroke-width="2.2" fill="none"/>
+      <circle cx="68" cy="78" r="4.5" fill="currentColor" opacity=".35"/>
+      <circle cx="155" cy="78" r="11" stroke="currentColor" stroke-width="2.2" fill="none"/>
+      <circle cx="155" cy="78" r="4.5" fill="currentColor" opacity=".35"/>
+      <path d="M30 58h20M175 58h18" stroke="currentColor" stroke-width="1.6" opacity=".5"/>
+    </svg>
+    <div class="wm-brand">
+      <div class="wm-brand-en">YAHMA</div>
+      <div class="wm-brand-ar">يهماء</div>
+      <div class="wm-brand-sub">لتأجير السيارات</div>
+    </div>
+  </div>
+</div>
+
+    <div class="topbar topbar-v43">
+      <div class="topbar-brand" aria-label="هوية منصة يهماء">
+        <div class="topbar-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="46" height="46" rx="14" fill="url(#yahmaBrandGradient)"/><path d="M10 28.5c1.8-3.7 5.3-8.2 10-10.3 4.2-1.9 9.9-2.4 14.4-.8 4.1 1.4 7.2 4.2 9.1 7.8h2v4.3H9.5v-1Z" stroke="white" stroke-width="2.1" stroke-linejoin="round"/><circle cx="18" cy="31.5" r="3.2" stroke="white" stroke-width="2"/><circle cx="36" cy="31.5" r="3.2" stroke="white" stroke-width="2"/><defs><linearGradient id="yahmaBrandGradient" x1="7" y1="5" x2="42" y2="44" gradientUnits="userSpaceOnUse"><stop stop-color="#19B9B2"/><stop offset="1" stop-color="#08706F"/></linearGradient></defs></svg>
+        </div>
+        <div class="topbar-brand-copy"><strong>يهماء لتأجير السيارات</strong><span>منصة تجهيز الأسطول للتأجير</span></div>
+      </div>
+
+      <div class="topbar-left">
+        <button class="btn btn-ghost mobile-menu" id="btn-mobile-menu" title="القائمة" aria-label="القائمة">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="topbar-titles">
+          <h1 id="topbar-title">الرئيسية</h1>
+          <p id="topbar-sub">نظرة عامة على حالة الأسطول <span id="sync-status" class="sync-status">جاري الاتصال</span> <span id="last-sync-label" class="sync-status">—</span></p>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <!-- ترتيب من اليسار لليمين: مستخدم → ليلي → تحديث → تصدير → استيراد → نسخة → نماذج -->
+        <div class="topbar-user-wrap" id="topbar-user-wrap">
+          <button class="topbar-user" id="topbar-user" type="button" aria-haspopup="menu" aria-expanded="false">
+            <div class="topbar-user-meta">
+              <b id="topbar-user-name">أحمد محمد</b>
+              <span id="topbar-user-role">مدير النظام</span>
+            </div>
+            <div class="topbar-user-avatar" id="topbar-user-avatar">أ</div>
+            <span class="topbar-user-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div class="user-dropdown" id="user-dropdown" role="menu" hidden>
+            <div class="user-dropdown-head">
+              <div class="user-dropdown-avatar" id="user-dropdown-avatar">أ</div>
+              <div><strong id="user-dropdown-name">أحمد محمد</strong><span id="user-dropdown-email">acc.mahmoud.hassan...</span></div>
+            </div>
+            <div class="user-dropdown-role"><span class="role-dot"></span><span id="user-dropdown-role">مدير النظام</span></div>
+            <div class="user-dropdown-divider"></div>
+            <button type="button" class="user-menu-item" id="btn-account-settings" role="menuitem"><span>⚙</span> إعدادات الحساب</button>
+            <button type="button" class="user-menu-item user-menu-logout" id="btn-profile-logout" role="menuitem"><span>↪</span> تسجيل الخروج</button>
+          </div>
+        </div>
+
+        <button class="btn tb-icon tb-theme" id="btn-theme" title="تبديل الوضع الليلي / النهاري" type="button">
+          <span id="theme-icon" aria-hidden="true">◐</span>
+        </button>
+
+        <button class="btn tb-icon tb-refresh" id="btn-refresh" title="تحديث البيانات" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
+        </button>
+
+        <div class="notify-slot" id="notify-slot-anchor"></div>
+
+        <button class="btn tb-icon" id="btn-email-filtered-pdf" type="button" title="إرسال التقرير المفلتر PDF بالبريد" aria-label="إرسال التقرير المفلتر PDF بالبريد" style="color:#0E6E6C;background:#EAF5F4;border:1px solid #B8D4D3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="m4 7 8 6 8-6"/><path d="M8 17h8"/></svg>
+        </button>
+
+                <div class="tb-io-group" title="استيراد وتصدير">
+<div class="top-dd" id="dd-import">
+          <button class="btn tb-action tb-import" id="btn-dd-import" type="button" title="استيراد">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V8"/><path d="M7 13l5-5 5 5"/><path d="M4 4h16"/></svg>
+            <span class="btn-label">استيراد</span>
+            <span class="dd-caret">▾</span>
+          </button>
+          <div class="top-dd-menu" role="menu">
+            <div class="top-dd-title">استيراد Excel</div>
+            <button class="more-item" id="btn-import" role="menuitem">رفع / تحديث سيارات الأسطول</button>
+            <button class="more-item" id="btn-branch-status-import" role="menuitem">تحديث الفرع وحالة السيارة</button>
+            <button class="more-item" id="btn-sold-import" role="menuitem">رفع السيارات المباعة (حذف)</button>
+          </div>
+        </div>
+<div class="top-dd" id="dd-export">
+          <button class="btn tb-action tb-export" id="btn-dd-export" type="button" title="تصدير">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+            <span class="btn-label">تصدير</span>
+            <span class="dd-caret">▾</span>
+          </button>
+          <div class="top-dd-menu" role="menu">
+            <div class="top-dd-title">تصدير النتائج المفلترة</div>
+            <button class="more-item" id="btn-export" role="menuitem">📊 Excel — النتائج الحالية (بعد الفلتر)</button>
+            <button class="more-item" id="btn-export-pdf" role="menuitem">📄 PDF — النتائج الحالية (بعد الفلتر)</button>
+            <div class="more-divider"></div>
+            <button class="more-item" id="btn-export-all-fleet" role="menuitem">تصدير كل الأسطول (Excel كامل)</button>
+          </div>
+        </div>
+        </div>
+
+<div class="top-dd" id="dd-backup">
+          <button class="btn tb-action tb-backup" id="btn-dd-backup" type="button" title="نسخة احتياطية">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 15v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4"/><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/></svg>
+            <span class="btn-label">نسخة احتياطية</span>
+            <span class="dd-caret">▾</span>
+          </button>
+          <div class="top-dd-menu" role="menu">
+            <div class="top-dd-title">الحفظ والاستعادة</div>
+            <button class="more-item" id="btn-backup" role="menuitem">تنزيل نسخة JSON</button>
+            <button class="more-item" id="btn-email-backup" role="menuitem">إرسال نسخة بالبريد</button>
+            <button class="more-item" id="btn-restore" role="menuitem">استعادة من ملف</button>
+            <div class="more-divider"></div>
+            <button class="more-item danger" id="btn-clear-all" role="menuitem">مسح كل البيانات</button>
+          </div>
+        </div>
+
+        <div class="top-dd" id="dd-templates">
+          <button class="btn tb-action tb-templates" id="btn-dd-templates" type="button" title="نماذج">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg>
+            <span class="btn-label">نماذج</span>
+            <span class="dd-caret">▾</span>
+          </button>
+          <div class="top-dd-menu" role="menu">
+            <div class="top-dd-title">نماذج Excel</div>
+            <button class="more-item" id="btn-template" role="menuitem">نموذج أسطول فارغ</button>
+            <button class="more-item" id="btn-branch-status-template" role="menuitem">نموذج تحديث فرع / حالة</button>
+            <button class="more-item" id="btn-sold-template" role="menuitem">نموذج سيارات مباعة</button>
+          </div>
+        </div>
+
+        <div class="topbar-search-wrap">
+          <span class="topbar-search-ico">⌕</span>
+          <input type="search" id="global-search" placeholder="بحث موحّد: لوحة، فرع، مالك..." aria-label="بحث موحّد: لوحة، فرع، مالك" autocomplete="off">
+        </div>
+
+        <button class="btn tb-action tb-add" id="btn-add-car" type="button" title="إضافة عربية">
+          <span aria-hidden="true">+</span>
+          <span class="btn-label">إضافة عربية</span>
+        </button>
+
+        <input type="file" id="file-import" accept=".xlsx,.xls,.csv" style="display:none;">
+        <input type="file" id="file-sold-import" accept=".xlsx,.xls,.csv" style="display:none;">
+        <input type="file" id="file-branch-status" accept=".xlsx,.xls,.csv" style="display:none;">
+        <input type="file" id="backup-file" accept=".json" style="display:none;">
+      </div>
+    </div>
+    
+<div class="content" id="content">
+      <div class="empty">جارِ التحميل...</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" style="display:none;">
+  <div class="modal">
+    <h2 id="modal-title">إضافة عربية</h2>
+    <div class="field-grid">
+      <div class="field"><label for="f-plate">رقم اللوحة</label><input id="f-plate" placeholder="مثال: ر ن س 6724"></div>
+      <div class="field"><label for="f-brand">الشركة / الماركة</label><input id="f-brand" placeholder="مثال: هيونداي"></div>
+      <div class="field"><label for="f-type">النوع</label><input id="f-type" placeholder="مثال: سيدان / SUV / فان"></div>
+      <div class="field"><label for="f-model">الموديل</label><input id="f-model" placeholder="مثال: اكسنت"></div>
+      <div class="field"><label for="f-year">سنة الصنع</label><input id="f-year" placeholder="مثال: 2025"></div>
+      <div class="field"><label for="f-serial">رقم التسلسلي</label><input id="f-serial"></div>
+      <div class="field"><label for="f-cardnumber">رقم البطاقة</label><input id="f-cardnumber"></div>
+      <div class="field"><label for="f-cardstatus">حالة الكارت</label><select id="f-cardstatus"><option value="">غير محدد</option><option>نشط</option><option>ملغى</option><option>موقوف</option></select></div>
+      <div class="field"><label for="f-cardexpiry">تاريخ انتهاء الكارت</label><input type="date" id="f-cardexpiry"></div>
+      <div class="field"><label for="f-licensestatus">حالة الرخصة</label><select id="f-licensestatus"><option value="">غير محدد</option><option>نشط</option><option>ملغى</option><option>موقوف</option><option>منتهي</option></select></div>
+      <div class="field"><label for="f-licenseexpiry">تاريخ انتهاء الرخصة</label><input type="date" id="f-licenseexpiry"></div>
+      <div class="field"><label for="f-inspection">حالة الفحص</label><select id="f-inspection"><option value="">غير محدد</option><option>سليم</option><option>يحتاج فحص</option><option>لم يتم الفحص</option></select></div>
+      <div class="field"><label for="f-insurance">حالة التأمين</label><select id="f-insurance"><option value="">غير محدد</option><option>ساري</option><option>منتهي</option><option>لا يوجد</option></select></div>
+      <div class="field"><label for="f-owner">المالك</label><input id="f-owner"></div>
+      <div class="field"><label for="f-ownernumber">رقم المالك</label><input id="f-ownernumber"></div>
+      <div class="field"><label for="f-branch">الفرع</label><input id="f-branch"></div>
+      <div class="field"><label for="f-carstatus">حالة السيارة</label><select id="f-carstatus"><option value="">غير محدد</option><option>نشط</option><option>تحت الصيانة</option><option>خارج الخدمة</option><option>مؤرشفة</option><option>مباعة</option></select></div>
+      <div class="field"><label for="f-odometer">قراءة العداد (كم)</label><input id="f-odometer" type="number" min="0"></div><div class="field"><label for="f-nextservice">موعد الصيانة القادمة</label><input id="f-nextservice" type="date"></div>
+      <div class="field"><label for="f-dailyrate">سعر التأجير اليومي (ر.س)</label><input id="f-dailyrate" type="number" min="0" step="0.01" placeholder="مثال: 150"></div><div class="field"><label for="f-renteddays">أيام التأجير هذا الشهر</label><input id="f-renteddays" type="number" min="0" max="31" placeholder="مثال: 22"></div>
+      <div class="field"><label for="f-lastmaintenance">آخر صيانة</label><input id="f-lastmaintenance" type="date"></div><div class="field"><label for="f-maintenancecost">تكلفة آخر صيانة</label><input id="f-maintenancecost" type="number" min="0" step="0.01" placeholder="0"></div>
+      <div class="field"><label for="f-workshop">الورشة / مركز الخدمة</label><input id="f-workshop"></div><div class="field"><label for="f-documenturl">رابط مستند السيارة</label><input id="f-documenturl" type="url" placeholder="https://..."></div>
+      <div class="field full"><label for="f-maintenancenotes">ملاحظات الصيانة</label><textarea id="f-maintenancenotes" placeholder="العطل، قطع الغيار، ما تم إصلاحه..."></textarea></div><div class="field full"><label for="f-notes">ملاحظات عامة</label><textarea id="f-notes"></textarea></div>
+    </div>
+    <div class="prep-modal-section">
+      <div class="prep-modal-head"><div><strong>Checklist تجهيز السيارة</strong><div class="muted-small">المستندات والحالة تُحتسب تلقائيًا من بيانات السيارة، ويمكن إضافة مراجعة نهائية.</div></div><span id="f-prep-status" class="readiness-pill grey">غير محددة</span></div>
+      <div id="f-prep-checklist" class="prep-checklist"></div>
+      <div id="f-prep-tasks" class="prep-task-editor"></div>
+      <div class="prep-final-row"><label><input type="checkbox" id="f-prep-final"> تمت المراجعة النهائية للسيارة</label><input id="f-prep-final-note" placeholder="ملاحظة المراجعة النهائية"></div>
+    </div>
+    <datalist id="dl-cardstatus"><option value="نشط"><option value="ملغى"><option value="موقوف"></datalist>
+    <datalist id="dl-inspection"><option value="سليم"><option value="يحتاج فحص"><option value="لم يتم الفحص"></datalist>
+    <datalist id="dl-insurance"><option value="ساري"><option value="منتهي"><option value="لا يوجد"></datalist>
+    <datalist id="dl-carstatus"><option value="نشط"><option value="تحت الصيانة"><option value="خارج الخدمة"></datalist>
+    <div class="modal-actions">
+      <div><button class="btn btn-danger" id="btn-delete" style="display:none;">أرشفة العربية</button></div>
+      <div class="modal-actions-right">
+        <button class="btn btn-ghost" id="btn-cancel">إلغاء</button>
+        <button class="btn btn-primary" id="btn-save">حفظ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="app-footer" id="app-footer">
+  <div class="app-footer-inner">
+    <div class="app-footer-left">Fleet Manager 4.3 <span class="sep">|</span> منصة تحضير الأسطول للتأجير</div>
+    <div class="app-footer-right">
+      <span class="app-footer-tagline">معاً لأسطول جاهز دائماً</span>
+      <span class="app-footer-brand">
+        <b>YAHMA</b>
+        <span>يهماء</span>
+        <small>لتأجير السيارات</small>
+      </span>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- disabled conflicting yahma-all-header-actions-js -->
+<!-- disabled conflicting yahma-smooth-dropdowns-js -->
+
+<!-- الوحدات -->
+<script src="app.js"></script>
+<script src="modules/export.js"></script>
+<script src="modules/fleet.js"></script>
+<script src="modules/reports.js"></script>
+<!-- الوحدات الجديدة بعد التقسيم -->
+<!-- modules/auth.js أُوقف تحميله: نسخة مكررة قديمة من بوابة المصادقة. كل ما كان
+     حيًّا منها موجود في app-core.js (showAuthScreen/showAppScreen/initAuthGate +
+     مراقب الـ 8 ثوانٍ) وmodules/utils.js (global.escapeHtml عبر Object.assign).
+     الملف محفوظ على القرص ويمكن حذفه بعد التأكد. -->
+<script src="modules/data.js"></script>
+<script src="modules/email-schedule.js"></script>
+<script src="modules/realtime.js"></script>
+<script src="modules/utils.js"></script>
+<script src="modules/readiness.js"></script>
+<!-- منطق التطبيق المستخرج -->
+<script src="modules/smooth.js"></script>
+<script src="modules/dashboard.js"></script>
+<script src="modules/branches.js"></script>
+<script src="modules/audit.js"></script>
+<script src="modules/preparation-data.js"></script>
+<script src="modules/preparation-history.js"></script>
+<script src="modules/renewals.js"></script>
+<script src="modules/renewals-ui.js"></script>
+<script src="modules/follow-up-ui.js"></script>
+<script src="modules/vehicle-modal.js"></script>
+<script src="modules/vehicle-form.js"></script>
+<script src="modules/vehicle-operations.js"></script>
+<script src="modules/fleet-excel.js"></script>
+<!-- منطق التطبيق: أُقسم من app-core.js إلى core/* بالترتيب نفسه للتنفيذ -->
+<script src="core/auth-boot.js"></script>
+<script src="core/branches-store.js"></script>
+<script src="core/sync.js"></script>
+<script src="core/report-glue.js"></script>
+<script src="core/render-router.js"></script>
+<script src="core/pdf-share.js"></script>
+<script src="core/excel-import.js"></script>
+<!-- استُخرجت من tail من app-core.js (نفس ترتيب التنفيذ السابق بالضبط) -->
+<script src="modules/audit-theme.js"></script>
+<script src="modules/notifications.js"></script>
+<script src="modules/preparation-live.js"></script>
+<script src="modules/vehicle-360.js"></script>
+<script src="modules/ops-intel.js"></script>
+<script src="modules/topbar-ui.js"></script>
+<script src="modules/perf-vtable.js"></script>
+<script src="modules/cloud.js"></script>
+<script>
+// تسجيل الـ service worker لتخزين هيكل التطبيق أوفلاين — بره خدمة عادية من ملف مباشر
+if('serviceWorker' in navigator && location.protocol !== 'file:'){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(e){ console.warn('SW register failed', e); });
+  });
+}
+</script> 
+</body>
+</html>

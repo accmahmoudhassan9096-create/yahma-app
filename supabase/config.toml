@@ -1,0 +1,10 @@
+project_id = "dzildqysxdlnfsmjttjg"
+
+[functions.admin-create-user]
+verify_jwt = true
+
+[functions.admin-delete-user]
+verify_jwt = true
+
+[functions.send-user-email]
+verify_jwt = false

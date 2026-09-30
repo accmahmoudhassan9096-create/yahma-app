@@ -1,0 +1,78 @@
+(function (global) {
+  'use strict';
+
+  async function saveFromForm(context) {
+    const editingId = context.getEditingId();
+    const result = global.YahmaVehicleForm.collect({
+      fleet: context.fleet,
+      editingId,
+      todayStr: context.todayStr
+    });
+    if (result.error) {
+      context.alert(result.error);
+      return;
+    }
+
+    const { plate, data } = result;
+    if (editingId) {
+      const index = context.fleet.findIndex(car => car.id === editingId);
+      context.fleet[index] = { ...context.fleet[index], ...data };
+    } else {
+      context.fleet.push({ id: context.uid(), ...data });
+    }
+    const savedId = editingId || context.fleet[context.fleet.length - 1].id;
+    const saved = await context.saveData([savedId]);
+    if (!saved && context.supabaseReady) {
+      context.alert('تعذر حفظ السيارة على Supabase. البيانات محفوظة محليًا فقط.');
+      return;
+    }
+
+    let emailNotice = null;
+    if (!editingId) emailNotice = await context.notifyYahmaEvent('vehicle_added', { plate, branch: data.branch || '' });
+    context.log(editingId ? 'تعديل سيارة' : 'إضافة سيارة', plate + ' — ' + (data.carStatus || 'غير محدد'));
+    context.closeModal();
+    context.render();
+    if (emailNotice && ((!emailNotice.ok && !emailNotice.skipped) || emailNotice.failed)) {
+      context.alert(emailNotice.ok
+        ? `تم حفظ السيارة وإرسال ${emailNotice.sent} إشعار، وتعذر إرسال ${emailNotice.failed}.`
+        : 'تم حفظ السيارة، لكن تعذر إرسال إشعار البريد: ' + emailNotice.error);
+    }
+  }
+
+  async function archiveEditing(context) {
+    const editingId = context.getEditingId();
+    if (!editingId) return;
+    if (context.currentRole !== 'admin') {
+      context.alert('الأرشفة متاحة للمدير فقط.');
+      return;
+    }
+    if (!context.confirm('سيتم أرشفة السيارة بدل حذفها نهائيًا، ويمكن استعادتها لاحقًا. متابعة؟')) return;
+
+    const car = context.fleet.find(item => item.id === editingId);
+    const button = context.deleteButton;
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'جارِ الأرشفة...';
+    }
+    try {
+      if (!car) return;
+      car.carStatus = 'مؤرشفة';
+      car.archivedAt = new Date().toISOString();
+      car.archivedBy = context.userEmail || 'local-user';
+      await context.saveData([editingId]);
+      context.log('أرشفة سيارة', car.plate || editingId);
+      context.closeModal();
+      context.render();
+      context.alert('تمت أرشفة السيارة ويمكن استعادتها بتغيير حالتها إلى نشط.');
+    } catch (error) {
+      console.error(error);
+      context.alert('فشلت الأرشفة: ' + (error.message || error));
+      if (button) {
+        button.disabled = false;
+        button.textContent = 'حذف العربية';
+      }
+    }
+  }
+
+  global.YahmaVehicleOperations = { saveFromForm, archiveEditing };
+})(window);

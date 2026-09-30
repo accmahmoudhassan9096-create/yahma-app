@@ -1,0 +1,194 @@
+/* ===== التخزين المحلي والفروع والبذور ===== */
+/* استُخرج من app-core.js (السطور 415-604) ضمن تقسيم الملفات.
+   يُحمَّل بنفس الترتيب السابق بالضبط ضمن كتلة core/* قبل الوحدات المُستخرجة من الذيل. */
+
+
+const STORAGE_KEY = 'fleet-data-v2';
+const BRANCHES_KEY = 'fleet-branches-v1';
+let fleet = [];
+let branches = []; // {id,name,email,phone,manager,notes}
+let editingId = null;
+let editingBranchId = null;
+let currentTab = 'dashboard';
+const PAGE_PERMISSION_OPTIONS=[
+  {id:'fleet',label:'الأسطول'},{id:'branches',label:'الفروع'},{id:'renewals',label:'الفحص'},
+  {id:'payments',label:'الدفع'},{id:'license-renewals',label:'تجديد الرخص'},
+  {id:'insurance-renewals',label:'التأمين'},{id:'inspections',label:'بطاقات التشغيل'},
+  {id:'reports',label:'التقارير'},{id:'audit',label:'سجل النشاط'}
+];
+window.currentUserPermissions=Array.isArray(window.currentUserPermissions)?window.currentUserPermissions:[];
+window.canAccessYahmaTab=function(tab){
+  if(tab==='dashboard'||window.currentRole==='admin'||window._demoMode)return true;
+  return Array.isArray(window.currentUserPermissions)&&window.currentUserPermissions.includes(tab);
+};
+
+// شبكة أمان ضد شاشة التحميل الأبدية
+function forceLocalBoot(){
+  if(window.currentUser && !window._demoMode) return; // مستخدم مسجّل دخول على السحابة — لا تحوّل للوضع التجريبي أبدًا
+  // ما نفعّلش البيانات المحلية إلا لو المستخدم هو نفسه فعّل الوضع التجريبي.
+  // منعنا التحويل التلقائي عشان: (1) شاشة الدخول ما تختفيش بعد 3 ثواني،
+  // (2) تعديلات مستخدم حقيقي ما تروحش للتخزين المحلي بس وهي "تبدو" محفوظة.
+  if(!window._demoMode) return;
+  const content=document.getElementById('content');
+  if(!content) return;
+  const stuck = content.textContent.indexOf('جارِ التحميل')>=0 || content.textContent.trim()==='';
+  // ملاحظة: كان الشرط هنا بيتحقق من window.fleet بدل fleet — و"fleet" متغيرة let
+  // في الـ scope العلوي مش بتتحط تلقائيًا على window، يعني window.fleet كانت دايمًا
+  // undefined والشرط دايمًا بيفشل، فالدالة كانت بتنفّذ نفسها وتعمل render زيادة
+  // في كل مرة (بعد 2.5 و3 و7 ثواني من فتح الصفحة) حتى لو التطبيق شغّال تمام.
+  if(!stuck && typeof fleet!=='undefined' && Array.isArray(fleet) && fleet.length) return;
+  console.warn('تحميل معلّق — تفعيل بيانات محلية');
+  window._demoMode=true;
+  if(!window.currentRole || window.currentRole==='view') window.currentRole='admin';
+  try{
+    let local=[];
+    try{ local=JSON.parse(localStorage.getItem('fleet-data-v2')||'[]'); }catch(e){}
+    if(!Array.isArray(local) || !local.length){
+      if(typeof seedData==='function') local=seedData();
+    }
+    fleet=local;
+    localStorage.setItem('fleet-data-v2', JSON.stringify(local));
+    if(typeof render==='function') render();
+    if(typeof applyRole==='function') applyRole();
+  }catch(e){ console.error(e); }
+}
+setTimeout(forceLocalBoot, 3000);
+setTimeout(forceLocalBoot, 7000);
+
+function loadBranches(){
+  try{
+    const raw=localStorage.getItem(BRANCHES_KEY);
+    if(raw){ const p=JSON.parse(raw); if(Array.isArray(p)) branches=p; }
+  }catch(_){ branches=[]; }
+  // املأ من أسماء الفروع الموجودة في الأسطول إن الدليل فاضي
+  if(!branches.length){
+    const names=[...new Set(fleet.map(c=>String(c.branch||'').trim()).filter(Boolean))];
+    branches=names.map(n=>({id:'b'+Date.now()+Math.floor(Math.random()*999),name:n,email:'',phone:'',manager:'',notes:''}));
+    saveBranches();
+  }
+  if(window.YahmaDB && window.YahmaDB.ready && window.YahmaDB.loadBranches){
+    window.YahmaDB.ready.then(async()=>{
+      try{
+        const stored=await window.YahmaDB.loadBranches();
+        if(stored.length){
+          const previous=JSON.stringify(branches);
+          branches=stored;
+          localStorage.setItem(BRANCHES_KEY, JSON.stringify(branches));
+          if(previous!==JSON.stringify(branches) && typeof render==='function') render();
+        }else if(branches.length){
+          await window.YahmaDB.saveBranches(branches);
+        }
+      }catch(e){ console.warn('YahmaDB branches load', e); }
+    }).catch(()=>{});
+  }
+}
+function saveBranches(){
+  try{ localStorage.setItem(BRANCHES_KEY, JSON.stringify(branches)); }catch(_){}
+  if(window.YahmaDB && window.YahmaDB.ready && window.YahmaDB.saveBranches){
+    window.YahmaDB.ready.then(()=>window.YahmaDB.saveBranches(branches)).catch(()=>{});
+  }
+}
+function getBranchByName(name){
+  const n=String(name||'').trim();
+  if(!n) return null;
+  const norm=s=>String(s||'').trim().replace(/[يى]/g,'ي').replace(/أ|إ|آ/g,'ا');
+  return branches.find(b=>norm(b.name)===norm(n))||null;
+}
+function ensureBranchName(name){
+  const n=String(name||'').trim();
+  if(!n) return;
+  if(!getBranchByName(n)){
+    branches.push({id:'b'+Date.now()+Math.floor(Math.random()*999),name:n,email:'',phone:'',manager:'',notes:''});
+    saveBranches();
+  }
+}
+function branchStats(name){
+  if(!Array.isArray(fleet)) return {total:0,ready:0,insp:0,card:0,lic:0,cars:[]};
+  const cars=fleet.filter(c=>String(c.branch||'').trim()===String(name||'').trim());
+  const ready=cars.filter(c=>{
+    try{ return vehicleReadiness(c).ready; }catch(e){ return false; }
+  }).length;
+  const insp=cars.filter(c=>{
+    try{ return inspectionDisplayStatus(c.inspectionStatus).level!=='green'; }catch(e){ return false; }
+  }).length;
+  const card=cars.filter(c=>{
+    try{ return cardDisplayStatus(c.cardExpiry,c.cardStatus).level!=='green'; }catch(e){ return false; }
+  }).length;
+  const lic=cars.filter(c=>{
+    try{ return licenseDisplayStatus(c.licenseExpiry).level!=='green'; }catch(e){ return false; }
+  }).length;
+  return {total:cars.length,ready,insp,card,lic,cars};
+}
+
+/** تحمّل مكتبة XLSX عند أول استخدام فعلي بدل تحميلها مسبقًا مع الصفحة.
+ * بترجع true لو المكتبة جاهزة (كانت محمّلة أو اتحمّلت دلوقتي)، وfalse لو فشل التحميل. */
+async function ensureXlsxReady(){
+  if(typeof XLSX!=='undefined') return true;
+  try{
+    if(window.YahmaExport && typeof window.YahmaExport.ensureXlsx==='function'){
+      await window.YahmaExport.ensureXlsx();
+    }
+  }catch(e){ console.warn('تعذر تحميل مكتبة Excel', e); }
+  return typeof XLSX!=='undefined';
+}
+function readinessStats(){ return window.YahmaReadiness.stats(fleet); }
+function normalizeFleetDates(){
+  let changed=false;
+  fleet.forEach(c=>{
+    const card=normalizeDateValue(c.cardExpiry), license=normalizeDateValue(c.licenseExpiry), service=normalizeDateValue(c.nextService);
+    if(card !== (c.cardExpiry || '')){c.cardExpiry=card;changed=true;}
+    if(license !== (c.licenseExpiry || '')){c.licenseExpiry=license;changed=true;}
+    if(service !== (c.nextService || '')){c.nextService=service;changed=true;}
+  });
+  return changed;
+}
+
+const BRAND_MODELS = {
+  'هيونداي': ['اكسنت','جراد أي 10','ستاريا','أي 10','ACCENT'],
+  'كيا': ['سبورتاج','بيجاس'],
+  'شانجان': ['ايدو بلس'],
+  'شيفروليه': ['TAHOE'],
+  'تويوتا': ['اوريان','يارس']
+};
+const BRANCHES = ['الفرع الرئيسي','فرع القاهرة الجديدة','فرع الإسكندرية','فرع الجيزة'];
+function seedData(){
+  const brands = Object.keys(BRAND_MODELS);
+  const cardStatuses = ['نشط','نشط','نشط','نشط','ملغى'];
+  const inspectionStatuses = ['سليم','سليم','سليم','يحتاج فحص','لم يتم الفحص'];
+  const insuranceStatuses = ['ساري','ساري','ساري','منتهي','لا يوجد'];
+  const carStatuses = ['نشط','نشط','نشط','تحت الصيانة','خارج الخدمة'];
+  const owners = ['أحمد سعيد','محمد عبد الله','شركة النصر للتأجير','كريم فتحي','سارة حسن'];
+  const cardOffsets = [-5, 8, 20, 45, 90, 200, -15, 3, 60, 12, 150, 5, 30, 75];
+  const licenseOffsets = [25, -3, 90, 10, 40, 6, 100, -8, 15, 200, 55, 20, 9, 300];
+  const rows = [];
+  for(let i=1;i<=14;i++){
+    const brand = brands[i % brands.length];
+    const models = BRAND_MODELS[brand];
+    rows.push({
+      id: uid(),
+      plate: 'ر ن س ' + (6700 + i),
+      brand,
+      model: models[i % models.length],
+      year: String(2022 + (i % 5)),
+      serial: String(400000000 + i*137931),
+      cardNumber: '14-00' + (600000 + i*1234),
+      cardStatus: cardStatuses[i % cardStatuses.length],
+      cardExpiry: addDays(todayStr(), cardOffsets[i-1]),
+      licenseStatus: cardStatuses[(i+1) % cardStatuses.length],
+      licenseExpiry: addDays(todayStr(), licenseOffsets[i-1]),
+      inspectionStatus: inspectionStatuses[i % inspectionStatuses.length],
+      insuranceStatus: insuranceStatuses[i % insuranceStatuses.length],
+      owner: owners[i % owners.length],
+      ownerNumber: String(10000 + i),
+      branch: BRANCHES[i % BRANCHES.length],
+      carStatus: carStatuses[i % carStatuses.length],
+      dailyRate: String(120 + (i % 6) * 35),
+      rentedDaysMonth: String(12 + (i * 3) % 18),
+      updatedAt: todayStr(),
+      notes: ''
+    });
+  }
+  return rows;
+}
+
+
