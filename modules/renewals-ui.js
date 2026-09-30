@@ -59,7 +59,7 @@ function renderRenewals(content, mode='inspection'){
       <div class="fleet-filter-grid">
         <label>بحث<input id="ren-search" placeholder="لوحة، مالك، فرع..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
         <label>الفرع<select id="ren-branch">${optionList(uniq('branch'),'كل الفروع')}</select></label>
-        <label>حالة السيارة<select id="ren-car-status"><option value="">كل الحالات</option><option>نشط</option><option>تحت الصيانة</option><option>خارج الخدمة</option></select></label>
+        <label>حالة السيارة<select id="ren-car-status"><option value="">كل الحالات</option><option>موجودة</option><option>مؤجرة</option><option>تحت الصيانة</option><option>خارج الخدمة</option><option>مسروقة</option><option>للبيع</option></select></label>
         <label>المالك<select id="ren-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
         <label>الماركة<select id="ren-brand">${optionList(uniq('brand'),'كل الماركات')}</select></label>
         <label>حالة الفحص<select id="ren-insp-status"><option value="">كل الحالات</option><option value="green">سليم</option><option value="amber">يحتاج فحص</option><option value="red">لم يتم الفحص</option><option value="grey">غير محدد</option></select></label>
@@ -130,12 +130,7 @@ function renderRenewals(content, mode='inspection'){
       if(val('ren-branch') && !eq(c.branch,val('ren-branch'))) return false;
       if(val('ren-owner') && !eq(c.owner,val('ren-owner'))) return false;
       if(val('ren-brand') && !eq(c.brand,val('ren-brand'))) return false;
-      if(val('ren-car-status')){
-        const want=val('ren-car-status'), got=norm(c.carStatus);
-        if(want==='تحت الصيانة' && !got.includes('صيانة')) return false;
-        else if(want==='خارج الخدمة' && !got.includes('خارج')) return false;
-        else if(want==='نشط' && (got.includes('صيانة')||got.includes('خارج')||(got&&got!=='نشط'))) return false;
-      }
+      if(val('ren-car-status') && !carStatusMatch(c.carStatus,val('ren-car-status'))) return false;
       if(val('ren-insp-status') && inspectionDisplayStatus(c.inspectionStatus).level!==val('ren-insp-status')) return false;
       if(val('ren-insurance-status') && textTag(c.insuranceStatus).level!==val('ren-insurance-status')) return false;
       if(val('ren-lic-condition') && dateStatus(c.licenseExpiry).level!==val('ren-lic-condition')) return false;
@@ -156,9 +151,9 @@ function renderRenewals(content, mode='inspection'){
         if(activeRQ==='lic_ok' && lic!=='green') return false;
         if(activeRQ==='lic_expired' && lic!=='red') return false;
         if(activeRQ==='lic_soon' && lic!=='amber') return false;
-        if(activeRQ==='active' && (st.includes('صيانة')||st.includes('خارج')||(st&&st!=='نشط'))) return false;
+        if(activeRQ==='active' && !carStatusMatch(st,'موجودة')) return false;
         if(activeRQ==='maintenance' && !st.includes('صيانة')) return false;
-        if(activeRQ==='out' && !st.includes('خارج')) return false;
+        if(activeRQ==='out' && !carStatusOut(st)) return false;
         if(activeRQ==='insurance_bad' && textTag(c.insuranceStatus).level==='green') return false;
       }
       return true;

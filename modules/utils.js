@@ -67,10 +67,28 @@
   function textTag(value) {
     const t = String(value ?? '').trim();
     if (!t) return { level: 'grey', label: 'غير محدد' };
-    if (t === 'نشط' || t === 'سليم' || t === 'ساري' || t.startsWith('ساري ')) return { level: 'green', label: t };
+    if (t === 'نشط' || t === 'سليم' || t === 'ساري' || t.startsWith('ساري ') || t === 'موجودة' || t === 'مؤجرة') return { level: 'green', label: t };
     if (t.includes('يحتاج')) return { level: 'amber', label: t };
-    if (t.includes('منتهي') || t.includes('ملغ') || t.includes('موقوف') || t.includes('لا يوجد') || t.includes('لم يتم')) return { level: 'red', label: t };
+    if (t === 'للبيع') return { level: 'amber', label: t };
+    if (t.includes('منتهي') || t.includes('ملغ') || t.includes('موقوف') || t.includes('لا يوجد') || t.includes('لم يتم') || t.includes('مسروق')) return { level: 'red', label: t };
     return { level: 'grey', label: t };
+  }
+
+  /* حالات السيارة الموحدة: موجودة/مؤجرة/تحت الصيانة/خارج الخدمة/مسروقة/للبيع (+مؤرشفة/مباعة كحالات نظام) */
+  function carStatusOut(value){
+    const s = String(value ?? '').trim();
+    return s.includes('خارج') || s.includes('مسروق');
+  }
+  function carStatusActive(value){
+    const s = String(value ?? '').trim();
+    return !(s.includes('صيانة') || s.includes('خارج') || s.includes('مسروق') || s.includes('مباع') || s.includes('مؤرشفة'));
+  }
+  function carStatusMatch(value, want){
+    const got = String(value ?? '').trim(), w = String(want ?? '').trim();
+    if (!w) return true;
+    if (got === w) return true;
+    if (w === 'موجودة' && got === 'نشط') return true; // بيانات قديمة قبل التوحيد
+    return false;
   }
 
   function escapeHtml(value) {
@@ -97,7 +115,7 @@
   const api = {
     uid, normalizeDateValue, daysFromNow, dateStatus, licenseDisplayStatus,
     cardDisplayStatus, inspectionDisplayStatus, textTag, escapeHtml,
-    fmtDate, addDays, todayStr
+    fmtDate, addDays, todayStr, carStatusOut, carStatusActive, carStatusMatch
   };
   global.YahmaUtils = api;
   Object.assign(global, api);

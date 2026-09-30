@@ -96,7 +96,7 @@
     let active = 0, dailySum = 0, dailyCount = 0, estimateSum = 0, maintenanceCost = 0;
     (list || []).forEach(car => {
       const status = String(car.carStatus || '').trim();
-      if (!status.includes('خارج') && !status.includes('مؤرشفة') && !status.includes('مباعة')) active++;
+      if (!status.includes('خارج') && !status.includes('مسروق') && !status.includes('مؤرشفة') && !status.includes('مباعة')) active++;
       const dailyRate = parseFloat(car.dailyRate), rentedDays = parseFloat(car.rentedDaysMonth);
       if (!isNaN(dailyRate) && dailyRate > 0) { dailySum += dailyRate; dailyCount++; }
       if (!isNaN(dailyRate) && dailyRate > 0 && !isNaN(rentedDays) && rentedDays >= 0) {
@@ -148,7 +148,7 @@
       } catch (_) {}
       if (isReady) ready++; else notReady++;
       if (String(car.carStatus || '').includes('صيانة')) maintenance++;
-      if (String(car.carStatus || '').includes('خارج')) out++;
+      if (String(car.carStatus || '').includes('خارج') || String(car.carStatus || '').includes('مسروق')) out++;
 
       const branch = String(car.branch || 'غير محدد').trim() || 'غير محدد';
       if (!branchMap[branch]) branchMap[branch] = { t: 0, r: 0, ov: 0 };
@@ -359,7 +359,7 @@ function renderReports(content, context){
       if(issue==='inspection') return typeof inspectionDisplayStatus==='function' && inspectionDisplayStatus(c.inspectionStatus).level!=='green';
       if(issue==='insurance') return typeof textTag==='function' && textTag(c.insuranceStatus).level!=='green';
       if(issue==='maintenance') return String(c.carStatus||'').includes('صيانة');
-      if(issue==='out') return String(c.carStatus||'').includes('خارج');
+      if(issue==='out') return carStatusOut(String(c.carStatus||''));
       if(issue==='notready') return typeof vehicleReadiness==='function' ? !vehicleReadiness(c).ready : false;
     }catch(e){}
     return true;

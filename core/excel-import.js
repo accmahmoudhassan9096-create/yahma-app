@@ -117,6 +117,7 @@ function exportCurrentTabPDF(){
       ['فحص غير سليم', String(fleet.filter(c=>inspectionDisplayStatus(c.inspectionStatus).level!=='green').length)],
       ['تحت الصيانة', String(fleet.filter(c=>String(c.carStatus||'').includes('صيانة')).length)],
       ['خارج الخدمة', String(fleet.filter(c=>String(c.carStatus||'').includes('خارج')).length)],
+      ['مسروقة', String(fleet.filter(c=>String(c.carStatus||'').includes('مسروق')).length)],
     ];
     // top issues by plate
     const notReady=fleet.filter(c=>!vehicleReadiness(c).ready).slice(0,80);
@@ -163,9 +164,7 @@ function exportCurrentTabPDF(){
         if(branch && String(c.branch||'').trim()!==branch) return false;
         if(carSt){
           const got=String(c.carStatus||'');
-          if(carSt==='تحت الصيانة'&&!got.includes('صيانة')) return false;
-          if(carSt==='خارج الخدمة'&&!got.includes('خارج')) return false;
-          if(carSt==='نشط'&&(got.includes('صيانة')||got.includes('خارج'))) return false;
+          if(!carStatusMatch(got,carSt)) return false;
         }
         if(insp && inspectionDisplayStatus(c.inspectionStatus).level!==insp) return false;
         if(lic && dateStatus(c.licenseExpiry).level!==lic) return false;
@@ -195,9 +194,7 @@ function exportCurrentTabPDF(){
         if(branch && String(c.branch||'').trim()!==branch) return false;
         if(carSt){
           const got=String(c.carStatus||'');
-          if(carSt==='تحت الصيانة'&&!got.includes('صيانة')) return false;
-          if(carSt==='خارج الخدمة'&&!got.includes('خارج')) return false;
-          if(carSt==='نشط'&&(got.includes('صيانة')||got.includes('خارج'))) return false;
+          if(!carStatusMatch(got,carSt)) return false;
         }
         if(cardCond && cardDisplayStatus(c.cardExpiry,c.cardStatus).level!==cardCond) return false;
         if(ins && textTag(c.insuranceStatus).level!==ins) return false;

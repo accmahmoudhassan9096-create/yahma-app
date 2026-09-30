@@ -13,13 +13,13 @@
     add('insurance', 'التأمين', utils.textTag(car.insuranceStatus).level === 'green');
     add('inspection', 'الفحص', utils.inspectionDisplayStatus(car.inspectionStatus).level === 'green');
     const carStatus = String(car.carStatus ?? '').trim();
-    add('service', 'الصيانة', !carStatus.includes('صيانة') && !carStatus.includes('خارج'));
+    add('service', 'الصيانة', !carStatus.includes('صيانة') && !carStatus.includes('خارج') && !carStatus.includes('مسروق'));
     const status = carStatus;
-    add('status', 'حالة السيارة', status === 'نشط');
+    add('status', 'حالة السيارة', status === 'نشط' || status === 'موجودة');
     const failed = checks.filter(x => !x.ok);
     if (!car.id) return { level: 'grey', label: 'غير محددة', ready: false, checks, failed };
     if (failed.length === 0) return { level: 'green', label: 'جاهزة للتأجير', ready: true, checks, failed };
-    if (failed.some(x => x.key === 'status' && status.includes('خارج'))) return { level: 'red', label: 'خارج الخدمة', ready: false, checks, failed };
+    if (failed.some(x => x.key === 'status' && (status.includes('خارج') || status.includes('مسروق')))) return { level: 'red', label: status.includes('مسروق') ? 'مسروقة' : 'خارج الخدمة', ready: false, checks, failed };
     if (failed.some(x => x.key === 'service')) return { level: 'amber', label: 'تحتاج صيانة', ready: false, checks, failed };
     if (failed.some(x => x.key === 'inspection')) return { level: 'amber', label: 'تحتاج فحص', ready: false, checks, failed };
     return { level: 'red', label: 'غير جاهزة', ready: false, checks, failed };

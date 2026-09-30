@@ -133,6 +133,7 @@ function activateAuthenticatedSession(user){
       showAppScreen();
       if(typeof loadData==='function') await loadData(false);
       try{ if(typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){}
+      try{ if(typeof migrateCarStatusValues==='function') await migrateCarStatusValues(); }catch(_){}
       if(typeof render==='function') render();
     }catch(error){
       console.error('تعذر تهيئة حساب المستخدم',error);
@@ -317,6 +318,7 @@ function initAuthUI(){
         showAppScreen();
         if(typeof loadData==='function') await loadData(false);
         try{ if(typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){}
+        try{ if(typeof migrateCarStatusValues==='function') await migrateCarStatusValues(); }catch(_){}
         if(typeof applyRole==='function') applyRole();
         if(typeof render==='function') render();
       }catch(e){

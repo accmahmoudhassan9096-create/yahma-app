@@ -56,7 +56,7 @@ function renderFollowUp(content){
       <div class="fleet-filter-grid">
         <label>بحث<input id="fu-search" placeholder="لوحة، مالك، فرع، رقم كارت..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
         <label>الفرع<select id="fu-branch">${optionList(uniq('branch'),'كل الفروع')}</select></label>
-        <label>حالة السيارة<select id="fu-car-status"><option value="">كل الحالات</option><option>نشط</option><option>تحت الصيانة</option><option>خارج الخدمة</option></select></label>
+        <label>حالة السيارة<select id="fu-car-status"><option value="">كل الحالات</option><option>موجودة</option><option>مؤجرة</option><option>تحت الصيانة</option><option>خارج الخدمة</option><option>مسروقة</option><option>للبيع</option></select></label>
         <label>المالك<select id="fu-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
         <label>الماركة<select id="fu-brand">${optionList(uniq('brand'),'كل الماركات')}</select></label>
         <label>حالة الكارت (سجل)<select id="fu-card-status"><option value="">كل الحالات</option><option>نشط</option><option>ملغى</option><option>موقوف</option></select></label>
@@ -180,12 +180,7 @@ function renderFollowUp(content){
       if(val('fu-branch') && !eq(c.branch,val('fu-branch'))) return false;
       if(val('fu-owner') && !eq(c.owner,val('fu-owner'))) return false;
       if(val('fu-brand') && !eq(c.brand,val('fu-brand'))) return false;
-      if(val('fu-car-status')){
-        const want=val('fu-car-status'), got=norm(c.carStatus);
-        if(want==='تحت الصيانة' && !got.includes('صيانة')) return false;
-        else if(want==='خارج الخدمة' && !got.includes('خارج')) return false;
-        else if(want==='نشط' && (got.includes('صيانة')||got.includes('خارج')||(got&&got!=='نشط'))) return false;
-      }
+      if(val('fu-car-status') && !carStatusMatch(c.carStatus,val('fu-car-status'))) return false;
       if(val('fu-card-status')){
         const want=val('fu-card-status'), raw=norm(c.cardStatus);
         if(want.includes('ملغ') && !raw.includes('ملغ')) return false;
@@ -204,9 +199,9 @@ function renderFollowUp(content){
         if(activeFQ==='card_soon' && card!=='amber') return false;
         if(activeFQ==='ins_bad' && ins==='green') return false;
         if(activeFQ==='ins_ok' && ins!=='green') return false;
-        if(activeFQ==='active' && (st.includes('صيانة')||st.includes('خارج')||(st&&st!=='نشط'))) return false;
+        if(activeFQ==='active' && !carStatusMatch(st,'موجودة')) return false;
         if(activeFQ==='maintenance' && !st.includes('صيانة')) return false;
-        if(activeFQ==='out' && !st.includes('خارج')) return false;
+        if(activeFQ==='out' && !carStatusOut(st)) return false;
       }
       return true;
     }).sort((a,b)=>{
