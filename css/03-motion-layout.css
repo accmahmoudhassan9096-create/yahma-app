@@ -427,7 +427,7 @@ html.yahma-ready body::before, html.yahma-ready body::after{display:none!importa
 .rd-filter-chips{display:flex;flex-wrap:wrap;gap:6px}
 .rd-filter-chip{display:inline-flex;max-width:100%;padding:4px 8px;border:1px solid #BFE5DF;border-radius:6px;background:#EFF9F6;color:#176B5B;overflow-wrap:anywhere}
 .rd-filters button:disabled,.rd-filter-status button:disabled{opacity:.5;cursor:not-allowed}
-.rd-shell :is(.rd-kpi,.rd-exp-row,.rd-bar-row,.rd-bt-r):focus-visible{outline:3px solid #168A81;outline-offset:2px}
+.rd-shell :is(.rd-kpi,.rd-exp-row,.rd-bar-row,.rd-bt-r,.rd-doc-cell,.rd-doc-branch):focus-visible{outline:3px solid #168A81;outline-offset:2px}
 .rd-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
 @media(max-width:1100px){.rd-kpis{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:640px){.rd-kpis{grid-template-columns:repeat(2,1fr)}}

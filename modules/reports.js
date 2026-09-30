@@ -378,6 +378,39 @@ function renderReports(content, context){
   list.filter(c=>String(c.carStatus||'').includes('صيانة')).forEach(c=>{const w=String(c.workshop||'غير محددة').trim()||'غير محددة';workshopMap[w]=(workshopMap[w]||0)+1;});
   const topWorkshops=Object.entries(workshopMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const topRevenueCars=activeCars.map(c=>({car:c,revenue:(parseFloat(c.dailyRate)||0)*(parseFloat(c.rentedDaysMonth)||0)})).filter(x=>x.revenue>0).sort((a,b)=>b.revenue-a.revenue).slice(0,5);
+
+  // ---- تقرير المستندات التفصيلي: حسب النوع والنطاق ----
+  const DOC_TYPES=[
+    {key:'cardExpiry',label:'البطاقة'},
+    {key:'licenseExpiry',label:'الرخصة'},
+    {key:'insuranceExpiry',label:'التأمين'},
+    {key:'inspectionExpiry',label:'الفحص'}
+  ];
+  const DOC_BUCKETS=[
+    {key:'over',label:'منتهي',cls:'bad'},
+    {key:'d7',label:'خلال 7 أيام',cls:'warn'},
+    {key:'d30',label:'خلال 30 يوم',cls:'info'},
+    {key:'d90',label:'خلال 90 يوم',cls:''}
+  ];
+  function docBucketOf(days){
+    if(days===null||days===undefined||isNaN(days)) return null;
+    if(days<0) return 'over';
+    if(days<=7) return 'd7';
+    if(days<=30) return 'd30';
+    if(days<=90) return 'd90';
+    return null;
+  }
+  const docDetail=DOC_TYPES.map(dt=>{
+    const buckets={over:[],d7:[],d30:[],d90:[]};
+    list.forEach(c=>{ const b=docBucketOf(daysFrom(c[dt.key])); if(b) buckets[b].push(c); });
+    return {key:dt.key,label:dt.label,buckets};
+  });
+  const docBranchMap={};
+  list.forEach(c=>{
+    const br=String(c.branch||'غير محدد').trim()||'غير محدد';
+    DOC_TYPES.forEach(dt=>{ if(docBucketOf(daysFrom(c[dt.key]))==='over') docBranchMap[br]=(docBranchMap[br]||0)+1; });
+  });
+  const topDocBranches=Object.entries(docBranchMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const maxFail = Math.max(1, ...fails.map(x=>x[1]), 1);
   const maxBranch = Math.max(1, ...branches.map(x=>x.t), 1);
 
@@ -581,6 +614,19 @@ function renderReports(content, context){
           <div class="rd-exp-row info"><span>خلال 30 يوم</span><b>${expBuckets.d30}</b></div>
           <div class="rd-exp-row"><span>خلال 90 يوم</span><b>${expBuckets.d90}</b></div>
         </div>
+      </div>
+
+      <div class="rd-card rd-3d rd-span2">
+        <div class="rd-card-h"><h3>تفاصيل المستندات</h3><span class="rd-chip">حسب النوع والنطاق — اضغط أي رقم للتفاصيل</span></div>
+        <div class="rd-doc-table" role="table" aria-label="تفاصيل المستندات حسب النوع">
+          <div class="rd-doc-h" role="row"><span>المستند</span><span>منتهي</span><span>7 أيام</span><span>30 يوم</span><span>90 يوم</span></div>
+          ${docDetail.map(d=>`
+          <div class="rd-doc-r" role="row">
+            <span>${esc(d.label)}</span>
+            ${DOC_BUCKETS.map(b=>`<button type="button" class="rd-doc-cell ${b.cls}" data-doc="${d.key}" data-bucket="${b.key}" aria-label="${esc(d.label)} — ${esc(b.label)}: ${d.buckets[b.key].length}">${d.buckets[b.key].length}</button>`).join('')}
+          </div>`).join('')}
+        </div>
+        <div class="rd-report-list">${topDocBranches.length?topDocBranches.map(([name,count])=>`<div class="rd-doc-branch" data-branch="${esc(name)}" role="button" tabindex="0" aria-label="مستندات منتهية في فرع ${esc(name)}: ${count}"><span>مستندات منتهية · ${esc(name)}</span><b>${count}</b></div>`).join(''):'<div class="rd-empty">لا مستندات منتهية ضمن الفلتر.</div>'}</div>
       </div>
 
       <div class="rd-card rd-3d">
@@ -1129,6 +1175,20 @@ ${d.accLine}
     // branch sheet
     const br = branches.map(b=>({'الفرع':b.name,'الأسطول':b.t,'جاهز':b.r,'النسبة %':b.pct,'مهام متأخرة':b.ov}));
     if(br.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(br), 'الفروع');
+    // docs sheet (تقرير المستندات التفصيلي)
+    const docRows = list.map(c=>{
+      const row={'اللوحة':c.plate||'','الفرع':c.branch||''};
+      let worst=null;
+      DOC_TYPES.forEach(dt=>{
+        const d=daysFrom(c[dt.key]);
+        row[dt.label]=c[dt.key]||'';
+        row['متبقي '+dt.label]=(d===null||isNaN(d))?'':d;
+        if(d!==null&&!isNaN(d)&&(worst===null||d<worst)) worst=d;
+      });
+      row['أخطر مستند (يوم)']=worst===null?'':worst;
+      return row;
+    });
+    if(docRows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(docRows), 'المستندات');
     (()=>{ const pb=periodBounds(); const bsfx=(rf.branch&&rf.branch!=='all')?('_'+String(rf.branch).replace(/\s+/g,'-')):''; const fname=(window.periodRange.preset==='all')?('yahma-report-'+todayStr()+bsfx+'.xlsx'):('yahma-report-'+pb.from+'_to_'+pb.to+bsfx+'.xlsx'); XLSX.writeFile(wb, fname); })();
   };
   const excelBtn = document.getElementById('rd-excel');
@@ -1189,7 +1249,7 @@ ${d.accLine}
   };
 
   /* ---- Drill-down: click KPI / rows to see cars ---- */
-  function openDrill(title, cars){
+  function openDrill(title, cars, extraCol){
     let ov = document.getElementById('rd-drill-overlay');
     if(!ov){
       ov = document.createElement('div');
@@ -1200,15 +1260,16 @@ ${d.accLine}
     const rows = (cars||[]).map(c=>{
       let ready='—';
       try{ if(typeof vehicleReadiness==='function'){ const r=vehicleReadiness(c); ready=r.ready?'جاهز':(r.label||'غير جاهز'); } }catch(e){}
+      const extra = extraCol ? `<td>${esc(extraCol.get(c))}</td>` : '';
       return `<tr data-id="${esc(c.id)}">
         <td class="plate">${esc(c.plate||'—')}</td>
         <td>${esc([c.brand,c.model].filter(Boolean).join(' '))}</td>
         <td>${esc(c.branch||'—')}</td>
         <td>${esc(c.carStatus||'—')}</td>
         <td>${esc(ready)}</td>
-        <td>${esc(c.owner||'—')}</td>
+        <td>${esc(c.owner||'—')}</td>${extra}
       </tr>`;
-    }).join('') || `<tr><td colspan="6" style="text-align:center;color:#888;padding:20px">لا توجد سيارات في هذا التصنيف</td></tr>`;
+    }).join('') || `<tr><td colspan="${extraCol?7:6}" style="text-align:center;color:#888;padding:20px">لا توجد سيارات في هذا التصنيف</td></tr>`;
     ov.innerHTML = `<div class="rd-drill-modal" role="dialog">
       <div class="rd-drill-head">
         <div><h3>${esc(title)}</h3><p>${(cars||[]).length} سيارة</p></div>
@@ -1216,7 +1277,7 @@ ${d.accLine}
       </div>
       <div class="rd-drill-body">
         <table class="rd-drill-table"><thead><tr>
-          <th>اللوحة</th><th>السيارة</th><th>الفرع</th><th>الحالة</th><th>الجاهزية</th><th>المالك</th>
+          <th>اللوحة</th><th>السيارة</th><th>الفرع</th><th>الحالة</th><th>الجاهزية</th><th>المالك</th>${extraCol?`<th>${esc(extraCol.label)}</th>`:''}
         </tr></thead><tbody>${rows}</tbody></table>
       </div>
       <div class="rd-drill-foot">
@@ -1239,10 +1300,14 @@ ${d.accLine}
     });
     document.getElementById('rd-drill-excel').onclick = async ()=>{
       if(!(await ensureXlsxReady())){ alert('مكتبة Excel غير متاحة'); return; }
-      const data = (cars||[]).map(c=>({
-        'اللوحة':c.plate||'','الفرع':c.branch||'','الحالة':c.carStatus||'',
-        'الماركة':c.brand||'','الموديل':c.model||'','المالك':c.owner||''
-      }));
+      const data = (cars||[]).map(c=>{
+        const r={
+          'اللوحة':c.plate||'','الفرع':c.branch||'','الحالة':c.carStatus||'',
+          'الماركة':c.brand||'','الموديل':c.model||'','المالك':c.owner||''
+        };
+        if(extraCol) r[extraCol.label]=extraCol.get(c);
+        return r;
+      });
       const ws=XLSX.utils.json_to_sheet(data.length?data:[{'اللوحة':'لا بيانات'}]);
       const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'التفاصيل');
       XLSX.writeFile(wb, 'yahma-drill-'+Date.now()+'.xlsx');
@@ -1293,6 +1358,26 @@ ${d.accLine}
     ];
     el.onclick = ()=>{ const m=maps[idx]; if(m) openDrill(m[0], m[1]); };
     el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click();}};
+  });
+
+  // تقرير المستندات التفصيلي: خلايا الأنواع والنطاقات
+  content.querySelectorAll('.rd-doc-cell').forEach(el=>{
+    el.onclick = ()=>{
+      const doc = DOC_TYPES.find(d=>d.key===el.dataset.doc);
+      const b = DOC_BUCKETS.find(x=>x.key===el.dataset.bucket);
+      if(!doc||!b) return;
+      const cars = (docDetail.find(d=>d.key===doc.key)||{buckets:{}}).buckets[b.key]||[];
+      openDrill(doc.label+' — '+b.label, cars, {label:'انتهاء '+doc.label, get:c=>c[doc.key]||'—'});
+    };
+  });
+  content.querySelectorAll('.rd-doc-branch').forEach(el=>{
+    const open=()=>{
+      const br=el.dataset.branch;
+      const cars=list.filter(c=>(String(c.branch||'غير محدد').trim()||'غير محدد')===br && DOC_TYPES.some(dt=>docBucketOf(daysFrom(c[dt.key]))==='over'));
+      openDrill('مستندات منتهية — '+br, cars);
+    };
+    el.onclick = open;
+    el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
   });
 
   content.querySelectorAll('.rd-bar-row').forEach(el=>{

@@ -866,4 +866,15 @@ input:focus, select:focus, textarea:focus, .search input:focus, .topbar-search-w
   transform: scale(1.06);
   box-shadow: 0 4px 12px rgba(8,112,111,.3);
 }
+/* تقرير المستندات التفصيلي */
+.rd-doc-table{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.rd-doc-h,.rd-doc-r{display:grid;grid-template-columns:minmax(90px,1.2fr) repeat(4,minmax(64px,1fr));gap:6px;align-items:center}
+.rd-doc-h{font-weight:800;color:#0A5F5D;font-size:11.5px;padding:4px 2px}
+.rd-doc-r>span{font-size:12.5px;font-weight:700}
+.rd-doc-cell{border:0;border-radius:8px;background:#F7FBFA;font-size:14px;font-weight:800;padding:8px 4px;cursor:pointer;font-family:inherit;transition:background .15s ease,transform .15s ease}
+.rd-doc-cell:hover{background:#EDF7F4;transform:translateY(-1px)}
+.rd-doc-cell.bad{background:#FBE4E1;color:#CE4B3D}
+.rd-doc-cell.warn{background:#FCEFD7;color:#D6952A}
+.rd-doc-cell.info{background:#E7F7F6;color:#0E8F8D}
+.rd-doc-branch{cursor:pointer}
 
