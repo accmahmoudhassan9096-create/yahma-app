@@ -66,13 +66,13 @@
   async function exportFleetExcel(list, headers) {
     const fleet = list || (Array.isArray(global.fleet) ? global.fleet : []);
     const H = headers || [
-      'رقم اللوحة', 'الماركة', 'النوع', 'الموديل', 'السنة', 'الشاسيه', 'رقم الكارت',
+      'رقم اللوحة', 'الماركة', 'النوع', 'الموديل', 'الشاسيه', 'رقم الكارت',
       'حالة الكارت', 'انتهاء الكارت', 'حالة الرخصة', 'انتهاء الرخصة', 'حالة الفحص',
       'التأمين', 'المالك', 'الفرع', 'حالة السيارة', 'العداد', 'الصيانة القادمة', 'ملاحظات'
     ];
     const rows = fleet.map(function (c) {
       return [
-        c.plate, c.brand, c.type, c.model, c.year, c.serial, c.cardNumber,
+        c.plate, c.brand, c.type, c.model, c.serial, c.cardNumber,
         c.cardStatus, c.cardExpiry, c.licenseStatus, c.licenseExpiry, c.inspectionStatus,
         c.insuranceStatus, c.owner, c.branch, c.carStatus, c.odometer, c.nextService, c.notes
       ];

@@ -138,10 +138,10 @@ function exportCurrentTabPDF(){
       const q=(document.getElementById('fleet-search')?.value||'').trim().toLowerCase();
       if(q) list=list.filter(c=>[c.plate,c.brand,c.model,c.owner,c.branch].join(' ').toLowerCase().includes(q));
     }catch(_){}
-    const headers=['رقم اللوحة','الماركة','الموديل','السنة','الفرع','المالك','حالة السيارة','الكارت','الرخصة','الفحص','الجاهزية'];
+    const headers=['رقم اللوحة','الماركة','النوع','الموديل','الفرع','المالك','حالة السيارة','الكارت','الرخصة','الفحص','الجاهزية'];
     const rows=list.map(c=>{
       const rdy=vehicleReadiness(c);
-      return [c.plate||'—',c.brand||'—',c.model||'—',c.year||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',
+      return [c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',
         cardDisplayStatus(c.cardExpiry,c.cardStatus).label,
         licenseDisplayStatus(c.licenseExpiry).label,
         inspectionDisplayStatus(c.inspectionStatus).label,

@@ -79,7 +79,7 @@
         if (filters.brand && car.brand !== filters.brand) continue;
         if (filters.type && car.type !== filters.type) continue;
         if (filters.model && car.model !== filters.model) continue;
-        if (filters.year && String(car.year || '') !== filters.year) continue;
+        if (filters.year && String(car.model || '') !== filters.year) continue;
         if (filters.cardStatus && String(car.cardStatus || '') !== filters.cardStatus) continue;
         if (filters.licenseStatus && String(car.licenseStatus || '') !== filters.licenseStatus) continue;
         if (filters.inspectionStatus && String(car.inspectionStatus || '') !== filters.inspectionStatus) continue;
@@ -88,7 +88,7 @@
         if (filters.carStatus && car.carStatus !== filters.carStatus) continue;
         if (query) {
           if (!car._searchHay) {
-            car._searchHay = [car.plate, car.brand, car.type, car.model, car.year, car.serial,
+            car._searchHay = [car.plate, car.brand, car.type, car.model, car.serial,
               car.cardNumber, car.owner, car.branch, car.carStatus]
               .map(value => String(value || '').toLowerCase()).join(' ');
           }
@@ -180,8 +180,7 @@
       <div class="fleet-filter-grid">
         <label>الماركة<select id="ff-brand">${optionList(uniq('brand'),'كل الماركات')}</select></label>
         <label>النوع<select id="ff-type">${optionList(uniq('type'),'كل الأنواع')}</select></label>
-        <label>الموديل<select id="ff-model">${optionList(uniq('model'),'كل الموديلات')}</select></label>
-        <label>سنة الصنع<select id="ff-year">${optionList(uniq('year'),'كل السنوات')}</select></label>
+        <label>الموديل (السنة)<select id="ff-model">${optionList(uniq('model'),'كل الموديلات')}</select></label>
         <label>حالة البطاقة<select id="ff-card-status"><option value="">كل الحالات</option><option>نشط</option><option>ملغى</option><option>موقوف</option></select></label>
         <label>صلاحية البطاقة<select id="ff-card-condition"><option value="">كل الحالات</option><option value="green">🟢 سارية</option><option value="amber">🟡 قريبة الانتهاء</option><option value="red">🔴 منتهية / غير سارية</option></select></label>
         <label>حالة الرخصة<select id="ff-license-status"><option value="">كل الحالات</option><option>نشط</option><option>ملغى</option><option>موقوف</option><option>منتهي</option></select></label>
@@ -225,7 +224,7 @@
 
   const $=id=>document.getElementById(id);
   const search=$('fleet-search');
-  const filters=['ff-brand','ff-type','ff-model','ff-year','ff-card-status','ff-card-condition','ff-license-status','ff-license-condition','ff-inspection-status','ff-inspection-condition','ff-owner','ff-branch','ff-car-status','ff-prep-status'].map($);
+  const filters=['ff-brand','ff-type','ff-model','ff-card-status','ff-card-condition','ff-license-status','ff-license-condition','ff-inspection-status','ff-inspection-condition','ff-owner','ff-branch','ff-car-status','ff-prep-status'].map($);
   let activeQuick=window.pendingFleetQuickFilter||'';
   window.pendingFleetQuickFilter='';
   // نتائج البحث الموحّد في الشريط العلوي (يكتبه dashboard عند الضغط على Enter)
@@ -248,7 +247,7 @@
       return [
         (search&&search.value)||'',
         activeQuick||'',
-        val('ff-brand'),val('ff-type'),val('ff-model'),val('ff-year'),
+        val('ff-brand'),val('ff-type'),val('ff-model'),
         val('ff-card-status'),val('ff-card-condition'),
         val('ff-license-status'),val('ff-license-condition'),
         val('ff-inspection-status'),val('ff-inspection-condition'),
@@ -363,7 +362,7 @@
     const _ck=_fleetFilterKey();
     if(_filterCacheKey===_ck && _filterCacheRows) return _filterCacheRows;
 const q=(search.value||'').trim().toLowerCase();
-    const fBrand=val('ff-brand'), fType=val('ff-type'), fModel=val('ff-model'), fYear=val('ff-year');
+    const fBrand=val('ff-brand'), fType=val('ff-type'), fModel=val('ff-model');
     const fCardSt=val('ff-card-status'), fCardCond=val('ff-card-condition');
     const fLicSt=val('ff-license-status'), fLicCond=val('ff-license-condition');
     const fInspSt=val('ff-inspection-status'), fInspCond=val('ff-inspection-condition');
@@ -376,7 +375,6 @@ const q=(search.value||'').trim().toLowerCase();
       if(fBrand && c.brand!==fBrand) continue;
       if(fType && c.type!==fType) continue;
       if(fModel && c.model!==fModel) continue;
-      if(fYear && String(c.year||'')!==fYear) continue;
       if(fCardSt && String(c.cardStatus||'')!==fCardSt) continue;
       if(fLicSt && String(c.licenseStatus||'')!==fLicSt) continue;
       if(fInspSt && String(c.inspectionStatus||'')!==fInspSt) continue;

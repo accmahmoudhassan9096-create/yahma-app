@@ -203,7 +203,8 @@ function seedData(){
       id: uid(),
       plate: 'ر ن س ' + (6700 + i),
       brand,
-      model: models[i % models.length],
+      type: models[i % models.length],
+      model: String(2022 + (i % 5)),
       year: String(2022 + (i % 5)),
       serial: String(400000000 + i*137931),
       cardNumber: '14-00' + (600000 + i*1234),
@@ -224,6 +225,34 @@ function seedData(){
     });
   }
   return rows;
+}
+
+/* ===== ترحيل اصطلاح النوع/الموديل (مرة واحدة) =====
+   اصطلاح المنصة: «النوع» = اسم الطراز (سونت/يارس)، «الموديل» = السنة (2026).
+   يحول أي بيانات قديمة (النوع فارغ + الموديل اسم طراز + سنة الصنع سنة)
+   إلى الاصطلاح الجديد ويحفظها. يعمل للمدير/الديمو فقط (بيانات شاملة). */
+async function migrateTypeModelConvention(){
+  try{
+    if(localStorage.getItem('yahma-typemodel-mig-v1')) return {skipped:true};
+    if(typeof userBranchScope==='function' && userBranchScope()) return {skipped:true};
+    if(!Array.isArray(fleet) || !fleet.length) return {skipped:true};
+    const yearLike=v=>/^\d{4}$/.test(String(v||'').trim());
+    const ids=[];
+    fleet.forEach(c=>{
+      const m=String(c.model||'').trim(), t=String(c.type||'').trim(), y=String(c.year||'').trim();
+      if(!m || yearLike(m)) return;
+      let changed=false;
+      if(c.type!==m){ c.type=m; changed=true; }
+      const wy=yearLike(y)?y:'';
+      if(String(c.model||'')!==wy){ c.model=wy; changed=true; }
+      if(String(c.year||'')!==wy){ c.year=wy; changed=true; }
+      if(changed) ids.push(c.id);
+    });
+    localStorage.setItem('yahma-typemodel-mig-v1','1');
+    if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){} }
+    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد النوع/الموديل: '+ids.length+' سيارة'); }catch(_){}
+    return {migrated:ids.length};
+  }catch(e){ return {error:String(e&&e.message||e)}; }
 }
 
 

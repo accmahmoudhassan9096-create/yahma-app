@@ -132,6 +132,7 @@ function activateAuthenticatedSession(user){
       if(typeof applyRole==='function') applyRole();
       showAppScreen();
       if(typeof loadData==='function') await loadData(false);
+      try{ if(typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){}
       if(typeof render==='function') render();
     }catch(error){
       console.error('تعذر تهيئة حساب المستخدم',error);
@@ -315,6 +316,7 @@ function initAuthUI(){
         window.syncMessage='وضع محلي (تجريبي)';
         showAppScreen();
         if(typeof loadData==='function') await loadData(false);
+        try{ if(typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){}
         if(typeof applyRole==='function') applyRole();
         if(typeof render==='function') render();
       }catch(e){

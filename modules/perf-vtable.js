@@ -116,8 +116,12 @@
       if((!Array.isArray(window.fleet) || !window.fleet.length) && typeof window.YahmaDB.loadFleet==='function'){
         const rows = await window.YahmaDB.loadFleet();
         if(rows && rows.length){
-          window.fleet = rows;
-          if(typeof fleet !== 'undefined') fleet = rows;
+          // مرّر بنفس بوابات التحميل: نطاق الفرع ثم ترحيل الاصطلاح، حتى لا تُكتب بيانات قديمة فوق حالة أحدث
+          let next = rows;
+          try{ if(typeof scopeFleetToUser==='function') next = scopeFleetToUser(rows); }catch(_){}
+          window.fleet = next;
+          if(typeof fleet !== 'undefined') fleet = next;
+          try{ if(next && next.length && typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){}
           if(typeof render === 'function') render();
         }
       }

@@ -127,7 +127,7 @@
     const reviewAt=car.prepChecklist.finalReviewAt||'';
     const box=document.createElement('div'); box.className='modal-overlay'; box.style.display='flex'; box.id='prep-life-overlay';
     box.innerHTML=`<div class="modal" style="max-width:980px;width:min(980px,96vw);max-height:92vh;overflow:auto">
-      <div class="modal-head"><div><h3 style="margin:0">دورة تجهيز السيارة</h3><div class="muted-small">${E(car.plate||'—')} — ${E(car.brand||'')} ${E(car.model||'')} ${car.year?E(car.year):''}</div></div><span class="readiness-pill ${E(prepStatusForCar(car).level)}">${E(prepStatusForCar(car).label)}</span></div>
+      <div class="modal-head"><div><h3 style="margin:0">دورة تجهيز السيارة</h3><div class="muted-small">${E(car.plate||'—')} — ${E(car.brand||'')} ${E(car.type||'')} ${E(car.model||'')}</div></div><span class="readiness-pill ${E(prepStatusForCar(car).level)}">${E(prepStatusForCar(car).label)}</span></div>
       <div class="prep-life-grid">
         <div class="prep-life-card"><h4>① فحص الجاهزية</h4><div id="life-checks">${r.checks.map(x=>`<div class="prep-check-row"><div class="prep-check-main"><span class="prep-check-icon ${x.ok?'ok':'no'}">${x.ok?'✓':'!'}</span><b>${E(x.label)}</b></div><span class="muted-small">${x.ok?'مستوفى':'يحتاج إجراء'}</span></div>`).join('')}</div>
           <div class="prep-approval ${canApprove?'ok':''}"><h5>${canApprove?'✓ السيارة مستوفية شروط الاعتماد':'⏳ السيارة غير مستوفية لشروط الاعتماد'}</h5><p>${canApprove?'يمكن تنفيذ المراجعة النهائية واعتماد السيارة.':'لا يمكن اعتماد السيارة حتى تكتمل شروط الجاهزية وتغلق المهام المفتوحة.'}</p></div>

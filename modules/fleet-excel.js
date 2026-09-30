@@ -1,13 +1,12 @@
 (function (global) {
   'use strict';
 
-  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','النوع','الموديل','سنة الصنع','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات'];
+  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','النوع','الموديل','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات'];
   const FIELD_ALIASES = {
     plate: ['رقم اللوحة','اللوحة','رقم السيارة','plate'],
     brand: ['الشركة','الماركة','ماركة','brand','make','company'],
     type: ['النوع','نوع السيارة','نوع المركبة','نوع العربية','الفئة','فئة السيارة','نوع الهيكل','الشكل','type','vehicle type'],
-    model: ['الموديل','الطراز','موديل السيارة','model'],
-    year: ['سنة الصنع','سنة الصنع ','year'],
+    model: ['الموديل','الطراز','موديل السيارة','سنة الصنع','سنة الموديل','السنة','model'],
     serial: ['الرقم التسلسلي','رقم الشاسيه','serial','serial number','chassis'],
     cardNumber: ['رقم البطاقة','رقم الكارت','card number'],
     cardStatus: ['حالة الكارت','حالة البطاقة','card status'],
@@ -68,7 +67,7 @@
     if (has('شركه') || has('ماركه')) return 'brand';
     if (has('طراز') || has('موديل')) return 'model';
     if (has('نوع') && !has('وقود')) return 'type';
-    if (has('سنه')) return 'year';
+    if (has('سنه')) return 'model';
     if (has('تسلسلي') || has('شاسيه')) return 'serial';
     if (has('المالك')) return has('رقم') ? 'ownerNumber' : 'owner';
     if (has('ملاحظات')) return 'notes';
@@ -112,7 +111,7 @@
   }
 
   const IMPORT_FIELDS = [
-    'plate','brand','type','model','year','serial','cardNumber','cardStatus','cardExpiry',
+    'plate','brand','type','model','serial','cardNumber','cardStatus','cardExpiry',
     'licenseStatus','licenseExpiry','inspectionStatus','insuranceStatus','insuranceCompany','insuranceExpiry','owner','ownerNumber',
     'odometer','nextService','lastMaintenance','maintenanceCost','workshop','documentUrl',
     'maintenanceNotes','branch','carStatus','notes'
@@ -180,7 +179,7 @@
       context.alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.');
       return;
     }
-    const example = ['ر ن س 6724','هيونداي','سيدان','اكسنت','2025','82433120','14-00719121','نشط','24/10/2026','نشط','24/10/2027','سليم','ساري','التعاونية','24/10/2027','أحمد سعيد','10001','الفرع الرئيسي','نشط','','','','','','','','',''];
+    const example = ['ر ن س 6724','هيونداي','سونت','2026','82433120','14-00719121','نشط','24/10/2026','نشط','24/10/2027','سليم','ساري','التعاونية','24/10/2027','أحمد سعيد','10001','الفرع الرئيسي','نشط','','','','','','','','',''];
     const worksheet = global.XLSX.utils.aoa_to_sheet([EXCEL_HEADERS, example]);
     worksheet['!cols'] = EXCEL_HEADERS.map(() => ({ wch: 20 }));
     const workbook = global.XLSX.utils.book_new();
@@ -198,7 +197,7 @@
       return;
     }
     const rows = context.fleet.map(car => [
-      car.plate, car.brand, car.type, car.model, car.year, car.serial, car.cardNumber, car.cardStatus, car.cardExpiry,
+      car.plate, car.brand, car.type, car.model, car.serial, car.cardNumber, car.cardStatus, car.cardExpiry,
       car.licenseStatus, car.licenseExpiry, car.inspectionStatus, car.insuranceStatus, car.insuranceCompany, car.insuranceExpiry, car.owner,
       car.ownerNumber, car.branch, car.carStatus, car.odometer, car.nextService, car.lastMaintenance,
       car.maintenanceCost, car.workshop, car.documentUrl, car.maintenanceNotes, car.notes

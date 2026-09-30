@@ -48,7 +48,7 @@
         brand: trimmed('f-brand'),
         type: trimmed('f-type'),
         model: trimmed('f-model'),
-        year: trimmed('f-year'),
+        year: trimmed('f-model'),
         serial,
         cardNumber,
         cardStatus: trimmed('f-cardstatus'),
