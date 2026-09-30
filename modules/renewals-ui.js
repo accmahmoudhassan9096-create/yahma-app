@@ -121,9 +121,9 @@ function renderRenewals(content, mode='inspection'){
   function getRows(){
     const q=val('ren-search').toLowerCase();
     return fleet.filter(c=>{
-      if(insuranceMode&&textTag(c.insuranceStatus).level==='green') return false;
+      // وضع التأمين يعرض كل السيارات (السارية أولًا حسب الفرز) — زر «يحتاج متابعة» يضيّق عند الحاجة
       if(licenseMode&&dateStatus(c.licenseExpiry).level==='green') return false;
-      if(!licenseMode&&(inspectionDisplayStatus(c.inspectionStatus).level==='green'||pendingIds.has(String(c.id)))) return false;
+      if(!licenseMode&&!insuranceMode&&(inspectionDisplayStatus(c.inspectionStatus).level==='green'||pendingIds.has(String(c.id)))) return false;
       if(q){
         const hay=[c.plate,c.brand,c.model,c.owner,c.branch,c.carStatus,c.inspectionStatus,c.insuranceCompany].map(v=>String(v||'').toLowerCase()).join(' ');
         if(!hay.includes(q)) return false;
@@ -164,6 +164,10 @@ function renderRenewals(content, mode='inspection'){
       }
       return true;
     }).sort((a,b)=>{
+      if(insuranceMode){
+        const rankIns={red:0,amber:1,grey:2,green:3};
+        return rankIns[textTag(a.insuranceStatus).level]-rankIns[textTag(b.insuranceStatus).level];
+      }
       const av=Math.min(rank[inspectionDisplayStatus(a.inspectionStatus).level], rank[dateStatus(a.licenseExpiry).level]);
       const bv=Math.min(rank[inspectionDisplayStatus(b.inspectionStatus).level], rank[dateStatus(b.licenseExpiry).level]);
       return av-bv;
