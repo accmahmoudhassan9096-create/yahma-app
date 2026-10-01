@@ -8,7 +8,7 @@
     const value = (field, fallback = '') => car ? (car[field] ?? fallback) : fallback;
     const fields = {
       'f-plate': value('plate'), 'f-brand': value('brand'), 'f-type': value('type'),
-      'f-model': value('model'), 'f-serial': value('serial'),
+      'f-model': value('model'), 'f-color': value('color'), 'f-serial': value('serial'),
       'f-cardnumber': value('cardNumber'), 'f-cardstatus': value('cardStatus'),
       'f-cardexpiry': car ? normalizeDateValue(car.cardExpiry) : '',
       'f-licensestatus': value('licenseStatus'),
@@ -17,7 +17,7 @@
       'f-insurancecompany': value('insuranceCompany'),
       'f-insuranceexpiry': car ? normalizeDateValue(car.insuranceExpiry) : '',
       'f-owner': value('owner'), 'f-ownernumber': value('ownerNumber'),
-      'f-branch': value('branch'), 'f-carstatus': value('carStatus'), 'f-notes': value('notes'),
+      'f-branch': value('branch'), 'f-city': value('city'), 'f-carstatus': value('carStatus'), 'f-notes': value('notes'),
       'f-odometer': value('odometer'), 'f-dailyrate': value('dailyRate'),
       'f-renteddays': value('rentedDaysMonth'), 'f-nextservice': value('nextService'),
       'f-lastmaintenance': value('lastMaintenance'), 'f-maintenancecost': value('maintenanceCost'),

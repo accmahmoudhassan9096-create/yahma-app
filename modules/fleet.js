@@ -190,6 +190,7 @@
         <label>نتيجة الفحص<select id="ff-inspection-condition"><option value="">كل الحالات</option><option value="green">🟢 سليم</option><option value="amber">🟡 يحتاج فحص</option><option value="red">🔴 غير سليم / لم يتم الفحص</option></select></label>
         <label>المالك<select id="ff-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
         <label>الفرع<select id="ff-branch">${optionList(uniq('branch'),'كل الفروع')}</select></label>
+        <label>المدينة<select id="ff-city">${optionList(uniq('city'),'كل المدن')}</select></label>
         <label>حالة السيارة<select id="ff-car-status"><option value="">كل الحالات</option><option>تحت الصيانة</option><option>حجز</option><option>متاحة للايجار</option><option>محولة غير مستلمة</option><option>مسروقة</option><option>للبيع</option><option>مؤجرة</option></select></label>
         <label>حالة التجهيز<select id="ff-prep-status"><option value="">كل الحالات</option><option value="green">جاهزة للتأجير</option><option value="amber">تحت التجهيز</option><option value="red">تحتاج إجراء</option><option value="blue">مراجعة نهائية</option></select></label>
       </div>
@@ -199,7 +200,7 @@
     <div class="table-scroll fleet-table-wrap" id="fleet-scroll">
       <table class="fleet-table"><thead><tr>
         <th class="th-check"><input type="checkbox" id="bulk-head-check" aria-label="تحديد الكل" title="تحديد الكل"></th>
-        <th>رقم اللوحة</th><th>الماركة</th><th>النوع</th><th>الموديل</th><th>الرقم التسلسلي</th><th>رقم البطاقة</th><th>حالة البطاقة</th><th>تاريخ نهاية البطاقة</th><th>حالة الرخصة</th><th>تاريخ نهاية الرخصة</th><th>حالة الفحص</th><th>المالك</th><th>الفرع</th><th>حالة السيارة</th><th>حالة التجهيز</th><th>الملف</th>
+        <th>رقم اللوحة</th><th>الماركة</th><th>النوع</th><th>الموديل</th><th>اللون</th><th>الرقم التسلسلي</th><th>رقم البطاقة</th><th>حالة البطاقة</th><th>تاريخ نهاية البطاقة</th><th>حالة الرخصة</th><th>تاريخ نهاية الرخصة</th><th>حالة الفحص</th><th>المالك</th><th>الفرع</th><th>المدينة</th><th>حالة السيارة</th><th>حالة التجهيز</th><th>الملف</th>
       </tr></thead><tbody id="fleet-tbody"></tbody></table>
     </div>
     <div class="fleet-cards" id="fleet-cards"></div>
@@ -225,7 +226,7 @@
 
   const $=id=>document.getElementById(id);
   const search=$('fleet-search');
-  const filters=['ff-brand','ff-type','ff-model','ff-card-status','ff-card-condition','ff-license-status','ff-license-condition','ff-inspection-status','ff-inspection-condition','ff-owner','ff-branch','ff-car-status','ff-prep-status'].map($);
+  const filters=['ff-brand','ff-type','ff-model','ff-card-status','ff-card-condition','ff-license-status','ff-license-condition','ff-inspection-status','ff-inspection-condition','ff-owner','ff-branch','ff-city','ff-car-status','ff-prep-status'].map($);
   let activeQuick=window.pendingFleetQuickFilter||'';
   window.pendingFleetQuickFilter='';
   // نتائج البحث الموحّد في الشريط العلوي (يكتبه dashboard عند الضغط على Enter)
@@ -252,7 +253,7 @@
         val('ff-card-status'),val('ff-card-condition'),
         val('ff-license-status'),val('ff-license-condition'),
         val('ff-inspection-status'),val('ff-inspection-condition'),
-        val('ff-owner'),val('ff-branch'),val('ff-car-status'),val('ff-prep-status'),
+        val('ff-owner'),val('ff-branch'),val('ff-city'),val('ff-car-status'),val('ff-prep-status'),
         fleet.length
       ].join('\x1f');
     }catch(e){ return String(Date.now()); }
@@ -367,7 +368,7 @@ const q=(search.value||'').trim().toLowerCase();
     const fCardSt=val('ff-card-status'), fCardCond=val('ff-card-condition');
     const fLicSt=val('ff-license-status'), fLicCond=val('ff-license-condition');
     const fInspSt=val('ff-inspection-status'), fInspCond=val('ff-inspection-condition');
-    const fOwner=val('ff-owner'), fBranch=val('ff-branch'), fCarSt=val('ff-car-status'), fPrep=val('ff-prep-status');
+    const fOwner=val('ff-owner'), fBranch=val('ff-branch'), fCity=val('ff-city'), fCarSt=val('ff-car-status'), fPrep=val('ff-prep-status');
     const needStatus = !!(fCardCond || fLicCond || fInspCond || fPrep || activeQuick);
     const rows=[];
     const n=fleet.length;
@@ -381,10 +382,11 @@ const q=(search.value||'').trim().toLowerCase();
       if(fInspSt && String(c.inspectionStatus||'')!==fInspSt) continue;
       if(fOwner && c.owner!==fOwner) continue;
       if(fBranch && c.branch!==fBranch) continue;
+      if(fCity && String(c.city||'')!==fCity) continue;
       if(fCarSt && !carStatusMatch(c.carStatus,fCarSt)) continue;
       if(q){
         if(!c._searchHay){
-          c._searchHay=[c.plate,c.brand,c.type,c.model,c.year,c.serial,c.cardNumber,c.owner,c.branch,c.carStatus].map(v=>String(v||'').toLowerCase()).join(' ');
+          c._searchHay=[c.plate,c.brand,c.type,c.model,c.city,c.serial,c.cardNumber,c.owner,c.branch,c.carStatus].map(v=>String(v||'').toLowerCase()).join(' ');
         }
         if(!c._searchHay.includes(q)) continue;
       }
@@ -458,7 +460,7 @@ const q=(search.value||'').trim().toLowerCase();
       const scrollEl = document.getElementById('fleet-scroll');
       function renderFleetRow(c){
         const card=cardState(c),lic=licenseState(c),insp=inspectionState(c),carTag=textTag(c.carStatus),prepTag=prepStatusForCar(c);
-        return `<tr data-id="${escapeHtml(c.id)}"><td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td><td class="plate">${escapeHtml(c.plate||'—')}</td><td>${escapeHtml(c.brand||'—')}</td><td>${escapeHtml(c.type||'—')}</td><td>${escapeHtml(c.model||'—')}</td><td class="serial-cell">${escapeHtml(c.serial||'—')}</td><td>${escapeHtml(c.cardNumber||'—')}</td><td><span class="tag ${card.level}">${escapeHtml(card.label)}</span></td><td>${fmtDate(c.cardExpiry)}</td><td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td><td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td><td>${escapeHtml(c.owner||'—')}</td><td>${escapeHtml(c.branch||'—')}</td><td><span class="tag ${carTag.level}">${escapeHtml(carTag.label)}</span></td><td><span class="readiness-pill ${prepTag.level}">${escapeHtml(prepTag.label)}</span></td><td><button type="button" class="btn btn-ghost btn-small fleet-view-btn" data-view-car="${escapeHtml(c.id)}">عرض الملف</button></td></tr>`;
+        return `<tr data-id="${escapeHtml(c.id)}"><td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td><td class="plate">${escapeHtml(c.plate||'—')}</td><td>${escapeHtml(c.brand||'—')}</td><td>${escapeHtml(c.type||'—')}</td><td>${escapeHtml(c.model||'—')}</td><td>${escapeHtml(c.color||'—')}</td><td class="serial-cell">${escapeHtml(c.serial||'—')}</td><td>${escapeHtml(c.cardNumber||'—')}</td><td><span class="tag ${card.level}">${escapeHtml(card.label)}</span></td><td>${fmtDate(c.cardExpiry)}</td><td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td><td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td><td>${escapeHtml(c.owner||'—')}</td><td>${escapeHtml(c.branch||'—')}</td><td>${escapeHtml(c.city||'—')}</td><td><span class="tag ${carTag.level}">${escapeHtml(carTag.label)}</span></td><td><span class="readiness-pill ${prepTag.level}">${escapeHtml(prepTag.label)}</span></td><td><button type="button" class="btn btn-ghost btn-small fleet-view-btn" data-view-car="${escapeHtml(c.id)}">عرض الملف</button></td></tr>`;
       }
       function bindFleetRows(tbody){
         tbody.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openModal(tr.dataset.id));
@@ -480,16 +482,16 @@ const q=(search.value||'').trim().toLowerCase();
             rowHeight: 52,
             overscan: 12,
             threshold: 35,
-            colCount: 17,
+            colCount: 19,
             renderRow: function(c){ return renderFleetRow(c); },
             afterRender: function(tbody){ bindFleetRows(tbody); },
-            emptyHtml: '<tr><td colspan="17"><div class="empty">لا توجد نتائج مطابقة للفلاتر الحالية</div></td></tr>'
+            emptyHtml: '<tr><td colspan="19"><div class="empty">لا توجد نتائج مطابقة للفلاتر الحالية</div></td></tr>'
           });
           window._fleetVT._tb = tb;
         }
         window._fleetVT.setItems(rows, true);
       } else {
-        tb.innerHTML=rows.length?rows.map(renderFleetRow).join(''):`<tr><td colspan="17"><div class="empty">لا توجد نتائج مطابقة للفلاتر الحالية</div></td></tr>`;
+        tb.innerHTML=rows.length?rows.map(renderFleetRow).join(''):`<tr><td colspan="19"><div class="empty">لا توجد نتائج مطابقة للفلاتر الحالية</div></td></tr>`;
         bindFleetRows(tb);
       }
     })();

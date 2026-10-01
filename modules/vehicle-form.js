@@ -62,6 +62,8 @@
         owner: trimmed('f-owner'),
         ownerNumber: trimmed('f-ownernumber'),
         branch: trimmed('f-branch'),
+        city: trimmed('f-city'),
+        color: trimmed('f-color'),
         carStatus: trimmed('f-carstatus'),
         notes: trimmed('f-notes'),
         odometer: trimmed('f-odometer'),

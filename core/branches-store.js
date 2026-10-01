@@ -246,13 +246,13 @@ async function migrateCarStatusValues(){
    يوحد اختلافات الإملاء (هونداي/هيونداى ← هيونداي ...). يعمل للمدير/الديمو فقط. */
 async function migrateCarBrands(){
   try{
-    if(localStorage.getItem('yahma-brand-mig-v1')) return {skipped:true};
+    if(localStorage.getItem('yahma-brand-mig-v2')) return {skipped:true};
     if(typeof userBranchScope==='function' && userBranchScope()) return {skipped:true};
     if(!Array.isArray(fleet) || !fleet.length) return {skipped:true};
     if(typeof canonicalBrand!=='function') return {skipped:true};
     const ids=[];
     fleet.forEach(c=>{ const b=String(c.brand||''); if(!b.trim()) return; const cb=canonicalBrand(b); if(cb!==b){ c.brand=cb; ids.push(c.id); } });
-    localStorage.setItem('yahma-brand-mig-v1','1');
+    localStorage.setItem('yahma-brand-mig-v2','1');
     if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){} }
     try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد أسماء الماركات: '+ids.length); }catch(_){}
     return {migrated:ids.length};

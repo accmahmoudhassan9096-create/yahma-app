@@ -1,10 +1,10 @@
 (function (global) {
   'use strict';
 
-  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','النوع','الموديل','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات'];
+  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','النوع','الموديل','اللون','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','المدينة','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات'];
   const FIELD_ALIASES = {
     plate: ['رقم اللوحة','اللوحة','رقم السيارة','plate'],
-    brand: ['الشركة','الماركة','ماركة','brand','make','company'],
+    brand: ['الشركة','الماركة','ماركة','الطراز','brand','make','company'],
     type: ['النوع','نوع السيارة','نوع المركبة','نوع العربية','الفئة','فئة السيارة','نوع الهيكل','الشكل','type','vehicle type'],
     model: ['الموديل','الطراز','موديل السيارة','سنة الصنع','سنة الموديل','السنة','model'],
     serial: ['الرقم التسلسلي','رقم الشاسيه','serial','serial number','chassis'],
@@ -19,7 +19,10 @@
     insuranceExpiry: ['تاريخ انتهاء التأمين','انتهاء التأمين','تاريخ نهاية التأمين','نهاية التأمين','insurance expiry'],
     owner: ['المالك','owner'],
     ownerNumber: ['رقم المالك','owner number'],
-    odometer: ['العداد','odometer','mileage'],
+    odometer: ['العداد','كم الحالي','كم','الممشى','odometer','mileage'],
+    dailyRate: ['سعر اليوم','سعر يومي','السعر اليومي','daily rate','dailyRate'],
+    city: ['المدينة','city'],
+    color: ['اللون','color'],
     nextService: ['موعد الصيانة القادمة','الصيانة القادمة','next service'],
     lastMaintenance: ['آخر صيانة','اخر صيانة','last maintenance'],
     maintenanceCost: ['تكلفة الصيانة','maintenance cost'],
@@ -111,10 +114,10 @@
   }
 
   const IMPORT_FIELDS = [
-    'plate','brand','type','model','serial','cardNumber','cardStatus','cardExpiry',
+    'plate','brand','type','model','color','serial','cardNumber','cardStatus','cardExpiry',
     'licenseStatus','licenseExpiry','inspectionStatus','insuranceStatus','insuranceCompany','insuranceExpiry','owner','ownerNumber',
-    'odometer','nextService','lastMaintenance','maintenanceCost','workshop','documentUrl',
-    'maintenanceNotes','branch','carStatus','notes'
+    'odometer','dailyRate','nextService','lastMaintenance','maintenanceCost','workshop','documentUrl',
+    'maintenanceNotes','branch','city','carStatus','notes'
   ];
 
   function isSoldStatus(value) {
@@ -180,7 +183,7 @@
       context.alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.');
       return;
     }
-    const example = ['ر ن س 6724','هيونداي','سونت','2026','82433120','14-00719121','نشط','24/10/2026','نشط','24/10/2027','سليم','ساري','التعاونية','24/10/2027','أحمد سعيد','10001','الفرع الرئيسي','متاحة للايجار','','','','','','','','',''];
+    const example = ['ر ن س 6724','هيونداي','سونت','2026','فضي','82433120','14-00719121','نشط','24/10/2026','نشط','24/10/2027','سليم','ساري','التعاونية','24/10/2027','أحمد سعيد','10001','الفرع الرئيسي','الرياض','متاحة للايجار','','','','','','','','',''];
     const worksheet = global.XLSX.utils.aoa_to_sheet([EXCEL_HEADERS, example]);
     worksheet['!cols'] = EXCEL_HEADERS.map(() => ({ wch: 20 }));
     const workbook = global.XLSX.utils.book_new();
@@ -198,9 +201,9 @@
       return;
     }
     const rows = context.fleet.map(car => [
-      car.plate, car.brand, car.type, car.model, car.serial, car.cardNumber, car.cardStatus, car.cardExpiry,
+      car.plate, car.brand, car.type, car.model, car.color, car.serial, car.cardNumber, car.cardStatus, car.cardExpiry,
       car.licenseStatus, car.licenseExpiry, car.inspectionStatus, car.insuranceStatus, car.insuranceCompany, car.insuranceExpiry, car.owner,
-      car.ownerNumber, car.branch, car.carStatus, car.odometer, car.nextService, car.lastMaintenance,
+      car.ownerNumber, car.branch, car.city, car.carStatus, car.odometer, car.nextService, car.lastMaintenance,
       car.maintenanceCost, car.workshop, car.documentUrl, car.maintenanceNotes, car.notes
     ]);
     const worksheet = global.XLSX.utils.aoa_to_sheet([EXCEL_HEADERS, ...rows]);
