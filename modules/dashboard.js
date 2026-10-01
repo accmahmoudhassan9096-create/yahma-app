@@ -51,10 +51,18 @@ function renderDashboard(content, context){
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
 
-  // المتاح مقابل المؤجر — مستوى الشركة (تقرير واحد)
-  const availN = available, rentN = rented;
-  const otherN = Math.max(0, total - availN - rentN);
-  const pAvail = pct(availN), pRent = pct(rentN), pOther = pct(otherN);
+  // حالة الأسطول — مستوى الشركة بالترتيب المعتمد
+  const stOf = c => String(c.carStatus || '').trim();
+  const statusRows = [
+    { label: 'تحت الصيانة', color: '#E6A23C', match: s => s.includes('صيانة') },
+    { label: 'حجز', color: '#D6952A', match: s => s === 'حجز' },
+    { label: 'خارج الخدمة', color: '#CE4B3D', match: s => s.includes('خارج') },
+    { label: 'مسروقة', color: '#991B1B', match: s => s.includes('مسروق') },
+    { label: 'معروضة للبيع', color: '#3B82C4', match: s => s === 'للبيع' },
+    { label: 'موجودة', color: '#0BAA86', match: s => s === 'موجودة' || s === 'نشط' },
+    { label: 'مؤجرة', color: '#2FA36B', match: s => s.includes('مؤجر') }
+  ].map(r => ({ label: r.label, color: r.color, n: fleet.filter(c => r.match(stOf(c))).length }));
+  statusRows.push({ label: 'أخرى', color: '#9AA5B1', n: Math.max(0, total - statusRows.reduce((s, r) => s + r.n, 0)) });
   // أسباب عدم الجاهزية بنسب
   const reasonTotal = reasons.reduce((s, [, v]) => s + v, 0) || 1;
   const reasonRows = reasons.slice(0, 5).map(([k, v]) => ({
@@ -259,18 +267,11 @@ function renderDashboard(content, context){
       </div>
     <div class="home-avail">
       <div class="home-avail-head">
-        <h3>🚗 المتاح والمؤجر — مستوى الشركة</h3>
+        <h3>🚗 حالة الأسطول — مستوى الشركة</h3>
         <span class="home-avail-total">${total} سيارة</span>
       </div>
-      <div class="home-avail-row">
-        <div class="home-donut" style="background:conic-gradient(#0BAA86 0% ${pAvail}%, #3B82C4 ${pAvail}% ${pAvail + pRent}%, #E8EEF2 ${pAvail + pRent}% 100%)">
-          <div class="home-donut-hole"><b>${pAvail}%</b><span>متاح</span></div>
-        </div>
-        <div class="home-avail-legend">
-          <div class="home-avail-leg"><i style="background:#0BAA86"></i><span>متاحة للتأجير</span><b>${availN}</b><em>${pAvail}%</em></div>
-          <div class="home-avail-leg"><i style="background:#3B82C4"></i><span>مؤجرة حاليًا</span><b>${rentN}</b><em>${pRent}%</em></div>
-          <div class="home-avail-leg"><i style="background:#CBD5E1"></i><span>أخرى (صيانة/خارج الخدمة)</span><b>${otherN}</b><em>${pOther}%</em></div>
-        </div>
+      <div class="home-avail-legend">
+        ${statusRows.map(r => `<div class="home-avail-leg"><i style="background:${r.color}"></i><span>${r.label}</span><b>${r.n}</b><em>${pct(r.n)}%</em></div><div class="home-avail-bar"><i style="width:${total ? Math.round(r.n / total * 100) : 0}%;background:${r.color}"></i></div>`).join('')}
       </div>
     </div>
     </div>

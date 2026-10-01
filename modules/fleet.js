@@ -189,7 +189,7 @@
         <label>نتيجة الفحص<select id="ff-inspection-condition"><option value="">كل الحالات</option><option value="green">🟢 سليم</option><option value="amber">🟡 يحتاج فحص</option><option value="red">🔴 غير سليم / لم يتم الفحص</option></select></label>
         <label>المالك<select id="ff-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
         <label>الفرع<select id="ff-branch">${optionList(uniq('branch'),'كل الفروع')}</select></label>
-        <label>حالة السيارة<select id="ff-car-status"><option value="">كل الحالات</option><option>موجودة</option><option>مؤجرة</option><option>تحت الصيانة</option><option>خارج الخدمة</option><option>مسروقة</option><option>للبيع</option></select></label>
+        <label>حالة السيارة<select id="ff-car-status"><option value="">كل الحالات</option><option>موجودة</option><option>مؤجرة</option><option>حجز</option><option>تحت الصيانة</option><option>خارج الخدمة</option><option>مسروقة</option><option>للبيع</option></select></label>
         <label>حالة التجهيز<select id="ff-prep-status"><option value="">كل الحالات</option><option value="green">جاهزة للتأجير</option><option value="amber">تحت التجهيز</option><option value="red">تحتاج إجراء</option><option value="blue">مراجعة نهائية</option></select></label>
       </div>
       <div class="filter-footer"><span id="fleet-filter-count">عرض 0 من ${fleet.length}</span><span id="fleet-filter-note">يمكنك اختيار الفحص فقط أو الرخصة فقط أو الكارت فقط لتحديد السيارات التي تحتاج إجراء محدد.</span></div>

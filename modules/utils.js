@@ -69,7 +69,7 @@
     if (!t) return { level: 'grey', label: 'غير محدد' };
     if (t === 'نشط' || t === 'سليم' || t === 'ساري' || t.startsWith('ساري ') || t === 'موجودة' || t === 'مؤجرة') return { level: 'green', label: t };
     if (t.includes('يحتاج')) return { level: 'amber', label: t };
-    if (t === 'للبيع') return { level: 'amber', label: t };
+    if (t === 'للبيع' || t === 'حجز') return { level: 'amber', label: t };
     if (t.includes('منتهي') || t.includes('ملغ') || t.includes('موقوف') || t.includes('لا يوجد') || t.includes('لم يتم') || t.includes('مسروق')) return { level: 'red', label: t };
     return { level: 'grey', label: t };
   }

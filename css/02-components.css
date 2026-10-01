@@ -896,4 +896,6 @@ input:focus, select:focus, textarea:focus, .search input:focus, .topbar-search-w
 .home-avail-leg span{flex:1;color:var(--muted,#666E8C)}
 .home-avail-leg b{font-size:15px}
 .home-avail-leg em{font-style:normal;font-size:12px;color:var(--muted,#666E8C);min-width:48px;text-align:left}
+.home-avail-bar{height:6px;background:#F1F6F7;border-radius:4px;overflow:hidden;margin:-2px 0 8px 20px}
+.home-avail-bar i{display:block;height:100%;border-radius:4px;transition:width .4s ease}
 

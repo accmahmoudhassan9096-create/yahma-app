@@ -899,3 +899,4 @@ body.dark-mode .ren-note-input[readonly]{background:transparent;border-color:tra
 /* المتاح مقابل المؤجر — الوضع الليلي */
 body.dark-mode .home-avail{background:#1E2A38;border-color:#2E3D4F}
 body.dark-mode .home-avail-total{background:#193B43;color:#7FD1CC}
+body.dark-mode .home-avail-bar{background:#263442}
