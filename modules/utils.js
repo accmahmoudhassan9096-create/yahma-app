@@ -170,6 +170,7 @@
     if (!w) return true;
     if (got === w) return true;
     if (w === 'متاحه للايجار' && (got === 'موجوده' || got === 'نشط')) return true; // قيم قديمة قبل التوحيد
+    if (w === 'للبيع' && got === 'معروضه للبيع') return true; // صيغة بهاء بدل التاء المربوطة
     if (w === 'موجوده' && got === 'نشط') return true;
     return false;
   }

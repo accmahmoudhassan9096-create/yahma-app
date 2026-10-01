@@ -59,7 +59,7 @@ function renderDashboard(content, context){
     { label: 'متاحة للايجار', color: '#0BAA86', match: s => { const n = normStatus(s); return n === 'متاحه للايجار' || n === 'موجوده' || n === 'نشط'; } },
     { label: 'محولة غير مستلمة', color: '#7C5CFF', match: s => s.includes('محول') },
     { label: 'مسروقة', color: '#991B1B', match: s => s.includes('مسروق') },
-    { label: 'معروضة للبيع', color: '#3B82C4', match: s => s === 'للبيع' },
+    { label: 'معروضة للبيع', color: '#3B82C4', match: s => normStatus(s) === 'معروضه للبيع' },
     { label: 'مؤجرة', color: '#2FA36B', match: s => s.includes('مؤجر') },
     { label: 'خدمة', color: '#0EA5E9', match: s => s === 'خدمة' },
     { label: 'مفقودة', color: '#4B5563', match: s => s.includes('مفقود') }
