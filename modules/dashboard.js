@@ -56,10 +56,10 @@ function renderDashboard(content, context){
   const statusRows = [
     { label: 'تحت الصيانة', color: '#E6A23C', match: s => s.includes('صيانة') },
     { label: 'حجز', color: '#D6952A', match: s => s === 'حجز' },
-    { label: 'خارج الخدمة', color: '#CE4B3D', match: s => s.includes('خارج') },
+    { label: 'متاحة للايجار', color: '#0BAA86', match: s => { const n = normStatus(s); return n === 'متاحه للايجار' || n === 'موجوده' || n === 'نشط'; } },
+    { label: 'محولة غير مستلمة', color: '#7C5CFF', match: s => s.includes('محول') },
     { label: 'مسروقة', color: '#991B1B', match: s => s.includes('مسروق') },
     { label: 'معروضة للبيع', color: '#3B82C4', match: s => s === 'للبيع' },
-    { label: 'موجودة', color: '#0BAA86', match: s => s === 'موجودة' || s === 'نشط' },
     { label: 'مؤجرة', color: '#2FA36B', match: s => s.includes('مؤجر') }
   ].map(r => ({ label: r.label, color: r.color, n: fleet.filter(c => r.match(stOf(c))).length }));
   statusRows.push({ label: 'أخرى', color: '#9AA5B1', n: Math.max(0, total - statusRows.reduce((s, r) => s + r.n, 0)) });

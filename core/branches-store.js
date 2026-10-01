@@ -191,7 +191,7 @@ function seedData(){
   const cardStatuses = ['نشط','نشط','نشط','نشط','ملغى'];
   const inspectionStatuses = ['سليم','سليم','سليم','يحتاج فحص','لم يتم الفحص'];
   const insuranceStatuses = ['ساري','ساري','ساري','منتهي','لا يوجد'];
-  const carStatuses = ['موجودة','موجودة','موجودة','تحت الصيانة','خارج الخدمة'];
+  const carStatuses = ['متاحة للايجار','متاحة للايجار','متاحة للايجار','تحت الصيانة','خارج الخدمة'];
   const owners = ['أحمد سعيد','محمد عبد الله','شركة النصر للتأجير','كريم فتحي','سارة حسن'];
   const cardOffsets = [-5, 8, 20, 45, 90, 200, -15, 3, 60, 12, 150, 5, 30, 75];
   const licenseOffsets = [25, -3, 90, 10, 40, 6, 100, -8, 15, 200, 55, 20, 9, 300];
@@ -228,17 +228,17 @@ function seedData(){
 }
 
 /* ===== ترحيل قيم حالة السيارة (مرة واحدة) =====
-   يوحد 'نشط' القديمة إلى 'موجودة'. يعمل للمدير/الديمو فقط (بيانات شاملة). */
+   يوحد 'نشط' و'موجودة' القديمة إلى 'متاحة للايجار'. يعمل للمدير/الديمو فقط (بيانات شاملة). */
 async function migrateCarStatusValues(){
   try{
-    if(localStorage.getItem('yahma-status-mig-v1')) return {skipped:true};
+    if(localStorage.getItem('yahma-status-mig-v2')) return {skipped:true};
     if(typeof userBranchScope==='function' && userBranchScope()) return {skipped:true};
     if(!Array.isArray(fleet) || !fleet.length) return {skipped:true};
     const ids=[];
-    fleet.forEach(c=>{ if(String(c.carStatus||'').trim()==='نشط'){ c.carStatus='موجودة'; ids.push(c.id); } });
-    localStorage.setItem('yahma-status-mig-v1','1');
+    fleet.forEach(c=>{ const s=String(c.carStatus||'').trim(); if(s==='نشط'||s==='موجودة'){ c.carStatus='متاحة للايجار'; ids.push(c.id); } });
+    localStorage.setItem('yahma-status-mig-v2','1');
     if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){} }
-    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد حالة السيارة (نشط ← موجودة): '+ids.length); }catch(_){}
+    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد حالة السيارة (← متاحة للايجار): '+ids.length); }catch(_){}
     return {migrated:ids.length};
   }catch(e){ return {error:String(e&&e.message||e)}; }
 }

@@ -59,7 +59,7 @@ function renderRenewals(content, mode='inspection'){
       <div class="fleet-filter-grid">
         <label>بحث<input id="ren-search" placeholder="لوحة، مالك، فرع..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
         <label>الفرع<select id="ren-branch">${optionList(uniq('branch'),'كل الفروع')}</select></label>
-        <label>حالة السيارة<select id="ren-car-status"><option value="">كل الحالات</option><option>موجودة</option><option>مؤجرة</option><option>حجز</option><option>تحت الصيانة</option><option>خارج الخدمة</option><option>مسروقة</option><option>للبيع</option></select></label>
+        <label>حالة السيارة<select id="ren-car-status"><option value="">كل الحالات</option><option>تحت الصيانة</option><option>حجز</option><option>متاحة للايجار</option><option>محولة غير مستلمة</option><option>مسروقة</option><option>للبيع</option><option>مؤجرة</option></select></label>
         <label>المالك<select id="ren-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
         <label>الماركة<select id="ren-brand">${optionList(uniq('brand'),'كل الماركات')}</select></label>
         <label>حالة الفحص<select id="ren-insp-status"><option value="">كل الحالات</option><option value="green">سليم</option><option value="amber">يحتاج فحص</option><option value="red">لم يتم الفحص</option><option value="grey">غير محدد</option></select></label>
@@ -151,7 +151,7 @@ function renderRenewals(content, mode='inspection'){
         if(activeRQ==='lic_ok' && lic!=='green') return false;
         if(activeRQ==='lic_expired' && lic!=='red') return false;
         if(activeRQ==='lic_soon' && lic!=='amber') return false;
-        if(activeRQ==='active' && !carStatusMatch(st,'موجودة')) return false;
+        if(activeRQ==='active' && !carStatusMatch(st,'متاحة للايجار')) return false;
         if(activeRQ==='maintenance' && !st.includes('صيانة')) return false;
         if(activeRQ==='out' && !carStatusOut(st)) return false;
         if(activeRQ==='insurance_bad' && textTag(c.insuranceStatus).level==='green') return false;

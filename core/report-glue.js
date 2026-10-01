@@ -55,7 +55,7 @@ function _legacyAccountingIndicators(list){
   let active=0, dailySum=0, dailyN=0, estSum=0, estN=0, maintCost=0;
   (list||[]).forEach(c=>{
     const st=String(c.carStatus||'').trim();
-    if(!st.includes('خارج') && !st.includes('مسروق') && !st.includes('مؤرشفة') && !st.includes('مباعة')) active++;
+    if(!st.includes('خارج') && !st.includes('مسروق') && !st.includes('محول') && !st.includes('مؤرشفة') && !st.includes('مباعة')) active++;
     const dr=parseFloat(c.dailyRate), rd=parseFloat(c.rentedDaysMonth);
     if(!isNaN(dr)&&dr>0){ dailySum+=dr; dailyN++; }
     if(!isNaN(dr)&&dr>0&&!isNaN(rd)&&rd>=0){ estSum+=dr*rd; estN++; }

@@ -117,6 +117,7 @@ function exportCurrentTabPDF(){
       ['فحص غير سليم', String(fleet.filter(c=>inspectionDisplayStatus(c.inspectionStatus).level!=='green').length)],
       ['تحت الصيانة', String(fleet.filter(c=>String(c.carStatus||'').includes('صيانة')).length)],
       ['خارج الخدمة', String(fleet.filter(c=>String(c.carStatus||'').includes('خارج')).length)],
+      ['محولة غير مستلمة', String(fleet.filter(c=>String(c.carStatus||'').includes('محول')).length)],
       ['مسروقة', String(fleet.filter(c=>String(c.carStatus||'').includes('مسروق')).length)],
     ];
     // top issues by plate

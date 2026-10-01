@@ -67,27 +67,36 @@
   function textTag(value) {
     const t = String(value ?? '').trim();
     if (!t) return { level: 'grey', label: 'غير محدد' };
-    if (t === 'نشط' || t === 'سليم' || t === 'ساري' || t.startsWith('ساري ') || t === 'موجودة' || t === 'مؤجرة') return { level: 'green', label: t };
+    const tn = t.replace(/[إأآ]/g, 'ا');
+    if (t === 'نشط' || t === 'سليم' || t === 'ساري' || t.startsWith('ساري ') || t === 'موجودة' || t === 'مؤجرة' || tn === 'متاحة للايجار' || tn === 'متاحه للايجار') return { level: 'green', label: t };
     if (t.includes('يحتاج')) return { level: 'amber', label: t };
     if (t === 'للبيع' || t === 'حجز') return { level: 'amber', label: t };
-    if (t.includes('منتهي') || t.includes('ملغ') || t.includes('موقوف') || t.includes('لا يوجد') || t.includes('لم يتم') || t.includes('مسروق')) return { level: 'red', label: t };
+    if (t.includes('منتهي') || t.includes('ملغ') || t.includes('موقوف') || t.includes('لا يوجد') || t.includes('لم يتم') || t.includes('مسروق') || t.includes('محول')) return { level: 'red', label: t };
     return { level: 'grey', label: t };
   }
 
-  /* حالات السيارة الموحدة: موجودة/مؤجرة/تحت الصيانة/خارج الخدمة/مسروقة/للبيع (+مؤرشفة/مباعة كحالات نظام) */
+  /* حالات السيارة الموحدة: تحت الصيانة/حجز/متاحة للايجار/محولة غير مستلمة/مسروقة/معروضة للبيع (للبيع)/مؤجرة (+مؤرشفة/مباعة كحالات نظام) */
+  function normStatus(s){
+    return String(s ?? '').replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا').replace(/ة/g, 'ه').trim();
+  }
   function carStatusOut(value){
     const s = String(value ?? '').trim();
-    return s.includes('خارج') || s.includes('مسروق');
+    return s.includes('خارج') || s.includes('مسروق') || s.includes('محول');
   }
   function carStatusActive(value){
     const s = String(value ?? '').trim();
-    return !(s.includes('صيانة') || s.includes('خارج') || s.includes('مسروق') || s.includes('مباع') || s.includes('مؤرشفة'));
+    return !(s.includes('صيانة') || s.includes('خارج') || s.includes('مسروق') || s.includes('محول') || s.includes('مباع') || s.includes('مؤرشفة'));
+  }
+  function carStatusReady(value){
+    const s = normStatus(value);
+    return s === 'نشط' || s === 'موجوده' || s === 'متاحه للايجار';
   }
   function carStatusMatch(value, want){
-    const got = String(value ?? '').trim(), w = String(want ?? '').trim();
+    const got = normStatus(value), w = normStatus(want);
     if (!w) return true;
     if (got === w) return true;
-    if (w === 'موجودة' && got === 'نشط') return true; // بيانات قديمة قبل التوحيد
+    if (w === 'متاحه للايجار' && (got === 'موجوده' || got === 'نشط')) return true; // قيم قديمة قبل التوحيد
+    if (w === 'موجوده' && got === 'نشط') return true;
     return false;
   }
 
@@ -115,7 +124,7 @@
   const api = {
     uid, normalizeDateValue, daysFromNow, dateStatus, licenseDisplayStatus,
     cardDisplayStatus, inspectionDisplayStatus, textTag, escapeHtml,
-    fmtDate, addDays, todayStr, carStatusOut, carStatusActive, carStatusMatch
+    fmtDate, addDays, todayStr, carStatusOut, carStatusActive, carStatusMatch, carStatusReady, normStatus
   };
   global.YahmaUtils = api;
   Object.assign(global, api);
