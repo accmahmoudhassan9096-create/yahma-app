@@ -229,6 +229,18 @@
   const filters=['ff-brand','ff-type','ff-model','ff-card-status','ff-card-condition','ff-license-status','ff-license-condition','ff-inspection-status','ff-inspection-condition','ff-owner','ff-branch','ff-city','ff-car-status','ff-prep-status'].map($);
   let activeQuick=window.pendingFleetQuickFilter||'';
   window.pendingFleetQuickFilter='';
+  // قادم من دليل الفروع: فلترة مسبقة على فرع (يكتبه تبويب الفروع عند الضغط على اسم فرع)
+  const pendingBranch=String(window.pendingFleetBranch||'').trim();
+  window.pendingFleetBranch='';
+  if(pendingBranch){
+    const branchSel=$('ff-branch');
+    if(branchSel){
+      if(!Array.from(branchSel.options).some(o=>o.value===pendingBranch)){
+        const opt=document.createElement('option'); opt.value=pendingBranch; opt.textContent=pendingBranch; branchSel.appendChild(opt);
+      }
+      branchSel.value=pendingBranch;
+    }
+  }
   // نتائج البحث الموحّد في الشريط العلوي (يكتبه dashboard عند الضغط على Enter)
   const pendingGlobalSearch=String(window.pendingFleetSearch||'').trim();
   window.pendingFleetSearch='';

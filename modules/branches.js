@@ -61,7 +61,7 @@
       tb.innerHTML = list.length ? list.map(b => {
         const st = branchStats(b.name);
         return `<tr data-id="${escapeHtml(b.id)}">
-          <td class="plate">${escapeHtml(b.name || '—')}</td>
+          <td class="plate"><button type="button" class="br-name-btn" data-branch-cars="${escapeHtml(b.name||'')}" title="عرض سيارات هذا الفرع في الأسطول">${escapeHtml(b.name || '—')}</button></td>
           <td>${escapeHtml(b.manager || '—')}</td>
           <td>${escapeHtml(b.email || '—')}</td>
           <td>${escapeHtml(b.phone || '—')}</td>
@@ -82,6 +82,11 @@
       }).join('') : '<tr><td colspan="10"><div class="empty">لا توجد فروع — أضف فرعًا أو استورد تحديثات من Excel</div></td></tr>';
 
       tb.querySelectorAll('[data-edit]').forEach(btn => btn.onclick = () => openBranchModal(btn.dataset.edit));
+      tb.querySelectorAll('[data-branch-cars]').forEach(btn => btn.onclick = () => {
+        window.pendingFleetBranch = btn.dataset.branchCars || '';
+        document.querySelector('.nav-item[data-tab="fleet"]')?.click();
+        if (typeof render === 'function') render();
+      });
       tb.querySelectorAll('[data-del]').forEach(btn => btn.onclick = () => {
         if (!confirm('حذف هذا الفرع من الدليل؟ (لن تُحذف السيارات)')) return;
         replaceBranches(getBranches().filter(x => x.id !== btn.dataset.del));
