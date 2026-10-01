@@ -63,8 +63,11 @@ function renderDashboard(content, context){
     { label: 'مؤجرة', color: '#2FA36B', match: s => s.includes('مؤجر') },
     { label: 'خدمة', color: '#0EA5E9', match: s => s === 'خدمة' },
     { label: 'مفقودة', color: '#4B5563', match: s => s.includes('مفقود') }
-  ].map(r => ({ label: r.label, color: r.color, n: fleet.filter(c => r.match(stOf(c))).length }));
-  statusRows.push({ label: 'أخرى', color: '#9AA5B1', n: Math.max(0, total - statusRows.reduce((s, r) => s + r.n, 0)) });
+  ].map(r => ({ label: r.label, color: r.color, match: r.match, n: fleet.filter(c => r.match(stOf(c))).length }));
+  const matchedIds = new Set();
+  fleet.forEach(c => { const s = stOf(c); if (statusRows.some(r => r.match(s))) matchedIds.add(c.id); });
+  const otherCars = fleet.filter(c => !matchedIds.has(c.id));
+  statusRows.push({ label: 'أخرى', color: '#9AA5B1', n: otherCars.length, more: true });
   // أسباب عدم الجاهزية بنسب
   const reasonTotal = reasons.reduce((s, [, v]) => s + v, 0) || 1;
   const reasonRows = reasons.slice(0, 5).map(([k, v]) => ({
@@ -273,7 +276,13 @@ function renderDashboard(content, context){
         <span class="home-avail-total">${total} سيارة</span>
       </div>
       <div class="home-avail-legend">
-        ${statusRows.map(r => `<div class="home-avail-leg"><i style="background:${r.color}"></i><span>${r.label}</span><b>${r.n}</b><em>${pct(r.n)}%</em></div><div class="home-avail-bar"><i style="width:${total ? Math.round(r.n / total * 100) : 0}%;background:${r.color}"></i></div>`).join('')}
+        ${statusRows.map(r => r.more
+          ? `<div class="home-avail-leg home-avail-more" role="button" tabindex="0" aria-label="سيارات أخرى غير مصنفة: ${r.n} — اضغط لعرضها"><i style="background:${r.color}"></i><span>${r.label} · اضغط للعرض</span><b>${r.n}</b><em>${pct(r.n)}%</em></div><div class="home-avail-bar"><i style="width:${total ? Math.round(r.n / total * 100) : 0}%;background:${r.color}"></i></div>`
+          : `<div class="home-avail-leg"><i style="background:${r.color}"></i><span>${r.label}</span><b>${r.n}</b><em>${pct(r.n)}%</em></div><div class="home-avail-bar"><i style="width:${total ? Math.round(r.n / total * 100) : 0}%;background:${r.color}"></i></div>`).join('')}
+        <div class="home-avail-other-detail" id="home-avail-other-detail" style="display:none">
+          ${otherCars.slice(0, 100).map(c => `<div><span>${escapeHtml(c.plate || '—')} · ${escapeHtml(c.branch || '—')}</span><b>${escapeHtml(stOf(c) || 'فارغة')}</b></div>`).join('') || '<div class="rd-empty">—</div>'}
+          ${otherCars.length > 100 ? `<div class="muted-small">+ ${otherCars.length - 100} أخرى</div>` : ''}
+        </div>
       </div>
     </div>
     </div>
@@ -356,6 +365,16 @@ function renderDashboard(content, context){
       const filter = el.getAttribute('data-filter') || null;
       if (tab) goTab(tab, filter);
     });
+  });
+  // صف «أخرى» يفتح تفاصيل السيارات غير المصنفة
+  content.querySelectorAll('.home-avail-more').forEach(el => {
+    el.style.cursor = 'pointer';
+    const toggle = () => {
+      const det = document.getElementById('home-avail-other-detail');
+      if (det) det.style.display = det.style.display === 'none' ? '' : 'none';
+    };
+    el.addEventListener('click', toggle);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
   });
   // Animate bars after paint
   requestAnimationFrame(() => {
