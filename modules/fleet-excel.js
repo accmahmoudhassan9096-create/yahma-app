@@ -124,6 +124,7 @@
 
   function normalizeImportValue(field, value) {
     if (value === undefined || value === null) return '';
+    if (typeof canonicalBrand === 'function' && field === 'brand') return canonicalBrand(value);
     return ['cardExpiry','licenseExpiry','insuranceExpiry','nextService','lastMaintenance'].includes(field)
       ? toDateStr(value)
       : String(value).trim();

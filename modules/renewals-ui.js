@@ -11,8 +11,9 @@ function renderRenewals(content, mode='inspection'){
     fleet.forEach(c=>{
       const raw=String(c[field]??'').trim();
       if(!raw) return;
-      const key=raw.replace(/[يى]/g,'ي').replace(/أ|إ|آ/g,'ا');
-      if(!map.has(key)) map.set(key, raw);
+      const canon=(field==='brand'&&typeof canonicalBrand==='function')?canonicalBrand(raw):raw;
+      const key=canon.replace(/[يى]/g,'ي').replace(/أ|إ|آ/g,'ا');
+      if(!map.has(key)) map.set(key, canon);
     });
     return [...map.values()].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
   };
@@ -129,7 +130,7 @@ function renderRenewals(content, mode='inspection'){
       }
       if(val('ren-branch') && !eq(c.branch,val('ren-branch'))) return false;
       if(val('ren-owner') && !eq(c.owner,val('ren-owner'))) return false;
-      if(val('ren-brand') && !eq(c.brand,val('ren-brand'))) return false;
+      if(val('ren-brand') && (typeof canonicalBrand==='function'?canonicalBrand(c.brand)!==val('ren-brand'):!eq(c.brand,val('ren-brand')))) return false;
       if(val('ren-car-status') && !carStatusMatch(c.carStatus,val('ren-car-status'))) return false;
       if(val('ren-insp-status') && inspectionDisplayStatus(c.inspectionStatus).level!==val('ren-insp-status')) return false;
       if(val('ren-insurance-status') && textTag(c.insuranceStatus).level!==val('ren-insurance-status')) return false;

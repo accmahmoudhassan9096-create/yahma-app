@@ -45,7 +45,7 @@
       plate,
       data: {
         plate,
-        brand: trimmed('f-brand'),
+        brand: (typeof canonicalBrand === 'function' ? canonicalBrand(trimmed('f-brand')) : trimmed('f-brand')),
         type: trimmed('f-type'),
         model: trimmed('f-model'),
         year: trimmed('f-model'),

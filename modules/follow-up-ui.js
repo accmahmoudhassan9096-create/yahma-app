@@ -9,8 +9,9 @@ function renderFollowUp(content){
     fleet.forEach(c=>{
       const raw=String(c[field]??'').trim();
       if(!raw) return;
-      const key=raw.replace(/[يى]/g,'ي').replace(/أ|إ|آ/g,'ا');
-      if(!map.has(key)) map.set(key, raw);
+      const canon=(field==='brand'&&typeof canonicalBrand==='function')?canonicalBrand(raw):raw;
+      const key=canon.replace(/[يى]/g,'ي').replace(/أ|إ|آ/g,'ا');
+      if(!map.has(key)) map.set(key, canon);
     });
     return [...map.values()].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
   };
@@ -179,7 +180,7 @@ function renderFollowUp(content){
       }
       if(val('fu-branch') && !eq(c.branch,val('fu-branch'))) return false;
       if(val('fu-owner') && !eq(c.owner,val('fu-owner'))) return false;
-      if(val('fu-brand') && !eq(c.brand,val('fu-brand'))) return false;
+      if(val('fu-brand') && (typeof canonicalBrand==='function'?canonicalBrand(c.brand)!==val('fu-brand'):!eq(c.brand,val('fu-brand')))) return false;
       if(val('fu-car-status') && !carStatusMatch(c.carStatus,val('fu-car-status'))) return false;
       if(val('fu-card-status')){
         const want=val('fu-card-status'), raw=norm(c.cardStatus);

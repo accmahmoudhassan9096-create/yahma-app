@@ -75,7 +75,80 @@
     return { level: 'grey', label: t };
   }
 
-  /* حالات السيارة الموحدة: تحت الصيانة/حجز/متاحة للايجار/محولة غير مستلمة/مسروقة/معروضة للبيع (للبيع)/مؤجرة (+مؤرشفة/مباعة كحالات نظام) */
+  /* توحيد أسماء الماركات: هونداي/هيونداى/هيونداي ← هيونداي ... */
+  function brandKey(value){
+    return String(value ?? '').replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا')
+      .replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+  const BRAND_ALIASES = {
+    'هيونداي': ['هونداي', 'هيونداي', 'هونداي', 'هيونداى', 'hyundai'],
+    'تويوتا': ['تيوتا', 'تويوتا', 'toyota'],
+    'كيا': ['kia'],
+    'نيسان': ['نيسان', 'nissan'],
+    'هوندا': ['هوندا', 'honda'],
+    'فورد': ['فورد', 'ford'],
+    'شيفروليه': ['شفروليه', 'شيفورليه', 'شيفروليه', 'chevrolet'],
+    'جي ام سي': ['جي ام سي', 'جى ام سى', 'gmc'],
+    'ام جي': ['ام جي', 'mg'],
+    'ايسوزو': ['ايسوزو', 'isuzu'],
+    'سوزوكي': ['سوزوكي', 'سوزوكى', 'suzuki'],
+    'ميتسوبيشي': ['متسوبيشي', 'ميتسوبيشي', 'mitsubishi'],
+    'مازدا': ['مازدا', 'mazda'],
+    'لكزس': ['لكزس', 'lexus'],
+    'لاند روفر': ['لاند روفر', 'لاندروفر', 'land rover', 'landrover'],
+    'رنج روفر': ['رنج روفر', 'رانج روفر', 'رينج روفر', 'range rover'],
+    'مرسيدس': ['مرسيدس', 'مرسيدس بنز', 'benz', 'mercedes'],
+    'بي ام دبليو': ['بي ام', 'بي ام دبليو', 'bmw'],
+    'اودي': ['اودي', 'audi'],
+    'فولكس واجن': ['فولكس واجن', 'volkswagen', 'vw'],
+    'رينو': ['رينو', 'renault'],
+    'بيجو': ['بيجو', 'peugeot'],
+    'ستروين': ['ستروين', 'citroen'],
+    'فيات': ['فيات', 'fiat'],
+    'سكودا': ['سكودا', 'skoda'],
+    'سيات': ['سيات', 'seat'],
+    'شانجان': ['شانجان', 'changan'],
+    'شيري': ['شيري', 'chery'],
+    'جيلي': ['جيلي', 'geely'],
+    'هافال': ['هافال', 'haval'],
+    'جريت وول': ['جريت وول', 'great wall', 'gwm'],
+    'فوتون': ['فوتون', 'foton'],
+    'جاك': ['جاك', 'jac'],
+    'دونج فينج': ['دونج فينج', 'dongfeng'],
+    'بايك': ['بايك', 'baic'],
+    'هونشي': ['هونشي', 'hongqi'],
+    'بيستون': ['بيستون', 'bestune'],
+    'فاو': ['فاو', 'faw'],
+    'سايك': ['سايك', 'saic'],
+    'رووي': ['رووي', 'roewe'],
+    'ماكسوس': ['ماكسوس', 'maxus'],
+    'لينك اند كو': ['لينك اند كو', 'lynk'],
+    'لينكون': ['لينكون', 'lincoln'],
+    'كاديلاك': ['كاديلاك', 'cadillac'],
+    'كرايسلر': ['كرايسلر', 'chrysler'],
+    'دودج': ['دودج', 'dodge'],
+    'جيب': ['جيب', 'jeep'],
+    'انفينيتي': ['انفينيتي', 'infiniti'],
+    'جينيسيس': ['جينيسيس', 'جنيسيس', 'genesis'],
+    'اكورا': ['اكورا', 'acura'],
+    'تسلا': ['تسلا', 'tesla'],
+    'دايهاتسو': ['دايهاتسو', 'daihatsu'],
+    'سوبارو': ['سوبارو', 'subaru'],
+    'سانج يونج': ['سانج يونج', 'ssangyong', 'kgm'],
+    'بروتون': ['بروتون', 'proton'],
+    'لادا': ['لادا', 'lada'],
+    'زوتي': ['زوتي', 'zotye']
+  };
+  const BRAND_LOOKUP = {};
+  Object.entries(BRAND_ALIASES).forEach(([canon, variants]) => {
+    BRAND_LOOKUP[brandKey(canon)] = canon;
+    (variants || []).forEach(v => { BRAND_LOOKUP[brandKey(v)] = canon; });
+  });
+  function canonicalBrand(value){
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    return BRAND_LOOKUP[brandKey(raw)] || raw;
+  }
   function normStatus(s){
     return String(s ?? '').replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا').replace(/ة/g, 'ه').trim();
   }
@@ -124,7 +197,8 @@
   const api = {
     uid, normalizeDateValue, daysFromNow, dateStatus, licenseDisplayStatus,
     cardDisplayStatus, inspectionDisplayStatus, textTag, escapeHtml,
-    fmtDate, addDays, todayStr, carStatusOut, carStatusActive, carStatusMatch, carStatusReady, normStatus
+    fmtDate, addDays, todayStr, carStatusOut, carStatusActive, carStatusMatch, carStatusReady, normStatus,
+    brandKey, canonicalBrand
   };
   global.YahmaUtils = api;
   Object.assign(global, api);

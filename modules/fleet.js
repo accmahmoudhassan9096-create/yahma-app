@@ -126,8 +126,9 @@
     fleet.forEach(c=>{
       const raw=String(c[field]??'').trim();
       if(!raw) return;
-      const key=raw.replace(/[يى]/g,'ي').replace(/أ|إ|آ/g,'ا');
-      if(!map.has(key)) map.set(key, raw);
+      const canon=(field==='brand'&&typeof canonicalBrand==='function')?canonicalBrand(raw):raw;
+      const key=canon.replace(/[يى]/g,'ي').replace(/أ|إ|آ/g,'ا');
+      if(!map.has(key)) map.set(key, canon);
     });
     return [...map.values()].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
   };
@@ -372,7 +373,7 @@ const q=(search.value||'').trim().toLowerCase();
     const n=fleet.length;
     for(let i=0;i<n;i++){
       const c=fleet[i];
-      if(fBrand && c.brand!==fBrand) continue;
+      if(fBrand && (typeof canonicalBrand==='function'?canonicalBrand(c.brand)!==fBrand:c.brand!==fBrand)) continue;
       if(fType && c.type!==fType) continue;
       if(fModel && c.model!==fModel) continue;
       if(fCardSt && String(c.cardStatus||'')!==fCardSt) continue;
