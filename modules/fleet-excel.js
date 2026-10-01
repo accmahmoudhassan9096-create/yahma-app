@@ -21,6 +21,7 @@
     ownerNumber: ['رقم المالك','owner number'],
     odometer: ['العداد','كم الحالي','كم','الممشى','odometer','mileage'],
     dailyRate: ['سعر اليوم','سعر يومي','السعر اليومي','daily rate','dailyRate'],
+    rentedDaysMonth: ['أيام التأجير','أيام الإيجار','عدد أيام التأجير','أيام التأجير هذا الشهر','rented days'],
     city: ['المدينة','city'],
     color: ['اللون','color'],
     nextService: ['موعد الصيانة القادمة','الصيانة القادمة','next service'],
@@ -116,7 +117,7 @@
   const IMPORT_FIELDS = [
     'plate','brand','type','model','color','serial','cardNumber','cardStatus','cardExpiry',
     'licenseStatus','licenseExpiry','inspectionStatus','insuranceStatus','insuranceCompany','insuranceExpiry','owner','ownerNumber',
-    'odometer','dailyRate','nextService','lastMaintenance','maintenanceCost','workshop','documentUrl',
+    'odometer','dailyRate','rentedDaysMonth','nextService','lastMaintenance','maintenanceCost','workshop','documentUrl',
     'maintenanceNotes','branch','city','carStatus','notes'
   ];
 

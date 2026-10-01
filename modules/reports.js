@@ -385,6 +385,18 @@ function renderReports(content, context){
   const topWorkshops=Object.entries(workshopMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const topRevenueCars=activeCars.map(c=>({car:c,revenue:(parseFloat(c.dailyRate)||0)*(parseFloat(c.rentedDaysMonth)||0)})).filter(x=>x.revenue>0).sort((a,b)=>b.revenue-a.revenue).slice(0,5);
 
+  // الإيراد حسب الفرع من سعر اليوم المسجل
+  const branchRevenueMap={};
+  list.forEach(c=>{
+    const b=String(c.branch||'غير محدد').trim()||'غير محدد';
+    const m=branchRevenueMap[b]||(branchRevenueMap[b]={cars:0,daySum:0,dayN:0,rev:0});
+    m.cars++;
+    const dr=parseFloat(c.dailyRate), rd=parseFloat(c.rentedDaysMonth);
+    if(!isNaN(dr)&&dr>0){ m.daySum+=dr; m.dayN++; if(!isNaN(rd)&&rd>=0) m.rev+=dr*rd; }
+  });
+  const branchRevenue=Object.entries(branchRevenueMap).map(([name,m])=>({name,cars:m.cars,avg:m.dayN?Math.round(m.daySum/m.dayN):0,rev:Math.round(m.rev)})).sort((a,b)=>b.rev-a.rev);
+  const carsNoPrice=list.filter(c=>{ const dr=parseFloat(c.dailyRate); return isNaN(dr)||dr<=0; });
+
   // ---- تقرير المستندات التفصيلي: حسب النوع والنطاق ----
   const DOC_TYPES=[
     {key:'cardExpiry',label:'البطاقة'},
@@ -562,9 +574,10 @@ function renderReports(content, context){
         <div class="rd-acct-item"><b>${fmtSAR(acc.avgDaily)}</b><span>متوسط الإيراد اليومي</span><small>لكل سيارة</small></div>
         <div class="rd-acct-item"><b>${fmtSAR(acc.revPerCar)}</b><span>الإيراد لكل سيارة</span><small>شهريًا</small></div>
         <div class="rd-acct-item"><b>${acc.active}</b><span>سيارات نشطة</span><small>باستثناء خارج الخدمة/المؤرشفة/المباعة</small></div>
+        <div class="rd-acct-item ${carsNoPrice.length?'warn':'ok'}" id="rd-noprice" role="button" tabindex="0" style="cursor:pointer" aria-label="سيارات بلا سعر يومي: ${carsNoPrice.length} — اضغط لعرضها"><b>${carsNoPrice.length}</b><span>بلا سعر يومي</span><small>اضغط لعرض السيارات</small></div>
         <div class="rd-acct-item"><b>${acc.days}</b><span>أيام الفترة</span><small>${esc(periodLabel())}</small></div>
       </div>
-      ${acc.hasData?'':'<div class="rd-empty" style="margin-top:8px">لأرقام أدق: أدخل «سعر التأجير اليومي» و«أيام التأجير هذا الشهر» من نافذة تعديل كل سيارة — الأرقام الحالية تقديرية من الأسعار المسجلة فقط.</div>'}
+      ${acc.hasData?'':'<div class="rd-empty" style="margin-top:8px">لأرقام أدق: أدخل «سعر التأجير اليومي» و«أيام التأجير هذا الشهر» من نافذة تعديل كل سيارة — أو استورد عمود «سعر اليوم» من ملف Excel — الأرقام الحالية تقديرية من الأسعار المسجلة فقط.</div>'}
     </div>
 
     <div class="rd-grid rd-new-report-grid">
@@ -586,6 +599,11 @@ function renderReports(content, context){
         </div>
         <div class="rd-report-list">${topWorkshops.length?topWorkshops.map(([name,count])=>`<div><span>${esc(name)}</span><b>${count} سيارة</b></div>`).join(''):'<div class="rd-empty">لا توجد سيارات تحت الصيانة ضمن الفلتر.</div>'}</div>
       </div>
+    </div>
+
+    <div class="rd-card rd-3d">
+      <div class="rd-card-h"><h3>الإيراد حسب الفرع</h3><span class="rd-chip">من سعر اليوم المسجل</span></div>
+      <div class="rd-report-list">${branchRevenue.length?branchRevenue.map(b=>`<div class="rd-rev-branch" data-rev-branch="${esc(b.name)}" role="button" tabindex="0" aria-label="إيراد فرع ${esc(b.name)}: ${fmtSAR(b.rev)}"><span>${esc(b.name)} · ${b.cars} سيارة · متوسط ${fmtSAR(b.avg)}/يوم</span><b>${fmtSAR(b.rev)}</b></div>`).join(''):'<div class="rd-empty">لا بيانات — أدخل سعر اليوم لكل سيارة.</div>'}</div>
     </div>
 
     <div class="rd-kpis">
@@ -1170,6 +1188,9 @@ ${d.accLine}
         'المالك': c.owner||'',
         'حالة السيارة': c.carStatus||'',
         'الجاهزية': readyLabel,
+        'السعر اليومي': c.dailyRate||'',
+        'أيام التأجير': c.rentedDaysMonth||'',
+        'إيراد تقديري': ((parseFloat(c.dailyRate)||0)*(parseFloat(c.rentedDaysMonth)||0))||'',
         'انتهاء البطاقة': c.cardExpiry||'',
         'انتهاء الرخصة': c.licenseExpiry||'',
         'التأمين': c.insuranceExpiry||c.insuranceStatus||'',
@@ -1184,6 +1205,8 @@ ${d.accLine}
     // branch sheet
     const br = branches.map(b=>({'الفرع':b.name,'الأسطول':b.t,'جاهز':b.r,'النسبة %':b.pct,'مهام متأخرة':b.ov}));
     if(br.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(br), 'الفروع');
+    // branch revenue sheet (من سعر اليوم المسجل)
+    if(branchRevenue.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(branchRevenue.map(b=>({'الفرع':b.name,'السيارات':b.cars,'متوسط السعر':b.avg,'الإيراد التقديري':b.rev}))), 'إيراد الفروع');
     // docs sheet (تقرير المستندات التفصيلي)
     const docRows = list.map(c=>{
       const row={'اللوحة':c.plate||'','الفرع':c.branch||''};
@@ -1386,6 +1409,20 @@ ${d.accLine}
       openDrill('مستندات منتهية — '+br, cars);
     };
     el.onclick = open;
+    el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
+  });
+  const nopriceEl=content.querySelector('#rd-noprice');
+  if(nopriceEl){
+    const open=()=>openDrill('سيارات بلا سعر يومي مسجل', carsNoPrice);
+    nopriceEl.onclick=open;
+    nopriceEl.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
+  }
+  content.querySelectorAll('.rd-rev-branch').forEach(el=>{
+    const open=()=>{
+      const br=el.dataset.revBranch;
+      openDrill('إيراد فرع: '+br, list.filter(c=>(String(c.branch||'غير محدد').trim()||'غير محدد')===br));
+    };
+    el.onclick=open;
     el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
   });
 
