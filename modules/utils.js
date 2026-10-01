@@ -68,10 +68,10 @@
     const t = String(value ?? '').trim();
     if (!t) return { level: 'grey', label: 'غير محدد' };
     const tn = t.replace(/[إأآ]/g, 'ا');
-    if (t === 'نشط' || t === 'سليم' || t === 'ساري' || t.startsWith('ساري ') || t === 'موجودة' || t === 'مؤجرة' || tn === 'متاحة للايجار' || tn === 'متاحه للايجار') return { level: 'green', label: t };
+    if (t === 'نشط' || t === 'سليم' || t === 'ساري' || t.startsWith('ساري ') || t === 'موجودة' || t === 'مؤجرة' || t === 'خدمة' || tn === 'متاحة للايجار' || tn === 'متاحه للايجار') return { level: 'green', label: t };
     if (t.includes('يحتاج')) return { level: 'amber', label: t };
     if (t === 'للبيع' || t === 'حجز') return { level: 'amber', label: t };
-    if (t.includes('منتهي') || t.includes('ملغ') || t.includes('موقوف') || t.includes('لا يوجد') || t.includes('لم يتم') || t.includes('مسروق') || t.includes('محول')) return { level: 'red', label: t };
+    if (t.includes('منتهي') || t.includes('ملغ') || t.includes('موقوف') || t.includes('لا يوجد') || t.includes('لم يتم') || t.includes('مسروق') || t.includes('محول') || t.includes('مفقود') || t.includes('خارج')) return { level: 'red', label: t };
     return { level: 'grey', label: t };
   }
 
@@ -155,11 +155,11 @@
   }
   function carStatusOut(value){
     const s = String(value ?? '').trim();
-    return s.includes('خارج') || s.includes('مسروق') || s.includes('محول');
+    return s.includes('خارج') || s.includes('مسروق') || s.includes('محول') || s.includes('مفقود');
   }
   function carStatusActive(value){
     const s = String(value ?? '').trim();
-    return !(s.includes('صيانة') || s.includes('خارج') || s.includes('مسروق') || s.includes('محول') || s.includes('مباع') || s.includes('مؤرشفة'));
+    return !(s.includes('صيانة') || s.includes('خارج') || s.includes('مسروق') || s.includes('محول') || s.includes('مفقود') || s.includes('مباع') || s.includes('مؤرشفة'));
   }
   function carStatusReady(value){
     const s = normStatus(value);

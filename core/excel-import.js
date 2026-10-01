@@ -118,6 +118,8 @@ function exportCurrentTabPDF(){
       ['تحت الصيانة', String(fleet.filter(c=>String(c.carStatus||'').includes('صيانة')).length)],
       ['خارج الخدمة', String(fleet.filter(c=>String(c.carStatus||'').includes('خارج')).length)],
       ['محولة غير مستلمة', String(fleet.filter(c=>String(c.carStatus||'').includes('محول')).length)],
+      ['مفقودة', String(fleet.filter(c=>String(c.carStatus||'').includes('مفقود')).length)],
+      ['خدمة (موظف)', String(fleet.filter(c=>String(c.carStatus||'').trim()==='خدمة').length)],
       ['مسروقة', String(fleet.filter(c=>String(c.carStatus||'').includes('مسروق')).length)],
     ];
     // top issues by plate

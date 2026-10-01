@@ -96,7 +96,7 @@
     let active = 0, dailySum = 0, dailyCount = 0, estimateSum = 0, maintenanceCost = 0;
     (list || []).forEach(car => {
       const status = String(car.carStatus || '').trim();
-      if (!status.includes('خارج') && !status.includes('مسروق') && !status.includes('محول') && !status.includes('مؤرشفة') && !status.includes('مباعة')) active++;
+      if (!status.includes('خارج') && !status.includes('مسروق') && !status.includes('محول') && !status.includes('مفقود') && !status.includes('مؤرشفة') && !status.includes('مباعة')) active++;
       const dailyRate = parseFloat(car.dailyRate), rentedDays = parseFloat(car.rentedDaysMonth);
       if (!isNaN(dailyRate) && dailyRate > 0) { dailySum += dailyRate; dailyCount++; }
       if (!isNaN(dailyRate) && dailyRate > 0 && !isNaN(rentedDays) && rentedDays >= 0) {
@@ -148,7 +148,7 @@
       } catch (_) {}
       if (isReady) ready++; else notReady++;
       if (String(car.carStatus || '').includes('صيانة')) maintenance++;
-      if (String(car.carStatus || '').includes('خارج') || String(car.carStatus || '').includes('مسروق') || String(car.carStatus || '').includes('محول')) out++;
+      if (String(car.carStatus || '').includes('خارج') || String(car.carStatus || '').includes('مسروق') || String(car.carStatus || '').includes('محول') || String(car.carStatus || '').includes('مفقود')) out++;
 
       const branch = String(car.branch || 'غير محدد').trim() || 'غير محدد';
       if (!branchMap[branch]) branchMap[branch] = { t: 0, r: 0, ov: 0 };

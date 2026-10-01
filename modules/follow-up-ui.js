@@ -57,7 +57,7 @@ function renderFollowUp(content){
       <div class="fleet-filter-grid">
         <label>بحث<input id="fu-search" placeholder="لوحة، مالك، فرع، رقم كارت..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
         <label>الفرع<select id="fu-branch">${optionList(uniq('branch'),'كل الفروع')}</select></label>
-        <label>حالة السيارة<select id="fu-car-status"><option value="">كل الحالات</option><option>تحت الصيانة</option><option>حجز</option><option>متاحة للايجار</option><option>محولة غير مستلمة</option><option>مسروقة</option><option>للبيع</option><option>مؤجرة</option></select></label>
+        <label>حالة السيارة<select id="fu-car-status"><option value="">كل الحالات</option><option>تحت الصيانة</option><option>حجز</option><option>متاحة للايجار</option><option>محولة غير مستلمة</option><option>مسروقة</option><option>للبيع</option><option>مؤجرة</option><option>خدمة</option><option>مفقودة</option></select></label>
         <label>المالك<select id="fu-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
         <label>الماركة<select id="fu-brand">${optionList(uniq('brand'),'كل الماركات')}</select></label>
         <label>حالة الكارت (سجل)<select id="fu-card-status"><option value="">كل الحالات</option><option>نشط</option><option>ملغى</option><option>موقوف</option></select></label>

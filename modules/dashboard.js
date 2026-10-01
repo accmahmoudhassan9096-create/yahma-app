@@ -60,7 +60,9 @@ function renderDashboard(content, context){
     { label: 'محولة غير مستلمة', color: '#7C5CFF', match: s => s.includes('محول') },
     { label: 'مسروقة', color: '#991B1B', match: s => s.includes('مسروق') },
     { label: 'معروضة للبيع', color: '#3B82C4', match: s => s === 'للبيع' },
-    { label: 'مؤجرة', color: '#2FA36B', match: s => s.includes('مؤجر') }
+    { label: 'مؤجرة', color: '#2FA36B', match: s => s.includes('مؤجر') },
+    { label: 'خدمة', color: '#0EA5E9', match: s => s === 'خدمة' },
+    { label: 'مفقودة', color: '#4B5563', match: s => s.includes('مفقود') }
   ].map(r => ({ label: r.label, color: r.color, n: fleet.filter(c => r.match(stOf(c))).length }));
   statusRows.push({ label: 'أخرى', color: '#9AA5B1', n: Math.max(0, total - statusRows.reduce((s, r) => s + r.n, 0)) });
   // أسباب عدم الجاهزية بنسب
