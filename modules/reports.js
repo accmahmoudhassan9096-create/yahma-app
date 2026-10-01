@@ -1226,7 +1226,7 @@ ${d.accLine}
   const excelBtn = document.getElementById('rd-excel');
   if(excelBtn) excelBtn.onclick = exportReportsExcel;
 
-  /* ---- PDF from current dashboard ---- */
+  /* ---- PDF from current dashboard (JPEG/scale 1.5: ملف صغير موثوق بدل PNG ضخم يفشل تنزيله) ---- */
   document.getElementById('rd-pdf').onclick = async () => {
     const node = document.getElementById('reports-dashboard');
     if(!node){ alert('لا يوجد محتوى للتصدير'); return; }
@@ -1239,8 +1239,8 @@ ${d.accLine}
         window.print();
         return;
       }
-      const canvas = await html2canvas(node, {scale:2, backgroundColor:'#ffffff', useCORS:true, logging:false});
-      const img = canvas.toDataURL('image/png');
+      const canvas = await html2canvas(node, {scale:1.5, backgroundColor:'#ffffff', useCORS:true, logging:false});
+      const img = canvas.toDataURL('image/jpeg', 0.85);
       if(window.jspdf && window.jspdf.jsPDF){
         const {jsPDF} = window.jspdf;
         const pdf = new jsPDF('p','mm','a4');
@@ -1248,12 +1248,12 @@ ${d.accLine}
         const usableW=pageW-margin*2;
         const imgH = canvas.height * usableW / canvas.width;
         let hLeft = imgH, pos = margin;
-        pdf.addImage(img, 'PNG', margin, pos, usableW, imgH);
+        pdf.addImage(img, 'JPEG', margin, pos, usableW, imgH);
         hLeft -= (pageH - margin*2);
         while(hLeft > 0){
           pdf.addPage();
           pos = margin - (imgH - hLeft);
-          pdf.addImage(img, 'PNG', margin, pos, usableW, imgH);
+          pdf.addImage(img, 'JPEG', margin, pos, usableW, imgH);
           hLeft -= (pageH - margin*2);
         }
         pdf.save('yahma-report-'+Date.now()+'.pdf');
