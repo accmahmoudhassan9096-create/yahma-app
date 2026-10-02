@@ -327,8 +327,10 @@ function renderFollowUp(content){
     ]);
     window._yahmaGetFilteredCars = getRows;
     if(fmt==='pdf'){
-      if(typeof openPrintWindow==='function') openPrintWindow('كارت وتأمين — نتائج مفلترة','عدد السجلات: '+rows.length,headers,data);
-      else if(window.YahmaExport&&window.YahmaExport.printTable) window.YahmaExport.printTable('كارت وتأمين — نتائج مفلترة',headers,data);
+      const name='كارت-تأمين-مفلتر-'+new Date().toISOString().slice(0,10)+'.pdf';
+      if(window.YahmaExport&&window.YahmaExport.exportTablePdf){
+        window.YahmaExport.exportTablePdf({title:'كارت وتأمين — نتائج مفلترة',subtitle:'عدد السجلات: '+rows.length,headers:headers,rows:data,buttonId:'fu-export-pdf',filename:name});
+      } else if(typeof openPrintWindow==='function') openPrintWindow('كارت وتأمين — نتائج مفلترة','عدد السجلات: '+rows.length,headers,data);
       return;
     }
     if(!(await ensureXlsxReady())){alert('مكتبة Excel غير متاحة');return;}

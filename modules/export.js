@@ -130,28 +130,9 @@
   async function createFormalReportPdf(elementId, filename) {
     const sheet = document.getElementById(elementId);
     if (!sheet || !sheet.innerHTML) throw new Error('لا يوجد محتوى للتقرير');
-    const canvas = await global.html2canvas(sheet, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-    if (!canvas || !canvas.width) throw new Error('تعذر رسم التقرير (Canvas فارغ)');
-    const { jsPDF } = global.jspdf;
-    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-    const pageWidth = 210, pageHeight = 297;
-    const pageHeightPx = canvas.width * (pageHeight / pageWidth);
-    const pages = Math.max(1, Math.ceil(canvas.height / pageHeightPx));
-    for (let page = 0; page < pages; page++) {
-      const sourceY = page * pageHeightPx;
-      const sourceHeight = Math.min(pageHeightPx, canvas.height - sourceY);
-      if (sourceHeight <= 0) break;
-      const slice = document.createElement('canvas');
-      slice.width = canvas.width;
-      slice.height = Math.ceil(sourceHeight);
-      const context = slice.getContext('2d');
-      context.fillStyle = '#ffffff';
-      context.fillRect(0, 0, slice.width, slice.height);
-      context.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
-      if (page > 0) pdf.addPage();
-      pdf.addImage(slice.toDataURL('image/jpeg', 0.94), 'JPEG', 0, 0, pageWidth, sourceHeight * pageWidth / canvas.width, undefined, 'FAST');
-    }
-    return { pdf, name: filename };
+    /* نفس محرّك التقارير: html2canvas scale 1.5 → JPEG 0.85 → jsPDF A4 */
+    const img = await captureNodeJpeg(sheet);
+    return { pdf: pdfFromImages([img]), name: filename };
   }
 
   async function capturePngBlob(elementId, options) {
@@ -160,6 +141,173 @@
     const canvas = await global.html2canvas(element, Object.assign({ scale: 2, backgroundColor: '#ffffff', useCORS: true }, options || {}));
     if (!canvas || !canvas.width) throw new Error('تعذر رسم الإنفوجرافيك');
     return new Promise(resolve => canvas.toBlob(blob => resolve(blob), 'image/png'));
+  }
+
+  /* ===== نظام PDF موحّد — نفس محرّك التقارير: html2canvas → JPEG 0.85 (scale 1.5) → jsPDF A4 → تنزيل مباشر ===== */
+  const PDF_PAGE_MARGIN = 8;      /* نفس هوامش التقارير (مم) */
+  const PDF_HOST_W = 1000;        /* عرض الجدول المنطقي بكسل = العرض المستخدم في A4 */
+  const PDF_SINGLE_MAX_H = 21000; /* أقصى ارتفاع canvas آمن قبل scale 1.5 */
+
+  function escCell(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /** بناء مضيف الجدول بنفس شكل تقرير التقارير (RTL + رأس أزرق + تناوب صفوف) */
+  function buildTablePdfHost(o) {
+    const headers = o.headers || [];
+    const rows = o.rows || [];
+    const head = headers.map(function (h) { return '<th>' + escCell(h) + '</th>'; }).join('');
+    const body = rows.map(function (r) {
+      return '<tr>' + r.map(function (c) { return '<td>' + escCell(c) + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    const host = document.createElement('div');
+    host.setAttribute('data-pdf-host', '1');
+    /* ظاهر جزئيًا (opacity منخفضة) — off-screen يسبب PDF فاضي في بعض المتصفحات */
+    host.style.cssText = 'position:fixed;left:0;top:0;width:' + PDF_HOST_W + 'px;background:#fff;z-index:2147483646;opacity:0.02;pointer-events:none;overflow:visible;';
+    host.innerHTML =
+      '<div class="pdf-root" style="box-sizing:border-box;width:' + PDF_HOST_W + 'px;padding:24px;background:#fff;color:#1A2433;font-family:Tahoma,\'Segoe UI\',Arial,sans-serif;direction:rtl;text-align:right;">' +
+      '<style>' +
+      '.pdf-root table{width:100%;border-collapse:collapse}' +
+      '.pdf-root th{background:#1F3C88;color:#fff;padding:8px 6px;text-align:right;font-size:11px;font-weight:700;border:1px solid #1F3C88}' +
+      '.pdf-root td{padding:7px 6px;border-bottom:1px solid #E6EAF0;text-align:right;font-size:11px;vertical-align:top}' +
+      '.pdf-root tbody tr:nth-child(even) td{background:#F7F8FA}' +
+      '</style>' +
+      '<div class="pdf-head">' +
+        '<h1 style="font-size:20px;margin:0 0 4px;color:#1F3C88">' + escCell(o.title || 'تقرير يهماء') + '</h1>' +
+        '<div style="color:#5A6A7E;font-size:12px;margin-bottom:12px">' + escCell(o.subtitle || '') + '</div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:#5A6A7E;margin-bottom:14px">' +
+          '<span>تاريخ التصدير: ' + escCell(new Date().toLocaleString('ar-EG')) + '</span>' +
+          '<span>عدد السجلات: ' + rows.length + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<table><thead><tr>' + head + '</tr></thead><tbody>' +
+        (body || '<tr><td colspan="' + Math.max(1, headers.length) + '">لا توجد بيانات</td></tr>') +
+      '</tbody></table>' +
+      (o.note ? '<div style="margin-top:14px;font-size:11px;color:#5A6A7E">' + escCell(o.note) + '</div>' : '') +
+      '<div class="pdf-foot" style="margin-top:18px;padding-top:10px;border-top:1px solid #E6EAF0;font-size:10px;color:#8A97A8;text-align:center">يهماء — نظام إدارة تأجير السيارات</div>' +
+      '</div>';
+    document.body.appendChild(host);
+    return host;
+  }
+
+  /** التقاط عقدة → JPEG بنفس إعدادات التقارير (scale 1.5 + جودة 0.85) */
+  async function captureNodeJpeg(node, scale, quality) {
+    await ensurePdfLibs();
+    const h2c = global.html2canvas;
+    if (typeof h2c !== 'function') throw new Error('html2canvas غير متاحة — تحقق من الاتصال بالإنترنت');
+    const sc = scale || 1.5;
+    const q = quality == null ? 0.85 : quality;
+    const w = Math.max(node.scrollWidth || 0, node.offsetWidth || 0, 200);
+    const h = Math.max(node.scrollHeight || 0, node.offsetHeight || 0, 100);
+    const canvas = await h2c(node, {
+      scale: sc, backgroundColor: '#ffffff', useCORS: true, allowTaint: true, logging: false,
+      width: w, height: h, windowWidth: w, windowHeight: h
+    });
+    if (!canvas || canvas.width < 20 || canvas.height < 20) throw new Error('تعذر رسم التقرير (Canvas فارغ)');
+    const out = { data: canvas.toDataURL('image/jpeg', q), w: canvas.width, h: canvas.height };
+    canvas.width = 0; canvas.height = 0;
+    return out;
+  }
+
+  /** صور → PDF بمقاس A4 (كل صورة تتدفق عبر الصفحات — نفس منطق التقارير) */
+  function pdfFromImages(images) {
+    const ns = global.jspdf || global.jsPDF;
+    const JsPDF = ns && (ns.jsPDF || ns);
+    if (!JsPDF) throw new Error('jsPDF غير متاحة — تحقق من الاتصال بالإنترنت');
+    const pdf = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const usableW = pageW - PDF_PAGE_MARGIN * 2;
+    const usableH = pageH - PDF_PAGE_MARGIN * 2;
+    images.forEach(function (im, i) {
+      if (i > 0) pdf.addPage();
+      const imgH = im.h * usableW / im.w;
+      let hLeft = imgH, guard = 0;
+      pdf.addImage(im.data, 'JPEG', PDF_PAGE_MARGIN, PDF_PAGE_MARGIN, usableW, imgH);
+      hLeft -= usableH;
+      while (hLeft > 0 && guard++ < 400) {
+        pdf.addPage();
+        pdf.addImage(im.data, 'JPEG', PDF_PAGE_MARGIN, PDF_PAGE_MARGIN - (imgH - hLeft), usableW, imgH);
+        hLeft -= usableH;
+      }
+    });
+    return pdf;
+  }
+
+  /**
+   * تصدير جدول إلى PDF بنفس نظام التقارير (تنزيل مباشر — بلا نافذة طباعة).
+   * o = { title, subtitle, headers, rows, filename, note, buttonId }
+   */
+  async function exportTablePdf(o) {
+    o = o || {};
+    const rows = o.rows || [];
+    if (!rows.length) { alert('لا توجد نتائج مطابقة للفلاتر.'); return false; }
+    const btn = o.buttonId ? document.getElementById(o.buttonId) : null;
+    const original = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'جارِ تجهيز PDF...'; }
+    let host = null;
+    try {
+      await ensurePdfLibs();
+      host = buildTablePdfHost(o);
+      const root = host.querySelector('.pdf-root');
+      const head = host.querySelector('.pdf-head');
+      const foot = host.querySelector('.pdf-foot');
+      const trs = Array.prototype.slice.call(host.querySelectorAll('tbody tr'));
+      await new Promise(function (r) { setTimeout(r, 200); });
+      /* المحتوى القصير: نفس إعدادات التقارير تمامًا — الطويل: دقة أقل حتى يبقى حجم الملف معقولًا */
+      const totalH = root.scrollHeight;
+      const scale = totalH <= PDF_SINGLE_MAX_H ? 1.5 : 1.0;
+      const quality = totalH <= PDF_SINGLE_MAX_H ? 0.85 : 0.7;
+      const segBudget = Math.floor(31500 / scale); /* أقصى ارتفاع canvas آمن قبل scale */
+      let images;
+      if (totalH <= segBudget) {
+        images = [await captureNodeJpeg(root, scale, quality)];
+      } else {
+        /* محتوى طويل جدًا: نقسمه شرائح بعد قياس ارتفاع الصفوف فعليًا */
+        images = [];
+        const headH = head ? head.offsetHeight : 0;
+        const footH = foot ? foot.offsetHeight + 18 : 0;
+        const pad = 48;
+        let curA = 0, curB = trs.length;
+        const showRange = function (a, b) {
+          if (a < curA) for (let i = a; i < curA && i < trs.length; i++) trs[i].style.display = '';
+          if (b > curB) for (let i = curB; i < b && i < trs.length; i++) trs[i].style.display = '';
+          if (a > curA) for (let i = curA; i < a && i < trs.length; i++) trs[i].style.display = 'none';
+          if (b < curB) for (let i = b; i < curB && i < trs.length; i++) trs[i].style.display = 'none';
+          curA = a; curB = b;
+        };
+        let start = 0, pageNo = 0;
+        while (start < trs.length) {
+          if (head) head.style.display = pageNo === 0 ? '' : 'none';
+          if (foot) foot.style.display = pageNo === 0 ? '' : 'none';
+          const reserve = pad + (pageNo === 0 ? headH + footH : 0);
+          let end = start, step = 32;
+          while (step >= 1 && end < trs.length) {
+            const cand = Math.min(end + step, trs.length);
+            showRange(start, cand);
+            if (root.scrollHeight <= segBudget - reserve) { end = cand; step *= 2; }
+            else step = Math.floor(step / 2);
+          }
+          if (end === start) end = Math.min(start + 1, trs.length);
+          showRange(start, end);
+          await new Promise(function (r) { setTimeout(r, 40); });
+          images.push(await captureNodeJpeg(root, scale, quality));
+          if (btn) btn.textContent = 'جارِ تجهيز PDF... (جزء ' + images.length + ')';
+          start = end; pageNo++;
+        }
+        showRange(0, trs.length);
+      }
+      const pdf = pdfFromImages(images);
+      pdf.save(o.filename || ('yahma-report-' + Date.now() + '.pdf'));
+      return true;
+    } catch (e) {
+      console.error('تعذر إنشاء PDF', e);
+      alert('حدث خطأ أثناء إنشاء ملف PDF: ' + (e && e.message ? e.message : e));
+      return false;
+    } finally {
+      if (host && host.parentNode) host.parentNode.removeChild(host);
+      if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    }
   }
 
   /** Public API */
@@ -171,6 +319,7 @@
     exportReportPdf: exportReportPdf,
     createFormalReportPdf: createFormalReportPdf,
     capturePngBlob: capturePngBlob,
+    exportTablePdf: exportTablePdf,
     exportRowsToExcel: exportRowsToExcel,
     exportFleetExcel: exportFleetExcel,
     /** يُستدعى من الأزرار — يحمّل المكتبة عند الحاجة فقط */

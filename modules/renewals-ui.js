@@ -333,8 +333,12 @@ function renderRenewals(content, mode='inspection'){
     ]);
     window._yahmaGetFilteredCars = getRows;
     if(fmt==='pdf'){
-      if(typeof openPrintWindow==='function') openPrintWindow('فحص ورخصة — نتائج مفلترة','عدد السجلات: '+rows.length,headers,data);
-      else if(window.YahmaExport&&window.YahmaExport.printTable) window.YahmaExport.printTable('فحص ورخصة — نتائج مفلترة',headers,data);
+      const title=insuranceMode?'تأمين — نتائج مفلترة':'فحص ورخصة — نتائج مفلترة';
+      const base=insuranceMode?'تأمين-مفلتر':'فحص-ورخصة-مفلتر';
+      const name=base+'-'+new Date().toISOString().slice(0,10)+'.pdf';
+      if(window.YahmaExport&&window.YahmaExport.exportTablePdf){
+        window.YahmaExport.exportTablePdf({title:title,subtitle:'عدد السجلات: '+rows.length,headers:headers,rows:data,buttonId:'ren-export-pdf',filename:name});
+      } else if(typeof openPrintWindow==='function') openPrintWindow(title,'عدد السجلات: '+rows.length,headers,data);
       return;
     }
     if(!(await ensureXlsxReady())){alert('مكتبة Excel غير متاحة');return;}

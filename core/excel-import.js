@@ -102,7 +102,16 @@ function openPrintWindow(title, subtitle, headers, rows, note){
   if(!w){ alert('يرجى السماح بالنوافذ المنبثقة لتصدير PDF'); return; }
   w.document.open(); w.document.write(html); w.document.close();
 }
-function exportCurrentTabPDF(){
+/* تنزيل PDF بنفس نظام التقارير: html2canvas → JPEG → jsPDF → تنزيل مباشر (بديل نافذة الطباعة) */
+function downloadTablePdf(title, subtitle, headers, rows, note, buttonId){
+  if(window.YahmaExport&&window.YahmaExport.exportTablePdf){
+    const base=String(title||'تقرير').replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'-');
+    return window.YahmaExport.exportTablePdf({title:title,subtitle:subtitle,headers:headers,rows:rows,note:note,buttonId:buttonId||'btn-export-pdf',filename:base+'-'+new Date().toISOString().slice(0,10)+'.pdf'});
+  }
+  if(typeof openPrintWindow==='function') openPrintWindow(title, subtitle, headers, rows, note);
+  return Promise.resolve(false);
+}
+async function exportCurrentTabPDF(){
   const tab=typeof currentTab!=='undefined'?currentTab:'dashboard';
   if(tab==='dashboard'){
     const st=readinessStats();
@@ -129,8 +138,8 @@ function exportCurrentTabPDF(){
       const r=vehicleReadiness(c);
       return [c.plate||'—',c.brand||'—',c.branch||'—',c.carStatus||'—',(r.failed||[]).map(f=>f.label).join('، ')||'—'];
     });
-    openPrintWindow('لوحة التحكم — ملخص الجاهزية','إحصائيات عامة للأسطول',headers,rows);
-    if(rows2.length) setTimeout(()=>openPrintWindow('السيارات غير الجاهزة','أول '+rows2.length+' سيارة غير جاهزة',headers2,rows2),600);
+    await downloadTablePdf('لوحة التحكم — ملخص الجاهزية','إحصائيات عامة للأسطول',headers,rows);
+    if(rows2.length) await downloadTablePdf('السيارات غير الجاهزة','أول '+rows2.length+' سيارة غير جاهزة',headers2,rows2);
     return;
   }
   if(tab==='fleet'){
@@ -151,7 +160,7 @@ function exportCurrentTabPDF(){
         inspectionDisplayStatus(c.inspectionStatus).label,
         rdy.label];
     });
-    openPrintWindow('تقرير الأسطول','قائمة سيارات الأسطول',headers,rows);
+    await downloadTablePdf('تقرير الأسطول','قائمة سيارات الأسطول',headers,rows);
     return;
   }
   if(tab==='renewals'){
@@ -181,7 +190,7 @@ function exportCurrentTabPDF(){
       licenseDisplayStatus(c.licenseExpiry).label,
       fmtDate(c.licenseExpiry)
     ]);
-    openPrintWindow('تقرير الفحص والرخصة','قائمة الفحص ومواعيد الرخصة',headers,rows);
+    await downloadTablePdf('تقرير الفحص والرخصة','قائمة الفحص ومواعيد الرخصة',headers,rows);
     return;
   }
   if(tab==='followup'){
@@ -211,7 +220,7 @@ function exportCurrentTabPDF(){
       fmtDate(c.cardExpiry),
       textTag(c.insuranceStatus).label
     ]);
-    openPrintWindow('تقرير الكارت والتأمين','متابعة الكروت والتأمين',headers,rows);
+    await downloadTablePdf('تقرير الكارت والتأمين','متابعة الكروت والتأمين',headers,rows);
     return;
   }
   if(tab==='reports'){
@@ -228,11 +237,19 @@ function exportCurrentTabPDF(){
       b, String(v.total), String(v.ready), String(v.total-v.ready),
       (v.total?Math.round(v.ready/v.total*100):0)+'%'
     ]);
-    openPrintWindow('تقرير أداء الفروع','ملخص الجاهزية حسب الفرع — إجمالي الأسطول '+fleet.length+' | جاهزية عامة '+st.pct+'%',headers,rows);
+    await downloadTablePdf('تقرير أداء الفروع','ملخص الجاهزية حسب الفرع — إجمالي الأسطول '+fleet.length+' | جاهزية عامة '+st.pct+'%',headers,rows);
     return;
   }
+  // بقية التبويبات: بياناتها المفلترة الحالية (أو جدول الصفحة) بنفس نظام PDF في التقارير
+  if(typeof currentPagePdfData==='function'){
+    const d=currentPagePdfData();
+    if(d&&d.headers&&d.headers.length&&d.rows&&d.rows.length){
+      await downloadTablePdf(d.title||'تقرير المنصة',d.subtitle||'',d.headers,d.rows);
+      return;
+    }
+  }
   // fallback
-  openPrintWindow('تصدير الأسطول','قائمة مختصرة',['رقم اللوحة','الماركة','الفرع','الحالة'],
+  await downloadTablePdf('تصدير الأسطول','قائمة مختصرة',['رقم اللوحة','الماركة','الفرع','الحالة'],
     fleet.slice(0,500).map(c=>[c.plate||'—',c.brand||'—',c.branch||'—',c.carStatus||'—']));
 }
 

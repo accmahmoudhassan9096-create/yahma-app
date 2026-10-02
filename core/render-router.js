@@ -40,7 +40,10 @@ function renderPreparation(content){
       return [t.plate||'',t.branch||'',t.title||'',t.assignee||'',t.dueDate||'',label];
     });
     if(fmt==='pdf'){
-      if(typeof openPrintWindow==='function') openPrintWindow('مهام التجهيز المفلترة','عدد المهام: '+list.length,headers,data);
+      const name='مهام-تجهيز-مفلترة-'+new Date().toISOString().slice(0,10)+'.pdf';
+      if(window.YahmaExport&&window.YahmaExport.exportTablePdf){
+        window.YahmaExport.exportTablePdf({title:'مهام التجهيز المفلترة',subtitle:'عدد المهام: '+list.length,headers:headers,rows:data,buttonId:'prep-export-pdf',filename:name});
+      } else if(typeof openPrintWindow==='function') openPrintWindow('مهام التجهيز المفلترة','عدد المهام: '+list.length,headers,data);
       return;
     }
     if(!(await ensureXlsxReady())){alert('مكتبة Excel غير متاحة');return;}
@@ -136,7 +139,9 @@ function render(){
 
   const content = document.getElementById('content');
   try{
-    
+    /* بيانات PDF الخاصة بالتبويب تُعاد توليدها مع كل عرض — نمسح القديمة حتى لا يصدّر زر PDF بيانات تبويب سابق */
+    window._yahmaCurrentPdfData = null;
+
   // Topbar layout: mockup-style on dashboard
   const tb = document.querySelector('.topbar');
   if (tb) tb.classList.toggle('is-dashboard', currentTab === 'dashboard');

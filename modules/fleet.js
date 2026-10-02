@@ -595,8 +595,10 @@ const q=(search.value||'').trim().toLowerCase();
         let rdy='—'; try{rdy=vehicleReadiness(c).label}catch(e){}
         return [c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',rdy,licenseState(c).label,inspectionState(c).label,cardState(c).label];
       });
-      if(typeof openPrintWindow==='function') openPrintWindow('نتائج الأسطول المفلترة','عدد السجلات: '+rows.length,headers,data);
-      else if(typeof window.YahmaExport==='object' && window.YahmaExport.printTable) window.YahmaExport.printTable('نتائج الأسطول المفلترة',headers,data);
+      const name='نتائج-الأسطول-مفلتر-'+new Date().toISOString().slice(0,10)+'.pdf';
+      if(window.YahmaExport&&window.YahmaExport.exportTablePdf){
+        window.YahmaExport.exportTablePdf({title:'نتائج الأسطول المفلترة',subtitle:'عدد السجلات: '+rows.length,headers:headers,rows:data,buttonId:'fleet-export-pdf',filename:name});
+      } else if(typeof openPrintWindow==='function') openPrintWindow('نتائج الأسطول المفلترة','عدد السجلات: '+rows.length,headers,data);
       else alert('تعذر فتح نافذة PDF');
       return;
     }

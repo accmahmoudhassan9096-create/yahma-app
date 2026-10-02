@@ -67,8 +67,13 @@
         const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
         const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'مهام');
         XLSX.writeFile(wb,'مهام-تجهيز-مفلترة-'+(typeof todayStr==='function'?todayStr():Date.now())+'.xlsx');
-      } else if(typeof openPrintWindow==='function'){
-        openPrintWindow('مهام تجهيز الأسطول (مفلترة)','عدد المهام: '+list.length,headers,rows);
+      } else {
+        const name='مهام-تجهيز-مفلترة-'+new Date().toISOString().slice(0,10)+'.pdf';
+        if(window.YahmaExport&&window.YahmaExport.exportTablePdf){
+          window.YahmaExport.exportTablePdf({title:'مهام تجهيز الأسطول (مفلترة)',subtitle:'عدد المهام: '+list.length,headers:headers,rows:rows,buttonId:'prep-export-tasks',filename:name});
+        } else if(typeof openPrintWindow==='function'){
+          openPrintWindow('مهام تجهيز الأسطول (مفلترة)','عدد المهام: '+list.length,headers,rows);
+        }
       }
     });
     // also wire excel/pdf buttons if present
@@ -86,7 +91,13 @@
       if(!list.length){alert('لا توجد مهام مطابقة للفلاتر.');return;}
       const headers=['رقم اللوحة','الفرع','المهمة','المسؤول','الاستحقاق','الحالة'];
       const rows=list.map(t=>[t.plate||'',t.branch||'',t.title||'',t.assignee||'',t.dueDate||'',(typeof prepStatusLabel==='function'?prepStatusLabel(t.status):(t.status||''))]);
-      if(fmt==='pdf'){ if(typeof openPrintWindow==='function') openPrintWindow('مهام التجهيز المفلترة','عدد: '+list.length,headers,rows); return; }
+      if(fmt==='pdf'){
+        const name='مهام-تجهيز-مفلترة-'+new Date().toISOString().slice(0,10)+'.pdf';
+        if(window.YahmaExport&&window.YahmaExport.exportTablePdf){
+          window.YahmaExport.exportTablePdf({title:'مهام التجهيز المفلترة',subtitle:'عدد: '+list.length,headers:headers,rows:rows,buttonId:'prep-export-pdf',filename:name});
+        } else if(typeof openPrintWindow==='function') openPrintWindow('مهام التجهيز المفلترة','عدد: '+list.length,headers,rows);
+        return;
+      }
       if(!(await ensureXlsxReady())){alert('مكتبة Excel غير متاحة');return;}
       const ws=XLSX.utils.aoa_to_sheet([headers,...rows]); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'مهام');
       XLSX.writeFile(wb,'مهام-تجهيز-مفلترة-'+(typeof todayStr==='function'?todayStr():Date.now())+'.xlsx');
