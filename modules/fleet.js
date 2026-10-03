@@ -141,6 +141,7 @@
       <button type="button" class="fleet-summary-card out" data-fleet-quick="out"><span class="fleet-summary-icon">×</span><span><b>${fleetStats.out}</b><small>خارج الخدمة</small></span></button>
     </div>
     <div class="fleet-tools-head">
+      <button class="btn btn-ghost" id="fleet-back-branches" type="button" title="رجوع لدليل الفروع" style="display:none">→ رجوع للفروع</button>
       <div class="fleet-search-wrap"><span>⌕</span><input id="fleet-search" aria-label="بحث في الأسطول" placeholder="ابحث برقم اللوحة، الماركة، النوع، الموديل، الشاسيه، المالك أو الفرع..."></div>
       <div class="view-toggle" id="fleet-view-toggle">
         <button type="button" class="active" data-view="table">جدول</button>
@@ -239,6 +240,15 @@
         const opt=document.createElement('option'); opt.value=pendingBranch; opt.textContent=pendingBranch; branchSel.appendChild(opt);
       }
       branchSel.value=pendingBranch;
+    }
+    // زر رجوع لدليل الفروع — يظهر فقط عند القدوم من اسم فرع
+    const backBtn=$('fleet-back-branches');
+    if(backBtn){
+      backBtn.style.display='';
+      backBtn.onclick=()=>{
+        document.querySelector('.nav-item[data-tab="branches"]')?.click();
+        if(typeof global.render==='function') global.render();
+      };
     }
   }
   // نتائج البحث الموحّد في الشريط العلوي (يكتبه dashboard عند الضغط على Enter)
