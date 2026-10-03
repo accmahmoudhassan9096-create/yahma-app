@@ -764,21 +764,34 @@ html, body{
   z-index: 1;
   clear: both;
 }
-@media (min-width: 901px){
-  .content:has(#fleet-scroll){
-    display: flex !important;
-    flex-direction: column !important;
-    min-height: 0 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    scrollbar-gutter: stable;
-  }
-  #fleet-scroll{
-    flex: 1 1 auto;
-    height: auto;
-    min-height: 260px;
-    max-height: none !important;
-  }
+/* تبويبات الجداول: مسطرة تمرير رأسية واحدة فقط — المحتوى عمود ثابت والجدول يتمرر داخليًا */
+.content.content-table{
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+}
+.content.content-table > *{flex: 0 0 auto;min-width: 0;}
+.content.content-table > .table-scroll{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+.content.content-table > .fleet-cards{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* التبويبات ذات الفلاتر الطويلة: الجدول بطوله الطبيعي والمحتوى يتمرر مرة واحدة (thead اللاصق يثبت أعلى المحتوى) */
+.content.content-flow > .table-scroll{
+  display: contents;
+  max-height: none !important;
+}
+.content.content-flow > .table-scroll > table{border:1px solid var(--line);}
+@media print{
+  .content.content-table{display:block !important;overflow:visible !important;}
+  .content.content-table > .table-scroll{overflow:visible !important;max-height:none !important;}
 }
 .overlay, .vehicle360-overlay, .modern-popover, .shortcut-help{
   backdrop-filter: none !important;
