@@ -792,12 +792,6 @@ html, body{
 /* فيديو الواجهة مكان صورة السيارة — ضع ملفك باسم assets/hero-video.mp4 */
 .home-hero-video{background:#0B1526;border-radius:18px;object-fit:cover;aspect-ratio:16/9;}
 .hero-executive .home-hero-video{mix-blend-mode:normal !important;}
-@media(min-width:1200px){
-  /* فيديو الواجهة بعرض مضاعف: عمود أوسع + سقف 860px */
-  .home-hero.hero-executive:has(.home-hero-video){grid-template-columns:minmax(0,.85fr) minmax(320px,1.15fr) !important;}
-  .hero-executive .hero-car-clean:has(.home-hero-video){width:min(860px,100%) !important;}
-  .hero-executive .home-hero-video{max-width:860px !important;}
-}
 @media (prefers-reduced-motion: reduce){.home-hero-video{animation:none !important;}}
 @media print{
   .content.content-table{display:block !important;overflow:visible !important;}
