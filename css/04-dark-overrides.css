@@ -789,6 +789,10 @@ html, body{
   max-height: none !important;
 }
 .content.content-flow > .table-scroll > table{border:1px solid var(--line);}
+/* فيديو الواجهة مكان صورة السيارة — ضع ملفك باسم assets/hero-video.mp4 */
+.home-hero-video{background:#0B1526;border-radius:18px;object-fit:cover;aspect-ratio:16/9;}
+.hero-executive .home-hero-video{mix-blend-mode:normal !important;}
+@media (prefers-reduced-motion: reduce){.home-hero-video{animation:none !important;}}
 @media print{
   .content.content-table{display:block !important;overflow:visible !important;}
   .content.content-table > .table-scroll{overflow:visible !important;max-height:none !important;}

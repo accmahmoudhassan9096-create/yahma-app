@@ -184,7 +184,7 @@ function renderDashboard(content, context){
           <div class="hero-summary-stat"><b>${rented}</b><span>السيارات المؤجرة</span></div>
         </div>
       </div>
-      <div class="home-hero-car hero-car-clean" aria-hidden="true"><img src="assets/dashboard-hero.png" alt="Toyota Fortuner" class="home-hero-car-img" width="720" height="353" decoding="async"></div>
+      <div class="home-hero-car hero-car-clean" aria-hidden="true"><video class="home-hero-car-img home-hero-video" autoplay muted loop playsinline preload="metadata" poster="assets/dashboard-hero.png"><source src="assets/hero-video.mp4" type="video/mp4"></video></div>
     </div>
 
     <!-- KPI row -->
@@ -349,9 +349,30 @@ function renderDashboard(content, context){
     </div>
   </div>`;
 
+  // فيديو الواجهة: يعمل تلقائيًا بدون صوت — وإن غاب الملف يرجع لصورة السيارة
+  const heroVideo = content.querySelector('.home-hero-video');
+  if (heroVideo) {
+    const heroFallback = () => {
+      if (!heroVideo.isConnected || heroVideo.dataset.fbk) return;
+      heroVideo.dataset.fbk = '1';
+      const img = document.createElement('img');
+      img.src = 'assets/dashboard-hero.png'; img.alt = ''; img.decoding = 'async';
+      img.className = 'home-hero-car-img'; img.width = 720; img.height = 353;
+      heroVideo.replaceWith(img);
+    };
+    const heroSrc = heroVideo.querySelector('source');
+    if (heroSrc) heroSrc.addEventListener('error', heroFallback);
+    heroVideo.addEventListener('error', heroFallback);
+    setTimeout(() => { if (heroVideo.isConnected && heroVideo.networkState === 3) heroFallback(); }, 3000);
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      heroVideo.autoplay = false; heroVideo.pause && heroVideo.pause();
+    } else {
+      heroVideo.addEventListener('canplay', () => { heroVideo.play && heroVideo.play().catch(() => {}); }, { once: true });
+    }
+  }
+
   // Navigation helpers
-  const goTab = (tab, filter) => {
-    if (filter) window.pendingFleetQuickFilter = filter;
+  const goTab = (tab, filter) => {    if (filter) window.pendingFleetQuickFilter = filter;
     setCurrentTab(tab);
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.nav-item[data-tab="${tab}"]`)?.classList.add('active');
