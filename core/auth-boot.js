@@ -371,13 +371,13 @@ function initAuthGate(){
   initAuthUI();
 
   if(!window.supabaseReady || !window.supabaseClient){
-    // لا يوجد Supabase (فشل تحميل الـ SDK أو ملف مباشر): نشغّل التطبيق في وضع
-    // محلي *بشكل صريح* — مش من خلال شبكة الأمان الزمنية — حتى تبقى الحالة معلومة.
+    // لا يوجد Supabase (CDN محجوب/أوفلاين/مانع إعلانات): ممنوع الدخول التلقائي تمامًا —
+    // أي زائر كان يدخل كمدير تجريبي دون أي نقرة. اعرض شاشة الدخول مع تنبيه،
+    // والدخول التجريبي يبقى اختيارًا صريحًا بزر «تجربة بدون تسجيل» فقط.
     window._authResolved = true;
-    window._demoMode = true;
-    window.currentRole='admin';
-    showAppScreen();
-    if(typeof loadData==='function') loadData();
+    window._demoMode = false;
+    window.currentRole = 'view';
+    showAuthScreen('تعذر الاتصال بخدمة تسجيل الدخول — تحقق من الإنترنت (مانع الإعلانات قد يحجب مكتبات الدخول). أو استخدم زر الدخول التجريبي بالأسفل.');
     return;
   }
 
