@@ -121,7 +121,7 @@ function render(){
   document.getElementById('count-fleet').textContent = fleet.length;
   // تاب "الفحص والرخصة والتأمين": فحص + رخصة + تأمين
   const pendingInspectionIds=new Set(loadInspectionPayments().map(item=>String(item.carId)));
-  const renewalAlerts = fleet.filter(c => textTag(c.inspectionStatus).level !== 'green'&&!pendingInspectionIds.has(String(c.id))).length;
+  const renewalAlerts = fleet.filter(c => inspectionDisplayStatus(c.inspectionStatus).level !== 'green'&&!pendingInspectionIds.has(String(c.id))).length;
   const licenseAlerts = fleet.filter(c => dateStatus(c.licenseExpiry).level !== 'green').length;
   const insuranceAlerts = fleet.filter(c => textTag(c.insuranceStatus).level !== 'green').length;
   // تاب "بطاقات التشغيل": تنبيهات الكارت (بطاقة التشغيل)
