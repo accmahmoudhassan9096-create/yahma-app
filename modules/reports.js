@@ -140,7 +140,7 @@
         const result = typeof readiness === 'function' ? readiness(car) : null;
         if (result) {
           isReady = !!result.ready;
-          (result.failed || []).forEach(item => {
+          if (!isReady) (result.failed || []).forEach(item => {
             const label = (item && (item.label || item.name || item)) || 'أخرى';
             failures[label] = (failures[label] || 0) + 1;
           });

@@ -120,8 +120,7 @@
   document.getElementById('topbar-title').textContent='إدارة الأسطول';
   document.getElementById('topbar-sub').textContent = fleet.length + ' سيارة — إدارة الجاهزية للتأجير';
   const fleetStats=readinessStats();
-  const fleetRented=fleetStats.rented||0;
-  const fleetAttention=Math.max(0, fleetStats.total-fleetStats.ready-fleetStats.out-fleetRented);
+  const fleetAttention=Math.max(0, fleetStats.total-fleetStats.ready-fleetStats.out);
   const uniq=(field)=>{
     const map=new Map(); // normalized -> display
     fleet.forEach(c=>{
@@ -138,7 +137,6 @@
     <div class="fleet-summary-strip" aria-label="ملخص حالة الأسطول">
       <button type="button" class="fleet-summary-card total" data-fleet-quick="all"><span class="fleet-summary-icon">🚗</span><span><b>${fleetStats.total}</b><small>إجمالي السيارات</small></span></button>
       <button type="button" class="fleet-summary-card ready" data-fleet-quick="ready"><span class="fleet-summary-icon">✓</span><span><b>${fleetStats.ready}</b><small>جاهزة للتأجير</small></span></button>
-      <button type="button" class="fleet-summary-card rented" data-fleet-quick="rented"><span class="fleet-summary-icon">🔑</span><span><b>${fleetRented}</b><small>مؤجرة</small></span></button>
       <button type="button" class="fleet-summary-card attention" data-fleet-quick="not_ready"><span class="fleet-summary-icon">!</span><span><b>${fleetAttention}</b><small>تحتاج إجراء</small></span></button>
       <button type="button" class="fleet-summary-card out" data-fleet-quick="out"><span class="fleet-summary-icon">×</span><span><b>${fleetStats.out}</b><small>خارج الخدمة</small></span></button>
     </div>
@@ -376,10 +374,9 @@
     if(q==='inspection_only') return insp;
     if(q==='license_only') return lic;
     if(q==='card_only') return card;
-    if(q==='any_doc') return card||lic||insp;
+    if(q==='any_doc') return card||lic||insp||textTag(c.insuranceStatus).level!=='green';
     if(q==='ready') return vehicleReadiness(c).ready;
-    if(q==='rented') return vehicleReadiness(c).label==='مؤجرة';
-    if(q==='not_ready'){ const r=vehicleReadiness(c); return !r.ready && r.label!=='مؤجرة'; }
+    if(q==='not_ready') return !vehicleReadiness(c).ready;
     if(q==='maintenance') return status.includes('صيانة');
     if(q==='out') return carStatusOut(status);
     return true;

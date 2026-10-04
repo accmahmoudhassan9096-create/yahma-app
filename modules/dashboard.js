@@ -11,22 +11,17 @@ function renderDashboard(content, context){
   const reasons = readinessReasons(st);
   const total = st.total || 0;
   const ready = st.ready || 0;
-  const rentedCars = st.rented || 0;
-  const maintenance = st.maintenance || 0;
+  const maintenance = fleet.filter(c => String(c.carStatus || '').includes('صيانة')).length;
   const notReady = Math.max(0, (st.out||0) + (st.other||0) + (st.inspection||0));
   const available = ready;
   const rented = fleet.filter(c => String(c.carStatus||'').includes('مؤجر')).length;
-  // قيد التجهيز: غير جاهزة لكن ليست «خارج الخدمة» ولا صيانة صرفة — نستخدم inspection+other كتقريب، أو مهام قيد التنفيذ
-  let inPrep = 0, finalReview = 0;
-  try {
-    const tasks = typeof getPrepTasks === 'function' ? getPrepTasks() : [];
-    inPrep = tasks.filter(t => t.status === 'progress' || t.status === 'open').length;
-    // عدد سيارات لها مهام مفتوحة/قيد التنفيذ (فريدة)
-    const carIds = new Set(tasks.filter(t => t.status !== 'done').map(t => t.carId));
-    inPrep = carIds.size || Math.max(0, total - ready - maintenance);
-  } catch(e) {
-    inPrep = Math.max(0, total - ready - maintenance);
-  }
+  // قيد التجهيز بالمعيار: أوراق ناقصة (كارت/رخصة/تأمين/فحص) — البطاقة تعرض الكل، والدونات يستبعد الصيانة والخارجة (لهما مواضعهما)
+  const docFailing = c => vehicleReadiness(c).failed.some(x => x.key === 'card' || x.key === 'license' || x.key === 'insurance' || x.key === 'inspection');
+  const outStatus = c => { const s = String(c.carStatus || ''); return s.includes('خارج') || s.includes('مسروق') || s.includes('محول') || s.includes('مفقود'); };
+  const maintStatus = c => String(c.carStatus || '').includes('صيانة');
+  const inPrep = fleet.filter(docFailing).length;
+  const inPrepExcl = fleet.filter(c => docFailing(c) && !maintStatus(c) && !outStatus(c)).length;
+  let finalReview = 0;
   // مراجعة نهائية
   try {
     finalReview = fleet.filter(c => vehicleReadiness(c).ready && !(typeof prepChecklistForCar==='function' && prepChecklistForCar(c).final)).length;
@@ -35,7 +30,6 @@ function renderDashboard(content, context){
   // نسب الكروت
   const pct = (n) => total ? Math.round(n / total * 1000) / 10 : 0;
   const pReady = pct(ready);
-  const pRented = pct(rentedCars);
   const pPrep = pct(inPrep);
   const pNot = pct(notReady);
   const pMaint = pct(maintenance);
@@ -134,8 +128,8 @@ function renderDashboard(content, context){
   // Donut SVG — segments: ready, inPrep, notReady, finalReview
   // Use ready, inPrep-ish, notReady, finalReview for legend matching image
   const dReady = ready;
-  const dPrep = Math.max(0, inPrep);
-  const dNeed = Math.max(0, notReady);
+  const dPrep = Math.max(0, inPrepExcl);
+  const dNeed = Math.max(0, notReady - inPrepExcl);
   const dFinal = finalReview;
   const dSum = dReady + dPrep + dNeed + dFinal || 1;
   const colors = ['#0BAA86', '#E6A23C', '#E64B4B', '#3B82C4'];
@@ -208,16 +202,7 @@ function renderDashboard(content, context){
           <span class="home-kpi-pct good">${pReady}%</span>
         </div>
       </div>
-      <div class="home-kpi" data-go="fleet" data-filter="rented">
-        <div class="home-kpi-icon blue">🔑</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">سيارات مؤجرة</span>
-          <b class="home-kpi-num">${rentedCars.toLocaleString('en')}</b>
-          <div class="home-kpi-bar"><i style="width:0%;background:#3B82C4" data-w="${pRented}%"></i></div>
-          <span class="home-kpi-pct">${pRented}%</span>
-        </div>
-      </div>
-      <div class="home-kpi warn" data-go="preparation">
+      <div class="home-kpi warn" data-go="fleet" data-filter="any_doc">
         <div class="home-kpi-icon amber">⏳</div>
         <div class="home-kpi-body">
           <span class="home-kpi-label">قيد التجهيز</span>
