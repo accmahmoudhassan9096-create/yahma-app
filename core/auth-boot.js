@@ -334,6 +334,11 @@ function initAuthUI(){
       }
     });
   }
+  // إخفاء مؤقت لزر الديمو: لا يظهر إلا بـ ?demo=1 صراحةً (للمالك حتى تجهيز
+  // حسابات Supabase — ثم يُحذف نهائيًا). الزوار لا يرونه ولا يصلون إليه بلوحة المفاتيح.
+  try{
+    if(demoBtn && !/([?&])demo=1\b/.test(location.search)) demoBtn.style.display='none';
+  }catch(_){}
 }
 
 /** يظهر بعد الرجوع من رابط إعادة تعيين كلمة المرور (حدث PASSWORD_RECOVERY) */
