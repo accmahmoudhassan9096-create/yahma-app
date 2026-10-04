@@ -189,7 +189,7 @@ const BRANCHES = ['الفرع الرئيسي','فرع القاهرة الجدي�
 function seedData(){
   const brands = Object.keys(BRAND_MODELS);
   const cardStatuses = ['نشط','نشط','نشط','نشط','ملغى'];
-  const inspectionStatuses = ['سليم','سليم','سليم','يحتاج فحص','لم يتم الفحص'];
+  const inspectionStatuses = ['تم الفحص','تم الفحص','تم الفحص','لم يفحص','لم يفحص'];
   const insuranceStatuses = ['ساري','ساري','ساري','منتهي','لا يوجد'];
   const carStatuses = ['متاحة للايجار','متاحة للايجار','متاحة للايجار','تحت الصيانة','خارج الخدمة'];
   const owners = ['أحمد سعيد','محمد عبد الله','شركة النصر للتأجير','كريم فتحي','سارة حسن'];
@@ -227,6 +227,25 @@ function seedData(){
   return rows;
 }
 
+/* ===== ترحيل حالة الفحص الثنائية (مرة واحدة) =====
+   يوحد كل القيم إلى «تم الفحص» أو «لم يفحص» فقط. يعمل للمدير/الديمو فقط (بيانات شاملة). */
+async function migrateInspectionStatus(){
+  try{
+    if(localStorage.getItem('yahma-inspection-mig-v1')) return {skipped:true};
+    if(typeof userBranchScope==='function' && userBranchScope()) return {skipped:true};
+    if(!Array.isArray(fleet) || !fleet.length) return {skipped:true};
+    const ids=[];
+    fleet.forEach(c=>{
+      const t=String(c.inspectionStatus||'').trim();
+      const next=(t==='تم الفحص'||t==='سليم'||t==='ساري'||t==='ساري المفعول')?'تم الفحص':'لم يفحص';
+      if(next!==c.inspectionStatus){ c.inspectionStatus=next; ids.push(c.id); }
+    });
+    localStorage.setItem('yahma-inspection-mig-v1','1');
+    if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){} }
+    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد حالة الفحص (تم الفحص/لم يفحص): '+ids.length); }catch(_){}
+    return {migrated:ids.length};
+  }catch(e){ return {error:String(e&&e.message||e)}; }
+}
 /* ===== ترحيل قيم حالة السيارة (مرة واحدة) =====
    يوحد 'نشط' و'موجودة' القديمة إلى 'متاحة للايجار'. يعمل للمدير/الديمو فقط (بيانات شاملة). */
 async function migrateCarStatusValues(){

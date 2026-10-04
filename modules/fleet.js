@@ -187,8 +187,8 @@
         <label>صلاحية البطاقة<select id="ff-card-condition"><option value="">كل الحالات</option><option value="green">🟢 سارية</option><option value="amber">🟡 قريبة الانتهاء</option><option value="red">🔴 منتهية / غير سارية</option></select></label>
         <label>حالة الرخصة<select id="ff-license-status"><option value="">كل الحالات</option><option>نشط</option><option>ملغى</option><option>موقوف</option><option>منتهي</option></select></label>
         <label>صلاحية الرخصة<select id="ff-license-condition"><option value="">كل الحالات</option><option value="green">🟢 سارية</option><option value="amber">🟡 قريبة الانتهاء</option><option value="red">🔴 منتهية / غير سارية</option></select></label>
-        <label>حالة الفحص<select id="ff-inspection-status"><option value="">كل الحالات</option><option>سليم</option><option>يحتاج فحص</option><option>لم يتم الفحص</option></select></label>
-        <label>نتيجة الفحص<select id="ff-inspection-condition"><option value="">كل الحالات</option><option value="green">🟢 سليم</option><option value="amber">🟡 يحتاج فحص</option><option value="red">🔴 غير سليم / لم يتم الفحص</option></select></label>
+        <label>حالة الفحص<select id="ff-inspection-status"><option value="">كل الحالات</option><option>تم الفحص</option><option>لم يفحص</option></select></label>
+        <label>نتيجة الفحص<select id="ff-inspection-condition"><option value="">كل الحالات</option><option value="green">🟢 تم الفحص</option><option value="red">🔴 لم يفحص</option></select></label>
         <label>المالك<select id="ff-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
         <label>الفرع<select id="ff-branch">${optionList(uniq('branch'),'كل الفروع')}</select></label>
         <label>المدينة<select id="ff-city">${optionList(uniq('city'),'كل المدن')}</select></label>
@@ -344,11 +344,11 @@
   async function bulkSetInspection(){
     const cars=getSelectedCars();
     if(!cars.length) return;
-    const status=prompt('حالة الفحص الجديدة (سليم / يحتاج فحص / لم يتم الفحص):', 'سليم');
+    const status=prompt('حالة الفحص الجديدة (تم الفحص / لم يفحص):', 'تم الفحص');
     if(!status) return;
-    const allowed=['سليم','يحتاج فحص','لم يتم الفحص'];
+    const allowed=['تم الفحص','لم يفحص'];
     const s=status.trim();
-    if(!allowed.includes(s)){ alert('القيمة يجب أن تكون: سليم أو يحتاج فحص أو لم يتم الفحص'); return; }
+    if(!allowed.includes(s)){ alert('القيمة يجب أن تكون: تم الفحص أو لم يفحص'); return; }
     cars.forEach(c=>{ c.inspectionStatus=s; });
     const ids=cars.map(c=>c.id);
     selectedIds.clear();
@@ -552,7 +552,7 @@ const q=(search.value||'').trim().toLowerCase();
     }
     $('fleet-filter-count').textContent=`عرض ${allRows.length} من ${fleet.length}` + (pageSize>0 && allRows.length>pageSize ? ` — صفحة ${currentPage}` : '');
     const noteMap={
-      inspection_only:'سيارات حالة فحصها غير سليمة (يحتاج فحص أو لم يتم).',
+      inspection_only:'سيارات لم يتم فحصها (تحتاج فحص).',
       license_only:'سيارات رخصتها منتهية أو قريبة الانتهاء.',
       card_only:'سيارات كارتتها منتهية أو قريبة أو ملغاة/موقوفة.',
       any_doc:'أي سيارة لديها مشكلة في الكارت أو الرخصة أو الفحص.',

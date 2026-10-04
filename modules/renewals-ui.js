@@ -63,7 +63,7 @@ function renderRenewals(content, mode='inspection'){
         <label>حالة السيارة<select id="ren-car-status"><option value="">كل الحالات</option><option>تحت الصيانة</option><option>حجز</option><option>متاحة للايجار</option><option>محولة غير مستلمة</option><option>مسروقة</option><option>للبيع</option><option>مؤجرة</option><option>خدمة</option><option>مفقودة</option></select></label>
         <label>المالك<select id="ren-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
         <label>الماركة<select id="ren-brand">${optionList(uniq('brand'),'كل الماركات')}</select></label>
-        <label>حالة الفحص<select id="ren-insp-status"><option value="">كل الحالات</option><option value="green">سليم</option><option value="amber">يحتاج فحص</option><option value="red">لم يتم الفحص</option><option value="grey">غير محدد</option></select></label>
+        <label>حالة الفحص<select id="ren-insp-status"><option value="">كل الحالات</option><option value="green">تم الفحص</option><option value="red">لم يفحص</option></select></label>
         <label>صلاحية الرخصة<select id="ren-lic-condition"><option value="">كل الحالات</option><option value="green">سارية</option><option value="amber">قريبة الانتهاء</option><option value="red">منتهية</option><option value="grey">غير محددة</option></select></label>
         <label>حالة الرخصة (سجل)<select id="ren-lic-status"><option value="">كل الحالات</option><option>نشط</option><option>ملغى</option><option>موقوف</option><option>منتهي</option></select></label>
         ${insuranceMode?`<label>حالة التأمين<select id="ren-insurance-status"><option value="">كل الحالات</option><option value="green">ساري</option><option value="red">منتهي / لا يوجد</option><option value="grey">غير محدد</option></select></label>`:''}

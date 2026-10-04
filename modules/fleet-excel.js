@@ -134,7 +134,12 @@
   function normalizeImportValue(field, value) {
     if (value === undefined || value === null) return '';
     if (typeof canonicalBrand === 'function' && field === 'brand') return canonicalBrand(value);
-    if ((field === 'inspectionStatus' || field === 'insuranceStatus') && String(value).trim() === '0') return '';
+    if (field === 'insuranceStatus' && String(value).trim() === '0') return '';
+    /* توحيد الفحص ثنائيًا: تم الفحص، وغيره (بما فيه 0/فارغ) لم يفحص */
+    if (field === 'inspectionStatus') {
+      const t = String(value).trim();
+      return (t === 'تم الفحص' || t === 'سليم' || t === 'ساري' || t === 'ساري المفعول') ? 'تم الفحص' : 'لم يفحص';
+    }
     return ['cardExpiry','licenseExpiry','insuranceExpiry','nextService','lastMaintenance'].includes(field)
       ? toDateStr(value)
       : String(value).trim();
@@ -220,7 +225,7 @@
       context.alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.');
       return;
     }
-    const example = ['ر ن س 6724','هيونداي','سونت','2026','فضي','82433120','14-00719121','نشط','24/10/2026','نشط','24/10/2027','سليم','ساري','التعاونية','24/10/2027','أحمد سعيد','10001','الفرع الرئيسي','الرياض','متاحة للايجار','','','','','','','','',''];
+    const example = ['ر ن س 6724','هيونداي','سونت','2026','فضي','82433120','14-00719121','نشط','24/10/2026','نشط','24/10/2027','تم الفحص','ساري','التعاونية','24/10/2027','أحمد سعيد','10001','الفرع الرئيسي','الرياض','متاحة للايجار','','','','','','','','',''];
     const worksheet = global.XLSX.utils.aoa_to_sheet([EXCEL_HEADERS, example]);
     worksheet['!cols'] = EXCEL_HEADERS.map(() => ({ wch: 20 }));
     const workbook = global.XLSX.utils.book_new();
