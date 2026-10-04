@@ -11,6 +11,7 @@ function renderDashboard(content, context){
   const reasons = readinessReasons(st);
   const total = st.total || 0;
   const ready = st.ready || 0;
+  const rentedCars = st.rented || 0;
   const maintenance = st.maintenance || 0;
   const notReady = Math.max(0, (st.out||0) + (st.other||0) + (st.inspection||0));
   const available = ready;
@@ -34,6 +35,7 @@ function renderDashboard(content, context){
   // نسب الكروت
   const pct = (n) => total ? Math.round(n / total * 1000) / 10 : 0;
   const pReady = pct(ready);
+  const pRented = pct(rentedCars);
   const pPrep = pct(inPrep);
   const pNot = pct(notReady);
   const pMaint = pct(maintenance);
@@ -204,6 +206,15 @@ function renderDashboard(content, context){
           <b class="home-kpi-num">${ready.toLocaleString('en')}</b>
           <div class="home-kpi-bar"><i style="width:0%;background:var(--green)" data-w="${pReady}%"></i></div>
           <span class="home-kpi-pct good">${pReady}%</span>
+        </div>
+      </div>
+      <div class="home-kpi" data-go="fleet" data-filter="rented">
+        <div class="home-kpi-icon blue">🔑</div>
+        <div class="home-kpi-body">
+          <span class="home-kpi-label">سيارات مؤجرة</span>
+          <b class="home-kpi-num">${rentedCars.toLocaleString('en')}</b>
+          <div class="home-kpi-bar"><i style="width:0%;background:#3B82C4" data-w="${pRented}%"></i></div>
+          <span class="home-kpi-pct">${pRented}%</span>
         </div>
       </div>
       <div class="home-kpi warn" data-go="preparation">
