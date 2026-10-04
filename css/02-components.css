@@ -886,10 +886,10 @@ body.dark-mode .br-name-btn{color:#7FD1CC}
 /* شارة نطاق الفرع في الشريط العلوي */
 .branch-scope-chip{display:inline-block;background:#E7F7F6;color:#0A5F5D;font-size:11px;font-weight:800;padding:2px 10px;border-radius:999px;white-space:nowrap}
 /* حقل الملاحظات القابل للكتابة داخل جدول الفحص */
-.ren-note-input{width:100%;min-width:140px;font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--line,#E4EAF1);border-radius:7px;background:#fff;color:inherit}
-.ren-note-input:focus{outline:2px solid #168A81;outline-offset:0;border-color:#168A81}
-.ren-note-input[readonly]{background:transparent;border-color:transparent;cursor:default}
-.ren-note-input.saving{opacity:.55}
+.ren-note-input,.fu-note-input{width:100%;min-width:140px;font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--line,#E4EAF1);border-radius:7px;background:#fff;color:inherit}
+.ren-note-input:focus,.fu-note-input:focus{outline:2px solid #168A81;outline-offset:0;border-color:#168A81}
+.ren-note-input[readonly],.fu-note-input[readonly]{background:transparent;border-color:transparent;cursor:default}
+.ren-note-input.saving,.fu-note-input.saving{opacity:.55}
 /* المتاح مقابل المؤجر في الرئيسية */
 .home-avail{background:var(--panel,#fff);border:1px solid var(--line,#E8EEF2);border-radius:14px;padding:16px}
 .home-avail-head{display:flex;justify-content:space-between;align-items:center}

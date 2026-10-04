@@ -55,7 +55,7 @@ function renderFollowUp(content){
         <button type="button" class="quick-filter" data-fq="out">⛔ خارج الخدمة</button>
       </div>
       <div class="fleet-filter-grid">
-        <label>بحث<input id="fu-search" placeholder="لوحة، مالك، فرع، رقم كارت..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
+        <label>بحث<input id="fu-search" placeholder="لوحة، مالك، فرع، رقم كارت، ملاحظة..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
         <label>الفرع<select id="fu-branch">${optionList(uniq('branch'),'كل الفروع')}</select></label>
         <label>حالة السيارة<select id="fu-car-status"><option value="">كل الحالات</option><option>تحت الصيانة</option><option>حجز</option><option>متاحة للايجار</option><option>محولة غير مستلمة</option><option>مسروقة</option><option>للبيع</option><option>مؤجرة</option><option>خدمة</option><option>مفقودة</option></select></label>
         <label>المالك<select id="fu-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
@@ -70,7 +70,7 @@ function renderFollowUp(content){
       </div>
     </div>
     <div class="table-scroll" style="max-height:calc(100vh - 320px)">
-      <table class="fleet-table" style="min-width:1400px">
+      <table class="fleet-table" style="min-width:1500px">
         <thead><tr>
           <th>رقم اللوحة</th>
           <th>الماركة</th>
@@ -82,6 +82,7 @@ function renderFollowUp(content){
           <th>حالة البطاقة</th>
           <th>الفرع</th>
           <th>حالة السيارة</th>
+          <th>ملاحظات</th>
           <th>إجراء</th>
         </tr></thead>
         <tbody id="fu-tbody"></tbody>
@@ -175,7 +176,7 @@ function renderFollowUp(content){
     const q=val('fu-search').toLowerCase();
     return fleet.filter(c=>{
       if(q){
-        const hay=[c.plate,c.brand,c.model,c.owner,c.branch,c.carStatus,c.cardNumber,c.cardStatus,c.insuranceStatus].map(v=>String(v||'').toLowerCase()).join(' ');
+        const hay=[c.plate,c.brand,c.model,c.owner,c.branch,c.carStatus,c.cardNumber,c.cardStatus,c.insuranceStatus,c.notes].map(v=>String(v||'').toLowerCase()).join(' ');
         if(!hay.includes(q)) return false;
       }
       if(val('fu-branch') && !eq(c.branch,val('fu-branch'))) return false;
@@ -228,6 +229,7 @@ function renderFollowUp(content){
       function renderFuRow(c){
         const card=cardDisplayStatus(c.cardExpiry,c.cardStatus);
         const carTag=textTag(c.carStatus);
+        const noteEditable=!(typeof currentRole!=='undefined'&&currentRole==='view');
         return `<tr data-id="${escapeHtml(c.id)}">
         <td class="plate">${escapeHtml(c.plate||'—')}</td>
         <td>${escapeHtml(c.brand||'—')}</td>
@@ -239,6 +241,7 @@ function renderFollowUp(content){
         <td><span class="tag ${card.level}">${escapeHtml(card.label)}</span></td>
         <td>${escapeHtml(c.branch||'—')}</td>
         <td><span class="tag ${carTag.level}">${escapeHtml(carTag.label)}</span></td>
+        <td><input class="fu-note-input" data-note-id="${escapeHtml(c.id)}" value="${escapeHtml(c.notes||'')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(c.plate||'—')}"${noteEditable?'':' readonly'}></td>
         <td>
           <button class="btn btn-ghost btn-small" data-renew="${escapeHtml(c.id)}">تجديد الكارت</button>
           <button class="btn btn-ghost btn-small" data-edit="${escapeHtml(c.id)}">تعديل</button>
@@ -249,15 +252,35 @@ function renderFollowUp(content){
         if(!window._fuVT || window._fuVT._tb !== tbody){
           if(window._fuVT && window._fuVT.destroy) try{window._fuVT.destroy()}catch(e){}
           window._fuVT = window.YahmaVTable.create({
-            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 11,
+            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 12,
             renderRow: function(c){ return renderFuRow(c); },
-            emptyHtml: '<tr><td colspan="11"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>'
+            emptyHtml: '<tr><td colspan="12"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>'
           });
           window._fuVT._tb = tbody;
         }
         window._fuVT.setItems(rows, true);
       } else {
-        tbody.innerHTML=rows.length?rows.map(renderFuRow).join(''):`<tr><td colspan="11"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`;
+        tbody.innerHTML=rows.length?rows.map(renderFuRow).join(''):`<tr><td colspan="12"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`;
+      }
+      // تفويض حفظ الملاحظات مرة واحدة (متوافق مع Virtualization)
+      if(!tbody._fuNoteDelegate){
+        tbody._fuNoteDelegate = true;
+        tbody.addEventListener('change', async function(e){
+          const inp = e.target.closest ? e.target.closest('input[data-note-id]') : null;
+          if(!inp || inp.hasAttribute('readonly')) return;
+          const car = fleet.find(c=>String(c.id)===inp.dataset.noteId);
+          if(!car) return;
+          if(typeof currentRole!=='undefined'&&currentRole==='view'){ alert('ليس لديك صلاحية التعديل.'); inp.value=car.notes||''; return; }
+          const v = inp.value.trim();
+          if(String(car.notes||'')===v) return;
+          car.notes=v;
+          inp.classList.add('saving');
+          let ok=true;
+          try{ if(typeof saveData==='function') ok = await saveData([car.id]); }catch(_){ ok=false; }
+          inp.classList.remove('saving');
+          if(ok===false){ alert('تعذر الحفظ — تحقق من الاتصال.'); }
+          else { try{ if(typeof window.log==='function') window.log('ملاحظة كارت','السيارة '+(car.plate||'')); }catch(_){} }
+        });
       }
       if(!tbody._fuDelegate){
         tbody._fuDelegate = true;
