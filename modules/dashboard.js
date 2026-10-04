@@ -11,7 +11,6 @@ function renderDashboard(content, context){
   const reasons = readinessReasons(st);
   const total = st.total || 0;
   const ready = st.ready || 0;
-  const maintenance = fleet.filter(c => String(c.carStatus || '').includes('صيانة')).length;
   const notReady = Math.max(0, (st.out||0) + (st.other||0) + (st.inspection||0));
   const available = ready;
   const rented = fleet.filter(c => String(c.carStatus||'').includes('مؤجر')).length;
@@ -19,8 +18,12 @@ function renderDashboard(content, context){
   const docFailing = c => vehicleReadiness(c).failed.some(x => x.key === 'card' || x.key === 'license' || x.key === 'insurance' || x.key === 'inspection');
   const outStatus = c => { const s = String(c.carStatus || ''); return s.includes('خارج') || s.includes('مسروق') || s.includes('محول') || s.includes('مفقود'); };
   const maintStatus = c => String(c.carStatus || '').includes('صيانة');
-  const inPrep = fleet.filter(docFailing).length;
   const inPrepExcl = fleet.filter(c => docFailing(c) && !maintStatus(c) && !outStatus(c)).length;
+  // بطاقات التجديد لكل وثيقة (قد تتداخل: السيارة الواحدة تُعد في كل وثيقة ناقصة)
+  const renInsp = fleet.filter(c => inspectionDisplayStatus(c.inspectionStatus).level !== 'green').length;
+  const renLic = fleet.filter(c => dateStatus(c.licenseExpiry).level !== 'green').length;
+  const renIns = fleet.filter(c => textTag(c.insuranceStatus).level !== 'green').length;
+  const renCard = fleet.filter(c => cardDisplayStatus(c.cardExpiry, c.cardStatus).level !== 'green').length;
   let finalReview = 0;
   // مراجعة نهائية
   try {
@@ -30,9 +33,10 @@ function renderDashboard(content, context){
   // نسب الكروت
   const pct = (n) => total ? Math.round(n / total * 1000) / 10 : 0;
   const pReady = pct(ready);
-  const pPrep = pct(inPrep);
-  const pNot = pct(notReady);
-  const pMaint = pct(maintenance);
+  const pRenInsp = pct(renInsp);
+  const pRenLic = pct(renLic);
+  const pRenIns = pct(renIns);
+  const pRenCard = pct(renCard);
 
   // فروع
   const branch = {};
@@ -202,31 +206,40 @@ function renderDashboard(content, context){
           <span class="home-kpi-pct good">${pReady}%</span>
         </div>
       </div>
-      <div class="home-kpi warn" data-go="fleet" data-filter="any_doc">
-        <div class="home-kpi-icon amber">⏳</div>
+      <div class="home-kpi warn" data-go="renewals">
+        <div class="home-kpi-icon amber">🔍</div>
         <div class="home-kpi-body">
-          <span class="home-kpi-label">قيد التجهيز</span>
-          <b class="home-kpi-num">${inPrep.toLocaleString('en')}</b>
-          <div class="home-kpi-bar"><i style="width:0%;background:var(--amber)" data-w="${pPrep}%"></i></div>
-          <span class="home-kpi-pct warn">${pPrep}%</span>
+          <span class="home-kpi-label">تجديد فحص</span>
+          <b class="home-kpi-num">${renInsp.toLocaleString('en')}</b>
+          <div class="home-kpi-bar"><i style="width:0%;background:var(--amber)" data-w="${pRenInsp}%"></i></div>
+          <span class="home-kpi-pct warn">${pRenInsp}%</span>
         </div>
       </div>
-      <div class="home-kpi bad" data-go="fleet" data-filter="other">
-        <div class="home-kpi-icon red">!</div>
+      <div class="home-kpi warn" data-go="license-renewals">
+        <div class="home-kpi-icon amber">📄</div>
         <div class="home-kpi-body">
-          <span class="home-kpi-label">غير جاهزة</span>
-          <b class="home-kpi-num">${notReady.toLocaleString('en')}</b>
-          <div class="home-kpi-bar"><i style="width:0%;background:var(--red)" data-w="${pNot}%"></i></div>
-          <span class="home-kpi-pct bad">${pNot}%</span>
+          <span class="home-kpi-label">تجديد رخصة</span>
+          <b class="home-kpi-num">${renLic.toLocaleString('en')}</b>
+          <div class="home-kpi-bar"><i style="width:0%;background:var(--amber)" data-w="${pRenLic}%"></i></div>
+          <span class="home-kpi-pct warn">${pRenLic}%</span>
         </div>
       </div>
-      <div class="home-kpi" data-go="fleet" data-filter="maintenance">
-        <div class="home-kpi-icon grey">🔧</div>
+      <div class="home-kpi warn" data-go="insurance-renewals">
+        <div class="home-kpi-icon amber">🛡️</div>
         <div class="home-kpi-body">
-          <span class="home-kpi-label">صيانة</span>
-          <b class="home-kpi-num">${maintenance.toLocaleString('en')}</b>
-          <div class="home-kpi-bar"><i style="width:0%;background:var(--grey)" data-w="${pMaint}%"></i></div>
-          <span class="home-kpi-pct">${pMaint}%</span>
+          <span class="home-kpi-label">تجديد تأمين</span>
+          <b class="home-kpi-num">${renIns.toLocaleString('en')}</b>
+          <div class="home-kpi-bar"><i style="width:0%;background:var(--amber)" data-w="${pRenIns}%"></i></div>
+          <span class="home-kpi-pct warn">${pRenIns}%</span>
+        </div>
+      </div>
+      <div class="home-kpi warn" data-go="inspections">
+        <div class="home-kpi-icon amber">🪪</div>
+        <div class="home-kpi-body">
+          <span class="home-kpi-label">تجديد بطاقة تشغيل</span>
+          <b class="home-kpi-num">${renCard.toLocaleString('en')}</b>
+          <div class="home-kpi-bar"><i style="width:0%;background:var(--amber)" data-w="${pRenCard}%"></i></div>
+          <span class="home-kpi-pct warn">${pRenCard}%</span>
         </div>
       </div>
     </div>
