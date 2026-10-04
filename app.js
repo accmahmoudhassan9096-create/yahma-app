@@ -34,7 +34,7 @@
       await db.transaction('rw', db.vehicles, db.meta, async function () {
         await db.vehicles.clear();
         if (rows.length) {
-          // bulkPut على دفعات لتجنب تجميد الواجهة مع 100k
+          // bulkPut على دفعات؛ بلا setTimeout داخل المعاملة (يُنهيها تلقائيًا ويُفشل بقية الدفعات)
           const CHUNK = 500;
           for (let i = 0; i < rows.length; i += CHUNK) {
             const slice = rows.slice(i, i + CHUNK).map(function (c, idx) {
@@ -43,10 +43,6 @@
               return row;
             });
             await db.vehicles.bulkPut(slice);
-            // أفسح للمتصفح بين الدفعات
-            if (i + CHUNK < rows.length) {
-              await new Promise(function (r) { setTimeout(r, 0); });
-            }
           }
         }
         await db.meta.put({ key: 'fleet-meta', count: rows.length, updatedAt: new Date().toISOString() });

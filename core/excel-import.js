@@ -10,10 +10,10 @@ async function exportFleet(){ return window.YahmaFleetExcel.exportFleet({fleet,t
 async function handleExcelFile(file){
   if(currentRole!=='admin'&&currentRole!=='ops'){ alert('ليس لديك صلاحية استيراد بيانات الأسطول.'); return; }
   if(!(await ensureXlsxReady())){ alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.'); return; }
-  let rows;
+  let rows, wb;
   try{
     const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, {type:'array', cellDates:true});
+    wb = XLSX.read(buf, {type:'array', cellDates:true});
     const ws = wb.Sheets[wb.SheetNames[0]];
     rows = XLSX.utils.sheet_to_json(ws, {defval:''});
   }catch(e){ alert('تعذر قراءة الملف. تأكد أنه ملف إكسيل أو CSV صحيح.'); return; }
@@ -22,6 +22,34 @@ async function handleExcelFile(file){
   const plan=window.YahmaFleetExcel.parseImportRows(rows,uid);
   if(!plan.active.length&&!plan.sold.length){ alert('لم يتم العثور على صف يحتوي على رقم لوحة صحيح. تأكد من مطابقة أسماء الأعمدة لنموذج الإكسيل.'); return; }
   try{ stampImportBranch(plan); }catch(_){}
+  /* ورقة تحديثات الكروت (الثانية في ملف كروت التشغيل): تُطبَّق فوق الأساسية */
+  try{
+    if(wb.SheetNames.length>1 && window.YahmaFleetExcel.parseCardUpdateRows){
+      const rows2=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[1]],{defval:''});
+      const updates=window.YahmaFleetExcel.parseCardUpdateRows(rows2);
+      if(updates && updates.size){
+        const byKey=new Map();
+        updates.forEach((u,plate)=>byKey.set(normalizePlateKey(plate),u));
+        let applied=0;
+        plan.active.forEach(record=>{
+          const u=byKey.get(normalizePlateKey(record.car.plate));
+          if(!u) return;
+          ['brand','type','model','serial','carStatus','branch','owner'].forEach(f=>{
+            if(u[f]){ record.car[f]=u[f]; if(!record.provided.includes(f)) record.provided.push(f); }
+          });
+          if(u.renewedLicense){
+            const tag='تم تجديد الاستمارة';
+            if(!String(record.car.notes||'').includes(tag)){
+              record.car.notes=(record.car.notes?record.car.notes+' — ':'')+tag;
+              if(!record.provided.includes('notes')) record.provided.push('notes');
+            }
+          }
+          applied++;
+        });
+        if(applied) plan.cardUpdates=applied;
+      }
+    }
+  }catch(_){}
   const existingByPlate=new Map(fleet.map(car=>[normalizePlateKey(car.plate),car]));
   let updateCandidates=0,newCandidates=0;
   plan.active.forEach(record=>{
@@ -33,6 +61,7 @@ async function handleExcelFile(file){
   const shouldContinue=confirm(
     `معاينة تحديث الأسطول:\n${plan.active.length} صف نشط (${updateCandidates} موجود للتحديث، ${newCandidates} جديد)\n`+
     `${soldCount} سيارة مباعة سيتم حذفها\n\nسيتم تحديث الحقول غير الفارغة فقط. السيارات غير الموجودة في الملف لن تُحذف.`+
+    (plan.cardUpdates?`\n${plan.cardUpdates} سيارة شملها تحديث ورقة الكروت (حالة/فرع).`:'')+
     ((plan.unknown&&plan.unknown.length)?`\n\n⚠ أعمدة غير معروفة سيتم تجاهلها: ${plan.unknown.slice(0,8).join('، ')}${plan.unknown.length>8?` (+${plan.unknown.length-8})`:''}`:'')+
     `\nمتابعة؟`
   );
@@ -49,7 +78,9 @@ async function handleExcelFile(file){
       continue;
     }
     const car=record.car;
-    const conflict=fleet.findIndex(existing=>(car.serial&&String(existing.serial||'').trim()===car.serial)||(car.cardNumber&&String(existing.cardNumber||'').trim()===car.cardNumber));
+    const serialKey=String(car.serial||'').trim();
+    const serialIsPlaceholder=!serialKey||serialKey==='0'||serialKey==='بدون'||serialKey==='لا يوجد';
+    const conflict=serialIsPlaceholder?-1:fleet.findIndex(existing=>String(existing.serial||'').trim()===serialKey);
     if(conflict<0){ fleet.push(car); inserted++; affectedIds.push(car.id); }
     else ignored++;
   }

@@ -1,11 +1,11 @@
 (function (global) {
   'use strict';
 
-  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','النوع','الموديل','اللون','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','المدينة','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات'];
+  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','الطراز','سنة الصنع','اللون','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','المدينة','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات'];
   const FIELD_ALIASES = {
     plate: ['رقم اللوحة','اللوحة','رقم السيارة','plate'],
-    brand: ['الشركة','الماركة','ماركة','الطراز','brand','make','company'],
-    type: ['النوع','نوع السيارة','نوع المركبة','نوع العربية','الفئة','فئة السيارة','نوع الهيكل','الشكل','type','vehicle type'],
+    brand: ['الشركة','الماركة','ماركة','brand','make','company'],
+    type: ['الطراز','النوع','نوع السيارة','نوع المركبة','نوع العربية','الفئة','فئة السيارة','نوع الهيكل','الشكل','type','vehicle type'],
     model: ['الموديل','الطراز','موديل السيارة','سنة الصنع','سنة الموديل','السنة','model'],
     serial: ['الرقم التسلسلي','رقم الشاسيه','serial','serial number','chassis'],
     cardNumber: ['رقم البطاقة','رقم الكارت','card number'],
@@ -69,7 +69,8 @@
     if (has('فرع')) return 'branch';
     if (has('لوحه')) return 'plate';
     if (has('شركه') || has('ماركه')) return 'brand';
-    if (has('طراز') || has('موديل')) return 'model';
+    if (has('طراز')) return 'type';
+    if (has('موديل')) return 'model';
     if (has('نوع') && !has('وقود')) return 'type';
     if (has('سنه')) return 'model';
     if (has('تسلسلي') || has('شاسيه')) return 'serial';
@@ -90,6 +91,10 @@
 
   function toDateStr(value) {
     if (!value && value !== 0) return '';
+    if (typeof value === 'number' && value > 20000 && value < 80000) {
+      const excelDate = new Date(Date.UTC(1899, 11, 30) + value * 86400000);
+      return excelDate.toISOString().slice(0, 10);
+    }
     if (value instanceof Date && !isNaN(value)) {
       if (value.getFullYear() < 1970) return '';
       return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
@@ -129,6 +134,7 @@
   function normalizeImportValue(field, value) {
     if (value === undefined || value === null) return '';
     if (typeof canonicalBrand === 'function' && field === 'brand') return canonicalBrand(value);
+    if ((field === 'inspectionStatus' || field === 'insuranceStatus') && String(value).trim() === '0') return '';
     return ['cardExpiry','licenseExpiry','insuranceExpiry','nextService','lastMaintenance'].includes(field)
       ? toDateStr(value)
       : String(value).trim();
@@ -179,6 +185,36 @@
     return { car: next, changed };
   }
 
+  /* ورقة تحديثات الكروت (الورقة الثانية في ملف كروت التشغيل): نفس اللوحات ببيانات
+     أحدث للحالة/الفرع/المالك. تُتجاهل حقول الكارت منها عمدًا (بيانات الورقة
+     الأساسية أحدث: تواريخ انتهاء أبعد). المفتاح = رقم اللوحة كما هو (يُطبَّع عند الدمج). */
+  function parseCardUpdateRows(rows) {
+    const updates = new Map();
+    if (!Array.isArray(rows) || !rows.length) return updates;
+    const headers = Object.keys(rows[0] || {});
+    const norm = headers.map(h => normalizeHeader(h));
+    const hasH = key => norm.includes(normalizeHeader(key));
+    if (!hasH('رقم اللوحة') || !(hasH('الحالة') || hasH('تاريخ الانتهاء'))) return updates;
+    const col = (...keys) => headers.find(h => keys.some(k => normalizeHeader(k) === normalizeHeader(h))) || null;
+    const cPlate = col('رقم اللوحة'), cBrand = col('الماركة'), cType = col('الطراز'),
+      cYear = col('سنة الصنع'), cSerial = col('الرقم التسلسلي'),
+      cCarSt = col('حالة السيارة'), cBranch = col('الفرع'), cOwner = col('المالك'), cInsp = col('الفحص');
+    if (!cPlate) return updates;
+    rows.forEach(row => {
+      const plate = String(row[cPlate] ?? '').trim();
+      if (!plate) return;
+      const get = c => (c ? String(row[c] ?? '').trim() : '');
+      const insp = get(cInsp);
+      const u = {
+        brand: get(cBrand), type: get(cType), model: get(cYear), serial: get(cSerial),
+        carStatus: get(cCarSt), branch: get(cBranch), owner: get(cOwner),
+        renewedLicense: insp === 'تم تجديد الاستمارة'
+      };
+      updates.set(plate, u);
+    });
+    return updates;
+  }
+
   async function downloadTemplate(context) {
     if (!(await context.ensureXlsxReady())) {
       context.alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.');
@@ -216,7 +252,7 @@
 
   global.YahmaFleetExcel = {
     EXCEL_HEADERS, FIELD_ALIASES, normalizeHeader, findField, toDateStr,
-    isSoldStatus, parseImportRows, mergeImportRecord,
+    isSoldStatus, parseImportRows, parseCardUpdateRows, mergeImportRecord,
     downloadTemplate, exportFleet
   };
 })(window);
