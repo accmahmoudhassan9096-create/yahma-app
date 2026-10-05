@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const password = String(body.password || '');
     const role = ['admin', 'ops', 'view'].includes(body.role) ? body.role : 'view';
     const branchName = String(body.branch_name || '').trim() || null;
-    const allowedTabs = ['fleet', 'branches', 'renewals', 'payments', 'license-renewals', 'insurance-renewals', 'inspections', 'reports', 'audit'];
+    const allowedTabs = ['fleet', 'branches', 'renewals', 'payments', 'license-renewals', 'insurance-renewals', 'inspections', 'transfers', 'reports', 'audit'];
     const requestedTabs = Array.isArray(body.allowed_tabs)
       ? [...new Set(body.allowed_tabs.filter((tab: unknown): tab is string => typeof tab === 'string' && allowedTabs.includes(tab)))]
       : [];

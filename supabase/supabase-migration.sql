@@ -109,7 +109,7 @@ alter table public.profiles
   add column if not exists full_name text;
 
 update public.profiles
-set allowed_tabs = array['fleet','branches','renewals','payments','license-renewals','insurance-renewals','inspections','reports','audit']::text[]
+set allowed_tabs = array['fleet','branches','renewals','payments','license-renewals','insurance-renewals','inspections','transfers','reports','audit']::text[]
 where allowed_tabs is null;
 
 alter table public.profiles

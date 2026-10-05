@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
 
-  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','الطراز','سنة الصنع','اللون','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','المدينة','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات'];
+  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','الطراز','سنة الصنع','اللون','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','المدينة','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات','تنازل','تاريخ التنازل','المالك السابق','حالة التنازل','ملاحظات التنازل'];
   const FIELD_ALIASES = {
     plate: ['رقم اللوحة','اللوحة','رقم السيارة','plate'],
     brand: ['الشركة','الماركة','ماركة','brand','make','company'],
@@ -32,7 +32,12 @@
     maintenanceNotes: ['ملاحظات الصيانة','maintenance notes'],
     branch: ['الفرع','branch'],
     carStatus: ['حالة السيارة','car status'],
-    notes: ['ملاحظات','notes']
+    notes: ['ملاحظات','notes'],
+    transferDone: ['تنازل','نقل الملكية','تم التنازل','transfer'],
+    transferDate: ['تاريخ التنازل','تاريخ النقل','transfer date'],
+    transferFrom: ['المالك السابق','المتنازل','المالك القديم','previous owner'],
+    transferStatus: ['حالة التنازل','حالة النقل','transfer status'],
+    transferNotes: ['ملاحظات التنازل','ملاحظات النقل','transfer notes']
   };
 
   function normalizeHeader(value) {
@@ -123,7 +128,8 @@
     'plate','brand','type','model','color','serial','cardNumber','cardStatus','cardExpiry',
     'licenseStatus','licenseExpiry','inspectionStatus','insuranceStatus','insuranceCompany','insuranceExpiry','owner','ownerNumber',
     'odometer','dailyRate','rentedDaysMonth','nextService','lastMaintenance','maintenanceCost','workshop','documentUrl',
-    'maintenanceNotes','branch','city','carStatus','notes'
+    'maintenanceNotes','branch','city','carStatus','notes',
+    'transferDone','transferDate','transferFrom','transferStatus','transferNotes'
   ];
 
   function isSoldStatus(value) {
@@ -140,7 +146,12 @@
       const t = String(value).trim();
       return (t === 'تم الفحص' || t === 'سليم' || t === 'ساري' || t === 'ساري المفعول') ? 'تم الفحص' : 'لم يفحص';
     }
-    return ['cardExpiry','licenseExpiry','insuranceExpiry','nextService','lastMaintenance'].includes(field)
+    /* التنازل: نعم صريحة فقط تُعتمد، وغيره فارغ */
+    if (field === 'transferDone') {
+      const t = String(value).trim();
+      return (t === 'نعم' || t === '✓' || t === 'تم' || t.toLowerCase() === 'yes' || t === '1') ? 'نعم' : '';
+    }
+    return ['cardExpiry','licenseExpiry','insuranceExpiry','nextService','lastMaintenance','transferDate'].includes(field)
       ? toDateStr(value)
       : String(value).trim();
   }
@@ -225,7 +236,7 @@
       context.alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.');
       return;
     }
-    const example = ['ر ن س 6724','هيونداي','سونت','2026','فضي','82433120','14-00719121','نشط','24/10/2026','نشط','24/10/2027','تم الفحص','ساري','التعاونية','24/10/2027','أحمد سعيد','10001','الفرع الرئيسي','الرياض','متاحة للايجار','','','','','','','','',''];
+    const example = ['ر ن س 6724','هيونداي','سونت','2026','فضي','82433120','14-00719121','نشط','24/10/2026','نشط','24/10/2027','تم الفحص','ساري','التعاونية','24/10/2027','أحمد سعيد','10001','الفرع الرئيسي','الرياض','متاحة للايجار','','','','','','','','','','','','',''];
     const worksheet = global.XLSX.utils.aoa_to_sheet([EXCEL_HEADERS, example]);
     worksheet['!cols'] = EXCEL_HEADERS.map(() => ({ wch: 20 }));
     const workbook = global.XLSX.utils.book_new();
@@ -246,7 +257,8 @@
       car.plate, car.brand, car.type, car.model, car.color, car.serial, car.cardNumber, car.cardStatus, car.cardExpiry,
       car.licenseStatus, car.licenseExpiry, car.inspectionStatus, car.insuranceStatus, car.insuranceCompany, car.insuranceExpiry, car.owner,
       car.ownerNumber, car.branch, car.city, car.carStatus, car.odometer, car.nextService, car.lastMaintenance,
-      car.maintenanceCost, car.workshop, car.documentUrl, car.maintenanceNotes, car.notes
+      car.maintenanceCost, car.workshop, car.documentUrl, car.maintenanceNotes, car.notes,
+      car.transferDone, car.transferDate, car.transferFrom, car.transferStatus, car.transferNotes
     ]);
     const worksheet = global.XLSX.utils.aoa_to_sheet([EXCEL_HEADERS, ...rows]);
     worksheet['!cols'] = EXCEL_HEADERS.map(() => ({ wch: 20 }));

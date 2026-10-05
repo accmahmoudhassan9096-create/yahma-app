@@ -49,7 +49,7 @@ const PAGE_PERMISSION_OPTIONS=[
   {id:'fleet',label:'الأسطول'},{id:'branches',label:'الفروع'},{id:'renewals',label:'الفحص'},
   {id:'payments',label:'الدفع'},{id:'license-renewals',label:'تجديد الرخص'},
   {id:'insurance-renewals',label:'التأمين'},{id:'inspections',label:'بطاقات التشغيل'},
-  {id:'reports',label:'التقارير'},{id:'audit',label:'سجل النشاط'}
+  {id:'transfers',label:'التنازلات'},{id:'reports',label:'التقارير'},{id:'audit',label:'سجل النشاط'}
 ];
 window.currentUserPermissions=Array.isArray(window.currentUserPermissions)?window.currentUserPermissions:[];
 window.canAccessYahmaTab=function(tab){
