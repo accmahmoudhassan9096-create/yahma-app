@@ -231,6 +231,56 @@
     return updates;
   }
 
+  /* متغيرات مطابقة اللوحة لملف التنازلات (بعض اللوحات معكوسة: «8842 ر ح ط» بدل «ر ح ط 8842») */
+  function transferPlateVariants(plate){
+    const norm = String(plate ?? '').replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا')
+      .replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ی/g, 'ي')
+      .replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])
+      .replace(/[۰-۹]/g, d => '0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
+      .replace(/\s+/g, '').replace(/[-_]/g, '').trim().toLowerCase();
+    const out = [norm];
+    let m = norm.match(/^(\d+)(.+)$/);
+    if (m) out.push(m[2] + m[1]);
+    m = norm.match(/^(.+?)(\d+)$/);
+    if (m) out.push(m[2] + m[1]);
+    return [...new Set(out)].filter(Boolean);
+  }
+
+  /* تحليل ملف التنازلات المخصص (التسلسل/رقم السيارة/الماركه/النوع/الموديل/الشركه):
+     الشركة «0» تعني الأمثل (ملخص الملف نفسه: الامثل = 128 = مجموعة الصفر).
+     سنة الصنع تُقبل 1990–2027 فقط (العمود ملوث بقيم 2028–2122 متسلسلة). */
+  function parseTransferFileRows(rows, uid){
+    const out = { detected: false, active: [], skipped: 0, byCompany: {} };
+    if (!Array.isArray(rows) || !rows.length) return out;
+    const headers = Object.keys(rows[0] || {});
+    const norm = headers.map(h => normalizeHeader(h));
+    const hasH = key => norm.includes(normalizeHeader(key));
+    if (!(hasH('رقم السيارة') && hasH('الماركه') && hasH('الشركه'))) return out;
+    out.detected = true;
+    const col = (...keys) => headers.find(h => keys.some(k => normalizeHeader(k) === normalizeHeader(h))) || null;
+    const cPlate = col('رقم السيارة'), cBrand = col('الماركه'), cType = col('النوع'),
+      cYear = col('الموديل'), cCompany = col('الشركه');
+    const yearOk = v => /^\d{4}$/.test(String(v ?? '').trim()) && +String(v).trim() >= 1990 && +String(v).trim() <= 2027;
+    rows.forEach(row => {
+      const plate = String(row[cPlate] ?? '').trim();
+      if (!plate) { out.skipped++; return; }
+      let company = cCompany ? String(row[cCompany] ?? '').trim() : '';
+      if (company === '0') company = 'الأمثل';
+      const brand = cBrand ? String(row[cBrand] ?? '').trim() : '';
+      const car = {
+        id: uid(), plate,
+        brand: (typeof canonicalBrand === 'function' && brand) ? canonicalBrand(brand) : brand,
+        type: cType ? String(row[cType] ?? '').trim() : '',
+        model: (cYear && yearOk(row[cYear])) ? String(row[cYear]).trim() : '',
+        transferDone: 'نعم', transferFrom: company,
+        transferDate: '', transferStatus: '', transferNotes: ''
+      };
+      out.active.push(car);
+      if (company) out.byCompany[company] = (out.byCompany[company] || 0) + 1;
+    });
+    return out;
+  }
+
   async function downloadTemplate(context) {
     if (!(await context.ensureXlsxReady())) {
       context.alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.');
@@ -269,7 +319,7 @@
 
   global.YahmaFleetExcel = {
     EXCEL_HEADERS, FIELD_ALIASES, normalizeHeader, findField, toDateStr,
-    isSoldStatus, parseImportRows, parseCardUpdateRows, mergeImportRecord,
+    isSoldStatus, parseImportRows, parseCardUpdateRows, parseTransferFileRows, transferPlateVariants, mergeImportRecord,
     downloadTemplate, exportFleet
   };
 })(window);

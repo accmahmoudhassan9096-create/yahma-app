@@ -87,9 +87,11 @@ function renderTransfers(content){
       </label>
     </div>
     <div class="panel" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-primary btn-small" id="tr-import-btn" title="رفع ملف التنازلات (رقم السيارة/الماركه/النوع/الموديل/الشركه)">📥 رفع ملف التنازلات</button>
+      <input type="file" id="file-transfer-import" accept=".xlsx,.xls,.csv" style="display:none">
       <button class="btn btn-excel-export btn-small" id="tr-export-xlsx" title="تصدير النتائج المفلترة">📊 Excel</button>
       <button class="btn btn-ghost btn-small" id="tr-export-pdf" title="تصدير PDF للنتائج المفلترة">📄 PDF</button>
-      <span class="muted-small">تُقرأ بيانات التنازل من أعمدة الإكسل (تنازل/تاريخ التنازل/المالك السابق/حالة التنازل/ملاحظات التنازل).</span>
+      <span class="muted-small">بيانات التنازل من أعمدة الإكسل (تنازل/تاريخ التنازل/المالك السابق/حالة التنازل/ملاحظات التنازل) أو من ملف التنازلات المخصص.</span>
     </div>
   `;
 
@@ -265,6 +267,63 @@ function renderTransfers(content){
   }
   window._yahmaModuleExport = function(fmt){ exportTr(fmt==='pdf'?'pdf':'xlsx'); };
   window._yahmaGetFilteredCars = getRows;
+  /* رفع ملف التنازلات المخصص: تعليم الموجود + إضافة الجديد، ويسمع فورًا في التبويب */
+  async function handleTransferFile(file){
+    if(currentRole!=='admin'&&currentRole!=='ops'){ alert('ليس لديك صلاحية استيراد التنازلات.'); return; }
+    if(!(await ensureXlsxReady())){ alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.'); return; }
+    let rows;
+    try{
+      const buf=await file.arrayBuffer();
+      const wb=XLSX.read(buf,{type:'array',cellDates:true});
+      rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    }catch(e){ alert('تعذر قراءة الملف. تأكد أنه ملف إكسيل صحيح.'); return; }
+    if(!rows.length){ alert('الملف فارغ أو لا يحتوي على بيانات.'); return; }
+    const plan=window.YahmaFleetExcel.parseTransferFileRows(rows,uid);
+    if(!plan.detected||!plan.active.length){ alert('لم يتم التعرف على صيغة ملف التنازلات. الأعمدة المطلوبة: رقم السيارة، الماركه، النوع، الموديل، الشركه.'); return; }
+    const byVariant=new Map();
+    fleet.forEach(car=>{
+      window.YahmaFleetExcel.transferPlateVariants(car.plate).forEach(k=>{ if(!byVariant.has(k)) byVariant.set(k,car); });
+    });
+    const toUpdate=[], toInsert=[];
+    plan.active.forEach(car=>{
+      const keys=window.YahmaFleetExcel.transferPlateVariants(car.plate);
+      const existing=keys.map(k=>byVariant.get(k)).find(Boolean) || null;
+      if(existing) toUpdate.push({existing,car});
+      else toInsert.push(car);
+    });
+    const compList=Object.entries(plan.byCompany||{}).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v])=>`${k}: ${v}`).join('، ');
+    const shouldContinue=confirm(
+      `معاينة استيراد التنازلات:\n${plan.active.length} سيارة (${toUpdate.length} موجودة سيتم تعليمها، ${toInsert.length} جديدة ستُضاف)\n`+
+      (compList?`الشركات: ${compList}\n`:'')+
+      `لن تُمس تواريخ/حالات/ملاحظات التنازل الحالية. متابعة؟`
+    );
+    if(!shouldContinue) return;
+    let updated=0, inserted=0;
+    const affectedIds=[];
+    toUpdate.forEach(({existing,car})=>{
+      let changed=false;
+      if(String(existing.transferDone||'')!=='نعم'){ existing.transferDone='نعم'; changed=true; }
+      if(car.transferFrom && String(existing.transferFrom||'')!==car.transferFrom){ existing.transferFrom=car.transferFrom; changed=true; }
+      if(changed){ updated++; affectedIds.push(existing.id); }
+    });
+    toInsert.forEach(car=>{
+      fleet.push(car); inserted++; affectedIds.push(car.id);
+      window.YahmaFleetExcel.transferPlateVariants(car.plate).forEach(k=>{ if(!byVariant.has(k)) byVariant.set(k,car); });
+    });
+    if(affectedIds.length){
+      try{ if(typeof window.log==='function') window.log('استيراد تنازلات',`جديد: ${inserted}، محدث: ${updated}`); }catch(_){}
+      await saveData(affectedIds);
+      render();
+    }
+    alert(`اكتمل استيراد التنازلات: ${inserted} سيارة جديدة، ${updated} موجودة تم تعليمها.`);
+  }
+  $('tr-import-btn')?.addEventListener('click',()=>$('file-transfer-import')?.click());
+  $('file-transfer-import')?.addEventListener('change',async e=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    await handleTransferFile(file);
+    e.target.value='';
+  });
   window._yahmaCurrentPdfData=()=>({title:'التنازلات المفلترة',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','المالك السابق','تاريخ التنازل','حالة التنازل','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.transferFrom||'—',c.transferDate||'—',c.transferStatus||'—',c.branch||'—',c.carStatus||'—'])});
   $('tr-export-xlsx')?.addEventListener('click',()=>exportTr('xlsx'));
   $('tr-export-pdf')?.addEventListener('click',()=>exportTr('pdf'));

@@ -79,7 +79,7 @@
   /* توحيد أسماء الماركات: هونداي/هيونداى/هيونداي ← هيونداي ... */
   function brandKey(value){
     return String(value ?? '').replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا')
-      .replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim().toLowerCase();
+      .replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ی/g, 'ي').replace(/\s+/g, ' ').trim().toLowerCase();
   }
   const BRAND_ALIASES = {
     'هيونداي': ['هونداي', 'هيونداي', 'هونداي', 'هيونداى', 'hyundai'],
@@ -109,7 +109,7 @@
     'فيات': ['فيات', 'fiat'],
     'سكودا': ['سكودا', 'skoda'],
     'سيات': ['سيات', 'seat'],
-    'شانجان': ['شانجان', 'changan'],
+    'شانجان': ['شانجان', 'شنجان', 'changan'],
     'شيري': ['شيري', 'chery'],
     'جيلي': ['جيلي', 'geely'],
     'هافال': ['هافال', 'haval'],
