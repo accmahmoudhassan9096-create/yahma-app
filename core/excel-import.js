@@ -342,7 +342,15 @@ async function removeSoldVehiclesByPlates(plates,options={}){
   if(!plates.length){ if(!silent) alert('لم يتم العثور على أرقام لوحات في الملف.'); return {matched:0,deletedCloud:0,failedCloud:0,notFound:0,cancelled:false}; }
   const keys=plates.map(normalizePlateKey).filter(Boolean);
   const keySet=new Set(keys);
-  const matched=fleet.filter(c=>keySet.has(normalizePlateKey(c.plate)));
+  /* مطابقة موسعة لصيغ اللوحات المعكوسة («8842 ر ح ط» = «ر ح ط 8842») — وإلا بقيت المباعة في الأسطول والتنازلات */
+  const variantOf=(typeof window!=='undefined'&&window.YahmaFleetExcel&&window.YahmaFleetExcel.transferPlateVariants)
+    ? (p)=>window.YahmaFleetExcel.transferPlateVariants(p) : (p)=>[normalizePlateKey(p)];
+  const fleetByVariant=new Map();
+  fleet.forEach(c=>{ variantOf(c.plate).forEach(k=>{ if(k&&!fleetByVariant.has(k)) fleetByVariant.set(k,c); }); });
+  const matchedById=new Map();
+  plates.forEach(p=>{ variantOf(p).forEach(k=>{ const car=fleetByVariant.get(k); if(car&&!matchedById.has(String(car.id))) matchedById.set(String(car.id),car); }); });
+  const matched=[...matchedById.values()];
+  const foundPlates=plates.filter(p=>variantOf(p).some(k=>fleetByVariant.has(k))).length;
   if(!matched.length){
     if(!silent) alert('لا توجد سيارات في الأسطول تطابق أرقام اللوحات في الملف.\nتم قراءة '+plates.length+' رقم لوحة.');
     return {matched:0,deletedCloud:0,failedCloud:0,notFound:plates.length,cancelled:false};
@@ -376,7 +384,7 @@ async function removeSoldVehiclesByPlates(plates,options={}){
   fleet=remaining;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(fleet));
   pingSync();
-  const notFound=plates.length-matched.length;
+  const notFound=plates.length-foundPlates;
   if(!silent){
     render();
     alert('تم حذف '+matched.length+' سيارة مباعة.'
