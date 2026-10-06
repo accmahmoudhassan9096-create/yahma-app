@@ -74,6 +74,28 @@ function renderDashboard(content, context){
     label: k, count: v, pct: Math.round(v / reasonTotal * 1000) / 10
   }));
 
+  // مقياس الجاهزية (SVG): مناطق أحمر/كهرمان/أخضر + إبرة عند النسبة (عتبة 70% كالتقارير)
+  const gF = total ? Math.min(1, Math.max(0, ready / total)) : 0;
+  const gP = (f) => { const a = Math.PI * (1 - f); return [100 + 78 * Math.cos(a), 106 - 78 * Math.sin(a)]; };
+  const gArc = (f0, f1) => { const p0 = gP(f0), p1 = gP(f1); return 'M ' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1) + ' A 78 78 0 0 1 ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1); };
+  const gA = Math.PI * (1 - gF);
+  const gNx = 100 + 56 * Math.cos(gA), gNy = 106 - 56 * Math.sin(gA);
+  let gTicks = '';
+  [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+    const a = Math.PI * (1 - f);
+    gTicks += '<line x1="' + (100 + 60 * Math.cos(a)).toFixed(1) + '" y1="' + (106 - 60 * Math.sin(a)).toFixed(1) +
+      '" x2="' + (100 + 68 * Math.cos(a)).toFixed(1) + '" y2="' + (106 - 68 * Math.sin(a)).toFixed(1) +
+      '" stroke="var(--ink)" stroke-width="2" opacity=".35"/>';
+  });
+  const gaugeSvg = '<svg viewBox="0 0 200 128" role="presentation" style="display:block;width:200px;height:auto">'
+    + '<path d="' + gArc(0, 0.5) + '" fill="none" stroke="#E64B4B" stroke-width="18" stroke-linecap="round"/>'
+    + '<path d="' + gArc(0.5, 0.7) + '" fill="none" stroke="#E6A23C" stroke-width="18"/>'
+    + '<path d="' + gArc(0.7, 1) + '" fill="none" stroke="#0BAA86" stroke-width="18" stroke-linecap="round"/>'
+    + gTicks
+    + '<line x1="100" y1="106" x2="' + gNx.toFixed(1) + '" y2="' + gNy.toFixed(1) + '" style="stroke:var(--ink)" stroke-width="5" stroke-linecap="round"/>'
+    + '<circle cx="100" cy="106" r="9" style="fill:var(--ink)"/>'
+    + '<text x="100" y="74" text-anchor="middle" font-size="23" font-weight="800" style="fill:var(--ink)">' + pReady + '%</text></svg>';
+
   // مهامي اليوم من مهام التجهيز
   const today = typeof todayStr === 'function' ? todayStr() : new Date().toISOString().slice(0, 10);
   let todayTasks = [];
@@ -183,6 +205,11 @@ function renderDashboard(content, context){
           <div class="hero-summary-stat"><b>${available}</b><span>السيارات المتاحة</span></div>
           <div class="hero-summary-stat"><b>${rented}</b><span>السيارات المؤجرة</span></div>
         </div>
+      </div>
+      <div class="home-hero-gauge hero-gauge" role="img" aria-label="مقياس جاهزية الأسطول ${pReady}%">
+        <div class="hero-gauge-title">مقياس الجاهزية</div>
+        ${gaugeSvg}
+        <div class="hero-gauge-sub">${ready.toLocaleString('en')} من ${total.toLocaleString('en')} سيارة</div>
       </div>
       <div class="home-hero-car hero-car-clean" aria-hidden="true"><video class="home-hero-car-img home-hero-video" autoplay muted loop playsinline preload="metadata" poster="assets/dashboard-hero.png"><source src="assets/hero-video.mp4" type="video/mp4"></video></div>
     </div>
