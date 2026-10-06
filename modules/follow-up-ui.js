@@ -62,6 +62,7 @@ function renderFollowUp(content){
         <label>حالة السيارة<select id="fu-car-status"><option value="">كل الحالات</option><option>تحت الصيانة</option><option>حجز</option><option>متاحة للايجار</option><option>محولة غير مستلمة</option><option>مسروقة</option><option>للبيع</option><option>مؤجرة</option><option>خدمة</option><option>مفقودة</option></select></label>
         <label>المالك<select id="fu-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
         <label>الماركة<select id="fu-brand">${optionList(uniq('brand'),'كل الماركات')}</select></label>
+        <label>الموديل (السنة)<select id="fu-model">${optionList(uniq('model'),'كل الموديلات')}</select></label>
         <label>حالة الكارت (سجل)<select id="fu-card-status"><option value="">كل الحالات</option><option>نشط</option><option>ملغى</option><option>موقوف</option></select></label>
         <label>صلاحية الكارت<select id="fu-card-condition"><option value="">كل الحالات</option><option value="green">ساري</option><option value="amber">قريب الانتهاء</option><option value="red">منتهي / ملغى</option><option value="grey">غير محدد</option></select></label>
         <label>حالة التأمين<select id="fu-ins-status"><option value="">كل الحالات</option><option value="green">ساري</option><option value="red">منتهي / لا يوجد</option><option value="grey">غير محدد</option></select></label>
@@ -184,6 +185,7 @@ function renderFollowUp(content){
       if(val('fu-branch') && !eq(c.branch,val('fu-branch'))) return false;
       if(val('fu-owner') && !eq(c.owner,val('fu-owner'))) return false;
       if(val('fu-brand') && (typeof canonicalBrand==='function'?canonicalBrand(c.brand)!==val('fu-brand'):!eq(c.brand,val('fu-brand')))) return false;
+      if(val('fu-model') && !eq(c.model,val('fu-model'))) return false;
       if(val('fu-car-status') && !carStatusMatch(c.carStatus,val('fu-car-status'))) return false;
       if(val('fu-card-status')){
         const want=val('fu-card-status'), raw=norm(c.cardStatus);
@@ -327,7 +329,7 @@ function renderFollowUp(content){
     document.querySelectorAll('#fu-quick .quick-filter').forEach(b=>b.classList.toggle('active',b.dataset.fq===activeFQ));
   }
 
-  ['fu-branch','fu-car-status','fu-owner','fu-brand','fu-card-status','fu-card-condition','fu-ins-status'].forEach(id=>{
+  ['fu-branch','fu-car-status','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition','fu-ins-status'].forEach(id=>{
     $(id)?.addEventListener('change',()=>{page=1;draw();});
   });
   (function(){let t=null;$('fu-search')?.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{page=1;draw()},180);});})();
@@ -335,7 +337,7 @@ function renderFollowUp(content){
     b.addEventListener('click',()=>{activeFQ=activeFQ===b.dataset.fq?'':b.dataset.fq;page=1;draw();});
   });
   $('fu-clear')?.addEventListener('click',()=>{
-    ['fu-search','fu-branch','fu-car-status','fu-owner','fu-brand','fu-card-status','fu-card-condition','fu-ins-status'].forEach(id=>{if($(id)) $(id).value='';});
+    ['fu-search','fu-branch','fu-car-status','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition','fu-ins-status'].forEach(id=>{if($(id)) $(id).value='';});
     activeFQ=''; page=1; draw();
   });
   $('fu-pager-prev')?.addEventListener('click',()=>{page=Math.max(1,page-1);draw();});

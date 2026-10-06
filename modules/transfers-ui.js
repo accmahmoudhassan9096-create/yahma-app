@@ -45,6 +45,7 @@ function renderTransfers(content){
         <label>بحث<input id="tr-search" placeholder="لوحة، مالك، مالك سابق، ملاحظة..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
         <label>الفرع<select id="tr-branch">${optionList(uniq('branch'),'كل الفروع')}</select></label>
         <label>المالك الحالي<select id="tr-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
+        <label>الموديل (السنة)<select id="tr-model">${optionList(uniq('model'),'كل الموديلات')}</select></label>
         <label>حالة التنازل<select id="tr-status"><option value="">كل الحالات</option><option>مكتمل</option><option>قيد التنفيذ</option></select></label>
       </div>
       <div class="filter-footer">
@@ -112,6 +113,7 @@ function renderTransfers(content){
       }
       if(val('tr-branch') && !eq(c.branch,val('tr-branch'))) return false;
       if(val('tr-owner') && !eq(c.owner,val('tr-owner'))) return false;
+      if(val('tr-model') && !eq(c.model,val('tr-model'))) return false;
       if(val('tr-status') && norm(c.transferStatus)!==val('tr-status')) return false;
       if(activeTQ==='done' && norm(c.transferStatus)!=='مكتمل') return false;
       if(activeTQ==='pending' && norm(c.transferStatus)!=='قيد التنفيذ') return false;
@@ -228,7 +230,7 @@ function renderTransfers(content){
     document.querySelectorAll('.module-summary-strip [data-tq]').forEach(b=>b.classList.toggle('active',b.dataset.tq===activeTQ));
   }
 
-  ['tr-branch','tr-owner','tr-status'].forEach(id=>{
+  ['tr-branch','tr-owner','tr-model','tr-status'].forEach(id=>{
     $(id)?.addEventListener('change',()=>{page=1;draw();});
   });
   (function(){let t=null;$('tr-search')?.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{page=1;draw()},180);});})();
@@ -236,7 +238,7 @@ function renderTransfers(content){
     b.addEventListener('click',()=>{activeTQ=activeTQ===b.dataset.tq?'':b.dataset.tq;page=1;draw();});
   });
   $('tr-clear')?.addEventListener('click',()=>{
-    ['tr-search','tr-branch','tr-owner','tr-status'].forEach(id=>{if($(id)) $(id).value='';});
+    ['tr-search','tr-branch','tr-owner','tr-model','tr-status'].forEach(id=>{if($(id)) $(id).value='';});
     activeTQ=''; page=1; draw();
   });
   $('tr-pager-prev')?.addEventListener('click',()=>{page=Math.max(1,page-1);draw();});

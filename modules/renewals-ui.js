@@ -59,6 +59,7 @@ function renderRenewals(content, mode='inspection'){
         <label>حالة السيارة<select id="ren-car-status"><option value="">كل الحالات</option><option>تحت الصيانة</option><option>حجز</option><option>متاحة للايجار</option><option>محولة غير مستلمة</option><option>مسروقة</option><option>للبيع</option><option>مؤجرة</option><option>خدمة</option><option>مفقودة</option></select></label>
         <label>المالك<select id="ren-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
         <label>الماركة<select id="ren-brand">${optionList(uniq('brand'),'كل الماركات')}</select></label>
+        <label>الموديل (السنة)<select id="ren-model">${optionList(uniq('model'),'كل الموديلات')}</select></label>
         ${(!licenseMode&&!insuranceMode)?`<label>حالة الفحص<select id="ren-insp-status"><option value="">كل الحالات</option><option value="green">تم الفحص</option><option value="red">لم يفحص</option></select></label>`:''}
         ${licenseMode?`<label>صلاحية الرخصة<select id="ren-lic-condition"><option value="">كل الحالات</option><option value="green">سارية</option><option value="amber">قريبة الانتهاء</option><option value="red">منتهية</option><option value="grey">غير محددة</option></select></label>
         <label>حالة الرخصة (سجل)<select id="ren-lic-status"><option value="">كل الحالات</option><option>نشط</option><option>ملغى</option><option>موقوف</option><option>منتهي</option></select></label>`:''}
@@ -129,6 +130,7 @@ function renderRenewals(content, mode='inspection'){
       if(val('ren-branch') && !eq(c.branch,val('ren-branch'))) return false;
       if(val('ren-owner') && !eq(c.owner,val('ren-owner'))) return false;
       if(val('ren-brand') && (typeof canonicalBrand==='function'?canonicalBrand(c.brand)!==val('ren-brand'):!eq(c.brand,val('ren-brand')))) return false;
+      if(val('ren-model') && !eq(c.model,val('ren-model'))) return false;
       if(val('ren-car-status') && !carStatusMatch(c.carStatus,val('ren-car-status'))) return false;
       if(val('ren-insp-status') && inspectionDisplayStatus(c.inspectionStatus).level!==val('ren-insp-status')) return false;
       if(val('ren-insurance-status') && textTag(c.insuranceStatus).level!==val('ren-insurance-status')) return false;
@@ -302,7 +304,7 @@ function renderRenewals(content, mode='inspection'){
     document.querySelectorAll('#ren-quick .quick-filter').forEach(b=>b.classList.toggle('active',b.dataset.rq===activeRQ));
   }
 
-  ['ren-branch','ren-car-status','ren-owner','ren-brand','ren-insp-status','ren-lic-condition','ren-lic-status','ren-insurance-status'].forEach(id=>{
+  ['ren-branch','ren-car-status','ren-owner','ren-brand','ren-model','ren-insp-status','ren-lic-condition','ren-lic-status','ren-insurance-status'].forEach(id=>{
     $(id)?.addEventListener('change',()=>{page=1;draw();});
   });
   (function(){let t=null;$('ren-search')?.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{page=1;draw()},180);});})();
@@ -310,7 +312,7 @@ function renderRenewals(content, mode='inspection'){
     b.addEventListener('click',()=>{activeRQ=activeRQ===b.dataset.rq?'':b.dataset.rq;page=1;draw();});
   });
   $('ren-clear')?.addEventListener('click',()=>{
-    ['ren-search','ren-branch','ren-car-status','ren-owner','ren-brand','ren-insp-status','ren-lic-condition','ren-lic-status','ren-insurance-status'].forEach(id=>{if($(id)) $(id).value='';});
+    ['ren-search','ren-branch','ren-car-status','ren-owner','ren-brand','ren-model','ren-insp-status','ren-lic-condition','ren-lic-status','ren-insurance-status'].forEach(id=>{if($(id)) $(id).value='';});
     activeRQ=''; page=1; draw();
   });
   $('ren-pager-prev')?.addEventListener('click',()=>{page=Math.max(1,page-1);draw();});

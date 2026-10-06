@@ -237,11 +237,12 @@
     const range = isAll ? 'كل الفترات' : bounds.from + ' إلى ' + bounds.to;
     const preset = PERIOD_PRESETS.find(item => item.key === global.periodRange?.preset)?.label || '';
     const branchFilter = report.rf?.branch && report.rf.branch !== 'all' ? report.rf.branch : 'كل الفروع';
+    const modelFilter = report.rf?.model && report.rf.model !== 'all' ? report.rf.model : 'الكل';
     const issueFilter = report.rf?.issue && report.rf.issue !== 'all' ? report.rf.issue : 'الكل';
     const reportNumber = 'YH-' + generated.getFullYear() + String(generated.getMonth() + 1).padStart(2, '0') + String(generated.getDate()).padStart(2, '0') + '-' + String(generated.getHours()).padStart(2, '0') + String(generated.getMinutes()).padStart(2, '0');
 
     return '<div class="fr-head"><div class="fr-brand"><div class="fr-logo">يهماء</div><div><h1>يهماء لتأجير السيارات</h1><p>تقرير رسمي بمؤشرات الأسطول والجاهزية</p></div></div><div class="fr-head-date">رقم التقرير: ' + reportNumber + '<br>تاريخ الإنشاء: ' + generated.toLocaleString('ar-SA') + '</div></div>' +
-      '<div class="fr-body"><div class="fr-meta"><div>فترة التقرير<b>' + range + (preset ? ' (' + preset + ')' : '') + '</b></div><div>نطاق الفلتر<b>الفرع: ' + escapeHtml(branchFilter) + ' · المشكلات: ' + escapeHtml(issueFilter) + '</b></div><div>عدد السجلات المدروسة<b>' + report.total + ' سيارة</b></div></div>' +
+      '<div class="fr-body"><div class="fr-meta"><div>فترة التقرير<b>' + range + (preset ? ' (' + preset + ')' : '') + '</b></div><div>نطاق الفلتر<b>الفرع: ' + escapeHtml(branchFilter) + ' · الموديل: ' + escapeHtml(modelFilter) + ' · المشكلات: ' + escapeHtml(issueFilter) + '</b></div><div>عدد السجلات المدروسة<b>' + report.total + ' سيارة</b></div></div>' +
       '<div class="fr-sec-title">أولًا: الملخص التنفيذي</div><div class="fr-kpis">' +
       kpi(report.total, 'إجمالي السيارات') + kpi(report.ready + ' (' + report.readyPct + '%)', 'جاهزة للتأجير', 'ok') + kpi(report.notReady, 'غير جاهزة', 'bad') + kpi(report.maint, 'تحت الصيانة', 'warn') + kpi(report.out, 'خارج الخدمة') + kpi(report.prepOpen, 'مهام تجهيز مفتوحة') + kpi(report.prepOverdue, 'مهام متأخرة', report.prepOverdue ? 'bad' : '') + kpi(report.readyPct + '%', 'نسبة الجاهزية العامة', report.readyPct >= 70 ? 'ok' : 'warn') + '</div>' +
       '<div class="fr-sec-title">ثانيًا: المؤشرات المحاسبية (تقديرية)</div><table class="fr-table"><tbody>' +
@@ -313,10 +314,11 @@
     const range = isAll ? 'كل الفترات' : bounds.from + ' ← ' + bounds.to;
     const preset = PERIOD_PRESETS.find(item => item.key === global.periodRange?.preset)?.label || 'فترة مخصصة';
     const branchFilter = report.rf?.branch && report.rf.branch !== 'all' ? report.rf.branch : 'كل الفروع';
+    const modelFilter = report.rf?.model && report.rf.model !== 'all' ? ' · الموديل: ' + report.rf.model : '';
     const readyLabel = report.readyPct + '%';
     const file2 = buckets.d7 > 0 ? 'warn' : 'ok';
 
-    return '<div class="inf-head"><div><h1>يهماء لتأجير السيارات</h1><div class="ptag">إنفوجرافيك مؤشرات الأداء الرئيسية</div><div class="crumbline">' + escapeHtml(preset) + ' · ' + escapeHtml(range) + ' · الفرع: ' + escapeHtml(branchFilter) + '</div></div><div class="badges"><div class="inf-badge">رقم <b>I-' + String(generated.getFullYear()).slice(-2) + String(generated.getMonth() + 1).padStart(2, '0') + String(generated.getDate()).padStart(2, '0') + '-' + String(generated.getHours()).padStart(2, '0') + String(generated.getMinutes()).padStart(2, '0') + '</b></div><div class="inf-badge">' + generated.toLocaleDateString('ar-SA') + '</div></div></div>' +
+    return '<div class="inf-head"><div><h1>يهماء لتأجير السيارات</h1><div class="ptag">إنفوجرافيك مؤشرات الأداء الرئيسية</div><div class="crumbline">' + escapeHtml(preset) + ' · ' + escapeHtml(range) + ' · الفرع: ' + escapeHtml(branchFilter) + escapeHtml(modelFilter) + '</div></div><div class="badges"><div class="inf-badge">رقم <b>I-' + String(generated.getFullYear()).slice(-2) + String(generated.getMonth() + 1).padStart(2, '0') + String(generated.getDate()).padStart(2, '0') + '-' + String(generated.getHours()).padStart(2, '0') + String(generated.getMinutes()).padStart(2, '0') + '</b></div><div class="inf-badge">' + generated.toLocaleDateString('ar-SA') + '</div></div></div>' +
       '<div class="inf-body"><div class="inf-hero"><div class="inf-hero-text"><h2>نسبة جاهزية الأسطول</h2><div class="big">' + readyLabel + '<small>جاهز فعليًا</small></div><div class="sub">من إجمالي ' + report.total + ' سيارة ضمن الفترة. ' + report.ready + ' عربية جاهزة للتأجير، ' + report.notReady + ' غير جاهزة، ' + report.maint + ' في الصيانة، ' + report.out + ' خارج الخدمة. مهام تجهيز مفتوحة: ' + report.prepOpen + '، منها ' + report.prepOverdue + ' متأخرة.</div></div><div><div style="display:flex;gap:14px;align-items:center">' + infographicDonut(report.total, report.ready, report.notReady, report.maint, report.out) + '<div style="display:flex;flex-direction:column;gap:6px;flex:1">' + infographicDonutLegend(report.ready, report.notReady, report.maint, report.out, report.total) + '</div></div></div></div>' +
       '<div class="inf-kpi-grid">' + tile('إيراد شهري متوقع', formatCurrency(acc.monthPotential), 'متوسط السعر اليومي × السيارات النشطة × 30 يوم', 'ok', '<span>تقديري</span>') + tile('إيراد فعلي مسجل', formatCurrency(acc.estMonthRev), 'مجموع (السعر × أيام التأجير الفعلية)', 'inf-tile-info', '<span>للفترة</span>') + tile('تكاليف صيانة', formatCurrency(acc.maintCost), 'مجموع تكاليف آخر صيانة المسجلة', 'bad') + tile('صافي تقديري', formatCurrency(acc.netEst), acc.netEst >= 0 ? 'إيراد − تكاليف' : 'انتبه: التكاليف أعلى من الإيراد', acc.netEst >= 0 ? 'ok' : 'bad') + tile('الإيراد لكل سيارة', formatCurrency(acc.revPerCar), 'شهريًا · ' + acc.active + ' نشطة', '') + tile('متوسط السعر اليومي', formatCurrency(acc.avgDaily), 'من أسعار السيارات المسجلة', 'warn') + tile('مهام متأخرة', report.prepOverdue, 'من إجمالي ' + report.prepOpen + ' مفتوحة', report.prepOverdue ? 'bad' : 'ok') + tile('مستندات منتهية', buckets.overdue, 'منتهي فعلًا', buckets.overdue ? 'bad' : 'ok') + '</div>' +
       '<div class="inf-row"><div class="inf-card"><div class="inf-section-title">أعلى أسباب عدم الجاهزية</div><div class="inf-fails">' + failBars + '</div></div><div class="inf-card"><div class="inf-section-title">أداء الفروع (أعلى 3)</div><div class="inf-fails">' + branchBars + '</div></div></div>' +
@@ -370,6 +372,7 @@ function renderReports(content, context){
     (!rf.branch || rf.branch==='all' || String(c.branch||'')===rf.branch) &&
     (!rf.owner || rf.owner==='all' || String(c.owner||'')===rf.owner) &&
     (!rf.status || rf.status==='all' || String(c.carStatus||'')===rf.status) &&
+    (!rf.model || rf.model==='all' || String(c.model||'')===rf.model) &&
     issueMatch(c, rf.issue)
   );
   window._yahmaCurrentPdfData=()=>({title:'التقرير التحليلي المفلتر',subtitle:'الفترة: '+periodLabel()+' — عدد السيارات: '+list.length,headers:['رقم اللوحة','الماركة','النوع','الموديل','الفرع','المالك','الحالة','الجاهزية','انتهاء الرخصة','انتهاء الكارت'],rows:list.map(c=>{let ready='غير جاهزة';try{ready=vehicleReadiness(c).label}catch(e){}return[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',ready,c.licenseExpiry||'—',c.cardExpiry||'—']})});
@@ -494,6 +497,7 @@ function renderReports(content, context){
   const branchOpts = uniq('branch').map(b=>`<option value="${esc(b)}" ${rf.branch===b?'selected':''}>${esc(b)}</option>`).join('');
   const ownerOpts = uniq('owner').map(b=>`<option value="${esc(b)}" ${rf.owner===b?'selected':''}>${esc(b)}</option>`).join('');
   const statusOpts = uniq('carStatus').map(b=>`<option value="${esc(b)}" ${rf.status===b?'selected':''}>${esc(b)}</option>`).join('');
+  const modelOpts = uniq('model').map(b=>`<option value="${esc(b)}" ${rf.model===b?'selected':''}>${esc(b)}</option>`).join('');
   const reportPresets=getReportPresets();
 
   // SVG donut
@@ -528,6 +532,7 @@ function renderReports(content, context){
         <select id="rd-branch" aria-label="الفرع"><option value="all">كل الفروع</option>${branchOpts}</select>
         <select id="rd-owner" aria-label="المالك"><option value="all">كل الملاك</option>${ownerOpts}</select>
         <select id="rd-status" aria-label="الحالة"><option value="all">كل الحالات</option>${statusOpts}</select>
+        <select id="rd-model" aria-label="الموديل"><option value="all">كل الموديلات</option>${modelOpts}</select>
         <select id="rd-issue" aria-label="نوع المشكلة">
           <option value="all" ${rf.issue==='all'?'selected':''}>كل المشاكل</option>
           <option value="notready" ${rf.issue==='notready'?'selected':''}>غير جاهز</option>
@@ -776,6 +781,7 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
       branch: document.getElementById('rd-branch').value,
       owner: document.getElementById('rd-owner').value,
       status: document.getElementById('rd-status').value,
+      model: document.getElementById('rd-model')?.value||'all',
       issue: document.getElementById('rd-issue').value,
       range: rf.range||'30'
     };
@@ -787,6 +793,7 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
     if(rf.branch&&rf.branch!=='all') labels.push('الفرع: '+rf.branch);
     if(rf.owner&&rf.owner!=='all') labels.push('المالك: '+rf.owner);
     if(rf.status&&rf.status!=='all') labels.push('الحالة: '+rf.status);
+    if(rf.model&&rf.model!=='all') labels.push('الموديل: '+rf.model);
     if(rf.issue&&rf.issue!=='all') labels.push('المشكلة: '+({notready:'غير جاهز',card:'البطاقة',license:'الرخصة',inspection:'الفحص',insurance:'التأمين',maintenance:'صيانة',out:'خارج الخدمة'}[rf.issue]||rf.issue));
     if(window.periodRange.preset!=='thisMonth') labels.push('الفترة: '+(PERIOD_PRESETS.find(p=>p.key===window.periodRange.preset)?.label||'مخصصة'));
     return labels;
@@ -797,14 +804,14 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
     const labels=activeFilterLabels();
     box.innerHTML=`<span>${list.length} سيارة${labels.length?' · '+labels.length+' فلاتر نشطة':''}</span>${labels.length?`<span class="rd-filter-chips">${labels.map(label=>`<span class="rd-filter-chip">${esc(label)}</span>`).join('')}</span>`:''}<button type="button" class="btn btn-ghost btn-small" id="rd-clear-filters" ${labels.length?'':'disabled'}>إعادة ضبط الفلاتر</button>`;
     box.querySelector('#rd-clear-filters')?.addEventListener('click',()=>{
-      window.reportFilters={branch:'all',owner:'all',status:'all',issue:'all',range:'30'};
+      window.reportFilters={branch:'all',owner:'all',status:'all',model:'all',issue:'all',range:'30'};
       window.periodRange={preset:'thisMonth',from:'',to:''};
       persistReportState();
       renderReports(content);
     });
   };
   updateFilterStatus();
-  ['rd-branch','rd-owner','rd-status','rd-issue','rd-period'].forEach(id=>{
+  ['rd-branch','rd-owner','rd-status','rd-model','rd-issue','rd-period'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.onchange=applyFilters;
   });
   const syncCustomDates = ()=>{
@@ -850,6 +857,7 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
       branch:document.getElementById('rd-branch')?.value||'all',
       owner:document.getElementById('rd-owner')?.value||'all',
       status:document.getElementById('rd-status')?.value||'all',
+      model:document.getElementById('rd-model')?.value||'all',
       issue:document.getElementById('rd-issue')?.value||'all',
       range:rf.range||'30'
     };
