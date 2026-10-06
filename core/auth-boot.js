@@ -205,7 +205,7 @@ function initAuthUI(){
     errEl.textContent='';
     try{
       if(!window.supabaseReady || !window.supabaseClient){
-        throw new Error('خدمة Supabase غير متاحة. تأكد من الاتصال بالإنترنت أو استخدم الوضع المحلي.');
+        throw new Error('خدمة Supabase غير متاحة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.');
       }
       const { data, error } = await window.supabaseClient.auth.signInWithPassword({
         email: email,
@@ -240,7 +240,7 @@ function initAuthUI(){
     googleBtn.addEventListener('click', async ()=>{
       const errEl=document.getElementById('auth-error');
       if(!window.supabaseReady || !window.supabaseClient){
-        errEl.textContent='خدمة Supabase غير متاحة. افتح الصفحة عبر الإنترنت أو استخدم الوضع المحلي.';
+        errEl.textContent='خدمة Supabase غير متاحة. افتح الصفحة عبر الإنترنت ثم حاول مرة أخرى.';
         return;
       }
       googleBtn.disabled=true;
@@ -304,41 +304,7 @@ function initAuthUI(){
     });
   }
 
-  // الوضع المحلي (Demo)
-  const demoBtn=document.getElementById('auth-demo-btn');
-  if(demoBtn){
-    demoBtn.addEventListener('click', async ()=>{
-      demoBtn.disabled=true;
-      demoBtn.textContent='جارِ التحميل...';
-      try{
-        window._demoMode=true;
-        window._authResolved=true;
-        window.currentRole='admin';
-        window.currentUserBranch='';
-        window.currentUser={email:'demo@local',id:'demo-local',uid:'demo-local'};
-        window.syncMessage='وضع محلي (تجريبي)';
-        showAppScreen();
-        if(typeof loadData==='function') await loadData(false);
-        try{ if(typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){}
-        try{ if(typeof migrateCarStatusValues==='function') await migrateCarStatusValues(); }catch(_){}
-        try{ if(typeof migrateCarBrands==='function') await migrateCarBrands(); }catch(_){}
-        try{ if(typeof migrateInspectionStatus==='function') await migrateInspectionStatus(); }catch(_){}
-        if(typeof applyRole==='function') applyRole();
-        if(typeof render==='function') render();
-      }catch(e){
-        console.error(e);
-        alert('تعذر بدء الوضع التجريبي: '+(e.message||e));
-      }finally{
-        demoBtn.disabled=false;
-        demoBtn.textContent='تجربة بدون تسجيل (وضع محلي)';
-      }
-    });
-  }
-  // إخفاء مؤقت لزر الديمو: لا يظهر إلا بـ ?demo=1 صراحةً (للمالك حتى تجهيز
-  // حسابات Supabase — ثم يُحذف نهائيًا). الزوار لا يرونه ولا يصلون إليه بلوحة المفاتيح.
-  try{
-    if(demoBtn && !/([?&])demo=1\b/.test(location.search)) demoBtn.style.display='none';
-  }catch(_){}
+  // (حُذف زر الدخول التجريبي نهائيًا — الدخول بحساب فقط)
 }
 
 /** يظهر بعد الرجوع من رابط إعادة تعيين كلمة المرور (حدث PASSWORD_RECOVERY) */
@@ -377,8 +343,7 @@ function initAuthGate(){
 
   if(!window.supabaseReady || !window.supabaseClient){
     // لا يوجد Supabase (CDN محجوب/أوفلاين/مانع إعلانات): ممنوع الدخول التلقائي تمامًا —
-    // أي زائر كان يدخل كمدير تجريبي دون أي نقرة. اعرض شاشة الدخول مع تنبيه،
-    // والدخول التجريبي يبقى اختيارًا صريحًا بزر «تجربة بدون تسجيل» فقط.
+    // اعرض شاشة الدخول مع تنبيه. الدخول بحساب فقط (حُذف الوضع التجريبي نهائيًا).
     window._authResolved = true;
     window._demoMode = false;
     window.currentRole = 'view';
