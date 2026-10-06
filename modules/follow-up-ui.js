@@ -39,6 +39,8 @@ function renderFollowUp(content){
         <button class="btn btn-ghost" id="btn-copy-card">نسخ قائمة الكارت</button>
         <button class="btn btn-excel-export" id="fu-export-xlsx" title="تصدير النتائج المفلترة">📊 Excel</button>
         <button class="btn btn-ghost" id="fu-export-pdf" title="تصدير PDF للنتائج المفلترة">📄 PDF</button>
+        <button class="btn btn-primary btn-small" id="fu-upload-btn" title="رفع شيت الكروت — يحدّث بيانات الكارت فقط">📥 رفع شيت الكروت</button>
+        <input type="file" id="file-fu-upload" accept=".xlsx,.xls,.csv" style="display:none">
       </div>
     </div>
     <div class="filter-panel">
@@ -366,6 +368,13 @@ function renderFollowUp(content){
   window._yahmaGetFilteredCars = getRows;
   $('fu-export-xlsx')?.addEventListener('click',()=>exportFu('xlsx'));
   $('fu-export-pdf')?.addEventListener('click',()=>exportFu('pdf'));
+  $('fu-upload-btn')?.addEventListener('click',()=>$('file-fu-upload')?.click());
+  $('file-fu-upload')?.addEventListener('change',async e=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    await handleDomainUpdateFile(file,{title:'الكروت',fields:['cardNumber','cardExpiry','cardStatus']});
+    e.target.value='';
+  });
   draw();
 }
 

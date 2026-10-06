@@ -56,8 +56,7 @@ async function handleExcelFile(file){
     if(existingByPlate.has(normalizePlateKey(record.car.plate))) updateCandidates++;
     else newCandidates++;
   });
-  const soldMatches=new Set(plan.sold.map(record=>normalizePlateKey(record.car.plate)));
-  const soldCount=fleet.filter(car=>soldMatches.has(normalizePlateKey(car.plate))).length;
+  const soldMatches=new Set(plan.sold.map(record=>normalizePlateKey(record.car.plate)));  const soldCount=fleet.filter(car=>soldMatches.has(normalizePlateKey(car.plate))).length;
   const shouldContinue=confirm(
     `معاينة تحديث الأسطول:\n${plan.active.length} صف نشط (${updateCandidates} موجود للتحديث، ${newCandidates} جديد)\n`+
     `${soldCount} سيارة مباعة سيتم حذفها\n\nسيتم تحديث الحقول غير الفارغة فقط. السيارات غير الموجودة في الملف لن تُحذف.`+
@@ -97,6 +96,68 @@ async function handleExcelFile(file){
     (deletion.failedCloud?`\nتنبيه: فشل حذف ${deletion.failedCloud} من Supabase؛ تحقق من الاتصال والصلاحيات.`:'')+
     (plan.skipped?`\nتم تجاهل ${plan.skipped} صف بدون رقم لوحة.`:'')+
     (deletion.notFound?`\nلوحات مباعة غير موجودة: ${deletion.notFound}.`:'') );
+}
+
+/* رفع شيت مجالي لتبويب واحد (فحص/رخص/تأمين/كروت): يحدّث حقول المجال فقط، بلا إدراج ولا مساس بغيرها */
+async function handleDomainUpdateFile(file, cfg){
+  cfg = cfg || {};
+  const fields = Array.isArray(cfg.fields) && cfg.fields.length ? cfg.fields : [];
+  const title = cfg.title || 'التحديث';
+  if(currentRole!=='admin'&&currentRole!=='ops'){ alert('ليس لديك صلاحية الاستيراد.'); return {cancelled:true}; }
+  if(!fields.length){ alert('إعداد التحديث ناقص.'); return {cancelled:true}; }
+  if(!(await ensureXlsxReady())){ alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.'); return {cancelled:true}; }
+  let rows;
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellDates:true});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+  }catch(e){ alert('تعذر قراءة الملف. تأكد أنه ملف إكسيل أو CSV صحيح.'); return {cancelled:true}; }
+  if(!rows.length){ alert('الملف فارغ أو لا يحتوي على بيانات.'); return {cancelled:true}; }
+  const plan = window.YahmaFleetExcel.parseImportRows(rows, uid);
+  const keep = new Set(['plate'].concat(fields));
+  plan.active.forEach(record=>{
+    Object.keys(record.car).forEach(f=>{ if(!keep.has(f)) delete record.car[f]; });
+    record.provided = (record.provided||[]).filter(f=>keep.has(f));
+  });
+  const useful = plan.active.filter(record=>fields.some(f=>String(record.car[f]??'').trim()!==''));
+  if(!useful.length){
+    alert('لم يتم العثور على بيانات ' + title + ' في الملف.' +
+      ((plan.unknown&&plan.unknown.length)?'\nأعمدة غير معروفة: '+plan.unknown.slice(0,6).join('، '):''));
+    return {cancelled:true};
+  }
+  const variantOf = (window.YahmaFleetExcel&&window.YahmaFleetExcel.transferPlateVariants)
+    ? (p)=>window.YahmaFleetExcel.transferPlateVariants(p) : (p)=>[normalizePlateKey(p)];
+  const byVariant = new Map();
+  fleet.forEach(car=>{ variantOf(car.plate).forEach(k=>{ if(k&&!byVariant.has(k)) byVariant.set(k,car); }); });
+  const hits = [], misses = [];
+  useful.forEach(record=>{
+    const car = variantOf(record.car.plate).map(k=>byVariant.get(k)).find(Boolean) || null;
+    if(car) hits.push({car, record});
+    else misses.push(record.car.plate);
+  });
+  const shouldContinue = confirm(
+    `معاينة تحديث ${title}:\n${useful.length} صف (${hits.length} موجودة سيتم تحديثها، ${misses.length} غير موجودة ستُتجاهل)\n`+
+    `الحقول المحدّثة فقط: ${title} — بلا إدراج سيارات جديدة.`
+  );
+  if(!shouldContinue) return {cancelled:true};
+  let updated = 0;
+  const affectedIds = [];
+  hits.forEach(({car, record})=>{
+    const merged = window.YahmaFleetExcel.mergeImportRecord(car, record);
+    if(merged.changed){
+      const idx = fleet.findIndex(c=>String(c.id)===String(car.id));
+      if(idx>=0) fleet[idx] = merged.car;
+      updated++; affectedIds.push(car.id);
+    }
+  });
+  if(affectedIds.length){
+    try{ if(typeof window.log==='function') window.log('تحديث '+title,`محدث: ${updated}، متجاهل: ${misses.length}`); }catch(_){}
+    await saveData(affectedIds);
+    render();
+  }
+  alert(`اكتمل تحديث ${title}: ${updated} محدثة من أصل ${useful.length}.`+(misses.length?`\nلوحات غير موجودة (${misses.length}): ${misses.slice(0,8).join('، ')}`:''));
+  return {updated, missed: misses.length};
 }
 
 function escPdf(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
