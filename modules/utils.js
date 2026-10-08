@@ -90,6 +90,42 @@
     return (hit || REGION_DEFS[2]).id;
   }
 
+  /* إحداثيات المدن لفروع الخريطة (تقريبية لمراكز المدن) */
+  const CITY_COORDS = [
+    { keys: ['ابحر', 'فلسطين', 'جدة', 'جده', 'رابغ'], name: 'جدة', lat: 21.54, lng: 39.17 },
+    { keys: ['مكة', 'مكه'], name: 'مكة', lat: 21.39, lng: 39.86 },
+    { keys: ['المدينة', 'المدينه'], name: 'المدينة', lat: 24.47, lng: 39.61 },
+    { keys: ['الطائف', 'الطايف'], name: 'الطائف', lat: 21.28, lng: 40.42 },
+    { keys: ['ابها'], name: 'أبها', lat: 18.22, lng: 42.51 },
+    { keys: ['تبوك'], name: 'تبوك', lat: 28.39, lng: 36.57 },
+    { keys: ['جيزان', 'جازان'], name: 'جازان', lat: 16.89, lng: 42.55 },
+    { keys: ['نجران'], name: 'نجران', lat: 17.49, lng: 44.13 },
+    { keys: ['ينبع'], name: 'ينبع', lat: 24.09, lng: 38.06 },
+    { keys: ['الباحة', 'الباحه'], name: 'الباحة', lat: 20.01, lng: 41.47 },
+    { keys: ['الدمام', 'دمام'], name: 'الدمام', lat: 26.42, lng: 50.1 },
+    { keys: ['خبر', 'الخبر'], name: 'الخبر', lat: 26.22, lng: 50.21 },
+    { keys: ['الاحساء', 'الأحساء', 'الهفوف'], name: 'الأحساء', lat: 25.36, lng: 49.59 },
+    { keys: ['الجبيل'], name: 'الجبيل', lat: 27.01, lng: 49.65 },
+    { keys: ['القطيف'], name: 'القطيف', lat: 26.92, lng: 50.01 },
+    { keys: ['الخفجي'], name: 'الخفجي', lat: 28.42, lng: 48.5 },
+    { keys: ['حفر'], name: 'حفر الباطن', lat: 28.43, lng: 45.96 },
+    { keys: ['القصيم', 'بريدة', 'بريده', 'عنيزة', 'عنيزه'], name: 'القصيم', lat: 26.33, lng: 43.97 },
+    { keys: ['حائل'], name: 'حائل', lat: 27.51, lng: 41.72 },
+    { keys: ['عرعر'], name: 'عرعر', lat: 30.98, lng: 41.03 },
+    { keys: ['سكاكا', 'الجوف'], name: 'سكاكا', lat: 29.97, lng: 40.2 },
+    { keys: ['الخرج'], name: 'الخرج', lat: 24.15, lng: 47.31 },
+    { keys: ['الدوادمي'], name: 'الدوادمي', lat: 24.5, lng: 44.4 },
+    { keys: ['المجمعة', 'المجمعه'], name: 'المجمعة', lat: 25.91, lng: 45.35 },
+    { keys: ['الزلفي'], name: 'الزلفي', lat: 26.3, lng: 44.81 },
+    { keys: ['عفيف'], name: 'عفيف', lat: 24.73, lng: 42.88 },
+    { keys: ['وادي الدواسر'], name: 'وادي الدواسر', lat: 20.46, lng: 44.89 },
+    { keys: ['شقراء'], name: 'شقراء', lat: 25.24, lng: 45.25 }
+  ];
+  function cityOfBranch(branch){
+    const t = ' ' + String(branch ?? '').replace(/[أإآ]/g, 'ا') + ' ';
+    const hit = CITY_COORDS.find(c => c.keys.some(k => t.includes(k)));
+    return hit || { name: 'الرياض', lat: 24.63, lng: 46.68 };
+  }
   /* توحيد أسماء الماركات: هونداي/هيونداى/هيونداي ← هيونداي ... */
   function brandKey(value){
     return String(value ?? '').replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا')
@@ -215,7 +251,7 @@
     uid, normalizeDateValue, daysFromNow, dateStatus, licenseDisplayStatus,
     cardDisplayStatus, inspectionDisplayStatus, textTag, escapeHtml,
     fmtDate, addDays, todayStr, carStatusOut, carStatusActive, carStatusMatch, carStatusReady, normStatus,
-    brandKey, canonicalBrand, REGION_DEFS, regionOfBranch
+    brandKey, canonicalBrand, REGION_DEFS, regionOfBranch, CITY_COORDS, cityOfBranch
   };
   global.YahmaUtils = api;
   Object.assign(global, api);

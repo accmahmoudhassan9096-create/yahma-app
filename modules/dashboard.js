@@ -50,6 +50,18 @@ function renderDashboard(content, context){
     .map(([name, x]) => ({ name, ...x, notReady: x.total - x.ready, pct: x.total ? Math.round(x.ready / x.total * 100) : 0 }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
+  // خريطة الفروع: كل فرع بإحداثيات مدينته + نمو فرعي من اللقطات
+  const branchFull = Object.entries(branch).map(([name, x]) => {
+    const city = (typeof cityOfBranch === 'function') ? cityOfBranch(name) : { name: 'الرياض', lat: 24.63, lng: 46.68 };
+    return { name, total: x.total, ready: x.ready, city: city.name, lat: city.lat, lng: city.lng };
+  }).sort((a, b) => b.total - a.total);
+  branchFull.forEach((b, i, arr) => {
+    const same = arr.filter(x => x.lat === b.lat && x.lng === b.lng);
+    const k = same.indexOf(b);
+    const ang = k * 2.39996, dist = 0.022 * Math.sqrt(k + 1);
+    b.mlat = b.lat + dist * Math.sin(ang);
+    b.mlng = b.lng + dist * Math.cos(ang);
+  });
 
   // حالة الأسطول — مستوى الشركة بالترتيب المعتمد
   const stOf = c => String(c.carStatus || '').trim();
@@ -83,8 +95,10 @@ function renderDashboard(content, context){
   const readHist = () => { try { const a = JSON.parse(localStorage.getItem(REG_HIST_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch(e) { return []; } };
   const todayIso = new Date().toISOString().slice(0, 10);
   let regHist = readHist();
+  const branchSnap = {};
+  branchFull.forEach(b => { branchSnap[b.name] = b.total; });
   if (!regHist.length || regHist[regHist.length - 1].d !== todayIso) {
-    regHist.push({ d: todayIso, west: (regionById.west || { total: 0 }).total, east: (regionById.east || { total: 0 }).total, central: (regionById.central || { total: 0 }).total });
+    regHist.push({ d: todayIso, west: (regionById.west || { total: 0 }).total, east: (regionById.east || { total: 0 }).total, central: (regionById.central || { total: 0 }).total, branches: branchSnap });
     regHist = regHist.slice(-90);
     try { localStorage.setItem(REG_HIST_KEY, JSON.stringify(regHist)); } catch(e) {}
   }
@@ -101,6 +115,13 @@ function renderDashboard(content, context){
     r.growth = (base === null || !base) ? null : Math.round((r.total - base) / base * 1000) / 10;
     r.since = histBase ? histBase.d : null;
     r.topBranches = Object.entries(r.branches).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  });
+  const mapMode = (() => { try { return localStorage.getItem('yahma-map-mode') || 'regions'; } catch(e) { return 'regions'; } })();
+  branchFull.forEach(b => {
+    const base = (histBase && histBase.branches) ? (+histBase.branches[b.name] || 0) : null;
+    b.delta = base === null ? null : b.total - base;
+    b.growth = (base === null || !base) ? null : Math.round((b.total - base) / base * 1000) / 10;
+    b.pct = b.total ? Math.round(b.ready / b.total * 100) : 0;
   });
   // أسباب عدم الجاهزية بنسب
   const reasonTotal = reasons.reduce((s, [, v]) => s + v, 0) || 1;
@@ -360,18 +381,31 @@ function renderDashboard(content, context){
     <div class="home-card home-map-card">
       <div class="home-card-head">
         <h3>🗺 خريطة المناطق</h3>
-        <span class="muted-small">حجم الدائرة = عدد السيارات · ${histBase ? 'النمو منذ ' + histBase.d : 'بداية قياس النمو: اليوم'}</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="muted-small">حجم الدائرة = عدد السيارات · ${histBase ? 'النمو منذ ' + histBase.d : 'بداية قياس النمو: اليوم'}</span>
+          <button type="button" class="btn btn-ghost btn-small map-mode-btn${mapMode === 'regions' ? ' active' : ''}" data-map-mode="regions">المناطق</button>
+          <button type="button" class="btn btn-ghost btn-small map-mode-btn${mapMode === 'branches' ? ' active' : ''}" data-map-mode="branches">الفروع</button>
+        </div>
       </div>
       <div class="home-map-wrap">
         <div id="region-map" role="img" aria-label="خريطة توزيع السيارات حسب المنطقة"></div>
         <div class="home-map-legend">
+          ${mapMode === 'branches' ? `
+          <div class="muted-small" style="margin-bottom:2px">${branchFull.length} فرعًا — اضغط أي نقطة لعرض سيارات الفرع</div>
+          ${branchFull.slice(0, 8).map(b => `
+          <div class="home-map-leg"><i style="background:${(regionById[(typeof regionOfBranch === 'function' ? regionOfBranch(b.name) : 'central')] || {}).color || '#E6A23C'}"></i>
+            <div class="home-map-leg-body"><b>${escapeHtml(b.name)} — ${b.total.toLocaleString('en')} سيارة</b>
+              <span>جاهزية ${b.pct}%${b.delta === null ? ' · نمو: —' : ' · ' + (b.delta >= 0 ? '+' : '') + b.delta + (b.growth === null ? '' : ' (' + b.growth + '%)')}</span>
+            </div>
+          </div>`).join('')}
+          ${branchFull.length > 8 ? `<div class="muted-small">+ ${branchFull.length - 8} فروع أخرى على الخريطة</div>` : ''}` : `
           ${regionStats.map(r => `
           <div class="home-map-leg"><i style="background:${r.color}"></i>
             <div class="home-map-leg-body"><b>${r.label} — ${r.total.toLocaleString('en')} سيارة</b>
               <span>${r.delta === null ? 'نمو: — (أول يوم قياس)' : r.since === todayIso ? 'نمو اليوم: ' + (r.delta >= 0 ? '+' : '') + r.delta : 'النمو: ' + (r.delta >= 0 ? '+' : '') + r.delta + (r.growth === null ? '' : ' (' + (r.growth >= 0 ? '+' : '') + r.growth + '%)') + ' منذ ' + r.since}</span>
               <span class="muted-small">${r.topBranches.map(([b, n]) => escapeHtml(b) + ' (' + n + ')').join(' · ') || '—'}</span>
             </div>
-          </div>`).join('')}
+          </div>`).join('')}`}
         </div>
       </div>
     </div>
@@ -455,6 +489,37 @@ function renderDashboard(content, context){
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
           {maxZoom:12,attribution:'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics',errorTileUrl:errTile,className:dark?'esri-dark-tiles':''}).addTo(map);
         const max = Math.max(1, ...regionStats.map(r=>r.total));
+        const branchGrowth = (b) => b.delta === null ? 'النمو: —' : ('النمو ' + (b.delta >= 0 ? '+' : '') + b.delta + (b.growth === null ? '' : ' (' + b.growth + '%)'));
+        if (mapMode === 'branches') {
+          const bounds = [];
+          const maxB = Math.max(1, ...branchFull.map(b=>b.total));
+          branchFull.forEach(b => {
+            const rid = (typeof regionOfBranch === 'function') ? regionOfBranch(b.name) : 'central';
+            const col = ((regionById[rid]) || {}).color || '#E6A23C';
+            const rad = 7 + Math.min(20, Math.sqrt(b.total / maxB) * 22);
+            const m = L.circleMarker([b.mlat, b.mlng], { radius: rad, color: col, weight: 2, fillColor: col, fillOpacity: .85 }).addTo(map);
+            m.bindTooltip('<b>' + escapeHtml(b.name) + '</b><br>' + b.total + ' سيارة', { direction: 'top', className: 'region-tip' });
+            m.bindPopup('<b>' + escapeHtml(b.name) + ' (' + b.total + ')</b><br>جاهزية ' + b.pct + '% · ' + escapeHtml(branchGrowth(b)) +
+              '<br><button type="button" class="btn btn-primary btn-small" data-region-branch="' + escapeHtml(b.name) + '" style="margin-top:8px">عرض السيارات ←</button>');
+            bounds.push([b.mlat, b.mlng]);
+          });
+          if (bounds.length > 1) { try { map.fitBounds(bounds, { padding: [30, 30] }); } catch(e) {} }
+          map.on('popupopen', e => {
+            try {
+              const btn = e.popup.getElement().querySelector('[data-region-branch]');
+              if (btn && !btn._bound) {
+                btn._bound = true;
+                btn.onclick = () => {
+                  try { map.closePopup(); } catch(_){}
+                  window.pendingFleetBranch = btn.dataset.regionBranch;
+                  const nav = document.querySelector('.nav-item[data-tab="fleet"]');
+                  if (nav) nav.click();
+                  if (typeof render === 'function') render();
+                };
+              }
+            } catch(_){}
+          });
+        } else {
         regionStats.forEach(r=>{
           if(!(r.total>0)) return;
           const rad = 25000 + Math.sqrt(r.total/max)*90000;
@@ -463,6 +528,7 @@ function renderDashboard(content, context){
           c.bindTooltip('<b>'+escapeHtml(r.label)+'</b><br>'+r.total+' سيارة<br>'+escapeHtml(g),{permanent:true,direction:'top',className:'region-tip'});
           c.bindPopup('<b>'+escapeHtml(r.label)+' ('+r.total+')</b><br>'+r.topBranches.map(([b,n])=>escapeHtml(b)+': '+n).join('<br>'));
         });
+        }
         setTimeout(()=>{ try{ map.invalidateSize(); }catch(_){} }, 200);
         window._regionMap = map;
       }catch(e){
@@ -483,6 +549,11 @@ function renderDashboard(content, context){
       }catch(e){}
     }, 300);
   })();
+
+  content.querySelectorAll('.map-mode-btn').forEach(b => b.addEventListener('click', () => {
+    try { localStorage.setItem('yahma-map-mode', b.dataset.mapMode); } catch(e) {}
+    if (typeof render === 'function') render();
+  }));
 
   // فيديو الواجهة: يعمل تلقائيًا بدون صوت — وإن غاب الملف يرجع لصورة السيارة
   const heroVideo = content.querySelector('.home-hero-video');
