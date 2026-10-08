@@ -134,7 +134,8 @@
 
   function isSoldStatus(value) {
     const status = normalizeHeader(value);
-    return status.includes('مباع') || /^sold\b/.test(status);
+    return status.includes('مباع') || status.includes('هلاك') || status.includes('هالك') ||
+      status.includes('تالف') || status.includes('للبيع') || status === 'بيع' || /^sold\b/.test(status);
   }
 
   function normalizeImportValue(field, value) {

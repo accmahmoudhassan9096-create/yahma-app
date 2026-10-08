@@ -4,6 +4,7 @@
 /* تبويب التنازلات: سيارات لها تنازل من المالك (انتهاء الأقساط) — تُقرأ من أعمدة الإكسل
    (تنازل/تاريخ التنازل/المالك السابق/حالة التنازل/ملاحظات التنازل) ولا تمس حالة السيارة. */
 function renderTransfers(content){
+  const canDelete=!(typeof currentRole!=='undefined'&&currentRole==='view');
   document.getElementById('topbar-title').textContent='التنازلات';
   document.getElementById('topbar-sub').textContent='سيارات انتقلت ملكيتها إلينا بانتهاء الأقساط';
   const isTransfer=c=>String(c.transferDone||'').trim()==='نعم';
@@ -53,9 +54,17 @@ function renderTransfers(content){
         <button class="btn btn-ghost btn-small" id="tr-clear">↺ مسح الفلاتر</button>
       </div>
     </div>
+    ${canDelete?`<div class="bulk-bar" id="tr-bulk-bar" style="display:none">
+      <div class="bulk-bar-info"><span id="tr-bulk-count">0 محددة</span></div>
+      <div class="bulk-bar-actions">
+        <button class="btn btn-danger btn-small" id="tr-bulk-delete">🗑 حذف المحددة</button>
+        <button class="btn btn-ghost btn-small" id="tr-bulk-clear">إلغاء التحديد</button>
+      </div>
+    </div>`:''}
     <div class="table-scroll">
-      <table class="fleet-table" style="min-width:1500px">
+      <table class="fleet-table" style="min-width:1600px">
         <thead><tr>
+          ${canDelete?'<th class="th-check"><input type="checkbox" id="tr-head-check" aria-label="تحديد الكل"></th>':''}
           <th>رقم اللوحة</th>
           <th>الماركة</th>
           <th>النوع</th>
@@ -98,6 +107,7 @@ function renderTransfers(content){
 
   const $=id=>document.getElementById(id);
   let activeTQ='', page=1, pageSize=25;
+  const selectedTrIds=new Set();
   const val=id=>($(id)?.value||'').trim();
   const norm=s=>String(s??'').trim();
   const eq=(a,b)=>norm(a).replace(/[يى]/g,'ي').replace(/أ|إ|آ/g,'ا')===norm(b).replace(/[يى]/g,'ي').replace(/أ|إ|آ/g,'ا');
@@ -128,6 +138,43 @@ function renderTransfers(content){
     return extra+opts;
   }
 
+  /* تحديد جماعي + حذف (إداريون فقط) */
+  function updateTrBulkBar(){
+    const bar=$('tr-bulk-bar'); if(!bar) return;
+    const n=selectedTrIds.size;
+    bar.style.display=n?'':'none';
+    const cnt=$('tr-bulk-count'); if(cnt) cnt.textContent=n+' محددة';
+    const tbody=$('tr-tbody');
+    const boxes=tbody?[...tbody.querySelectorAll('.row-check')]:[];
+    const head=$('tr-head-check');
+    if(head){ head.checked=boxes.length>0&&boxes.every(b=>b.checked); head.indeterminate=boxes.some(b=>b.checked)&&!head.checked; }
+  }
+  function wireTrChecks(){
+    const tbody=$('tr-tbody'); if(!tbody) return;
+    tbody.querySelectorAll('.row-check').forEach(cb=>{
+      cb.checked=selectedTrIds.has(cb.dataset.id);
+      cb.onchange=()=>{ if(cb.checked) selectedTrIds.add(cb.dataset.id); else selectedTrIds.delete(cb.dataset.id); updateTrBulkBar(); };
+    });
+    const head=$('tr-head-check');
+    if(head && !head._bound){
+      head._bound=true;
+      head.onchange=()=>{
+        const boxes=[...tbody.querySelectorAll('.row-check')];
+        if(head.checked) boxes.forEach(b=>selectedTrIds.add(b.dataset.id));
+        else boxes.forEach(b=>selectedTrIds.delete(b.dataset.id));
+        wireTrChecks(); updateTrBulkBar();
+      };
+    }
+    updateTrBulkBar();
+  }
+  async function deleteTrCars(ids){
+    const cars=ids.map(id=>fleet.find(c=>String(c.id)===String(id))).filter(Boolean);
+    if(!cars.length) return;
+    if(!confirm('حذف '+cars.length+' سيارة نهائيًا من الأسطول؟\n'+cars.slice(0,8).map(c=>c.plate).join('، ')+(cars.length>8?'…':''))) return;
+    cars.forEach(c=>selectedTrIds.delete(String(c.id)));
+    await removeSoldVehiclesByPlates(cars.map(c=>c.plate),{skipConfirm:true,silent:true});
+    render();
+  }
   function draw(){
     const allRows=getRows();
     const total=allRows.length;
@@ -142,6 +189,7 @@ function renderTransfers(content){
       const scrollEl = tbody.closest('.table-scroll') || tbody.parentElement;
       function renderTrRow(c){
         return `<tr data-id="${escapeHtml(c.id)}">
+        ${canDelete?`<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td>`:''}
         <td class="plate">${escapeHtml(c.plate||'—')}</td>
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>
@@ -156,28 +204,37 @@ function renderTransfers(content){
           <select class="tr-status-sel" data-status-id="${escapeHtml(c.id)}" aria-label="حالة التنازل للسيارة ${escapeHtml(c.plate||'—')}"${editable?'':' disabled'}>${statusOptions(c.transferStatus)}</select>
           <input type="date" class="tr-date-input" data-date-id="${escapeHtml(c.id)}" value="${escapeHtml(c.transferDate||'')}" aria-label="تاريخ التنازل للسيارة ${escapeHtml(c.plate||'—')}"${editable?'':' disabled'}>
           <button class="btn btn-ghost btn-small" data-open="${escapeHtml(c.id)}">الملف</button>
+          ${canDelete?`<button class="btn btn-danger btn-small" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة">🗑</button>`:''}
         </td>
       </tr>`;
       }
+      const delCol=canDelete?1:0;
       if(window.YahmaVTable && scrollEl){
         if(!window._trVT || window._trVT._tb !== tbody){
           if(window._trVT && window._trVT.destroy) try{window._trVT.destroy()}catch(e){}
           window._trVT = window.YahmaVTable.create({
-            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 11,
+            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 11+delCol,
             renderRow: function(c){ return renderTrRow(c); },
-            emptyHtml: '<tr><td colspan="11"><div class="empty">لا توجد سيارات لها تنازل مطابقة — ارفع ملف الإكسل بأعمدة التنازل</div></td></tr>'
+            emptyHtml: '<tr><td colspan="'+(11+delCol)+'"><div class="empty">لا توجد سيارات لها تنازل مطابقة — ارفع ملف الإكسل بأعمدة التنازل</div></td></tr>'
           });
           window._trVT._tb = tbody;
         }
         window._trVT.setItems(rows, true);
       } else {
-        tbody.innerHTML=rows.length?rows.map(renderTrRow).join(''):`<tr><td colspan="11"><div class="empty">لا توجد سيارات لها تنازل مطابقة — ارفع ملف الإكسل بأعمدة التنازل</div></td></tr>`;
+        tbody.innerHTML=rows.length?rows.map(renderTrRow).join(''):`<tr><td colspan="${11+delCol}"><div class="empty">لا توجد سيارات لها تنازل مطابقة — ارفع ملف الإكسل بأعمدة التنازل</div></td></tr>`;
       }
+      wireTrChecks();
       if(!tbody._trDelegate){
         tbody._trDelegate = true;
         tbody.addEventListener('click', async function(e){
-          const btn = e.target.closest ? e.target.closest('button[data-open]') : null;
+          const btn = e.target.closest ? e.target.closest('button[data-open],button[data-del-car]') : null;
           if(!btn) return;
+          if(btn.dataset.delCar){
+            if(typeof currentRole!=='undefined'&&currentRole!=='admin'&&currentRole!=='ops'){alert('ليس لديك صلاحية الحذف.');return;}
+            const dc=fleet.find(c=>String(c.id)===String(btn.dataset.delCar)); if(!dc) return;
+            await deleteTrCars([dc.id]);
+            return;
+          }
           if(typeof openModal==='function') openModal(btn.dataset.open);
         });
         tbody.addEventListener('change', async function(e){
@@ -239,8 +296,10 @@ function renderTransfers(content){
   });
   $('tr-clear')?.addEventListener('click',()=>{
     ['tr-search','tr-branch','tr-owner','tr-model','tr-status'].forEach(id=>{if($(id)) $(id).value='';});
-    activeTQ=''; page=1; draw();
+    activeTQ=''; selectedTrIds.clear(); page=1; draw();
   });
+  $('tr-bulk-delete')?.addEventListener('click',()=>deleteTrCars([...selectedTrIds]));
+  $('tr-bulk-clear')?.addEventListener('click',()=>{selectedTrIds.clear();draw();});
   $('tr-pager-prev')?.addEventListener('click',()=>{page=Math.max(1,page-1);draw();});
   $('tr-pager-next')?.addEventListener('click',()=>{page++;draw();});
   $('tr-pager-size')?.addEventListener('change',e=>{pageSize=parseInt(e.target.value,10)||0;page=1;draw();});

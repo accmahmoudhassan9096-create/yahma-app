@@ -2,6 +2,7 @@
   'use strict';
 
 function renderFollowUp(content){
+  const canDelete=!(typeof currentRole!=='undefined'&&currentRole==='view');
   document.getElementById('topbar-title').textContent = 'بطاقات التشغيل';
   document.getElementById('topbar-sub').textContent = 'متابعة بطاقات التشغيل (الكارت) ومواعيد التجديد';
   const uniq=(field)=>{
@@ -72,9 +73,17 @@ function renderFollowUp(content){
         <button class="btn btn-ghost btn-small" id="fu-clear">↺ مسح الفلاتر</button>
       </div>
     </div>
+    ${canDelete?`<div class="bulk-bar" id="fu-bulk-bar" style="display:none">
+      <div class="bulk-bar-info"><span id="fu-bulk-count">0 محددة</span></div>
+      <div class="bulk-bar-actions">
+        <button class="btn btn-danger btn-small" id="fu-bulk-delete">🗑 حذف المحددة</button>
+        <button class="btn btn-ghost btn-small" id="fu-bulk-clear">إلغاء التحديد</button>
+      </div>
+    </div>`:''}
     <div class="table-scroll" style="max-height:calc(100vh - 320px)">
-      <table class="fleet-table" style="min-width:1500px">
+      <table class="fleet-table" style="min-width:1600px">
         <thead><tr>
+          ${canDelete?'<th class="th-check"><input type="checkbox" id="fu-head-check" aria-label="تحديد الكل"></th>':''}
           <th>رقم اللوحة</th>
           <th>الماركة</th>
           <th>النوع</th>
@@ -170,6 +179,7 @@ function renderFollowUp(content){
 
   const $=id=>document.getElementById(id);
   let activeFQ='', page=1, pageSize=25;
+  const selectedFuIds=new Set();
   const rank={red:0,amber:1,grey:2,green:3};
   const val=id=>($(id)?.value||'').trim();
   const norm=s=>String(s??'').trim();
@@ -218,6 +228,43 @@ function renderFollowUp(content){
   }
   window._yahmaCurrentPdfData=()=>({title:'بطاقات التشغيل والتأمين المفلترة',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','الرقم التسلسلي','رقم البطاقة','انتهاء البطاقة','حالة البطاقة','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.serial||'—',c.cardNumber||'—',c.cardExpiry||'—',cardDisplayStatus(c.cardExpiry,c.cardStatus).label,c.branch||'—',textTag(c.carStatus).label])});
 
+  /* تحديد جماعي + حذف (إداريون فقط) */
+  function updateFuBulkBar(){
+    const bar=$('fu-bulk-bar'); if(!bar) return;
+    const n=selectedFuIds.size;
+    bar.style.display=n?'':'none';
+    const cnt=$('fu-bulk-count'); if(cnt) cnt.textContent=n+' محددة';
+    const tbody=$('fu-tbody');
+    const boxes=tbody?[...tbody.querySelectorAll('.row-check')]:[];
+    const head=$('fu-head-check');
+    if(head){ head.checked=boxes.length>0&&boxes.every(b=>b.checked); head.indeterminate=boxes.some(b=>b.checked)&&!head.checked; }
+  }
+  function wireFuChecks(){
+    const tbody=$('fu-tbody'); if(!tbody) return;
+    tbody.querySelectorAll('.row-check').forEach(cb=>{
+      cb.checked=selectedFuIds.has(cb.dataset.id);
+      cb.onchange=()=>{ if(cb.checked) selectedFuIds.add(cb.dataset.id); else selectedFuIds.delete(cb.dataset.id); updateFuBulkBar(); };
+    });
+    const head=$('fu-head-check');
+    if(head && !head._bound){
+      head._bound=true;
+      head.onchange=()=>{
+        const boxes=[...tbody.querySelectorAll('.row-check')];
+        if(head.checked) boxes.forEach(b=>selectedFuIds.add(b.dataset.id));
+        else boxes.forEach(b=>selectedFuIds.delete(b.dataset.id));
+        wireFuChecks(); updateFuBulkBar();
+      };
+    }
+    updateFuBulkBar();
+  }
+  async function deleteFuCars(ids){
+    const cars=ids.map(id=>fleet.find(c=>String(c.id)===String(id))).filter(Boolean);
+    if(!cars.length) return;
+    if(!confirm('حذف '+cars.length+' سيارة نهائيًا من الأسطول؟\n'+cars.slice(0,8).map(c=>c.plate).join('، ')+(cars.length>8?'…':''))) return;
+    cars.forEach(c=>selectedFuIds.delete(String(c.id)));
+    await removeSoldVehiclesByPlates(cars.map(c=>c.plate),{skipConfirm:true,silent:true});
+    render();
+  }
   function draw(){
     const all=getRows();
     const total=all.length;
@@ -235,6 +282,7 @@ function renderFollowUp(content){
         const carTag=textTag(c.carStatus);
         const noteEditable=!(typeof currentRole!=='undefined'&&currentRole==='view');
         return `<tr data-id="${escapeHtml(c.id)}">
+        ${canDelete?`<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td>`:''}
         <td class="plate">${escapeHtml(c.plate||'—')}</td>
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>
@@ -249,23 +297,26 @@ function renderFollowUp(content){
         <td>
           <button class="btn btn-ghost btn-small" data-renew="${escapeHtml(c.id)}">تجديد الكارت</button>
           <button class="btn btn-ghost btn-small" data-edit="${escapeHtml(c.id)}">تعديل</button>
+          ${canDelete?`<button class="btn btn-danger btn-small" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة">🗑</button>`:''}
         </td>
       </tr>`;
       }
+      const delCol=canDelete?1:0;
       if(window.YahmaVTable && scrollEl){
         if(!window._fuVT || window._fuVT._tb !== tbody){
           if(window._fuVT && window._fuVT.destroy) try{window._fuVT.destroy()}catch(e){}
           window._fuVT = window.YahmaVTable.create({
-            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 12,
+            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 12+delCol,
             renderRow: function(c){ return renderFuRow(c); },
-            emptyHtml: '<tr><td colspan="12"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>'
+            emptyHtml: '<tr><td colspan="'+(12+delCol)+'"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>'
           });
           window._fuVT._tb = tbody;
         }
         window._fuVT.setItems(rows, true);
       } else {
-        tbody.innerHTML=rows.length?rows.map(renderFuRow).join(''):`<tr><td colspan="12"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`;
+        tbody.innerHTML=rows.length?rows.map(renderFuRow).join(''):`<tr><td colspan="${12+delCol}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`;
       }
+      wireFuChecks();
       // تفويض حفظ الملاحظات مرة واحدة (متوافق مع Virtualization)
       if(!tbody._fuNoteDelegate){
         tbody._fuNoteDelegate = true;
@@ -289,9 +340,15 @@ function renderFollowUp(content){
       if(!tbody._fuDelegate){
         tbody._fuDelegate = true;
         tbody.addEventListener('click', async function(e){
-          const btn = e.target.closest('button[data-renew],button[data-edit]');
+          const btn = e.target.closest('button[data-renew],button[data-edit],button[data-del-car]');
           if(!btn) return;
           e.stopPropagation();
+          if(btn.dataset.delCar){
+            if(typeof currentRole!=='undefined'&&currentRole!=='admin'&&currentRole!=='ops'){alert('ليس لديك صلاحية الحذف.');return;}
+            const dc=fleet.find(c=>String(c.id)===String(btn.dataset.delCar)); if(!dc) return;
+            await deleteFuCars([dc.id]);
+            return;
+          }
           if(btn.dataset.renew){
             const car=fleet.find(c=>c.id===btn.dataset.renew); if(!car) return;
             const newDate=prompt('أدخل تاريخ انتهاء الكارت الجديد لـ '+car.plate+' (YYYY-MM-DD):', addDays(todayStr(),365));
@@ -338,8 +395,10 @@ function renderFollowUp(content){
   });
   $('fu-clear')?.addEventListener('click',()=>{
     ['fu-search','fu-branch','fu-car-status','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition','fu-ins-status'].forEach(id=>{if($(id)) $(id).value='';});
-    activeFQ=''; page=1; draw();
+    activeFQ=''; selectedFuIds.clear(); page=1; draw();
   });
+  $('fu-bulk-delete')?.addEventListener('click',()=>deleteFuCars([...selectedFuIds]));
+  $('fu-bulk-clear')?.addEventListener('click',()=>{selectedFuIds.clear();draw();});
   $('fu-pager-prev')?.addEventListener('click',()=>{page=Math.max(1,page-1);draw();});
   $('fu-pager-next')?.addEventListener('click',()=>{page++;draw();});
   $('fu-pager-size')?.addEventListener('change',e=>{pageSize=parseInt(e.target.value,10)||0;page=1;draw();});

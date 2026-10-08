@@ -444,6 +444,7 @@ async function removeSoldVehiclesByPlates(plates,options={}){
 
   fleet=remaining;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(fleet));
+  try{ if(window.YahmaDB&&window.YahmaDB.saveFleet) await window.YahmaDB.saveFleet(fleet); }catch(_){}
   pingSync();
   const notFound=plates.length-foundPlates;
   if(!silent){

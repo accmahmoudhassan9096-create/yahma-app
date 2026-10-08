@@ -2,6 +2,7 @@
   'use strict';
 
 function renderRenewals(content, mode='inspection'){
+  const canDelete=!(typeof currentRole!=='undefined'&&currentRole==='view');
   const licenseMode=mode==='license';
   const insuranceMode=mode==='insurance';
   document.getElementById('topbar-title').textContent = insuranceMode?'التأمين':licenseMode?'تجديد الرخص':'الفحص';
@@ -72,9 +73,17 @@ function renderRenewals(content, mode='inspection'){
         <input type="file" id="file-ren-upload" accept=".xlsx,.xls,.csv" style="display:none">
       </div>
     </div>
+    ${canDelete?`<div class="bulk-bar" id="ren-bulk-bar" style="display:none">
+      <div class="bulk-bar-info"><span id="ren-bulk-count">0 محددة</span></div>
+      <div class="bulk-bar-actions">
+        <button class="btn btn-danger btn-small" id="ren-bulk-delete">🗑 حذف المحددة</button>
+        <button class="btn btn-ghost btn-small" id="ren-bulk-clear">إلغاء التحديد</button>
+      </div>
+    </div>`:''}
     <div class="table-scroll" style="max-height:calc(100vh - 320px)">
-      <table class="fleet-table" style="min-width:1300px">
+      <table class="fleet-table" style="min-width:1400px">
         <thead><tr>
+          ${canDelete?'<th class="th-check"><input type="checkbox" id="ren-head-check" aria-label="تحديد الكل"></th>':''}
           <th>رقم اللوحة</th>
           <th>الماركة</th>
           <th>النوع</th>
@@ -113,6 +122,7 @@ function renderRenewals(content, mode='inspection'){
 
   const $=id=>document.getElementById(id);
   let activeRQ='', page=1, pageSize=25;
+  const selectedRenIds=new Set();
   const rank={red:0,amber:1,grey:2,green:3};
   const val=id=>($(id)?.value||'').trim();
   const norm=s=>String(s??'').trim();
@@ -173,6 +183,43 @@ function renderRenewals(content, mode='inspection'){
     return {title:licenseMode?'تجديد الرخص المفلترة':'الفحص المفلتر',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','حالة الفحص','انتهاء الرخصة','حالة الرخصة','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',inspectionDisplayStatus(c.inspectionStatus).label,c.licenseExpiry||'—',dateStatus(c.licenseExpiry).label,c.branch||'—',c.carStatus||'—'])};
   };
 
+  /* تحديد جماعي + حذف (إداريون فقط) */
+  function updateRenBulkBar(){
+    const bar=$('ren-bulk-bar'); if(!bar) return;
+    const n=selectedRenIds.size;
+    bar.style.display=n?'':'none';
+    const cnt=$('ren-bulk-count'); if(cnt) cnt.textContent=n+' محددة';
+    const tbody=$('ren-tbody');
+    const boxes=tbody?[...tbody.querySelectorAll('.row-check')]:[];
+    const head=$('ren-head-check');
+    if(head){ head.checked=boxes.length>0&&boxes.every(b=>b.checked); head.indeterminate=boxes.some(b=>b.checked)&&!head.checked; }
+  }
+  function wireRenChecks(){
+    const tbody=$('ren-tbody'); if(!tbody) return;
+    tbody.querySelectorAll('.row-check').forEach(cb=>{
+      cb.checked=selectedRenIds.has(cb.dataset.id);
+      cb.onchange=()=>{ if(cb.checked) selectedRenIds.add(cb.dataset.id); else selectedRenIds.delete(cb.dataset.id); updateRenBulkBar(); };
+    });
+    const head=$('ren-head-check');
+    if(head && !head._bound){
+      head._bound=true;
+      head.onchange=()=>{
+        const boxes=[...tbody.querySelectorAll('.row-check')];
+        if(head.checked) boxes.forEach(b=>selectedRenIds.add(b.dataset.id));
+        else boxes.forEach(b=>selectedRenIds.delete(b.dataset.id));
+        wireRenChecks(); updateRenBulkBar();
+      };
+    }
+    updateRenBulkBar();
+  }
+  async function deleteRenCars(ids){
+    const cars=ids.map(id=>fleet.find(c=>String(c.id)===String(id))).filter(Boolean);
+    if(!cars.length) return;
+    if(!confirm('حذف '+cars.length+' سيارة نهائيًا من الأسطول؟\n'+cars.slice(0,8).map(c=>c.plate).join('، ')+(cars.length>8?'…':''))) return;
+    cars.forEach(c=>selectedRenIds.delete(String(c.id)));
+    await removeSoldVehiclesByPlates(cars.map(c=>c.plate),{skipConfirm:true,silent:true});
+    render();
+  }
   function draw(){
     const all=getRows();
     const total=all.length;
@@ -193,6 +240,7 @@ function renderRenewals(content, mode='inspection'){
         const noteMode=!insuranceMode;
         const noteEditable=noteMode&&!(typeof currentRole!=='undefined'&&currentRole==='view');
         return `<tr data-id="${escapeHtml(c.id)}">
+        ${canDelete?`<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td>`:''}
         <td class="plate">${escapeHtml(c.plate||'—')}</td>
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>
@@ -207,32 +255,41 @@ function renderRenewals(content, mode='inspection'){
           ${licenseMode||insuranceMode?'':`<button class="btn btn-ghost btn-small" data-renew-insp="${escapeHtml(c.id)}">تجديد فحص</button>`}
           ${licenseMode?`<button class="btn btn-ghost btn-small" data-renew-lic="${escapeHtml(c.id)}">تجديد رخصة</button>`:''}
           ${insuranceMode?`<button class="btn btn-ghost btn-small" data-renew-ins="${escapeHtml(c.id)}">تجديد تأمين</button>`:''}
+          ${canDelete?`<button class="btn btn-danger btn-small" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة">🗑</button>`:''}
         </td>
         ${noteMode?`<td><input class="ren-note-input" data-note-id="${escapeHtml(c.id)}" value="${escapeHtml(c.notes||'')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(c.plate||'—')}"${noteEditable?'':' readonly'}></td>`:''}
       </tr>`;
       }
+      const delCol=canDelete?1:0, baseCols=insuranceMode?11:(licenseMode?10:9);
       if(window.YahmaVTable && scrollEl){
         if(!window._renVT || window._renVT._tb !== tbody){
           if(window._renVT && window._renVT.destroy) try{window._renVT.destroy()}catch(e){}
           window._renVT = window.YahmaVTable.create({
-            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: insuranceMode?11:(licenseMode?10:9),
+            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: baseCols+delCol,
             renderRow: function(c){ return renderRenRow(c); },
             afterRender: function(){},
-            emptyHtml: `<tr><td colspan="${insuranceMode?11:(licenseMode?10:9)}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`
+            emptyHtml: `<tr><td colspan="${baseCols+delCol}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`
           });
           window._renVT._tb = tbody;
         }
         window._renVT.setItems(rows, true);
       } else {
-        tbody.innerHTML=rows.length?rows.map(renderRenRow).join(''):`<tr><td colspan="${insuranceMode?11:(licenseMode?10:9)}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`;
+        tbody.innerHTML=rows.length?rows.map(renderRenRow).join(''):`<tr><td colspan="${baseCols+delCol}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`;
       }
+      wireRenChecks();
       // تفويض أحداث الأزرار مرة واحدة (متوافق مع Virtualization)
       if(!tbody._renDelegate){
         tbody._renDelegate = true;
         tbody.addEventListener('click', async function(e){
-          const btn = e.target.closest('button[data-renew-insp],button[data-renew-lic],button[data-renew-ins]');
+          const btn = e.target.closest('button[data-renew-insp],button[data-renew-lic],button[data-renew-ins],button[data-del-car]');
           if(!btn) return;
           e.stopPropagation();
+          if(btn.dataset.delCar){
+            if(typeof currentRole!=='undefined'&&currentRole!=='admin'&&currentRole!=='ops'){alert('ليس لديك صلاحية الحذف.');return;}
+            const car=fleet.find(c=>String(c.id)===String(btn.dataset.delCar)); if(!car) return;
+            await deleteRenCars([car.id]);
+            return;
+          }
           if(btn.dataset.renewInsp){
             const car=fleet.find(c=>c.id===btn.dataset.renewInsp); if(!car) return;
             if(typeof currentRole!=='undefined'&&currentRole!=='admin'&&currentRole!=='ops'){alert('ليس لديك صلاحية تسجيل تجديد الفحص.');return;}
@@ -313,7 +370,7 @@ function renderRenewals(content, mode='inspection'){
   });
   $('ren-clear')?.addEventListener('click',()=>{
     ['ren-search','ren-branch','ren-car-status','ren-owner','ren-brand','ren-model','ren-insp-status','ren-lic-condition','ren-lic-status','ren-insurance-status'].forEach(id=>{if($(id)) $(id).value='';});
-    activeRQ=''; page=1; draw();
+    activeRQ=''; selectedRenIds.clear(); page=1; draw();
   });
   $('ren-pager-prev')?.addEventListener('click',()=>{page=Math.max(1,page-1);draw();});
   $('ren-pager-next')?.addEventListener('click',()=>{page++;draw();});
@@ -351,6 +408,8 @@ function renderRenewals(content, mode='inspection'){
   window._yahmaGetFilteredCars = getRows;
   $('ren-export-xlsx')?.addEventListener('click',()=>exportRen('xlsx'));
   $('ren-export-pdf')?.addEventListener('click',()=>exportRen('pdf'));
+  $('ren-bulk-delete')?.addEventListener('click',()=>deleteRenCars([...selectedRenIds]));
+  $('ren-bulk-clear')?.addEventListener('click',()=>{selectedRenIds.clear();draw();});
   $('ren-upload-btn')?.addEventListener('click',()=>$('file-ren-upload')?.click());
   $('file-ren-upload')?.addEventListener('change',async e=>{
     const file=e.target.files[0];
