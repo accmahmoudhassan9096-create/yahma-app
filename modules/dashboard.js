@@ -450,10 +450,12 @@ function renderDashboard(content, context){
         const dark = document.body.classList.contains('dark-mode');
         const map = L.map(el,{scrollWheelZoom:false}).setView([24.2,45.3],5);
         map.attributionControl.setPrefix(false);
+        /* CARTO للوضعين (يسمح بالاستخدام المباشر من المتصفح) + بلاطة بديلة إن فشل التحميل */
+        const errTile = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#E8F1F1"/></svg>');
         L.tileLayer(dark
           ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-          {maxZoom:12,attribution:'© OpenStreetMap · © CARTO'}).addTo(map);
+          : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          {maxZoom:12,attribution:'© OpenStreetMap · © CARTO',errorTileUrl:errTile}).addTo(map);
         const max = Math.max(1, ...regionStats.map(r=>r.total));
         regionStats.forEach(r=>{
           if(!(r.total>0)) return;
