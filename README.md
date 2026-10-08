@@ -9,6 +9,7 @@ yahma-app/
 │   ├── 02-components.css # المكوّنات + القوائم + طبقات z-index (889-1757)
 │   ├── 03-motion-layout.css # الحركة + التوالي + العمق والترويسات (1758-2637)
 │   └── 04-dark-overrides.css # الوضع الليلي + التقارير + التراكبات المتأخرة (2638-3524)
+│   └── 05-light-editorial.css # الثيم الفاتح التحريري (Steep) — الرئيسية والتقارير فقط، محصور في body:not(.dark-mode)
 ├── assets/
 │   └── dashboard-hero.png # صورة بطل اللوحة (كانت base64 داخل dashboard.js — 475KB)
 ├── app.js              # الإقلاع + Dexie/IndexedDB

@@ -148,6 +148,11 @@ function render(){
     var FLOW_TABS = ['renewals','license-renewals','insurance-renewals','inspections','transfers']; /* انسيابية: المحتوى يتمرر مرة واحدة والجدول بطوله الطبيعي */
     content.classList.toggle('content-table', TABLE_TABS.indexOf(currentTab) >= 0);
     content.classList.toggle('content-flow', FLOW_TABS.indexOf(currentTab) >= 0);
+    /* الثيم الفاتح التحريري (css/05-light-editorial.css) — الرئيسية والتقارير فقط */
+    var EDITORIAL_TABS = ['dashboard','reports'];
+    var editorial = EDITORIAL_TABS.indexOf(currentTab) >= 0;
+    content.classList.toggle('content-editorial', editorial);
+    document.body.classList.toggle('editorial-canvas', editorial);
 
   // Topbar layout: mockup-style on dashboard
   const tb = document.querySelector('.topbar');
