@@ -123,6 +123,58 @@ function renderDashboard(content, context){
     b.growth = (base === null || !base) ? null : Math.round((b.total - base) / base * 1000) / 10;
     b.pct = b.total ? Math.round(b.ready / b.total * 100) : 0;
   });
+  /* ===== قائمة عمل الفروع: نواقص الأوراق مجمّعة لكل فرع + رسالة واتساب بضغطة ===== */
+  const DOC_KEYS = [
+    { key: 'card', label: 'الكارت', icon: '🪪' },
+    { key: 'license', label: 'الرخصة', icon: '📄' },
+    { key: 'insurance', label: 'التأمين', icon: '🛡️' },
+    { key: 'inspection', label: 'الفحص', icon: '🔍' }
+  ];
+  const wqOut = c => { const s = String(c.carStatus || ''); return s.includes('خارج') || s.includes('مسروق') || s.includes('مفقود') || s.includes('محول'); };
+  const wqLabel = (k) => (DOC_KEYS.find(d => d.key === k) || {}).label || k;
+  const workMap = {};
+  fleet.forEach(c => {
+    const r = vehicleReadiness(c);
+    if (r.ready || wqOut(c)) return;
+    const keys = r.failed.filter(x => DOC_KEYS.some(d => d.key === x.key)).map(x => x.key);
+    if (!keys.length) return;
+    const name = (c.branch || 'غير محدد').trim() || 'غير محدد';
+    const w = workMap[name] || (workMap[name] = { name, total: 0, gap: [], byDoc: { card: 0, license: 0, insurance: 0, inspection: 0 } });
+    w.total++;
+    w.gap.push({ plate: c.plate || '—', docs: keys.map(wqLabel), id: c.id });
+    DOC_KEYS.forEach(d => { if (keys.includes(d.key)) w.byDoc[d.key]++; });
+  });
+  const workQueue = Object.values(workMap)
+    .map(w => ({ ...w, pctReady: w.total ? Math.round((w.total - w.gap.length) / w.total * 100) : 0 }))
+    .sort((a, b) => b.gap.length - a.gap.length);
+  const wqCars = workQueue.reduce((s, w) => s + w.gap.length, 0);
+  const wqDocTotals = DOC_KEYS.map(d => ({ ...d, n: workQueue.reduce((s, w) => s + w.byDoc[d.key], 0) }));
+  const wqDate = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0, 10);
+  const wqMessage = (w) => {
+    const L = [];
+    L.push('⛔ طلب استكمال أوراق — ' + w.name);
+    L.push('التاريخ: ' + wqDate);
+    L.push('');
+    L.push('السيارات الناقصة: ' + w.gap.length + ' من ' + w.total + ' (الجاهزية ' + w.pctReady + '%)');
+    const top = DOC_KEYS.filter(d => w.byDoc[d.key] > 0).map(d => d.icon + ' ' + d.label + ': ' + w.byDoc[d.key]).join(' · ');
+    if (top) L.push('النواقص: ' + top);
+    L.push('');
+    w.gap.slice(0, 40).forEach((g, i) => { L.push((i + 1) + ') ' + g.plate + ' — ناقص: ' + g.docs.join(' + ')); });
+    if (w.gap.length > 40) L.push('… و' + (w.gap.length - 40) + ' سيارة أخرى (القائمة كاملة في التطبيق)');
+    L.push('');
+    L.push('برجاء الإجراء وإبلاغ الإدارة فور الانتهاء. شكرًا تعاونكم.');
+    return L.join('\n');
+  };
+  const wqMessageAll = () => {
+    const L = ['⛔ طلب استكمال أوراق — كل الفروع', 'التاريخ: ' + wqDate, '', 'إجمالي السيارات الناقصة: ' + wqCars, ''];
+    workQueue.slice(0, 25).forEach(w => {
+      L.push('■ ' + w.name + ' — ' + w.gap.length + '/' + w.total + ' ناقصة');
+      w.gap.slice(0, 8).forEach(g => L.push('   • ' + g.plate + ' — ' + g.docs.join(' + ')));
+      if (w.gap.length > 8) L.push('   … و' + (w.gap.length - 8) + ' أخرى');
+      L.push('');
+    });
+    return L.join('\n');
+  };
   // أسباب عدم الجاهزية بنسب
   const reasonTotal = reasons.reduce((s, [, v]) => s + v, 0) || 1;
   const reasonRows = reasons.slice(0, 5).map(([k, v]) => ({
@@ -409,6 +461,54 @@ function renderDashboard(content, context){
         </div>
       </div>
     </div>
+    <!-- Branch work queue -->
+    <div class="home-card home-wq-card">
+      <div class="home-card-head">
+        <h3>⚡ قائمة عمل الفروع</h3>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="muted-small">النواقص = الأوراق الناقصة فقط (لا تشمل خارج/مفقود/مسروب) · رسالة جاهزة بضغطة</span>
+          <button type="button" class="btn btn-ghost btn-small" data-wq-all-copy>📋 نسخ الكل</button>
+          <button type="button" class="btn btn-primary btn-small" data-wq-all-wa>📲 واتساب (الكل)</button>
+        </div>
+      </div>
+      ${workQueue.length ? `
+      <div class="home-wq-chips">
+        <span class="home-wq-chip"><b>${workQueue.length}</b> فرع به نواقص</span>
+        <span class="home-wq-chip alert"><b>${wqCars}</b> سيارة ناقصة</span>
+        ${wqDocTotals.filter(d => d.n).map(d => `<span class="home-wq-chip">${d.icon} ${d.label} <b>${d.n}</b></span>`).join('')}
+      </div>
+      <div class="home-wq-filters">
+        <button type="button" class="quick-filter active" data-wq-doc="">الكل</button>
+        ${DOC_KEYS.map(d => `<button type="button" class="quick-filter" data-wq-doc="${d.key}">${d.icon} ${d.label}</button>`).join('')}
+      </div>
+      <div class="home-wq-list" id="home-wq-list">
+        ${workQueue.map((w, i) => `
+        <div class="home-wq-row${i >= 10 ? ' wq-more' : ''}" data-wq-row data-wq-name="${escapeHtml(w.name)}"
+             data-wq-card="${w.byDoc.card}" data-wq-license="${w.byDoc.license}" data-wq-insurance="${w.byDoc.insurance}" data-wq-inspection="${w.byDoc.inspection}">
+          <div class="home-wq-row-head">
+            <span class="home-wq-name">${escapeHtml(w.name)}</span>
+            <span class="home-wq-count">${w.gap.length} <em>من ${w.total}</em></span>
+          </div>
+          <div class="home-wq-docs">
+            ${DOC_KEYS.filter(d => w.byDoc[d.key] > 0).map(d => `<span class="home-wq-doc">${d.icon} ${d.label} <b>${w.byDoc[d.key]}</b></span>`).join('')}
+            <span class="home-wq-ready">جاهزية ${w.pctReady}%</span>
+          </div>
+          <div class="home-wq-row-actions">
+            <button type="button" class="btn btn-primary btn-small" data-wq-wa="${escapeHtml(w.name)}">📲 واتساب</button>
+            <button type="button" class="btn btn-ghost btn-small" data-wq-copy="${escapeHtml(w.name)}">📋 نسخ</button>
+            <button type="button" class="btn btn-ghost btn-small" data-wq-view="${escapeHtml(w.name)}">عرض السيارات ←</button>
+          </div>
+          <details class="home-wq-details">
+            <summary>قائمة اللوحات (${w.gap.length})</summary>
+            <div class="home-wq-plates">
+              ${w.gap.map(g => `<div><span>${escapeHtml(g.plate)}</span><em>${escapeHtml(g.docs.join(' + '))}</em></div>`).join('')}
+            </div>
+          </details>
+        </div>`).join('')}
+      </div>
+      ${workQueue.length > 10 ? `<button type="button" class="home-link-all" data-wq-toggle>عرض كل الفروع (${workQueue.length}) ←</button>` : ''}
+      ` : '<div class="empty">كل أوراق الأسطول مستوفية 👍 لا يوجد عمل مطلوب على الفروع.</div>'}
+    </div>
     <!-- Bottom row -->
     <div class="home-bottom">
       <div class="home-card">
@@ -554,6 +654,84 @@ function renderDashboard(content, context){
     try { localStorage.setItem('yahma-map-mode', b.dataset.mapMode); } catch(e) {}
     if (typeof render === 'function') render();
   }));
+
+  /* ===== قائمة عمل الفروع: واتساب/نسخ/عرض ===== */
+  const wqFind = (name) => workQueue.find(w => w.name === name);
+  const wqToast = (msg) => { try { if (typeof toastKbd === 'function') toastKbd(msg); } catch(e) {} };
+  const wqCopy = (text, okMsg) => {
+    const done = () => wqToast(okMsg || 'تم نسخ القائمة');
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => prompt('انسخ النص يدويًا:', text));
+      } else prompt('انسخ النص يدويًا:', text);
+    } catch(e) { prompt('انسخ النص يدويًا:', text); }
+  };
+  const wqOpenWa = (phone, text) => {
+    const num = String(phone || '').replace(/[^0-9]/g, '').replace(/^0+/, '');
+    const digits = num.length >= 10 ? num : '';
+    const url = digits
+      ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text)
+      : 'https://wa.me/?text=' + encodeURIComponent(text);
+    window.open(url, '_blank', 'noopener');
+  };
+  const wqBranchPhone = (name) => {
+    try {
+      if (typeof getBranchByName === 'function') {
+        const b = getBranchByName(name);
+        if (b && b.phone) return b.phone;
+      }
+    } catch(e) {}
+    return '';
+  };
+  const wqAskPhone = (label) => {
+    try {
+      return window.prompt(label + '\nرقم واتساب (مثال: 2010xxxxxxxx) — اتركه فارغًا لفتح محادثة جديدة للاختيار اليدوي:', '') || '';
+    } catch(e) { return ''; }
+  };
+  content.querySelectorAll('[data-wq-wa]').forEach(b => b.addEventListener('click', () => {
+    const w = wqFind(b.dataset.wqWa);
+    if (!w) return;
+    const phone = wqBranchPhone(w.name) || wqAskPhone(w.name);
+    wqOpenWa(phone, wqMessage(w));
+  }));
+  content.querySelectorAll('[data-wq-copy]').forEach(b => b.addEventListener('click', () => {
+    const w = wqFind(b.dataset.wqCopy);
+    if (!w) return;
+    wqCopy(wqMessage(w), 'تم نسخ نواقص ' + w.name);
+  }));
+  content.querySelectorAll('[data-wq-view]').forEach(b => b.addEventListener('click', () => {
+    const w = wqFind(b.dataset.wqView);
+    window.pendingFleetBranch = b.dataset.wqView;
+    window.pendingFleetQuickFilter = '';
+    window.pendingFleetPlates = w ? w.gap.map(g => g.plate) : null;
+    const nav = document.querySelector('.nav-item[data-tab="fleet"]');
+    if (nav) nav.click();
+    if (typeof render === 'function') render();
+  }));
+  const wqAllCopy = content.querySelector('[data-wq-all-copy]');
+  if (wqAllCopy) wqAllCopy.addEventListener('click', () => wqCopy(wqMessageAll(), 'تم نسخ نواقص كل الفروع'));
+  const wqAllWa = content.querySelector('[data-wq-all-wa]');
+  if (wqAllWa) wqAllWa.addEventListener('click', () => wqOpenWa(wqAskPhone('مسؤول الإدارة'), wqMessageAll()));
+  const wqToggle = content.querySelector('[data-wq-toggle]');
+  let wqDocFilter = '';
+  let wqShowAll = false;
+  const wqApply = () => {
+    content.querySelectorAll('[data-wq-row]').forEach(row => {
+      const n = wqDocFilter ? (+row.dataset['wq' + wqDocFilter.charAt(0).toUpperCase() + wqDocFilter.slice(1)] || 0) : 1;
+      const hideByDoc = wqDocFilter && n === 0;
+      const hideByMore = !wqShowAll && row.classList.contains('wq-more');
+      row.style.display = (hideByDoc || hideByMore) ? 'none' : '';
+    });
+    if (wqToggle) wqToggle.textContent = wqShowAll ? 'إخفاء باقي الفروع' : 'عرض كل الفروع (' + workQueue.length + ') ←';
+  };
+  if (wqToggle) wqToggle.addEventListener('click', () => { wqShowAll = !wqShowAll; wqApply(); });
+  content.querySelectorAll('[data-wq-doc]').forEach(b => b.addEventListener('click', () => {
+    wqDocFilter = b.dataset.wqDoc || '';
+    content.querySelectorAll('[data-wq-doc]').forEach(x => x.classList.toggle('active', x === b));
+    wqShowAll = wqShowAll || !!wqDocFilter;
+    wqApply();
+  }));
+  wqApply();
 
   // فيديو الواجهة: يعمل تلقائيًا بدون صوت — وإن غاب الملف يرجع لصورة السيارة
   const heroVideo = content.querySelector('.home-hero-video');

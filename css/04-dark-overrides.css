@@ -803,6 +803,33 @@ html, body{
 .region-popup-btn{margin-top:8px;}
 .esri-dark-tiles{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.92);}
 @media(max-width:900px){.home-map-wrap{grid-template-columns:1fr}#region-map{height:280px}}
+/* فلتر اللوحات الوارد من قائمة عمل الفروع */
+.fleet-plate-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding:7px 10px;border:1px dashed var(--line);border-radius:8px;font-size:12px;color:var(--ink);background:rgba(11,170,134,.06)}
+
+/* قائمة عمل الفروع */
+.home-wq-card{margin-top:14px}
+.home-wq-chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 12px}
+.home-wq-chip{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:12px;color:var(--ink)}
+.home-wq-chip b{font-weight:800}
+.home-wq-chip.alert{background:rgba(230,75,75,.10);border-color:rgba(230,75,75,.35);color:#c23b3b}
+.dark-mode .home-wq-chip.alert{color:#ff8a8a}
+.home-wq-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.home-wq-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.home-wq-row{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:11px 13px;display:flex;flex-direction:column;gap:8px}
+.home-wq-row-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.home-wq-name{font-weight:800;font-size:13.5px;color:var(--ink)}
+.home-wq-count{font-weight:800;font-size:15px;color:#E6A23C}
+.home-wq-count em{font-style:normal;font-size:11.5px;font-weight:600;color:var(--muted)}
+.home-wq-docs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.home-wq-doc{background:rgba(11,170,134,.10);border:1px solid rgba(11,170,134,.28);border-radius:6px;padding:2px 8px;font-size:11.5px}
+.home-wq-ready{font-size:11.5px;color:var(--muted)}
+.home-wq-row-actions{display:flex;gap:6px;flex-wrap:wrap}
+.home-wq-details summary{cursor:pointer;font-size:12px;color:var(--muted);user-select:none}
+.home-wq-plates{max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--line);padding-top:7px;margin-top:4px}
+.home-wq-plates div{display:flex;justify-content:space-between;gap:8px;font-size:11.5px}
+.home-wq-plates em{font-style:normal;color:#E6A23C}
+@media(max-width:900px){.home-wq-list{grid-template-columns:1fr}}
+
 /* فيديو الواجهة مكان صورة السيارة — ضع ملفك باسم assets/hero-video.mp4 */
 .home-hero-video{background:#0B1526;border-radius:18px;object-fit:cover;aspect-ratio:16/9;}
 .hero-executive .home-hero-video{mix-blend-mode:normal !important;}

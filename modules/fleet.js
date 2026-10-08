@@ -197,6 +197,7 @@
         <label>حالة التجهيز<select id="ff-prep-status"><option value="">كل الحالات</option><option value="green">جاهزة للتأجير</option><option value="amber">تحت التجهيز</option><option value="red">تحتاج إجراء</option><option value="blue">مراجعة نهائية</option></select></label>
       </div>
       <div class="filter-footer"><span id="fleet-filter-count">عرض 0 من ${fleet.length}</span><span id="fleet-filter-note">يمكنك اختيار الفحص فقط أو الرخصة فقط أو الكارت فقط لتحديد السيارات التي تحتاج إجراء محدد.</span></div>
+      <div class="fleet-plate-filter" id="fleet-plate-filter-note" style="display:none"></div>
       </div>
     </div>
     <div class="table-scroll fleet-table-wrap" id="fleet-scroll">
@@ -234,6 +235,22 @@
   // قادم من دليل الفروع: فلترة مسبقة على فرع (يكتبه تبويب الفروع عند الضغط على اسم فرع)
   const pendingBranch=String(window.pendingFleetBranch||'').trim();
   window.pendingFleetBranch='';
+  // قادم من قائمة عمل الفروع (الرئيسية): فلترة دقيقة على لوحات نواقص ذلك الفرع
+  let plateSet=null;
+  const pendingPlates=Array.isArray(window.pendingFleetPlates)?window.pendingFleetPlates.map(String).filter(Boolean):null;
+  window.pendingFleetPlates=null;
+  if(pendingPlates && pendingPlates.length) plateSet=new Set(pendingPlates);
+  const plateFilterNote=$('fleet-plate-filter-note');
+  if(plateFilterNote){
+    if(plateSet){
+      plateFilterNote.style.display='';
+      plateFilterNote.innerHTML='<span>مفلتر على <b>'+plateSet.size+'</b> سيارة من قائمة عمل الفروع (نواقص الأوراق)</span>';
+      const clr=document.createElement('button');
+      clr.type='button'; clr.className='btn btn-ghost btn-small'; clr.textContent='إزالة الفلتر';
+      clr.onclick=()=>{ plateSet=null; _filterCacheKey=null; _filterCacheRows=null; resetAndDraw(); };
+      plateFilterNote.appendChild(clr);
+    } else plateFilterNote.style.display='none';
+  }
   if(pendingBranch){
     const branchSel=$('ff-branch');
     if(branchSel){
@@ -405,6 +422,7 @@ const q=(search.value||'').trim().toLowerCase();
       if(fInspSt && String(c.inspectionStatus||'')!==fInspSt) continue;
       if(fOwner && c.owner!==fOwner) continue;
       if(fBranch && c.branch!==fBranch) continue;
+      if(plateSet && !plateSet.has(String(c.plate||''))) continue;
       if(fCity && String(c.city||'')!==fCity) continue;
       if(fCarSt && !carStatusMatch(c.carStatus,fCarSt)) continue;
       if(q){
