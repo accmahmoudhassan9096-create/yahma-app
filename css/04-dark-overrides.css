@@ -799,6 +799,7 @@ html, body{
 .home-map-leg-body{display:flex;flex-direction:column;gap:2px;font-size:12px}
 .home-map-leg-body b{font-size:13.5px}
 .region-tip{direction:rtl;text-align:right;font-family:inherit;font-size:12px}
+.esri-dark-tiles{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.92);}
 @media(max-width:900px){.home-map-wrap{grid-template-columns:1fr}#region-map{height:280px}}
 /* فيديو الواجهة مكان صورة السيارة — ضع ملفك باسم assets/hero-video.mp4 */
 .home-hero-video{background:#0B1526;border-radius:18px;object-fit:cover;aspect-ratio:16/9;}
