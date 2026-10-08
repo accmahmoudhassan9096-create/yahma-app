@@ -68,6 +68,40 @@ function renderDashboard(content, context){
   fleet.forEach(c => { const s = stOf(c); if (statusRows.some(r => r.match(s))) matchedIds.add(c.id); });
   const otherCars = fleet.filter(c => !matchedIds.has(c.id));
   statusRows.push({ label: 'أخرى', color: '#9AA5B1', n: otherCars.length, more: true });
+  // خريطة المناطق: تجميع الفروع + لقطة يومية لمعدل النمو (يبدأ القياس من أول يوم)
+  const regionStats = (typeof REGION_DEFS !== 'undefined' ? REGION_DEFS : []).map(r => ({ ...r, total: 0, branches: {} }));
+  const regionById = {};
+  regionStats.forEach(r => { regionById[r.id] = r; });
+  fleet.forEach(c => {
+    const b = (c.branch || 'غير محدد').trim() || 'غير محدد';
+    const rid = (typeof regionOfBranch === 'function') ? regionOfBranch(b) : 'central';
+    const r = regionById[rid] || regionById.central;
+    r.total++;
+    r.branches[b] = (r.branches[b] || 0) + 1;
+  });
+  const REG_HIST_KEY = 'yahma-region-history-v1';
+  const readHist = () => { try { const a = JSON.parse(localStorage.getItem(REG_HIST_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch(e) { return []; } };
+  const todayIso = new Date().toISOString().slice(0, 10);
+  let regHist = readHist();
+  if (!regHist.length || regHist[regHist.length - 1].d !== todayIso) {
+    regHist.push({ d: todayIso, west: (regionById.west || { total: 0 }).total, east: (regionById.east || { total: 0 }).total, central: (regionById.central || { total: 0 }).total });
+    regHist = regHist.slice(-90);
+    try { localStorage.setItem(REG_HIST_KEY, JSON.stringify(regHist)); } catch(e) {}
+  }
+  const histBase = (() => {
+    if (regHist.length < 2) return null;
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+    const iso = weekAgo.toISOString().slice(0, 10);
+    const found = regHist.filter(h => h.d <= iso);
+    return (found.length ? found[found.length - 1] : regHist[0]);
+  })();
+  regionStats.forEach(r => {
+    const base = histBase ? (+histBase[r.id] || 0) : null;
+    r.delta = base === null ? null : r.total - base;
+    r.growth = (base === null || !base) ? null : Math.round((r.total - base) / base * 1000) / 10;
+    r.since = histBase ? histBase.d : null;
+    r.topBranches = Object.entries(r.branches).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  });
   // أسباب عدم الجاهزية بنسب
   const reasonTotal = reasons.reduce((s, [, v]) => s + v, 0) || 1;
   const reasonRows = reasons.slice(0, 5).map(([k, v]) => ({
@@ -322,6 +356,25 @@ function renderDashboard(content, context){
       </div>
     </div>
     </div>
+    <!-- Regions map -->
+    <div class="home-card home-map-card">
+      <div class="home-card-head">
+        <h3>🗺 خريطة المناطق</h3>
+        <span class="muted-small">حجم الدائرة = عدد السيارات · ${histBase ? 'النمو منذ ' + histBase.d : 'بداية قياس النمو: اليوم'}</span>
+      </div>
+      <div class="home-map-wrap">
+        <div id="region-map" role="img" aria-label="خريطة توزيع السيارات حسب المنطقة"></div>
+        <div class="home-map-legend">
+          ${regionStats.map(r => `
+          <div class="home-map-leg"><i style="background:${r.color}"></i>
+            <div class="home-map-leg-body"><b>${r.label} — ${r.total.toLocaleString('en')} سيارة</b>
+              <span>${r.delta === null ? 'نمو: — (أول يوم قياس)' : r.since === todayIso ? 'نمو اليوم: ' + (r.delta >= 0 ? '+' : '') + r.delta : 'النمو: ' + (r.delta >= 0 ? '+' : '') + r.delta + (r.growth === null ? '' : ' (' + (r.growth >= 0 ? '+' : '') + r.growth + '%)') + ' منذ ' + r.since}</span>
+              <span class="muted-small">${r.topBranches.map(([b, n]) => escapeHtml(b) + ' (' + n + ')').join(' · ') || '—'}</span>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
     <!-- Bottom row -->
     <div class="home-bottom">
       <div class="home-card">
@@ -384,6 +437,52 @@ function renderDashboard(content, context){
       </div>
     </div>
   </div>`;
+
+  // خريطة المناطق (Leaflet تحميل كسول — تعمل أونلاين، والأرقام محفوظة بدونه)
+  (function initRegionMap(){
+    const el = content.querySelector('#region-map');
+    if(!el) return;
+    try{ if(window._regionMap){ window._regionMap.remove(); window._regionMap=null; } }catch(_){}
+    const drawMap = () => {
+      try{
+        if(!el.isConnected) return;
+        if(typeof L==='undefined'||!L.map) throw new Error('leaflet');
+        const dark = document.body.classList.contains('dark-mode');
+        const map = L.map(el,{scrollWheelZoom:false}).setView([24.2,45.3],5);
+        map.attributionControl.setPrefix(false);
+        L.tileLayer(dark
+          ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+          : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          {maxZoom:12,attribution:'© OpenStreetMap · © CARTO'}).addTo(map);
+        const max = Math.max(1, ...regionStats.map(r=>r.total));
+        regionStats.forEach(r=>{
+          if(!(r.total>0)) return;
+          const rad = 25000 + Math.sqrt(r.total/max)*90000;
+          const c = L.circle([r.lat,r.lng],{radius:rad,color:r.color,weight:2,fillColor:r.color,fillOpacity:.35}).addTo(map);
+          const g = r.delta===null ? 'بداية القياس اليوم' : ('النمو '+(r.delta>=0?'+':'')+r.delta+(r.growth===null?'':' ('+r.growth+'%)'));
+          c.bindTooltip('<b>'+escapeHtml(r.label)+'</b><br>'+r.total+' سيارة<br>'+escapeHtml(g),{permanent:true,direction:'top',className:'region-tip'});
+          c.bindPopup('<b>'+escapeHtml(r.label)+' ('+r.total+')</b><br>'+r.topBranches.map(([b,n])=>escapeHtml(b)+': '+n).join('<br>'));
+        });
+        setTimeout(()=>{ try{ map.invalidateSize(); }catch(_){} }, 200);
+        window._regionMap = map;
+      }catch(e){
+        el.innerHTML = '<div class="empty">تعذر تحميل الخريطة (تحقق من الإنترنت) — الأرقام بجانبها محدثة.</div>';
+      }
+    };
+    setTimeout(()=>{
+      try{
+        if(typeof L!=='undefined' && L.map){ drawMap(); return; }
+        const css='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+        if(!document.querySelector('link[data-leaflet]')){
+          const l=document.createElement('link'); l.rel='stylesheet'; l.href=css; l.setAttribute('data-leaflet','1'); document.head.appendChild(l);
+        }
+        const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; s.async=true;
+        s.onload=drawMap;
+        s.onerror=()=>{ el.innerHTML='<div class="empty">تعذر تحميل الخريطة (تحقق من الإنترنت) — الأرقام بجانبها محدثة.</div>'; };
+        document.head.appendChild(s);
+      }catch(e){}
+    }, 300);
+  })();
 
   // فيديو الواجهة: يعمل تلقائيًا بدون صوت — وإن غاب الملف يرجع لصورة السيارة
   const heroVideo = content.querySelector('.home-hero-video');

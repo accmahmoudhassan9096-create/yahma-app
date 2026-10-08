@@ -76,6 +76,20 @@
     return { level: 'grey', label: t };
   }
 
+  /* المناطق الجغرافية للفروع: غربية (جدة/مكة/المدينة/الطائف/أبها/تبوك...)، شرقية (الدمام/الخبر/الأحساء...)، والباقي وسطى */
+  const REGION_DEFS = [
+    { id: 'west', label: 'المنطقة الغربية', lat: 21.9, lng: 39.6, color: '#3B82C4',
+      keys: ['ابحر','ابها','تبوك','فلسطين','جدة','جده','مكة','مكه','المدينة','المدينه','الطائف','الطايف','ينبع','جيزان','جازان','نجران','القنفذة','رابغ','الليث','الغربية','الغربيه'] },
+    { id: 'east', label: 'المنطقة الشرقية', lat: 26.2, lng: 49.9, color: '#0BAA86',
+      keys: ['دمام','الدمام','خبر','الخبر','الاحساء','الأحساء','الهفوف','الجبيل','القطيف','الخفجي','حفر','الشرقية','الشرقيه'] },
+    { id: 'central', label: 'المنطقة الوسطى', lat: 24.4, lng: 46.2, color: '#E6A23C', keys: [] }
+  ];
+  function regionOfBranch(branch){
+    const t = ' ' + String(branch ?? '').replace(/[أإآ]/g, 'ا') + ' ';
+    const hit = REGION_DEFS.find(r => r.id !== 'central' && r.keys.some(k => t.includes(k)));
+    return (hit || REGION_DEFS[2]).id;
+  }
+
   /* توحيد أسماء الماركات: هونداي/هيونداى/هيونداي ← هيونداي ... */
   function brandKey(value){
     return String(value ?? '').replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا')
@@ -201,7 +215,7 @@
     uid, normalizeDateValue, daysFromNow, dateStatus, licenseDisplayStatus,
     cardDisplayStatus, inspectionDisplayStatus, textTag, escapeHtml,
     fmtDate, addDays, todayStr, carStatusOut, carStatusActive, carStatusMatch, carStatusReady, normStatus,
-    brandKey, canonicalBrand
+    brandKey, canonicalBrand, REGION_DEFS, regionOfBranch
   };
   global.YahmaUtils = api;
   Object.assign(global, api);

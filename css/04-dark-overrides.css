@@ -789,6 +789,17 @@ html, body{
   max-height: none !important;
 }
 .content.content-flow > .table-scroll > table{border:1px solid var(--line);}
+/* خريطة المناطق */
+.home-map-card{margin-top:14px}
+.home-map-wrap{display:grid;grid-template-columns:1.25fr .75fr;gap:14px;align-items:start}
+#region-map{height:340px;border-radius:12px;border:1px solid var(--line);z-index:0;position:relative;background:#E8F1F1}
+.home-map-legend{display:flex;flex-direction:column;gap:10px}
+.home-map-leg{display:flex;gap:10px;align-items:flex-start;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.home-map-leg>i{width:12px;height:12px;border-radius:4px;flex:0 0 12px;margin-top:4px}
+.home-map-leg-body{display:flex;flex-direction:column;gap:2px;font-size:12px}
+.home-map-leg-body b{font-size:13.5px}
+.region-tip{direction:rtl;text-align:right;font-family:inherit;font-size:12px}
+@media(max-width:900px){.home-map-wrap{grid-template-columns:1fr}#region-map{height:280px}}
 /* فيديو الواجهة مكان صورة السيارة — ضع ملفك باسم assets/hero-video.mp4 */
 .home-hero-video{background:#0B1526;border-radius:18px;object-fit:cover;aspect-ratio:16/9;}
 .hero-executive .home-hero-video{mix-blend-mode:normal !important;}
