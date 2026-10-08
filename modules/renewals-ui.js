@@ -76,6 +76,9 @@ function renderRenewals(content, mode='inspection'){
     ${canDelete?`<div class="bulk-bar" id="ren-bulk-bar" style="display:none">
       <div class="bulk-bar-info"><span id="ren-bulk-count">0 محددة</span></div>
       <div class="bulk-bar-actions">
+        ${insuranceMode?'<button class="btn btn-primary btn-small" id="ren-bulk-ins-ok">🛡️ تعيين «ساري»</button><button class="btn btn-ghost btn-small" id="ren-bulk-ins-no">تعيين «لا يوجد»</button>':''}
+        ${(!licenseMode&&!insuranceMode)?'<button class="btn btn-primary btn-small" id="ren-bulk-insp-yes">✅ تم الفحص</button><button class="btn btn-ghost btn-small" id="ren-bulk-insp-no">لم يُفحص</button>':''}
+        ${licenseMode?'<button class="btn btn-primary btn-small" id="ren-bulk-lic-renew">📅 تجديد الرخصة (سنة)</button><button class="btn btn-ghost btn-small" id="ren-bulk-lic-status">ضبط حالة الرخصة</button>':''}
         <button class="btn btn-danger btn-small" id="ren-bulk-delete">🗑 حذف المحددة</button>
         <button class="btn btn-ghost btn-small" id="ren-bulk-clear">إلغاء التحديد</button>
       </div>
@@ -219,6 +222,59 @@ function renderRenewals(content, mode='inspection'){
     cars.forEach(c=>selectedRenIds.delete(String(c.id)));
     await removeSoldVehiclesByPlates(cars.map(c=>c.plate),{skipConfirm:true,silent:true});
     render();
+  }
+  /* ===== تعديل جماعي: فحص / رخصة / تأمين (إداريون فقط — الزر يظهر ضمن شريط التحديد) ===== */
+  function renSelectedCars(){
+    return [...selectedRenIds].map(id=>fleet.find(c=>String(c.id)===String(id))).filter(Boolean);
+  }
+  function renPlates(cars){ return cars.slice(0,8).map(c=>c.plate||'—').join('، ')+(cars.length>8?'…':''); }
+  async function renBulkApply(cars, mutate, doneMsg, logLabel){
+    if(!cars.length) return;
+    cars.forEach(mutate);
+    const ids=cars.map(c=>c.id);
+    let ok=true;
+    try{ ok=await saveData(ids); }catch(_){ ok=false; }
+    cars.forEach(c=>selectedRenIds.delete(String(c.id)));
+    if(ok===false) alert('تعذر الحفظ على بعض السيارات — تحقق من الاتصال ثم أعد المحاولة.');
+    else alert(doneMsg);
+    if(logLabel && typeof window.log==='function'){
+      try{ window.log(logLabel, cars.length+' سيارة: '+renPlates(cars)); }catch(_){}
+    }
+    render();
+  }
+  async function bulkSetInspection(value){
+    const cars=renSelectedCars();
+    if(!cars.length) return;
+    if(!confirm('تعيين حالة الفحص «'+value+'» لـ '+cars.length+' سيارة؟\n'+renPlates(cars))) return;
+    await renBulkApply(cars, c=>{ c.inspectionStatus=value; }, 'تم تحديث فحص '+cars.length+' سيارة', 'تحديث فحص جماعي');
+  }
+  async function bulkRenewLicense(){
+    const cars=renSelectedCars();
+    if(!cars.length) return;
+    const def=addDays(todayStr(),365);
+    const raw=prompt('تاريخ انتهاء الرخصة الجديد لـ '+cars.length+' سيارة (YYYY-MM-DD):', def);
+    if(!raw) return;
+    const val=normalizeDateValue(raw)||raw;
+    if(!confirm('ضبط انتهاء الرخصة على '+val+' لـ '+cars.length+' سيارة؟\n'+renPlates(cars))) return;
+    await renBulkApply(cars, c=>{ c.licenseExpiry=val; if(!c.licenseStatus||String(c.licenseStatus).includes('منته')) c.licenseStatus='نشط'; },
+      'تم تجديد رخصة '+cars.length+' سيارة (انتهاء '+val+')', 'تجديد رخص جماعي');
+  }
+  async function bulkSetLicenseStatus(){
+    const cars=renSelectedCars();
+    if(!cars.length) return;
+    const raw=prompt('حالة الرخصة الجديدة ('+cars.length+' سيارة):\nنشط / ملغى / موقوف / منتهي','نشط');
+    if(!raw) return;
+    const val=raw.trim();
+    if(!['نشط','ملغى','موقوف','منتهي'].includes(val)){ alert('القيمة يجب أن تكون: نشط أو ملغى أو موقوف أو منتهي'); return; }
+    if(!confirm('تعيين حالة الرخصة «'+val+'» لـ '+cars.length+' سيارة؟\n'+renPlates(cars))) return;
+    await renBulkApply(cars, c=>{ c.licenseStatus=val; }, 'تم تحديث حالة رخصة '+cars.length+' سيارة', 'تحديث رخص جماعي');
+  }
+  async function bulkSetInsurance(value){
+    const cars=renSelectedCars();
+    if(!cars.length) return;
+    const label=value==='ساري'?'ساري':'لا يوجد';
+    if(!confirm('تعيين التأمين «'+label+'» لـ '+cars.length+' سيارة؟\n'+renPlates(cars))) return;
+    await renBulkApply(cars, c=>{ c.insuranceStatus=value; }, 'تم تحديث تأمين '+cars.length+' سيارة', 'تحديث تأمين جماعي');
   }
   function draw(){
     const all=getRows();
@@ -409,6 +465,12 @@ function renderRenewals(content, mode='inspection'){
   $('ren-export-xlsx')?.addEventListener('click',()=>exportRen('xlsx'));
   $('ren-export-pdf')?.addEventListener('click',()=>exportRen('pdf'));
   $('ren-bulk-delete')?.addEventListener('click',()=>deleteRenCars([...selectedRenIds]));
+  $('ren-bulk-insp-yes')?.addEventListener('click',()=>bulkSetInspection('تم الفحص'));
+  $('ren-bulk-insp-no')?.addEventListener('click',()=>bulkSetInspection('لم يفحص'));
+  $('ren-bulk-lic-renew')?.addEventListener('click',bulkRenewLicense);
+  $('ren-bulk-lic-status')?.addEventListener('click',bulkSetLicenseStatus);
+  $('ren-bulk-ins-ok')?.addEventListener('click',()=>bulkSetInsurance('ساري'));
+  $('ren-bulk-ins-no')?.addEventListener('click',()=>bulkSetInsurance('لا يوجد'));
   $('ren-bulk-clear')?.addEventListener('click',()=>{selectedRenIds.clear();draw();});
   $('ren-upload-btn')?.addEventListener('click',()=>$('file-ren-upload')?.click());
   $('file-ren-upload')?.addEventListener('change',async e=>{

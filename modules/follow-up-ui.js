@@ -76,6 +76,9 @@ function renderFollowUp(content){
     ${canDelete?`<div class="bulk-bar" id="fu-bulk-bar" style="display:none">
       <div class="bulk-bar-info"><span id="fu-bulk-count">0 محددة</span></div>
       <div class="bulk-bar-actions">
+        <button class="btn btn-primary btn-small" id="fu-bulk-card-renew">🪪 تجديد الكارت (سنة)</button>
+        <button class="btn btn-ghost btn-small" id="fu-bulk-card-status">ضبط حالة الكارت</button>
+        <button class="btn btn-ghost btn-small" id="fu-bulk-ins-ok">🛡️ تأمين «ساري»</button>
         <button class="btn btn-danger btn-small" id="fu-bulk-delete">🗑 حذف المحددة</button>
         <button class="btn btn-ghost btn-small" id="fu-bulk-clear">إلغاء التحديد</button>
       </div>
@@ -265,6 +268,50 @@ function renderFollowUp(content){
     await removeSoldVehiclesByPlates(cars.map(c=>c.plate),{skipConfirm:true,silent:true});
     render();
   }
+  /* ===== تعديل جماعي: الكارت + التأمين (إداريون فقط) ===== */
+  function fuSelectedCars(){
+    return [...selectedFuIds].map(id=>fleet.find(c=>String(c.id)===String(id))).filter(Boolean);
+  }
+  function fuPlates(cars){ return cars.slice(0,8).map(c=>c.plate||'—').join('، ')+(cars.length>8?'…':''); }
+  async function fuBulkApply(cars, mutate, doneMsg, logLabel){
+    if(!cars.length) return;
+    cars.forEach(mutate);
+    let ok=true;
+    try{ ok=await saveData(cars.map(c=>c.id)); }catch(_){ ok=false; }
+    cars.forEach(c=>selectedFuIds.delete(String(c.id)));
+    if(ok===false) alert('تعذر الحفظ على بعض السيارات — تحقق من الاتصال ثم أعد المحاولة.');
+    else alert(doneMsg);
+    if(logLabel && typeof window.log==='function'){
+      try{ window.log(logLabel, cars.length+' سيارة: '+fuPlates(cars)); }catch(_){}
+    }
+    render();
+  }
+  async function bulkRenewCard(){
+    const cars=fuSelectedCars();
+    if(!cars.length) return;
+    const raw=prompt('تاريخ انتهاء الكارت الجديد لـ '+cars.length+' سيارة (YYYY-MM-DD):', addDays(todayStr(),365));
+    if(!raw) return;
+    const val=normalizeDateValue(raw)||raw;
+    if(!confirm('ضبط انتهاء الكارت على '+val+' لـ '+cars.length+' سيارة؟\n'+fuPlates(cars))) return;
+    await fuBulkApply(cars, c=>{ c.cardExpiry=val; if(!c.cardStatus||String(c.cardStatus).includes('ملغ')||String(c.cardStatus).includes('موقوف')) c.cardStatus='نشط'; },
+      'تم تجديد كارت '+cars.length+' سيارة (انتهاء '+val+')', 'تجديد كروت جماعي');
+  }
+  async function bulkSetCardStatus(){
+    const cars=fuSelectedCars();
+    if(!cars.length) return;
+    const raw=prompt('حالة الكارت الجديدة ('+cars.length+' سيارة):\nنشط / ملغى / موقوف','نشط');
+    if(!raw) return;
+    const val=raw.trim();
+    if(!['نشط','ملغى','موقوف'].includes(val)){ alert('القيمة يجب أن تكون: نشط أو ملغى أو موقوف'); return; }
+    if(!confirm('تعيين حالة الكارت «'+val+'» لـ '+cars.length+' سيارة؟\n'+fuPlates(cars))) return;
+    await fuBulkApply(cars, c=>{ c.cardStatus=val; }, 'تم تحديث حالة كارت '+cars.length+' سيارة', 'تحديث كروت جماعي');
+  }
+  async function bulkSetInsurance(){
+    const cars=fuSelectedCars();
+    if(!cars.length) return;
+    if(!confirm('تعيين التأمين «ساري» لـ '+cars.length+' سيارة؟\n'+fuPlates(cars))) return;
+    await fuBulkApply(cars, c=>{ c.insuranceStatus='ساري'; }, 'تم تحديث تأمين '+cars.length+' سيارة', 'تحديث تأمين جماعي');
+  }
   function draw(){
     const all=getRows();
     const total=all.length;
@@ -398,6 +445,9 @@ function renderFollowUp(content){
     activeFQ=''; selectedFuIds.clear(); page=1; draw();
   });
   $('fu-bulk-delete')?.addEventListener('click',()=>deleteFuCars([...selectedFuIds]));
+  $('fu-bulk-card-renew')?.addEventListener('click',bulkRenewCard);
+  $('fu-bulk-card-status')?.addEventListener('click',bulkSetCardStatus);
+  $('fu-bulk-ins-ok')?.addEventListener('click',bulkSetInsurance);
   $('fu-bulk-clear')?.addEventListener('click',()=>{selectedFuIds.clear();draw();});
   $('fu-pager-prev')?.addEventListener('click',()=>{page=Math.max(1,page-1);draw();});
   $('fu-pager-next')?.addEventListener('click',()=>{page++;draw();});
