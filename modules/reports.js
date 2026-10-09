@@ -134,12 +134,15 @@
     const expBuckets = { overdue: 0, d7: 0, d30: 0, d90: 0 };
     const expFields = ['cardExpiry', 'licenseExpiry', 'insuranceExpiry', 'inspectionExpiry', 'nextService'];
 
+    const fleetRows = [];
     rows.forEach(car => {
       let isReady = false;
+      let resultLabel = 'غير جاهزة';
       try {
         const result = typeof readiness === 'function' ? readiness(car) : null;
         if (result) {
           isReady = !!result.ready;
+          resultLabel = result.label || resultLabel;
           if (!isReady) (result.failed || []).forEach(item => {
             const label = (item && (item.label || item.name || item)) || 'أخرى';
             failures[label] = (failures[label] || 0) + 1;
@@ -170,6 +173,14 @@
       });
       const owner = String(car.owner || 'غير محدد').trim() || 'غير محدد';
       ownerMap[owner] = (ownerMap[owner] || 0) + 1;
+      fleetRows.push({
+        plate: car.plate, brand: car.brand, type: car.type, model: car.model,
+        odometer: car.odometer, color: car.color, city: car.city,
+        branch: car.branch, owner: car.owner, carStatus: car.carStatus,
+        readyLabel: isReady ? 'جاهزة' : (resultLabel || 'غير جاهزة'),
+        dailyRate: car.dailyRate, minDailyRate: car.minDailyRate,
+        monthlyRate: car.monthlyRate, minMonthlyRate: car.minMonthlyRate
+      });
     });
 
     const total = rows.length;
@@ -180,7 +191,8 @@
       fails: Object.entries(failures).sort((a, b) => b[1] - a[1]).slice(0, 8),
       branches,
       owners: Object.entries(ownerMap).sort((a, b) => b[1] - a[1]).slice(0, 6),
-      acc: accountingIndicators(rows)
+      acc: accountingIndicators(rows),
+      fleetRows
     };
   }
 
@@ -251,6 +263,18 @@
       '<div class="fr-sec-title">رابعًا: أسباب عدم الجاهزية</div><table class="fr-table"><thead><tr><th>السبب</th><th>عدد السيارات</th></tr></thead><tbody>' + failureRows + '</tbody></table>' +
       '<div class="fr-sec-title">خامسًا: توزيع الملاك (الأعلى 6)</div><table class="fr-table"><thead><tr><th>المالك</th><th>عدد السيارات</th></tr></thead><tbody>' + ownerRows + '</tbody></table>' +
       '<div class="fr-sec-title">سادسًا: حالة المستندات</div><div class="fr-kpis">' + kpi(buckets.overdue, 'مستندات منتهية', 'bad') + kpi(buckets.d7, 'تنتهي خلال 7 أيام', 'warn') + kpi(buckets.d30, 'تنتهي خلال 30 يوم') + kpi(buckets.d90, 'تنتهي خلال 90 يوم') + '</div>' +
+      (function(){
+        /* سابعًا: جدول الأسطول التفصيلي — الأعمدة التشغيلية والمالية في جدول واحد */
+        try{
+          const rows=(report.fleetRows||[]).slice(0,300);
+          if(!rows.length) return '';
+          const head=['اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','الفرع','المالك','الحالة','الجاهزية','سعر اليوم','أقل سعر','سعر الشهر','أقل شهري'];
+          const body=rows.map(c=>'<tr>'+[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',c.readyLabel||'—',c.dailyRate||'—',c.minDailyRate||'—',c.monthlyRate||'—',c.minMonthlyRate||'—']
+            .map((v,i)=>'<td'+(i>=11?' class="num"':'')+'>'+escapeHtml(String(v))+'</td>').join('')+'</tr>').join('');
+          return '<div class="fr-sec-title">سابعًا: جدول الأسطول التفصيلي (أعلى ' + rows.length + ' سيارة' + ((report.fleetRows||[]).length>300 ? ' من ' + report.fleetRows.length :'') + ')</div>' +
+            '<table class="fr-table fr-dense"><thead><tr>' + head.map((h,i)=>'<th'+(i>=11?' class="num"':'')+'>'+escapeHtml(h)+'</th>').join('') + '</tr></thead><tbody>' + body + '</tbody></table>';
+        }catch(e){ return ''; }
+      })() +
       '<div class="fr-sign"><div><i></i>مسؤول الأسطول — الاسم والتوقيع</div><div><i></i>المدير المسؤول — الاسم والتوقيع</div></div><div class="fr-note">منهجية الإعداد: تُحتسب المؤشرات من بيانات المنصة ضمن الفترة المختارة (فلتر الفترة). المؤشرات المحاسبية تقديرية وتُحتسب من أسعار التأجير اليومية وأيام التأجير المسجلة وتكاليف الصيانة الفعلية المدخلة، والقيم غير المدخلة لا تُفترض. يُرجى مراجعة الأرقام قبل الاعتماد الرسمي.</div></div>' +
       '<div class="fr-foot"><span>منصة يهماء لتأجير السيارات — تقرير مولّد آليًا</span><span>الإصدار v11</span><span>' + generated.toLocaleDateString('ar-SA') + '</span></div>';
   }
@@ -377,7 +401,9 @@ function renderReports(content, context){
   );
   window._yahmaCurrentPdfData=()=>({title:'التقرير التحليلي المفلتر',subtitle:'الفترة: '+periodLabel()+' — عدد السيارات: '+list.length,headers:['رقم اللوحة','الماركة','النوع','الموديل','الفرع','المالك','الحالة','الجاهزية','انتهاء الرخصة','انتهاء الكارت'],rows:list.map(c=>{let ready='غير جاهزة';try{ready=vehicleReadiness(c).label}catch(e){}return[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',ready,c.licenseExpiry||'—',c.cardExpiry||'—']})});
 
-  const {total, ready, notReady, maint, out, prepOpen, prepOverdue, expBuckets, readyPct, fails, branches, owners, acc} = window.YahmaReports.aggregateReport(list, vehicleReadiness);
+  const __reportAggFull = window.YahmaReports.aggregateReport(list, vehicleReadiness);
+  window.__reportAggFull = __reportAggFull;
+  const {total, ready, notReady, maint, out, prepOpen, prepOverdue, expBuckets, readyPct, fails, branches, owners, acc} = __reportAggFull;
   const pct = (n,d=total) => d ? Math.round(n/d*1000)/10 : 0;
   const activeCars=list.filter(c=>!String(c.carStatus||'').includes('صيانة')&&!String(c.carStatus||'').includes('خارج')&&!['مباعة','مؤرشفة'].includes(String(c.carStatus||'')));
   const rentedDaysTotal=list.reduce((sum,c)=>{const n=parseFloat(c.rentedDaysMonth);return sum+(isNaN(n)?0:Math.max(0,n));},0);
@@ -480,7 +506,7 @@ function renderReports(content, context){
     </div>`;
   }).join('');
 
-  window.__lastReportAgg = {total, ready, notReady, maint, out, prepOpen, prepOverdue, expBuckets, readyPct, fails, branches, owners, acc, rf};
+  window.__lastReportAgg = Object.assign({total, ready, notReady, maint, out, prepOpen, prepOverdue, expBuckets, readyPct, fails, branches, owners, acc, rf}, (window.__reportAggFull || {}));
   const topBranches = branches.slice(0, 5);
   const maxPct = Math.max(1, ...topBranches.map(b => b.pct));
   const branchCompare = topBranches.length ? topBranches.map(b => `
@@ -555,7 +581,7 @@ function renderReports(content, context){
         <button type="button" class="btn btn-ghost btn-small" id="rd-refresh">↻ تحديث</button>
         <button type="button" class="btn btn-ghost btn-small" id="rd-audit">سجل النشاط</button>
         <button type="button" class="btn btn-ghost btn-small" id="rd-wa-copy">📋 نسخ</button>
-        <button type="button" class="btn btn-primary btn-small" id="rd-formal">📑 تقرير رسمي</button>
+        <button type="button" class="btn btn-primary btn-small" id="rd-formal">📑 التقرير الرسمي الشامل</button>
         <button type="button" class="btn btn-primary btn-small" id="rd-infog">📊 إنفوجرافيك</button>
         <button type="button" class="btn btn-ghost btn-small" id="rd-wa">واتساب</button>
         <button type="button" class="btn btn-ghost btn-small" id="rd-mail">إيميل</button>
