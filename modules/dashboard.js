@@ -176,6 +176,60 @@ function renderDashboard(content, context){
     return L.join('\n');
   };
   // أسباب عدم الجاهزية بنسب
+  /* ===== توقّع دوران الأسطول + المنحنى التاريخي ===== */
+  const churn = (typeof churnStats === 'function') ? churnStats(fleet)
+    : { total: 0, buckets: {}, docs: {}, riskList: [], risk30: 0 };
+  const churnRows = (typeof CHURN_BUCKETS !== 'undefined' ? CHURN_BUCKETS : [])
+    .map(b => ({ ...b, cars: (churn.buckets[b.id] || {}).cars || 0, docs: (churn.buckets[b.id] || {}).docs || 0 }));
+  const churnSum = churnRows.reduce((s, r) => s + r.cars, 0) || 1;
+  const churnQuick = { expired: 'exp_now', d30: 'exp_30', d60: 'exp_60', d90: 'exp_90' };
+  const docStats = (typeof CHURN_DOCS !== 'undefined' ? CHURN_DOCS : []).map(d => ({ ...d, ...(churn.docs[d.key] || { expired: 0, d30: 0, d90: 0, total: 0 }) }));
+  /* لقطة يومية ب Gesamt العدد والجاهزية (تغذّي المنحنى) */
+  if (!regHist.length || regHist[regHist.length - 1].d !== todayIso) {
+    const last = regHist[regHist.length - 1];
+    if (!last || last.total === undefined) {
+      regHist.push(Object.assign({}, last || {}, {
+        d: todayIso, west: (regionById.west || { total: 0 }).total, east: (regionById.east || { total: 0 }).total,
+        central: (regionById.central || { total: 0 }).total, branches: branchSnap,
+        total: fleet.length, ready: ready, pct: pReady
+      }));
+      regHist = regHist.slice(-90);
+      try { localStorage.setItem(REG_HIST_KEY, JSON.stringify(regHist)); } catch(e) {}
+    }
+  }
+  const trend = regHist.filter(h => h && typeof h.total === 'number').slice(-30);
+  const trendSvg = (() => {
+    if (trend.length < 2) return '';
+    const W = 620, H = 152, PL = 36, PR = 38, PT = 12, PB = 22;
+    const iw = W - PL - PR, ih = H - PT - PB;
+    const totals = trend.map(h => h.total);
+    const pcts = trend.map(h => h.pct || 0);
+    const tMax = Math.max(...totals), tMin = Math.min(...totals);
+    const tPad = Math.max(1, Math.round((tMax - tMin) * 0.25));
+    const lo = Math.max(0, tMin - tPad), hi = tMax + tPad;
+    const x = (i) => PL + (trend.length === 1 ? iw / 2 : (i / (trend.length - 1)) * iw);
+    const yT = (v) => PT + ih - ((v - lo) / (hi - lo || 1)) * ih;
+    const yP = (v) => PT + ih - (v / 100) * ih;
+    const line = (arr, yf) => arr.map((v, i) => (i ? 'L ' : 'M ') + x(i).toFixed(1) + ' ' + yf(v).toFixed(1)).join(' ');
+    const area = line(totals, yT) + ' L ' + x(trend.length - 1).toFixed(1) + ' ' + (PT + ih) + ' L ' + x(0).toFixed(1) + ' ' + (PT + ih) + ' Z';
+    let grid = '';
+    [0, 50, 100].forEach(p => { grid += '<line x1="' + PL + '" y1="' + yP(p).toFixed(1) + '" x2="' + (W - PR) + '" y2="' + yP(p).toFixed(1) + '" stroke="rgba(21,35,80,.10)" stroke-width="1" stroke-dasharray="3 4"/>'; });
+    const dots = trend.map((h, i) => '<circle cx="' + x(i).toFixed(1) + '" cy="' + yT(h.total).toFixed(1) + '" r="2.6" fill="#C6952E"><title>' + escapeHtml(h.d + ' — ' + h.total + ' سيارة · جاهزية ' + (h.pct || 0) + '%') + '</title></circle>').join('');
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="منحنى عدد السيارات ونسبة الجاهزية" style="display:block;width:100%;height:auto">' +
+      grid +
+      '<path d="' + area + '" fill="rgba(198,149,46,.12)"/>' +
+      '<path d="' + line(pcts, yP) + '" fill="none" stroke="#0BAA86" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<path d="' + line(totals, yT) + '" fill="none" stroke="#C6952E" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>' +
+      dots +
+      '<text x="' + PL + '" y="' + (PT + 9) + '" font-size="10" fill="#8A93AD">100%</text>' +
+      '<text x="' + PL + '" y="' + (PT + ih) + '" font-size="10" fill="#8A93AD">0%</text>' +
+      '<text x="' + (W - PR - 30) + '" y="' + (PT + 9) + '" font-size="10" fill="#8A93AD">' + hi + '</text>' +
+      '<text x="' + (W - PR - 30) + '" y="' + (PT + ih) + '" font-size="10" fill="#8A93AD">' + lo + '</text>' +
+      '<text x="' + PL + '" y="' + (H - 6) + '" font-size="10" fill="#8A93AD">' + escapeHtml(trend[0].d) + '</text>' +
+      '<text x="' + (W - PR - 44) + '" y="' + (H - 6) + '" font-size="10" fill="#8A93AD" text-anchor="end">' + escapeHtml(trend[trend.length - 1].d) + '</text>' +
+      '</svg>';
+  })();
+
   const reasonTotal = reasons.reduce((s, [, v]) => s + v, 0) || 1;
   const reasonRows = reasons.slice(0, 5).map(([k, v]) => ({
     label: k, count: v, pct: Math.round(v / reasonTotal * 1000) / 10
@@ -461,6 +515,33 @@ function renderDashboard(content, context){
         </div>
       </div>
     </div>
+    <!-- Churn forecast + history -->
+    <div class="home-churn-grid">
+      <div class="home-card home-churn-card">
+        <div class="home-card-head">
+          <h3>⏳ توقّع دوران الأسطول</h3>
+          <span class="muted-small">أقرب انتهاء بين الكارت والرخصة والتأمين · اضغط أي شريحة لعرض السيارات</span>
+        </div>
+        <div class="home-churn-bar" role="img" aria-label="توزيع السيارات حسب أقرب تاريخ انتهاء">
+          ${churnRows.filter(r => r.cars > 0).map(r => `<button type="button" class="home-churn-seg" data-churn-seg="${r.id}" style="width:${(r.cars / churnSum * 100).toFixed(2)}%;background:${r.color}" title="${escapeHtml(r.label)}: ${r.cars} سيارة"><span>${r.cars}</span></button>`).join('')}
+        </div>
+        <div class="home-churn-legend">
+          ${churnRows.filter(r => r.cars > 0).map(r => `<button type="button" class="home-churn-leg" data-churn-seg="${r.id}"><i style="background:${r.color}"></i><span>${escapeHtml(r.label)}</span><b>${r.cars}</b><em>${Math.round(r.cars / churnSum * 100)}%</em><u>${r.docs} ورقة</u></button>`).join('')}
+        </div>
+        <div class="home-churn-docs">
+          ${docStats.map(d => `<div class="home-churn-doc"><span>${d.icon} ${escapeHtml(d.label)}</span><b>${d.expired}</b><em>منتهية</em><b>${d.d30}</b><em>خلال 30 يوم</em><b>${d.d90}</b><em>خلال 90 يوم</em></div>`).join('')}
+        </div>
+        ${churn.riskList && churn.riskList.length ? `<div class="home-churn-risk"><span class="muted-small">أعلى الفروع 위험 (منتهية + خلال 30 يوم):</span>${churn.riskList.slice(0, 6).map(([b, n]) => `<button type="button" class="quick-filter" data-churn-branch="${escapeHtml(b)}">${escapeHtml(b)} <b>${n}</b></button>`).join('')}</div>` : ''}
+      </div>
+      <div class="home-card home-trend-card">
+        <div class="home-card-head">
+          <h3>📈 تاريخ الأسطول</h3>
+          <span class="muted-small">${trend.length >= 2 ? 'عدد السيارات + نسبة الجاهزية — آخر ' + trend.length + ' يوم' : 'بيبدأ التسجيل من اليوم — افتح المنصة يوميًا ليتراكم التاريخ'}</span>
+        </div>
+        ${trendSvg ? `<div class="home-trend-legend"><span><i style="background:#C6952E"></i>عدد السيارات (${trend[trend.length-1].total})</span><span><i style="background:#0BAA86"></i>الجاهزية (${trend[trend.length-1].pct || 0}%)</span></div>${trendSvg}`
+          : `<div class="home-trend-empty"><div class="home-trend-now"><b>${total.toLocaleString('en')}</b><span>سيارة اليوم</span><b>${pReady}%</b><span>الجاهزية</span></div><div class="muted-small">المنحنى بيظهر من يومين不同的 — افتح المنصة كل يوم وسجل يومي تتراكم تلقائيًا.</div></div>`}
+      </div>
+    </div>
     <!-- Branch work queue -->
     <div class="home-card home-wq-card">
       <div class="home-card-head">
@@ -654,6 +735,18 @@ function renderDashboard(content, context){
     try { localStorage.setItem('yahma-map-mode', b.dataset.mapMode); } catch(e) {}
     if (typeof render === 'function') render();
   }));
+
+  /* ===== توقّع الدوران: الانتقال للأسطول بالفلتر المناسب ===== */
+  const churnGo = (bucketId, branch) => {
+    window.pendingFleetQuickFilter = churnQuick[bucketId] || '';
+    window.pendingFleetBranch = branch || '';
+    window.pendingFleetPlates = null;
+    const nav = document.querySelector('.nav-item[data-tab="fleet"]');
+    if (nav) nav.click();
+    if (typeof render === 'function') render();
+  };
+  content.querySelectorAll('[data-churn-seg]').forEach(b => b.addEventListener('click', () => churnGo(b.dataset.churnSeg, '')));
+  content.querySelectorAll('[data-churn-branch]').forEach(b => b.addEventListener('click', () => churnGo('d30', b.dataset.churnBranch)));
 
   /* ===== قائمة عمل الفروع: واتساب/نسخ/عرض ===== */
   const wqFind = (name) => workQueue.find(w => w.name === name);

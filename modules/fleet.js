@@ -179,6 +179,10 @@
         <button type="button" class="quick-filter" data-quick="not_ready">🔴 غير جاهزة</button>
         <button type="button" class="quick-filter" data-quick="maintenance">🔧 تحت الصيانة</button>
         <button type="button" class="quick-filter" data-quick="out">⛔ خارج الخدمة</button>
+        <button type="button" class="quick-filter" data-quick="exp_now">🔴 انتهت بالفعل</button>
+        <button type="button" class="quick-filter" data-quick="exp_30">⏳ 30 يوم</button>
+        <button type="button" class="quick-filter" data-quick="exp_60">⏳ 60 يوم</button>
+        <button type="button" class="quick-filter" data-quick="exp_90">⏳ 90 يوم</button>
       </div>
       <div class="fleet-filter-grid">
         <label>الماركة<select id="ff-brand">${optionList(uniq('brand'),'كل الماركات')}</select></label>
@@ -397,6 +401,13 @@
     if(q==='not_ready') return !vehicleReadiness(c).ready;
     if(q==='maintenance') return status.includes('صيانة');
     if(q==='out') return carStatusOut(status);
+    if(typeof carChurn==='function'){
+      const b=carChurn(c).bucket;
+      if(q==='exp_now') return b==='expired';
+      if(q==='exp_30') return b==='d30';
+      if(q==='exp_60') return b==='d60'||b==='d90';
+      if(q==='exp_90') return b==='d60'||b==='d90'||b==='d180';
+    }
     return true;
   };
   function getFilteredRows(){
@@ -594,7 +605,11 @@ const q=(search.value||'').trim().toLowerCase();
       ready:'سيارات مستوفية لكل شروط الجاهزية للتأجير.',
       not_ready:'سيارات غير جاهزة للتأجير لأي سبب.',
       maintenance:'سيارات حالتها تحت الصيانة.',
-      out:'سيارات خارج الخدمة.'
+      out:'سيارات خارج الخدمة.',
+      exp_now:'سيارات انتهى الكارت أو الرخصة أو التأمين فيها بالفعل.',
+      exp_30:'سيارات أقرب انتهاء (كارت/رخصة/تأمين) خلال 30 يومًا.',
+      exp_60:'سيارات أقرب انتهاء خلال 31 – 90 يومًا.',
+      exp_90:'سيارات أقرب انتهاء خلال 91 – 180 يومًا.'
     };
     $('fleet-filter-note').textContent=noteMap[activeQuick]||'يمكنك دمج أي عدد من الفلاتر معًا ثم تصدير النتائج الظاهرة إلى Excel.';
     document.querySelectorAll('.quick-filter').forEach(b=>b.classList.toggle('active',b.dataset.quick===activeQuick));

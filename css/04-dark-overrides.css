@@ -803,6 +803,32 @@ html, body{
 .region-popup-btn{margin-top:8px;}
 .esri-dark-tiles{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.92);}
 @media(max-width:900px){.home-map-wrap{grid-template-columns:1fr}#region-map{height:280px}}
+/* توقّع دوران الأسطول + المنحنى التاريخي */
+.home-churn-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;margin-top:14px}
+.home-churn-bar{display:flex;height:26px;border-radius:8px;overflow:hidden;background:var(--grey-soft);margin:4px 0 12px}
+.home-churn-seg{border:0;padding:0;cursor:pointer;font:inherit;color:#fff;font-weight:800;font-size:11.5px;display:flex;align-items:center;justify-content:center;min-width:0}
+.home-churn-seg:hover{filter:brightness(1.08)}
+.home-churn-legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:7px}
+.home-churn-leg{display:grid;grid-template-columns:10px 1fr auto auto auto;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:6px 9px;cursor:pointer;font:inherit;font-size:12px;text-align:right;color:var(--ink)}
+.home-churn-leg:hover{border-color:#c7d0e6;background:var(--paper)}
+.home-churn-leg i{width:10px;height:10px;border-radius:3px;display:block}
+.home-churn-leg b{font-weight:800}
+.home-churn-leg em{font-style:normal;color:var(--muted);font-size:11px;min-width:34px;text-align:left}
+.home-churn-leg u{text-decoration:none;color:var(--muted);font-size:11px}
+.home-churn-docs{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.home-churn-doc{display:grid;grid-template-columns:1fr auto auto auto auto auto;gap:8px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-size:12px}
+.home-churn-doc span{font-weight:700;color:var(--ink)}
+.home-churn-doc b{font-weight:800}
+.home-churn-doc em{font-style:normal;color:var(--muted);font-size:11px}
+.home-churn-risk{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.home-trend-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-bottom:6px}
+.home-trend-legend i{display:inline-block;width:10px;height:3px;border-radius:2px;vertical-align:middle;margin-inline-end:5px}
+.home-trend-empty{display:flex;flex-direction:column;gap:12px;align-items:flex-start;padding:8px 2px}
+.home-trend-now{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.home-trend-now b{font-size:26px;font-weight:800;color:var(--ink)}
+.home-trend-now span{font-size:12px;color:var(--muted)}
+@media(max-width:1000px){.home-churn-grid{grid-template-columns:1fr}}
+
 /* فلتر اللوحات الوارد من قائمة عمل الفروع */
 .fleet-plate-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding:7px 10px;border:1px dashed var(--line);border-radius:8px;font-size:12px;color:var(--ink);background:rgba(11,170,134,.06)}
 

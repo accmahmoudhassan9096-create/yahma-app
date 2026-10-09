@@ -126,6 +126,63 @@
     const hit = CITY_COORDS.find(c => c.keys.some(k => t.includes(k)));
     return hit || { name: 'الرياض', lat: 24.63, lng: 46.68 };
   }
+  /* ===== توقّع دوران الأسطول: أقرب انتهاء بين الكارت والرخصة والتأمين ===== */
+  const CHURN_DOCS = [
+    { key: 'cardExpiry', label: 'كارت', icon: '🪪' },
+    { key: 'licenseExpiry', label: 'رخصة', icon: '📄' },
+    { key: 'insuranceExpiry', label: 'تأمين', icon: '🛡️' }
+  ];
+  /* CHURN_BUCKETS بالترتيب: كل بند يغطي (من، إلى] بالأيام؛ null = بلا تاريخ */
+  const CHURN_BUCKETS = [
+    { id: 'expired', label: 'منتهية بالفعل', color: '#E64B4B', min: -99999, max: -1 },
+    { id: 'd30', label: 'خلال 30 يوم', color: '#E6A23C', min: 0, max: 30 },
+    { id: 'd60', label: '31 – 60 يوم', color: '#D6952A', min: 31, max: 60 },
+    { id: 'd90', label: '61 – 90 يوم', color: '#3B82C4', min: 61, max: 90 },
+    { id: 'd180', label: '91 – 180 يوم', color: '#0E8F8D', min: 91, max: 180 },
+    { id: 'later', label: 'بعد 180 يوم', color: '#9AA5B1', min: 181, max: 99999 },
+    { id: 'nodate', label: 'بلا تاريخ', color: '#C9CEDA', min: null, max: null }
+  ];
+  function carChurn(car) {
+    let best = null, docs = [];
+    CHURN_DOCS.forEach(d => {
+      const days = daysFromNow(car && car[d.key]);
+      docs.push({ key: d.key, label: d.label, icon: d.icon, days });
+      if (days !== null && (best === null || days < best)) best = days;
+    });
+    const bucket = CHURN_BUCKETS.find(b => b.min !== null && best !== null && best >= b.min && best <= b.max)
+      || CHURN_BUCKETS[CHURN_BUCKETS.length - 1];
+    return { days: best, bucket: bucket.id, label: bucket.label, docs };
+  }
+  function churnStats(cars) {
+    const list = Array.isArray(cars) ? cars : [];
+    const out = { total: list.length, buckets: {}, docs: {}, riskBranches: {} };
+    CHURN_BUCKETS.forEach(b => { out.buckets[b.id] = { cars: 0, docs: 0 }; });
+    CHURN_DOCS.forEach(d => { out.docs[d.key] = { expired: 0, d30: 0, d90: 0, total: 0 }; });
+    list.forEach(c => {
+      const r = carChurn(c);
+      if (out.buckets[r.bucket]) out.buckets[r.bucket].cars++;
+      r.docs.forEach(d => {
+        if (d.days === null) return;
+        const b = CHURN_BUCKETS.find(x => x.min !== null && d.days >= x.min && d.days <= x.max);
+        if (!b) return;
+        out.buckets[b.id].docs++;
+        const t = out.docs[d.key];
+        t.total++;
+        if (d.days < 0) t.expired++;
+        else if (d.days <= 30) t.d30++;
+        else if (d.days <= 90) t.d90++;
+      });
+      /* خBranch-level risk: منتهية أو خلال 30 يوم */
+      if (r.days !== null && r.days <= 30) {
+        const b = (c.branch || 'غير محدد').trim() || 'غير محدد';
+        out.riskBranches[b] = (out.riskBranches[b] || 0) + 1;
+      }
+    });
+    out.riskList = Object.entries(out.riskBranches).sort((a, b) => b[1] - a[1]);
+    out.risk30 = (out.buckets.expired.cars + out.buckets.d30.cars);
+    return out;
+  }
+
   /* توحيد أسماء الماركات: هونداي/هيونداى/هيونداي ← هيونداي ... */
   function brandKey(value){
     return String(value ?? '').replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا')
@@ -251,7 +308,8 @@
     uid, normalizeDateValue, daysFromNow, dateStatus, licenseDisplayStatus,
     cardDisplayStatus, inspectionDisplayStatus, textTag, escapeHtml,
     fmtDate, addDays, todayStr, carStatusOut, carStatusActive, carStatusMatch, carStatusReady, normStatus,
-    brandKey, canonicalBrand, REGION_DEFS, regionOfBranch, CITY_COORDS, cityOfBranch
+    brandKey, canonicalBrand, REGION_DEFS, regionOfBranch, CITY_COORDS, cityOfBranch,
+    CHURN_DOCS, CHURN_BUCKETS, carChurn, churnStats
   };
   global.YahmaUtils = api;
   Object.assign(global, api);
