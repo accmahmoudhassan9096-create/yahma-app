@@ -91,6 +91,9 @@ function renderFollowUp(content){
           <th>الماركة</th>
           <th>النوع</th>
           <th>الموديل</th>
+          <th>كم الحالي</th>
+          <th>اللون</th>
+          <th>المدينة</th>
           <th>الرقم التسلسلي</th>
           <th>رقم البطاقة</th>
           <th>تاريخ نهاية البطاقة</th>
@@ -229,7 +232,7 @@ function renderFollowUp(content){
       return av-bv;
     });
   }
-  window._yahmaCurrentPdfData=()=>({title:'بطاقات التشغيل والتأمين المفلترة',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','الرقم التسلسلي','رقم البطاقة','انتهاء البطاقة','حالة البطاقة','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.serial||'—',c.cardNumber||'—',c.cardExpiry||'—',cardDisplayStatus(c.cardExpiry,c.cardStatus).label,c.branch||'—',textTag(c.carStatus).label])});
+  window._yahmaCurrentPdfData=()=>({title:'بطاقات التشغيل والتأمين المفلترة',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','الرقم التسلسي','رقم البطاقة','انتهاء البطاقة','حالة البطاقة','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.serial||'—',c.cardNumber||'—',c.cardExpiry||'—',cardDisplayStatus(c.cardExpiry,c.cardStatus).label||'—',c.branch||'—',textTag(c.carStatus).label||'—'])});
 
   /* تحديد جماعي + حذف (إداريون فقط) */
   function updateFuBulkBar(){
@@ -334,6 +337,9 @@ function renderFollowUp(content){
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>
         <td>${escapeHtml(c.model||'—')}</td>
+        <td>${escapeHtml(String(c.odometer??'').trim()||'—')}</td>
+        <td>${escapeHtml(c.color||'—')}</td>
+        <td>${escapeHtml(c.city||'—')}</td>
         <td class="serial-cell">${escapeHtml(c.serial||'—')}</td>
         <td>${escapeHtml(c.cardNumber||'—')}</td>
         <td>${fmtDate(c.cardExpiry)}</td>
@@ -353,9 +359,9 @@ function renderFollowUp(content){
         if(!window._fuVT || window._fuVT._tb !== tbody){
           if(window._fuVT && window._fuVT.destroy) try{window._fuVT.destroy()}catch(e){}
           window._fuVT = window.YahmaVTable.create({
-            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 12+delCol,
+            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 15+delCol,
             renderRow: function(c){ return renderFuRow(c); },
-            emptyHtml: '<tr><td colspan="'+(12+delCol)+'"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>'
+            emptyHtml: '<tr><td colspan="'+(15+delCol)+'"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>'
           });
           window._fuVT._tb = tbody;
         }

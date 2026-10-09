@@ -69,6 +69,9 @@ function renderTransfers(content){
           <th>الماركة</th>
           <th>النوع</th>
           <th>الموديل</th>
+          <th>كم الحالي</th>
+          <th>اللون</th>
+          <th>المدينة</th>
           <th>المالك الحالي</th>
           <th>المالك السابق</th>
           <th>تاريخ التنازل</th>
@@ -194,6 +197,9 @@ function renderTransfers(content){
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>
         <td>${escapeHtml(c.model||'—')}</td>
+        <td>${escapeHtml(String(c.odometer??'').trim()||'—')}</td>
+        <td>${escapeHtml(c.color||'—')}</td>
+        <td>${escapeHtml(c.city||'—')}</td>
         <td>${escapeHtml(c.owner||'—')}</td>
         <td>${escapeHtml(c.transferFrom||'—')}</td>
         <td>${c.transferDate?fmtDate(c.transferDate):'—'}</td>
@@ -385,7 +391,7 @@ function renderTransfers(content){
     await handleTransferFile(file);
     e.target.value='';
   });
-  window._yahmaCurrentPdfData=()=>({title:'التنازلات المفلترة',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','المالك السابق','تاريخ التنازل','حالة التنازل','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.transferFrom||'—',c.transferDate||'—',c.transferStatus||'—',c.branch||'—',c.carStatus||'—'])});
+  window._yahmaCurrentPdfData=()=>({title:'التنازلات المفلترة',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','المالك السابق','تاريخ التنازل','حالة التنازل','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.transferFrom||'—',c.transferDate||'—',c.transferStatus||'—',c.branch||'—',c.carStatus||'—'])});
   $('tr-export-xlsx')?.addEventListener('click',()=>exportTr('xlsx'));
   $('tr-export-pdf')?.addEventListener('click',()=>exportTr('pdf'));
   draw();

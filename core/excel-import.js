@@ -7,6 +7,27 @@ function findField(header){ return window.YahmaFleetExcel.findField(header); }
 function toDateStr(value){ return window.YahmaFleetExcel.toDateStr(value); }
 async function downloadTemplate(){ return window.YahmaFleetExcel.downloadTemplate({ensureXlsxReady,alert:message=>alert(message)}); }
 async function exportFleet(){ return window.YahmaFleetExcel.exportFleet({fleet,todayStr,ensureXlsxReady,alert:message=>alert(message)}); }
+/* قراءة الورقة كمصفوفة أعمدة ثم تحويلها لكائنات بمفاتيح فريدة — لأن الملف
+   قد يتكرّر فيه عنوان (مثل «السعر الأدنى» مرتين) فالمفتاح الواحد يمسح أحدهما */
+function sheetRowsWithUniqueKeys(ws){
+  const matrix = XLSX.utils.sheet_to_json(ws, {defval:'', header:1, blankrows:false});
+  if(!matrix.length) return [];
+  const seen = {};
+  const headers = matrix[0].map((raw, i) => {
+    const base = String(raw ?? '').trim() || ('عمود ' + (i + 1));
+    const key = normalizeHeader(base);
+    seen[key] = (seen[key] || 0) + 1;
+    return seen[key] > 1 ? (base + ' __' + seen[key]) : base;
+  });
+  return matrix.slice(1)
+    .filter(row => row.some(cell => String(cell ?? '').trim() !== ''))
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = row[i] ?? ''; });
+      return obj;
+    });
+}
+
 async function handleExcelFile(file){
   if(currentRole!=='admin'&&currentRole!=='ops'){ alert('ليس لديك صلاحية استيراد بيانات الأسطول.'); return; }
   if(!(await ensureXlsxReady())){ alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.'); return; }
@@ -15,7 +36,7 @@ async function handleExcelFile(file){
     const buf = await file.arrayBuffer();
     wb = XLSX.read(buf, {type:'array', cellDates:true});
     const ws = wb.Sheets[wb.SheetNames[0]];
-    rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    rows = sheetRowsWithUniqueKeys(ws);
   }catch(e){ alert('تعذر قراءة الملف. تأكد أنه ملف إكسيل أو CSV صحيح.'); return; }
   if(!rows.length){ alert('الملف فارغ أو لا يحتوي على بيانات.'); return; }
 

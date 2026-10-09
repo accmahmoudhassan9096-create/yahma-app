@@ -42,7 +42,8 @@ function renderDashboard(content, context){
   const branch = {};
   fleet.forEach(c => {
     const b = c.branch || 'غير محدد';
-    branch[b] = branch[b] || { total: 0, ready: 0 };
+    branch[b] = branch[b] || { total: 0, ready: 0, city: '' };
+    if (!branch[b].city && c.city) branch[b].city = String(c.city).trim();
     branch[b].total++;
     if (vehicleReadiness(c).ready) branch[b].ready++;
   });
@@ -52,7 +53,7 @@ function renderDashboard(content, context){
     .slice(0, 5);
   // خريطة الفروع: كل فرع بإحداثيات مدينته + نمو فرعي من اللقطات
   const branchFull = Object.entries(branch).map(([name, x]) => {
-    const city = (typeof cityOfBranch === 'function') ? cityOfBranch(name) : { name: 'الرياض', lat: 24.63, lng: 46.68 };
+    const city = (typeof cityOfBranch === 'function') ? cityOfBranch(name, x.city) : { name: 'الرياض', lat: 24.63, lng: 46.68 };
     return { name, total: x.total, ready: x.ready, city: city.name, lat: city.lat, lng: city.lng };
   }).sort((a, b) => b.total - a.total);
   branchFull.forEach((b, i, arr) => {
@@ -86,7 +87,7 @@ function renderDashboard(content, context){
   regionStats.forEach(r => { regionById[r.id] = r; });
   fleet.forEach(c => {
     const b = (c.branch || 'غير محدد').trim() || 'غير محدد';
-    const rid = (typeof regionOfBranch === 'function') ? regionOfBranch(b) : 'central';
+    const rid = (typeof regionOfBranch === 'function') ? regionOfBranch(b, c.city) : 'central';
     const r = regionById[rid] || regionById.central;
     r.total++;
     r.branches[b] = (r.branches[b] || 0) + 1;
@@ -499,7 +500,7 @@ function renderDashboard(content, context){
           ${mapMode === 'branches' ? `
           <div class="muted-small" style="margin-bottom:2px">${branchFull.length} فرعًا — اضغط أي نقطة لعرض سيارات الفرع</div>
           ${branchFull.slice(0, 8).map(b => `
-          <div class="home-map-leg"><i style="background:${(regionById[(typeof regionOfBranch === 'function' ? regionOfBranch(b.name) : 'central')] || {}).color || '#E6A23C'}"></i>
+          <div class="home-map-leg"><i style="background:${(regionById[(typeof regionOfBranch === 'function' ? regionOfBranch(b.name, b.city) : 'central')] || {}).color || '#E6A23C'}"></i>
             <div class="home-map-leg-body"><b>${escapeHtml(b.name)} — ${b.total.toLocaleString('en')} سيارة</b>
               <span>جاهزية ${b.pct}%${b.delta === null ? ' · نمو: —' : ' · ' + (b.delta >= 0 ? '+' : '') + b.delta + (b.growth === null ? '' : ' (' + b.growth + '%)')}</span>
             </div>
@@ -675,7 +676,7 @@ function renderDashboard(content, context){
           const bounds = [];
           const maxB = Math.max(1, ...branchFull.map(b=>b.total));
           branchFull.forEach(b => {
-            const rid = (typeof regionOfBranch === 'function') ? regionOfBranch(b.name) : 'central';
+            const rid = (typeof regionOfBranch === 'function') ? regionOfBranch(b.name, b.city) : 'central';
             const col = ((regionById[rid]) || {}).color || '#E6A23C';
             const rad = 7 + Math.min(20, Math.sqrt(b.total / maxB) * 22);
             const m = L.circleMarker([b.mlat, b.mlng], { radius: rad, color: col, weight: 2, fillColor: col, fillOpacity: .85 }).addTo(map);

@@ -4,9 +4,11 @@
   const EXCEL_HEADERS = ['رقم اللوحة','الماركة','الطراز','سنة الصنع','اللون','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','المدينة','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات','تنازل','تاريخ التنازل','المالك السابق','حالة التنازل','ملاحظات التنازل'];
   const FIELD_ALIASES = {
     plate: ['رقم اللوحة','اللوحة','رقم السيارة','plate'],
-    brand: ['الشركة','الماركة','ماركة','brand','make','company'],
-    type: ['الطراز','النوع','نوع السيارة','نوع المركبة','نوع العربية','الفئة','فئة السيارة','نوع الهيكل','الشكل','type','vehicle type'],
-    model: ['الموديل','الطراز','موديل السيارة','سنة الصنع','سنة الموديل','السنة','model'],
+    code: ['الكود','كود السيارة','رقم الكود','الرقم','code'],
+    gps: ['GPS','جي بي اس','احداثيات','gps'],
+    brand: ['الطراز','الشركة','الماركة','ماركة','brand','make','company'],
+    type: ['النوع','الطراز','نوع السيارة','نوع المركبة','نوع العربية','الفئة','فئة السيارة','نوع الهيكل','الشكل','type','vehicle type'],
+    model: ['الموديل','موديل السيارة','سنة الصنع','سنة الموديل','السنة','model'],
     serial: ['الرقم التسلسلي','رقم الشاسيه','serial','serial number','chassis'],
     cardNumber: ['رقم البطاقة','رقم الكارت','card number'],
     cardStatus: ['حالة الكارت','حالة البطاقة','card status'],
@@ -19,8 +21,13 @@
     insuranceExpiry: ['تاريخ انتهاء التأمين','انتهاء التأمين','تاريخ نهاية التأمين','نهاية التأمين','insurance expiry'],
     owner: ['المالك','owner'],
     ownerNumber: ['رقم المالك','owner number'],
-    odometer: ['العداد','كم الحالي','كم','الممشى','odometer','mileage'],
+    odometer: ['العداد','كم الحالي','كم','الممشى','العداد الحالي','odometer','mileage'],
     dailyRate: ['سعر اليوم','سعر يومي','السعر اليومي','daily rate','dailyRate'],
+    minDailyRate: ['السعر الأدنى','سعر اليوم الأدنى','سعر اليوم الادنى','السعر الادنى','الحد الأدنى','أقل سعر','min daily rate','minDailyRate'],
+    monthlyRate: ['سعر الشهر','السعر الشهري','سعر الشهري','شهريًا','monthly rate','monthlyRate'],
+    minMonthlyRate: ['السعر الأدنى __2','السعر الأدنى الشهري','الحد الأدنى الشهري','أقل سعر شهري','min monthly rate','minMonthlyRate'],
+    lastMovementDate: ['تاريخ اخر حركة','تاريخ آخر حركة','اخر حركة','آخر حركة','تاريخ آخر تحرك','last movement','lastMovementDate'],
+    daysSinceMovement: ['عدد الإيام','عدد الايام','عدد الأيام','أيام من آخر حركة','days since movement','daysSinceMovement'],
     rentedDaysMonth: ['أيام التأجير','أيام الإيجار','عدد أيام التأجير','أيام التأجير هذا الشهر','rented days'],
     city: ['المدينة','city'],
     color: ['اللون','color'],
@@ -30,7 +37,7 @@
     workshop: ['الورشة','مركز الصيانة','workshop'],
     documentUrl: ['رابط المستند','رابط الوثيقة','document url'],
     maintenanceNotes: ['ملاحظات الصيانة','maintenance notes'],
-    branch: ['الفرع','branch'],
+    branch: ['اسم الفرع','الفرع','branch'],
     carStatus: ['حالة السيارة','car status'],
     notes: ['ملاحظات','notes'],
     transferDone: ['تنازل','نقل الملكية','تم التنازل','transfer'],
@@ -74,7 +81,9 @@
     if (has('فرع')) return 'branch';
     if (has('لوحه')) return 'plate';
     if (has('شركه') || has('ماركه')) return 'brand';
-    if (has('طراز')) return 'type';
+    /* «الطراز» ملتبس: في ملف الأسطول فهو النوع (صني/يارس)، وفي شيت الأسعار فهو الماركة.
+       يُحسم مسبقًا في headerFieldMap حسب وجود عمود «النوع» مع «الطراز» */
+    if (has('طراز')) return window.__yahmaTrazzIsBrand ? 'brand' : 'type';
     if (has('موديل')) return 'model';
     if (has('نوع') && !has('وقود')) return 'type';
     if (has('سنه')) return 'model';
@@ -125,9 +134,10 @@
   }
 
   const IMPORT_FIELDS = [
-    'plate','brand','type','model','color','serial','cardNumber','cardStatus','cardExpiry',
+    'plate','code','gps','brand','type','model','color','serial','cardNumber','cardStatus','cardExpiry',
     'licenseStatus','licenseExpiry','inspectionStatus','insuranceStatus','insuranceCompany','insuranceExpiry','owner','ownerNumber',
-    'odometer','dailyRate','rentedDaysMonth','nextService','lastMaintenance','maintenanceCost','workshop','documentUrl',
+    'odometer','dailyRate','minDailyRate','monthlyRate','minMonthlyRate','lastMovementDate','daysSinceMovement','rentedDaysMonth',
+    'nextService','lastMaintenance','maintenanceCost','workshop','documentUrl',
     'maintenanceNotes','branch','city','carStatus','notes',
     'transferDone','transferDate','transferFrom','transferStatus','transferNotes'
   ];
@@ -152,7 +162,7 @@
       const t = String(value).trim();
       return (t === 'نعم' || t === '✓' || t === 'تم' || t.toLowerCase() === 'yes' || t === '1') ? 'نعم' : '';
     }
-    return ['cardExpiry','licenseExpiry','insuranceExpiry','nextService','lastMaintenance','transferDate'].includes(field)
+    return ['cardExpiry','licenseExpiry','insuranceExpiry','nextService','lastMaintenance','transferDate','lastMovementDate'].includes(field)
       ? toDateStr(value)
       : String(value).trim();
   }
@@ -161,6 +171,13 @@
     let skipped = 0;
     const records = [];
     const unknown = new Set();
+    /* حسم الالتباس: «الطراز» = الماركة إذا وُجد عمود «النوع» بجانبه (شيت الأسعار)،
+       وإلا فهو النوع (قالب الأسطول الداخلي). */
+    const firstRow = (Array.isArray(rows) && rows.length) ? (rows[0] || {}) : {};
+    const headKeys = Object.keys(firstRow).map(k => normalizeHeader(k));
+    const hasCol = (name) => headKeys.includes(normalizeHeader(name));
+    const trazIsBrand = hasCol('الطراز') && hasCol('النوع');
+    global.__yahmaTrazzIsBrand = trazIsBrand;
     rows.forEach(row => {
       const values = {};
       const provided = new Set();
@@ -170,7 +187,7 @@
           provided.add(field);
           values[field] = normalizeImportValue(field, row[header]);
         } else if (header && !/^__EMPTY/.test(header)) {
-          unknown.add(String(header).trim());
+          unknown.add(String(header).trim().replace(/\s+__\d+$/, ''));
         }
       });
       if (!values.plate) { skipped++; return; }

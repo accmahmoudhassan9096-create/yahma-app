@@ -84,10 +84,15 @@
       keys: ['دمام','الدمام','خبر','الخبر','الاحساء','الأحساء','الهفوف','الجبيل','القطيف','الخفجي','حفر','الشرقية','الشرقيه'] },
     { id: 'central', label: 'المنطقة الوسطى', lat: 24.4, lng: 46.2, color: '#E6A23C', keys: [] }
   ];
-  function regionOfBranch(branch){
-    const t = ' ' + String(branch ?? '').replace(/[أإآ]/g, 'ا') + ' ';
-    const hit = REGION_DEFS.find(r => r.id !== 'central' && r.keys.some(k => t.includes(k)));
-    return (hit || REGION_DEFS[2]).id;
+  function regionOfBranch(branch, city){
+    /* المدينة أصدق من اسم الفرع (فروع مثل «فرع 8» لا تحمل اسم مدينة) */
+    const probe = [city, branch].map(v => ' ' + String(v ?? '').replace(/[أإآ]/g, 'ا') + ' ');
+    for (const t of probe) {
+      if (!t.trim()) continue;
+      const hit = REGION_DEFS.find(r => r.id !== 'central' && r.keys.some(k => t.includes(k)));
+      if (hit) return hit.id;
+    }
+    return (REGION_DEFS[2]).id;
   }
 
   /* إحداثيات المدن لفروع الخريطة (تقريبية لمراكز المدن) */
@@ -121,10 +126,15 @@
     { keys: ['وادي الدواسر'], name: 'وادي الدواسر', lat: 20.46, lng: 44.89 },
     { keys: ['شقراء'], name: 'شقراء', lat: 25.24, lng: 45.25 }
   ];
-  function cityOfBranch(branch){
-    const t = ' ' + String(branch ?? '').replace(/[أإآ]/g, 'ا') + ' ';
-    const hit = CITY_COORDS.find(c => c.keys.some(k => t.includes(k)));
-    return hit || { name: 'الرياض', lat: 24.63, lng: 46.68 };
+  function cityOfBranch(branch, city){
+    /* إن كانت المدينة معروفة نستخدمها، وإلا نستنتجها من اسم الفرع */
+    const probe = [city, branch].map(v => ' ' + String(v ?? '').replace(/[أإآ]/g, 'ا') + ' ');
+    for (const t of probe) {
+      if (!t.trim()) continue;
+      const hit = CITY_COORDS.find(c => c.keys.some(k => t.includes(k)));
+      if (hit) return hit;
+    }
+    return { name: 'الرياض', lat: 24.63, lng: 46.68 };
   }
   /* ===== توقّع دوران الأسطول: أقرب انتهاء بين الكارت والرخصة والتأمين ===== */
   const CHURN_DOCS = [
