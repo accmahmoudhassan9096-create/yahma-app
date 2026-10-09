@@ -32,20 +32,18 @@
 
 ---
 
-## الطريقة الثانية: النشر من GitHub Actions (سجلاتDeployment في GitHub نفسه)
+## طريقة النشر الفعلية المستخدمة: ربط GitHub من Cloudflare (تلقائي)
 
-أفضل لو حابب تشوف **سجل البناء والفشل في واجهة GitHub** بدل لوحة Cloudflare.
+المشروع مربوط بـGitHub من داخل Cloudflare، فكل `push` على `main` يبني وينشر تلقائيًا
+(الاسم يظهر في Deployments باسم commit، والبناء بياخد أقل من دقيقة).
 
-1. في Cloudflare: **My Profile → API Tokens → Create Token**
-   - قالب: **Edit Cloudflare Workers** (أو Custom token): صلاحية **Account → Cloudflare Pages → Edit** + **Account → Workers Scripts → Edit**.
-   - انسخ التوكن.
-2. في Cloudflare: انسخ **Account ID** من إعدادات أي حساب (رقم يبدأ بـ 32 حرف hex).
-3. في GitHub: `Settings → Secrets and variables → Actions`
-   - **Secrets**: `CLOUDFLARE_API_TOKEN`، `CLOUDFLARE_ACCOUNT_ID`.
-   - **Variables**: `CLOUDFLARE_PROJECT_NAME` = اسم مشروع Pages (نفس الاسم في الرابط قبل `.pages.dev`).
-4. ادفع أي commit → البناء يعمل تلقائيًا وبياناته في تبويب **Actions**.
-   - الملف `.github/workflows/deploy-cloudflare.yml` **لا يفشل** لو الأسرار غير موجودة (فيه guard).
-5. عند كل نشر، ارفع نسخة الـservice worker (`sw.js`) لتحديث الكاش عند العملاء.
+> **ملاحظة مهمة عن `.github/workflows/deploy-cloudflare.yml`:**
+> الملف ده كان بديل اختياري للنشر عبر GitHub Actions، و**تم حذفه** لأنه كان بيشغّل نشرًا ثانيًاازدواجيًا،
+> Additionally كان يفشل بخطأ:
+> `Unable to resolve actions. Cannot access repositories 'cloudflare/pages-action'`
+> لأن GitHub لا يسمح تلقائيًا بـActions من مستودعات خارجية (خاص).
+> الحل لو احتجته يومًا: من `Settings → Actions → General → Actions permissions` اسمح بالمستودعات الخارجية،
+> **أو** استخدم `npx wrangler deploy` بدل الـAction. حاليًا **لا حاجة لأي منهم** — النشر التلقائي شغّال من Cloudflare.
 
 ---
 
