@@ -178,6 +178,7 @@
 
   function parseImportRows(rows, uid) {
     let skipped = 0;
+    let derivedInspection = 0;
     const records = [];
     const unknown = new Set();
     /* حسم الالتباس: «الطراز» = الماركة إذا وُجد عمود «النوع» بجانبه (شيت الأسعار)،
@@ -200,6 +201,17 @@
         }
       });
       if (!values.plate) { skipped++; return; }
+      /* قاعدة استنتاج الفحص من الرخصة (ملف التمويل): منتهية ⇐ «لم يفحص»، سارية ⇐ «تم الفحص».
+         تُطبَّق فقط إذا لم يأتِ عمود فحص صريح في الملف. */
+      if (provided.has('licenseExpiry') && !provided.has('inspectionStatus') && values.licenseExpiry) {
+        const d = new Date(values.licenseExpiry + 'T00:00:00');
+        if (!isNaN(d)) {
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          values.inspectionStatus = d.getTime() < today.getTime() ? 'لم يفحص' : 'تم الفحص';
+          provided.add('inspectionStatus');
+          derivedInspection++;
+        }
+      }
       const car = Object.fromEntries(IMPORT_FIELDS.map(field => [field, values[field] || '']));
       car.id = uid();
       records.push({ car, provided: Array.from(provided) });
@@ -210,7 +222,7 @@
     const sold = records.filter(record => isSoldStatus(record.car.carStatus));
     const active = records.filter(record => !isSoldStatus(record.car.carStatus)
       && !soldKeys.has(normalizeHeader(record.car.plate).replace(/[^\p{L}\p{N}]/gu, '')));
-    return { active, sold, skipped, unknown: [...unknown].filter(Boolean) };
+    return { active, sold, skipped, unknown: [...unknown].filter(Boolean), derivedInspection };
   }
 
   function mergeImportRecord(existing, record) {

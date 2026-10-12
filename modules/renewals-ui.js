@@ -77,7 +77,7 @@ function renderRenewals(content, mode='inspection'){
       <div class="bulk-bar-info"><span id="ren-bulk-count">0 محددة</span></div>
       <div class="bulk-bar-actions">
         ${insuranceMode?'<button class="btn btn-primary btn-small" id="ren-bulk-ins-ok">🛡️ تعيين «ساري»</button><button class="btn btn-ghost btn-small" id="ren-bulk-ins-no">تعيين «لا يوجد»</button>':''}
-        ${(!licenseMode&&!insuranceMode)?'<button class="btn btn-primary btn-small" id="ren-bulk-insp-yes">✅ تم الفحص</button><button class="btn btn-ghost btn-small" id="ren-bulk-insp-no">لم يُفحص</button>':''}
+        ${(!licenseMode&&!insuranceMode)?'<button class="btn btn-ghost btn-small" id="ren-insp-from-lic" title="يضبط حالة الفحص من تاريخ الرخصة: منتهية ⇐ لم يفحص، سارية ⇐ تم الفحص">🔄 فحص من الرخص</button><button class="btn btn-primary btn-small" id="ren-bulk-insp-yes">✅ تم الفحص</button><button class="btn btn-ghost btn-small" id="ren-bulk-insp-no">لم يُفحص</button>':''}
         ${licenseMode?'<button class="btn btn-primary btn-small" id="ren-bulk-lic-renew">📅 تجديد الرخصة (سنة)</button><button class="btn btn-ghost btn-small" id="ren-bulk-lic-status">ضبط حالة الرخصة</button>':''}
         <button class="btn btn-danger btn-small" id="ren-bulk-delete">🗑 حذف المحددة</button>
         <button class="btn btn-ghost btn-small" id="ren-bulk-clear">إلغاء التحديد</button>
@@ -95,7 +95,7 @@ function renderRenewals(content, mode='inspection'){
           <th>اللون</th>
           <th>المدينة</th>
           <th>الرقم التسلسلي</th>
-          ${(!licenseMode&&!insuranceMode)?'<th>حالة الفحص</th>':''}
+          ${(!licenseMode&&!insuranceMode)?'<th>انتهاء الرخصة</th><th>حالة الفحص</th>':''}
           ${licenseMode?'<th>تاريخ انتهاء الرخصة</th><th>حالة الرخصة</th>':''}
           ${insuranceMode?'<th>حالة التأمين</th><th>تاريخ الانتهاء</th><th>شركة التأمين</th><th>المالك</th>':''}
           <th>الفرع</th>
@@ -187,7 +187,7 @@ function renderRenewals(content, mode='inspection'){
   }
   window._yahmaCurrentPdfData=()=>{
     if(insuranceMode) return {title:'التأمين المفلتر',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','حالة التأمين','انتهاء التأمين','شركة التأمين','المالك','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',textTag(c.insuranceStatus).label,c.insuranceExpiry||'—',c.insuranceCompany||'—',c.owner||'—',c.branch||'—',c.carStatus||'—'])};
-    return {title:licenseMode?'تجديد الرخص المفلترة':'الفحص المفلتر',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','حالة الفحص','انتهاء الرخصة','حالة الرخصة','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',inspectionDisplayStatus(c.inspectionStatus).label,c.licenseExpiry||'—',dateStatus(c.licenseExpiry).label,c.branch||'—',c.carStatus||'—'])};
+    return {title:licenseMode?'تجديد الرخص المفلترة':'الفحص المفلتر',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','انتهاء الرخصة','حالة الفحص','حالة الرخصة','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.licenseExpiry||'—',inspectionDisplayStatus(c.inspectionStatus).label,dateStatus(c.licenseExpiry).label,c.branch||'—',c.carStatus||'—'])};
   };
 
   /* تحديد جماعي + حذف (إداريون فقط) */
@@ -245,6 +245,25 @@ function renderRenewals(content, mode='inspection'){
       try{ window.log(logLabel, cars.length+' سيارة: '+renPlates(cars)); }catch(_){}
     }
     render();
+  }
+  /* قاعدة الفحص من الرخصة: منتهية ⇐ لم يفحص · سارية ⇐ تم الفحص (نفس قاعدة الاستيراد) */
+  function inspectionFromLicense(car){
+    const raw = String(car.licenseExpiry || '').trim();
+    if(!raw) return null;
+    const d = new Date(raw.slice(0,10) + 'T00:00:00');
+    if(isNaN(d)) return null;
+    const today = new Date(); today.setHours(0,0,0,0);
+    return d.getTime() < today.getTime() ? 'لم يفحص' : 'تم الفحص';
+  }
+  async function bulkInspectionFromLicenses(){
+    const cars = renSelectedCars();
+    if(!cars.length) return;
+    const withDate = cars.filter(c => !!inspectionFromLicense(c));
+    if(!withDate.length){ alert('لا توجد سيارة بتاريخ رخصة صالح لتطبيق القاعدة.'); return; }
+    const expired = withDate.filter(c => inspectionFromLicense(c) === 'لم يفحص').length;
+    if(!confirm('ضبط حالة الفحص من تاريخ الرخصة لـ '+withDate.length+' سيارة؟\n• منتهية ⇐ لم يفحص: '+expired+'\n• سارية ⇐ تم الفحص: '+(withDate.length-expired)+'\n• بدون تاريخ رخصة: تُترك كما هي ('+(cars.length-withDate.length)+')')) return;
+    await renBulkApply(withDate, c=>{ c.inspectionStatus = inspectionFromLicense(c); },
+      'تم تحديث فحص '+withDate.length+' سيارة من الرخص', 'فحص من الرخص');
   }
   async function bulkSetInspection(value){
     const cars=renSelectedCars();
@@ -308,7 +327,7 @@ function renderRenewals(content, mode='inspection'){
         <td>${escapeHtml(String(c.odometer??'').trim()||'—')}</td>
         <td>${escapeHtml(c.color||'—')}</td>
         <td>${escapeHtml(c.city||'—')}</td><td>${escapeHtml(c.serial||'—')}</td>
-        ${(!licenseMode&&!insuranceMode)?`<td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>`:''}
+        ${(!licenseMode&&!insuranceMode)?`<td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>`:''}
         ${licenseMode?`<td>${fmtDate(c.licenseExpiry)}</td>
         <td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td>`:''}
         ${insuranceMode?`<td><span class="tag ${ins.level}">${escapeHtml(ins.label)}</span></td><td>${fmtDate(c.insuranceExpiry)}</td><td>${escapeHtml(c.insuranceCompany||'—')}</td><td>${escapeHtml(c.owner||'—')}</td>`:''}
@@ -472,6 +491,7 @@ function renderRenewals(content, mode='inspection'){
   $('ren-export-xlsx')?.addEventListener('click',()=>exportRen('xlsx'));
   $('ren-export-pdf')?.addEventListener('click',()=>exportRen('pdf'));
   $('ren-bulk-delete')?.addEventListener('click',()=>deleteRenCars([...selectedRenIds]));
+  $('ren-insp-from-lic')?.addEventListener('click',bulkInspectionFromLicenses);
   $('ren-bulk-insp-yes')?.addEventListener('click',()=>bulkSetInspection('تم الفحص'));
   $('ren-bulk-insp-no')?.addEventListener('click',()=>bulkSetInspection('لم يفحص'));
   $('ren-bulk-lic-renew')?.addEventListener('click',bulkRenewLicense);
