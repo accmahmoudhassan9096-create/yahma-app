@@ -83,9 +83,50 @@ function buildBranchInspectionReports(vehicles: Record<string, unknown>[], date:
   });
 }
 
+/* ===== وسيط الإرسال: EmailJS أولًا (لو مُعدّ)، وإلا Resend =====
+   EmailJS يُستدعى من الخادم بمفتاح خاص فيبقى الإرسال التلقائي شغّال
+   حتى لو محدش فتح المنصة. القالب يحتاج متغيّرات: to_email / subject / message */
+function emailjsConfig() {
+  const privateKey = Deno.env.get('EMAILJS_PRIVATE_KEY');
+  const serviceId = Deno.env.get('EMAILJS_SERVICE_ID');
+  const templateId = Deno.env.get('EMAILJS_TEMPLATE_ID');
+  if (privateKey && serviceId && templateId) return { privateKey, serviceId, templateId };
+  return null;
+}
+function mailReady(fromEmail: string, resendKey: string) {
+  return !!emailjsConfig() || (!!resendKey && !!fromEmail);
+}
+
+async function sendViaEmailjs(emails: string[], subject: string, message: string) {
+  const cfg = emailjsConfig()!;
+  let sent = 0;
+  let failed = 0;
+  let firstError: string | null = null;
+  for (const email of emails) {
+    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id: cfg.serviceId,
+        template_id: cfg.templateId,
+        user_id: cfg.privateKey,
+        template_params: { to_email: email, subject, message },
+      }),
+    });
+    if (response.ok) sent++;
+    else {
+      failed++;
+      const result = await response.json().catch(() => ({}));
+      firstError ||= String(result.message || `خطأ EmailJS (${response.status})`);
+    }
+  }
+  return { sent, failed, error: firstError };
+}
+
 async function sendToEmails(emails: string[], subject: string, message: string, fromEmail: string, resendKey: string) {
   const unique = [...new Map(emails.filter((e) => e.includes('@')).map((email) => [email.toLowerCase(), email.trim()])).values()];
   if (!unique.length) return { sent: 0, failed: 0, error: 'لا يوجد بريد صالح' };
+  if (emailjsConfig()) return sendViaEmailjs(unique, subject, message);
   const safeMessage = message.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
   let sent = 0;
   let failed = 0;
@@ -155,6 +196,7 @@ async function deliver(adminClient: ReturnType<typeof createClient>, fromEmail: 
   }
   const unique = [...new Map(recipients.map((email) => [email.toLowerCase(), email])).values()];
   if (!unique.length) return { sent: 0, failed: 0, error: 'لا يوجد مستلمون لديهم بريد إلكتروني' };
+  if (emailjsConfig()) return sendViaEmailjs(unique, subject, message);
 
   const safeMessage = message.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
   let sent = 0;
@@ -272,7 +314,7 @@ Deno.serve(async (req) => {
     const cronSecret = Deno.env.get('YAHMA_CRON_SECRET');
 
     if (cronSecret && req.headers.get('x-yahma-cron-secret') === cronSecret) {
-      if (!resendKey || !fromEmail) throw new Error('خدمة البريد غير مكتملة الإعداد');
+      if (!mailReady(fromEmail, resendKey)) throw new Error('خدمة البريد غير مكتملة الإعداد');
       return response(await runSchedule(adminClient, fromEmail, resendKey));
     }
 
@@ -341,7 +383,7 @@ Deno.serve(async (req) => {
     }
     if (action === 'send_branch_inspection') {
       if (profile.role !== 'admin') throw new Error('إرسال تقرير الفروع متاح للمدير فقط');
-      if (!resendKey || !fromEmail) throw new Error('خدمة البريد غير مكتملة الإعداد');
+      if (!mailReady(fromEmail, resendKey)) throw new Error('خدمة البريد غير مكتملة الإعداد');
       const only = Array.isArray(body.branches) ? body.branches.map((b: unknown) => String(b)) : [];
       const vehicles: Record<string, unknown>[] = [];
       for (let offset = 0; offset < 100000; offset += 1000) {
@@ -376,7 +418,7 @@ Deno.serve(async (req) => {
       }
       return response({ users });
     }
-    if (!resendKey || !fromEmail) throw new Error('خدمة البريد غير مكتملة الإعداد');
+    if (!mailReady(fromEmail, resendKey)) throw new Error('خدمة البريد غير مكتملة الإعداد');
     if (action === 'send_report_pdf') {
       if (profile.role !== 'admin') throw new Error('إرسال التقارير متاح للمدير فقط');
       const subject = String(body.subject || '').trim();
