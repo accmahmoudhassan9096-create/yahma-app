@@ -34,8 +34,86 @@ function asDate(value: unknown) {
   return value.slice(0, 10);
 }
 
+function flattenCars(vehicles: Record<string, unknown>[]) {
+  return vehicles.map((row) => ({ ...row, ...((row.data && typeof row.data === 'object') ? row.data as Record<string, unknown> : {}) }));
+}
+
+/* تقرير فحص لكل فرع: السيارات التي لم يتم فحصها (أو رخصتها منتهية) */
+function buildBranchInspectionReports(vehicles: Record<string, unknown>[], date: string) {
+  const cars = flattenCars(vehicles);
+  const today = new Date(`${date}T00:00:00+03:00`).getTime();
+  const daysLeft = (value: unknown) => {
+    const iso = asDate(value);
+    if (!iso) return null;
+    return Math.floor((new Date(`${iso}T00:00:00+03:00`).getTime() - today) / 86400000);
+  };
+  const byBranch = new Map<string, { total: number; pending: { plate: string; license: string; status: string }[] }>();
+  for (const car of cars) {
+    const branch = String(car.branch || '').trim() || 'غير محدد';
+    if (!byBranch.has(branch)) byBranch.set(branch, { total: 0, pending: [] });
+    const entry = byBranch.get(branch)!;
+    entry.total++;
+    const inspection = String(car.inspectionStatus ?? car.inspection_status ?? '').trim();
+    const inspected = inspection === 'تم الفحص';
+    const licenseLeft = daysLeft(car.licenseExpiry ?? car.licenseexpiry);
+    if (!inspected || (licenseLeft !== null && licenseLeft < 0)) {
+      entry.pending.push({
+        plate: String(car.plate || '—'),
+        license: licenseLeft === null ? '—' : (licenseLeft < 0 ? `منتهية منذ ${Math.abs(licenseLeft)} يوم` : `سارية (${licenseLeft} يوم)`),
+        status: inspected ? 'تم الفحص — رخصة منتهية' : (inspection || 'لم يفحص'),
+      });
+    }
+  }
+  return [...byBranch.entries()].map(([branch, data]) => {
+    const list = data.pending.slice(0, 60);
+    const lines = [
+      `الفرع: ${branch}`,
+      `التاريخ: ${date}`,
+      '',
+      `عدد السيارات التي تحتاج فحصًا: ${data.pending.length} من ${data.total}`,
+      '',
+    ];
+    list.forEach((item, index) => {
+      lines.push(`${index + 1}) اللوحة: ${item.plate} — الحالة: ${item.status} — الرخصة: ${item.license}`);
+    });
+    if (data.pending.length > list.length) lines.push(`… و${data.pending.length - list.length} سيارة أخرى`);
+    if (!data.pending.length) lines.push('لا توجد سيارات تحتاج فحصًا — thank you، كل السيارات مفحوصة.');
+    lines.push('', 'برجاء إجراء الفحص وتحديث حالته في المنصة. شكرًا تعاونكم.');
+    return { branch, total: data.total, pending: data.pending.length, subject: `يهماء — تقرير الفحص الأسبوعي — ${branch}`, message: lines.join('\n') };
+  });
+}
+
+async function sendToEmails(emails: string[], subject: string, message: string, fromEmail: string, resendKey: string) {
+  const unique = [...new Map(emails.filter((e) => e.includes('@')).map((email) => [email.toLowerCase(), email.trim()])).values()];
+  if (!unique.length) return { sent: 0, failed: 0, error: 'لا يوجد بريد صالح' };
+  const safeMessage = message.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+  let sent = 0;
+  let failed = 0;
+  let firstError: string | null = null;
+  for (let i = 0; i < unique.length; i += 100) {
+    const batch = unique.slice(i, i + 100).map((email) => ({
+      from: fromEmail,
+      to: [email],
+      subject,
+      text: `${message}\n\n— منصة يهماء لتأجير السيارات`,
+      html: `<div dir="rtl" style="font-family:Arial,sans-serif;white-space:pre-wrap;line-height:1.8">${safeMessage}</div><hr><div dir="rtl" style="color:#667085">منصة يهماء لتأجير السيارات</div>`,
+    }));
+    const mailResponse = await fetch('https://api.resend.com/emails/batch', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(batch),
+    });
+    const result = await mailResponse.json().catch(() => ({}));
+    if (!mailResponse.ok) {
+      failed += batch.length;
+      firstError ||= String(result.message || result.name || `خطأ مزود البريد (${mailResponse.status})`);
+    } else sent += batch.length;
+  }
+  return { sent, failed, error: firstError };
+}
+
 function makeScheduledMessage(kind: 'daily' | 'weekly', vehicles: Record<string, unknown>[], date: string) {
-  const cars = vehicles.map((row) => ({ ...row, ...((row.data && typeof row.data === 'object') ? row.data as Record<string, unknown> : {}) }));
+  const cars = flattenCars(vehicles);
   const today = new Date(`${date}T00:00:00+03:00`).getTime();
   let expired = 0;
   let due7 = 0;
@@ -145,6 +223,27 @@ async function runSchedule(adminClient: ReturnType<typeof createClient>, fromEma
       const { subject, message } = makeScheduledMessage(kind as 'daily' | 'weekly', vehicles, now.date);
       outcomes.push({ kind, ...(await deliver(adminClient, fromEmail, resendKey, subject, message)) });
     }
+    /* تقرير الفحص لكل فرع — يُرسل مع نوبة الأسبوعي إن كانت هناك بريدات مسجّلة */
+    if (claims.includes('weekly')) {
+      const { data: contacts } = await adminClient.from('branch_contacts').select('branch_name,email,active');
+      const active = (contacts || []).filter((c) => c.active !== false && c.email);
+      if (active.length) {
+        const reports = buildBranchInspectionReports(vehicles, now.date);
+        let sent = 0;
+        let failed = 0;
+        const skipped: string[] = [];
+        const errors: string[] = [];
+        for (const contact of active) {
+          const report = reports.find((r) => r.branch === contact.branch_name);
+          if (!report) { skipped.push(contact.branch_name); continue; }
+          const result = await sendToEmails([contact.email], report.subject, report.message, fromEmail, resendKey);
+          sent += result.sent;
+          failed += result.failed;
+          if (result.error && errors.length < 3) errors.push(`${contact.branch_name}: ${result.error}`);
+        }
+        outcomes.push({ kind: 'weekly_branches', sent, failed, skipped, errors });
+      }
+    }
     for (const outcome of outcomes) {
       if (outcome.sent > 0) continue;
       const column = outcome.kind === 'daily' ? 'last_daily_date' : 'last_weekly_date';
@@ -190,6 +289,80 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const action = String(body.action || '');
+    if (action === 'list_branch_contacts') {
+      if (profile.role !== 'admin') throw new Error('إدارة بريد الفروع متاحة للمدير فقط');
+      const [{ data: contacts }, fleetRows] = await Promise.all([
+        adminClient.from('branch_contacts').select('*').order('branch_name'),
+        adminClient.from('vehicles').select('branch'),
+      ]);
+      const counts = new Map<string, number>();
+      for (const row of fleetRows.data || []) {
+        const name = String((row as Record<string, unknown>).branch || '').trim() || 'غير محدد';
+        counts.set(name, (counts.get(name) || 0) + 1);
+      }
+      const branches = [...counts.entries()].map(([name, cars]) => ({ name, cars })).sort((a, b) => b.cars - a.cars);
+      return response({ contacts: contacts || [], branches });
+    }
+    if (action === 'save_branch_contacts') {
+      if (profile.role !== 'admin') throw new Error('حفظ بريد الفروع متاح للمدير فقط');
+      const items = Array.isArray(body.contacts) ? body.contacts : [];
+      if (items.length > 200) throw new Error('عدد الفروع يتجاوز الحد المسموح');
+      const saved: string[] = [];
+      const errors: string[] = [];
+      for (const raw of items) {
+        const branchName = String(raw?.branch_name ?? '').trim();
+        const email = String(raw?.email ?? '').trim().toLowerCase();
+        if (!branchName || !email) continue;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errors.push(`بريد غير صالح للفرع ${branchName}`); continue; }
+        const { error } = await adminClient.from('branch_contacts').upsert({
+          branch_name: branchName,
+          email,
+          phone: String(raw?.phone ?? '').trim() || null,
+          active: raw?.active !== false,
+          updated_by: caller.id,
+          updated_at: new Date().toISOString(),
+        });
+        if (error) errors.push(`${branchName}: ${error.message}`);
+        else saved.push(branchName);
+      }
+      return response({ saved: saved.length, errors });
+    }
+    if (action === 'preview_branch_inspection') {
+      if (!['admin', 'ops'].includes(profile.role)) throw new Error('غير مسموح');
+      const vehicles: Record<string, unknown>[] = [];
+      for (let offset = 0; offset < 100000; offset += 1000) {
+        const { data, error: fleetError } = await adminClient.from('vehicles').select('*').range(offset, offset + 999);
+        if (fleetError) throw fleetError;
+        vehicles.push(...((data || []) as Record<string, unknown>[]));
+        if (!data || data.length < 1000) break;
+      }
+      const date = riyadhNow().date;
+      return response({ date, reports: buildBranchInspectionReports(vehicles, date) });
+    }
+    if (action === 'send_branch_inspection') {
+      if (profile.role !== 'admin') throw new Error('إرسال تقرير الفروع متاح للمدير فقط');
+      if (!resendKey || !fromEmail) throw new Error('خدمة البريد غير مكتملة الإعداد');
+      const only = Array.isArray(body.branches) ? body.branches.map((b: unknown) => String(b)) : [];
+      const vehicles: Record<string, unknown>[] = [];
+      for (let offset = 0; offset < 100000; offset += 1000) {
+        const { data, error: fleetError } = await adminClient.from('vehicles').select('*').range(offset, offset + 999);
+        if (fleetError) throw fleetError;
+        vehicles.push(...((data || []) as Record<string, unknown>[]));
+        if (!data || data.length < 1000) break;
+      }
+      const date = riyadhNow().date;
+      const reports = buildBranchInspectionReports(vehicles, date);
+      const { data: contacts } = await adminClient.from('branch_contacts').select('branch_name,email,active');
+      const active = (contacts || []).filter((c) => c.active !== false && c.email && (!only.length || only.includes(String(c.branch_name))));
+      if (!active.length) throw new Error('لا يوجد فروع ببريد مسجّل — أضف بريد الفرع أولًا');
+      const results: { branch: string; pending: number; sent: number; failed: number; error?: string }[] = [];
+      for (const contact of active) {
+        const report = reports.find((r) => r.branch === String(contact.branch_name));
+        const result = await sendToEmails([String(contact.email)], report ? report.subject : `يهماء — تقرير الفحص — ${contact.branch_name}`, report ? report.message : `لا توجد بيانات لهذا الفرع بتاريخ ${date}.`, fromEmail, resendKey);
+        results.push({ branch: String(contact.branch_name), pending: report?.pending || 0, ...result });
+      }
+      return response({ date, sent: results.reduce((s, r) => s + r.sent, 0), failed: results.reduce((s, r) => s + r.failed, 0), results });
+    }
     if (action === 'list_report_recipients') {
       if (profile.role !== 'admin') throw new Error('اختيار مستلمي التقارير متاح للمدير فقط');
       const users: { id: string; email: string; name: string }[] = [];

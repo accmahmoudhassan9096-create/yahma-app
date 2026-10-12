@@ -764,6 +764,7 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
     </div>
   </div>
 
+    <div class="rd-card rd-3d branch-mail-card" id="branch-mail-card" style="display:none"></div>
     <div class="rd-card rd-3d snd-card">
       <div class="rd-card-h"><h3>📬 الإرسال المجدول وقائمة المستلمين</h3><span class="rd-chip">إرسال آلي من الخادم</span></div>
       <div class="snd-controls">
@@ -1082,6 +1083,14 @@ ${d.accLine}
         ban.innerHTML=`<b>⏰ موعد الإرسال المجدول حان — ${rec.filter(r=>r.daily||r.docs).length} مستلم في القائمة</b><div class="snd-banner-acts">${btns}${due.includes('weekly')?'<button type="button" class="btn btn-ghost btn-small" onclick="window.sndPdfDocs()">🖼 PDF المستندات</button>':''}</div>`;
         ban.style.display='flex';
       } else { ban.style.display='none'; ban.innerHTML=''; }
+    }
+    /* كارت تقرير الفحص الأسبوعي لكل فرع (للمدير فقط) */
+    const bmCard = document.getElementById('branch-mail-card');
+    if (bmCard) {
+      if (window.currentRole === 'admin' && window.YahmaBranchEmail && typeof window.YahmaBranchEmail.mount === 'function') {
+        bmCard.style.display = '';
+        window.YahmaBranchEmail.mount(bmCard).catch(() => { bmCard.style.display = 'none'; });
+      } else bmCard.style.display = 'none';
     }
     const rowsEl=document.getElementById('snd-rows');
     if(rowsEl){
