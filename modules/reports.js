@@ -580,6 +580,7 @@ function renderReports(content, context){
       </div>
       <div class="rd-actions">
         <button type="button" class="btn btn-ghost btn-small" id="rd-refresh">↻ تحديث</button>
+        ${window.currentRole==='admin'?'<button type="button" class="btn btn-ghost btn-small" id="rd-go-branch-mail" title="إعداد بريد الفروع وفحص خدمة الإرسال">📧 بريد الفروع</button>':''}
         <button type="button" class="btn btn-ghost btn-small" id="rd-audit">سجل النشاط</button>
         <button type="button" class="btn btn-ghost btn-small" id="rd-wa-copy">📋 نسخ</button>
         <button type="button" class="btn btn-primary btn-small" id="rd-formal">📑 التقرير الرسمي الشامل</button>
@@ -595,6 +596,8 @@ function renderReports(content, context){
     <div class="rd-filter-status" id="rd-filter-status" aria-live="polite"></div>
 
     <div id="snd-banner"></div>
+
+    <div class="rd-card rd-3d branch-mail-card" id="branch-mail-card" style="display:none"></div>
 
     <div class="rd-card rd-3d rd-acct-card">
       <div class="rd-card-h"><h3>مؤشرات محاسبية</h3><span class="rd-chip">تقديرية · ضمن الفترة</span></div>
@@ -764,7 +767,6 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
     </div>
   </div>
 
-    <div class="rd-card rd-3d branch-mail-card" id="branch-mail-card" style="display:none"></div>
     <div class="rd-card rd-3d snd-card">
       <div class="rd-card-h"><h3>📬 الإرسال المجدول وقائمة المستلمين</h3><span class="rd-chip">إرسال آلي من الخادم</span></div>
       <div class="snd-controls">
@@ -1092,6 +1094,8 @@ ${d.accLine}
         window.YahmaBranchEmail.mount(bmCard).catch(() => { bmCard.style.display = 'none'; });
       } else bmCard.style.display = 'none';
     }
+    const goBm=document.getElementById('rd-go-branch-mail');
+    if(goBm) goBm.onclick=()=>{ const c=document.getElementById('branch-mail-card'); if(c){ c.scrollIntoView({behavior:'smooth',block:'start'}); setTimeout(()=>c.querySelector('#branch-mail-preflight')?.focus(),400); } };
     const rowsEl=document.getElementById('snd-rows');
     if(rowsEl){
       rowsEl.innerHTML = rec.length ? rec.map(r=>`
