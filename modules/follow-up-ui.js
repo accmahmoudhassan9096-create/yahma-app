@@ -95,9 +95,11 @@ function renderFollowUp(content){
           <th>اللون</th>
           <th>المدينة</th>
           <th>الرقم التسلسلي</th>
+          <th>الرقم التسلسلي</th>
           <th>رقم البطاقة</th>
           <th>تاريخ نهاية البطاقة</th>
           <th>حالة البطاقة</th>
+          <th>حالة التأمين</th>
           <th>الفرع</th>
           <th>حالة السيارة</th>
           <th>ملاحظات</th>
@@ -232,7 +234,7 @@ function renderFollowUp(content){
       return av-bv;
     });
   }
-  window._yahmaCurrentPdfData=()=>({title:'بطاقات التشغيل والتأمين المفلترة',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','الرقم التسلسي','رقم البطاقة','انتهاء البطاقة','حالة البطاقة','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.serial||'—',c.cardNumber||'—',c.cardExpiry||'—',cardDisplayStatus(c.cardExpiry,c.cardStatus).label||'—',c.branch||'—',textTag(c.carStatus).label||'—'])});
+  window._yahmaCurrentPdfData=()=>({title:'بطاقات التشغيل والتأمين المفلترة',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','الرقم التسلسلي','رقم البطاقة','انتهاء البطاقة','حالة البطاقة','حالة التأمين','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.serial||'—',c.cardNumber||'—',c.cardExpiry||'—',cardDisplayStatus(c.cardExpiry,c.cardStatus).label||'—',c.branch||'—',textTag(c.carStatus).label||'—'])});
 
   /* تحديد جماعي + حذف (إداريون فقط) */
   function updateFuBulkBar(){
@@ -339,11 +341,11 @@ function renderFollowUp(content){
         <td>${escapeHtml(c.model||'—')}</td>
         <td>${escapeHtml(String(c.odometer??'').trim()||'—')}</td>
         <td>${escapeHtml(c.color||'—')}</td>
-        <td>${escapeHtml(c.city||'—')}</td>
+        <td>${escapeHtml(c.city||'—')}</td><td>${escapeHtml(c.serial||'—')}</td>
         <td class="serial-cell">${escapeHtml(c.serial||'—')}</td>
         <td>${escapeHtml(c.cardNumber||'—')}</td>
         <td>${fmtDate(c.cardExpiry)}</td>
-        <td><span class="tag ${card.level}">${escapeHtml(card.label)}</span></td>
+        <td><span class="tag ${card.level}">${escapeHtml(card.label)}</span></td><td><span class="tag ${textTag(c.insuranceStatus).level}">${escapeHtml(textTag(c.insuranceStatus).label)}</span></td>
         <td>${escapeHtml(c.branch||'—')}</td>
         <td><span class="tag ${carTag.level}">${escapeHtml(carTag.label)}</span></td>
         <td><input class="fu-note-input" data-note-id="${escapeHtml(c.id)}" value="${escapeHtml(c.notes||'')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(c.plate||'—')}"${noteEditable?'':' readonly'}></td>
@@ -359,7 +361,7 @@ function renderFollowUp(content){
         if(!window._fuVT || window._fuVT._tb !== tbody){
           if(window._fuVT && window._fuVT.destroy) try{window._fuVT.destroy()}catch(e){}
           window._fuVT = window.YahmaVTable.create({
-            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 15+delCol,
+            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 16+delCol,
             renderRow: function(c){ return renderFuRow(c); },
             emptyHtml: '<tr><td colspan="'+(15+delCol)+'"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>'
           });

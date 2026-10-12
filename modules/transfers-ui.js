@@ -72,6 +72,7 @@ function renderTransfers(content){
           <th>كم الحالي</th>
           <th>اللون</th>
           <th>المدينة</th>
+          <th>الرقم التسلسلي</th>
           <th>المالك الحالي</th>
           <th>المالك السابق</th>
           <th>تاريخ التنازل</th>
@@ -200,6 +201,7 @@ function renderTransfers(content){
         <td>${escapeHtml(String(c.odometer??'').trim()||'—')}</td>
         <td>${escapeHtml(c.color||'—')}</td>
         <td>${escapeHtml(c.city||'—')}</td>
+        <td>${escapeHtml(c.serial||'—')}</td>
         <td>${escapeHtml(c.owner||'—')}</td>
         <td>${escapeHtml(c.transferFrom||'—')}</td>
         <td>${c.transferDate?fmtDate(c.transferDate):'—'}</td>

@@ -28,17 +28,44 @@ function sheetRowsWithUniqueKeys(ws){
     });
 }
 
+/* كل الأوراق: الملف قد يحتوي عدة أوراق بنفس المخطط (مثل ملف التمويل).
+   نقرأها كلها ونمنع تكرار اللوحة (الأولوية للورقة الأولى = الأحدث). */
+function workbookRowsAllSheets(wb){
+  const merged = [];
+  const seen = new Set();
+  const sheets = [];
+  (wb.SheetNames || []).forEach((name, idx) => {
+    let rws = [];
+    try { rws = sheetRowsWithUniqueKeys(wb.Sheets[name]); } catch(e) { return; }
+    let added = 0;
+    rws.forEach(row => {
+      const plate = Object.keys(row).map(k => row[k]).find(v => typeof v === 'string' || typeof v === 'number') ?? '';
+      const key = normalizePlateKey(plate);
+      if (key) { if (seen.has(key)) return; seen.add(key); }
+      merged.push(row); added++;
+    });
+    sheets.push({ name, rows: rws.length, added, index: idx });
+  });
+  return { rows: merged, sheets };
+}
+
 async function handleExcelFile(file){
   if(currentRole!=='admin'&&currentRole!=='ops'){ alert('ليس لديك صلاحية استيراد بيانات الأسطول.'); return; }
   if(!(await ensureXlsxReady())){ alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.'); return; }
-  let rows, wb;
+  let rows, wb, sheetInfo = null;
   try{
     const buf = await file.arrayBuffer();
     wb = XLSX.read(buf, {type:'array', cellDates:true});
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    rows = sheetRowsWithUniqueKeys(ws);
+    const all = workbookRowsAllSheets(wb);
+    rows = all.rows;
+    sheetInfo = all.sheets;
   }catch(e){ alert('تعذر قراءة الملف. تأكد أنه ملف إكسيل أو CSV صحيح.'); return; }
   if(!rows.length){ alert('الملف فارغ أو لا يحتوي على بيانات.'); return; }
+  try{
+    if(sheetInfo && sheetInfo.length>1){
+      console.info('[yahma] sheets read: ' + JSON.stringify(sheetInfo));
+    }
+  }catch(_){}
 
   const plan=window.YahmaFleetExcel.parseImportRows(rows,uid);
   if(!plan.active.length&&!plan.sold.length){ alert('لم يتم العثور على صف يحتوي على رقم لوحة صحيح. تأكد من مطابقة أسماء الأعمدة لنموذج الإكسيل.'); return; }

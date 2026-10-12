@@ -176,6 +176,7 @@
       fleetRows.push({
         plate: car.plate, brand: car.brand, type: car.type, model: car.model,
         odometer: car.odometer, color: car.color, city: car.city,
+        serial: car.serial, insuranceStatus: car.insuranceStatus,
         branch: car.branch, owner: car.owner, carStatus: car.carStatus,
         readyLabel: isReady ? 'جاهزة' : (resultLabel || 'غير جاهزة'),
         dailyRate: car.dailyRate, minDailyRate: car.minDailyRate,
@@ -268,9 +269,9 @@
         try{
           const rows=(report.fleetRows||[]).slice(0,300);
           if(!rows.length) return '';
-          const head=['اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','الفرع','المالك','الحالة','الجاهزية','سعر اليوم','أقل سعر','سعر الشهر','أقل شهري'];
-          const body=rows.map(c=>'<tr>'+[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',c.readyLabel||'—',c.dailyRate||'—',c.minDailyRate||'—',c.monthlyRate||'—',c.minMonthlyRate||'—']
-            .map((v,i)=>'<td'+(i>=11?' class="num"':'')+'>'+escapeHtml(String(v))+'</td>').join('')+'</tr>').join('');
+          const head=['اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','الرقم التسلسلي','حالة التأمين','انتهاء الرخصة','الفرع','المالك','الحالة','الجاهزية','سعر اليوم','أقل سعر','سعر الشهر','أقل شهري'];
+          const body=rows.map(c=>'<tr>'+[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.serial||'—',c.insuranceStatus||'—',c.licenseExpiry||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',c.readyLabel||'—',c.dailyRate||'—',c.minDailyRate||'—',c.monthlyRate||'—',c.minMonthlyRate||'—']
+            .map((v,i)=>'<td'+(i>=14?' class="num"':'')+'>'+escapeHtml(String(v))+'</td>').join('')+'</tr>').join('');
           return '<div class="fr-sec-title">سابعًا: جدول الأسطول التفصيلي (أعلى ' + rows.length + ' سيارة' + ((report.fleetRows||[]).length>300 ? ' من ' + report.fleetRows.length :'') + ')</div>' +
             '<table class="fr-table fr-dense"><thead><tr>' + head.map((h,i)=>'<th'+(i>=11?' class="num"':'')+'>'+escapeHtml(h)+'</th>').join('') + '</tr></thead><tbody>' + body + '</tbody></table>';
         }catch(e){ return ''; }
@@ -1229,6 +1230,10 @@ ${d.accLine}
         'كم الحالي': c.odometer||'',
         'اللون': c.color||'',
         'المدينة': c.city||'',
+        'الرقم التسلسلي': c.serial||'',
+        'رقم الهيكل': c.chassisNo||'',
+        'حالة التأمين': c.insuranceStatus||'',
+        'انتهاء الرخصة': c.licenseExpiry||'',
         'أيام التأجير': c.rentedDaysMonth||'',
         'إيراد تقديري': ((parseFloat(c.dailyRate)||0)*(parseFloat(c.rentedDaysMonth)||0))||'',
         'انتهاء البطاقة': c.cardExpiry||'',

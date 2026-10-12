@@ -94,6 +94,7 @@ function renderRenewals(content, mode='inspection'){
           <th>كم الحالي</th>
           <th>اللون</th>
           <th>المدينة</th>
+          <th>الرقم التسلسلي</th>
           ${(!licenseMode&&!insuranceMode)?'<th>حالة الفحص</th>':''}
           ${licenseMode?'<th>تاريخ انتهاء الرخصة</th><th>حالة الرخصة</th>':''}
           ${insuranceMode?'<th>حالة التأمين</th><th>تاريخ الانتهاء</th><th>شركة التأمين</th><th>المالك</th>':''}
@@ -306,7 +307,7 @@ function renderRenewals(content, mode='inspection'){
         <td>${escapeHtml(c.model||'—')}</td>
         <td>${escapeHtml(String(c.odometer??'').trim()||'—')}</td>
         <td>${escapeHtml(c.color||'—')}</td>
-        <td>${escapeHtml(c.city||'—')}</td>
+        <td>${escapeHtml(c.city||'—')}</td><td>${escapeHtml(c.serial||'—')}</td>
         ${(!licenseMode&&!insuranceMode)?`<td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>`:''}
         ${licenseMode?`<td>${fmtDate(c.licenseExpiry)}</td>
         <td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td>`:''}

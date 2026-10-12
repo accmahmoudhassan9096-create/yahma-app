@@ -6,8 +6,8 @@
     plate: ['رقم اللوحة','اللوحة','رقم السيارة','plate'],
     code: ['الكود','كود السيارة','رقم الكود','الرقم','code'],
     gps: ['GPS','جي بي اس','احداثيات','gps'],
-    brand: ['الطراز','الشركة','الماركة','ماركة','brand','make','company'],
-    type: ['النوع','الطراز','نوع السيارة','نوع المركبة','نوع العربية','الفئة','فئة السيارة','نوع الهيكل','الشكل','type','vehicle type'],
+    brand: ['الشركة','الماركة','ماركة','brand','make','company'],
+    type: ['النوع','نوع السيارة','نوع المركبة','نوع العربية','الفئة','فئة السيارة','الشكل','type','vehicle type'],
     model: ['الموديل','موديل السيارة','سنة الصنع','سنة الموديل','السنة','model'],
     serial: ['الرقم التسلسلي','رقم الشاسيه','serial','serial number','chassis'],
     cardNumber: ['رقم البطاقة','رقم الكارت','card number'],
@@ -30,7 +30,11 @@
     daysSinceMovement: ['عدد الإيام','عدد الايام','عدد الأيام','أيام من آخر حركة','days since movement','daysSinceMovement'],
     rentedDaysMonth: ['أيام التأجير','أيام الإيجار','عدد أيام التأجير','أيام التأجير هذا الشهر','rented days'],
     city: ['المدينة','city'],
-    color: ['اللون','color'],
+    color: ['اللون','اللون الأساسي','color','اللون الاساسي'],
+    chassisNo: ['رقم الهيكل','الهيكل','رقم الشاسيه','chassis no','vin'],
+    vehicleCondition: ['وضع المركبة','حالة المركبة','vehicle condition'],
+    registrationType: ['نوع التسجيل','التسجيل','registration type'],
+    bodyType: ['نوع الهيكل','body type'],
     nextService: ['موعد الصيانة القادمة','الصيانة القادمة','next service'],
     lastMaintenance: ['آخر صيانة','اخر صيانة','last maintenance'],
     maintenanceCost: ['تكلفة الصيانة','maintenance cost'],
@@ -88,7 +92,11 @@
     if (has('نوع') && !has('وقود')) return 'type';
     if (has('سنه')) return 'model';
     if (has('تسلسلي') || has('شاسيه')) return 'serial';
+    if (has('هيكل')) return 'chassisNo';
+    if (has('لون')) return 'color';
+    if (has('وضع') && has('مركبه')) return 'vehicleCondition';
     if (has('المالك')) return has('رقم') ? 'ownerNumber' : 'owner';
+    if (has('تسجيل')) return 'registrationType';
     if (has('ملاحظات')) return 'notes';
     return null;
   }
@@ -134,7 +142,8 @@
   }
 
   const IMPORT_FIELDS = [
-    'plate','code','gps','brand','type','model','color','serial','cardNumber','cardStatus','cardExpiry',
+    'plate','code','gps','brand','type','model','color','serial','chassisNo','vehicleCondition','registrationType','bodyType',
+    'cardNumber','cardStatus','cardExpiry',
     'licenseStatus','licenseExpiry','inspectionStatus','insuranceStatus','insuranceCompany','insuranceExpiry','owner','ownerNumber',
     'odometer','dailyRate','minDailyRate','monthlyRate','minMonthlyRate','lastMovementDate','daysSinceMovement','rentedDaysMonth',
     'nextService','lastMaintenance','maintenanceCost','workshop','documentUrl',
