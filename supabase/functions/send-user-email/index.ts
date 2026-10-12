@@ -331,6 +331,20 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const action = String(body.action || '');
+    if (action === 'mail_preflight') {
+      if (!['admin', 'ops'].includes(profile.role)) throw new Error('غير مسموح');
+      const ejs = emailjsConfig();
+      const provider = ejs ? 'emailjs' : ((resendKey && fromEmail) ? 'resend' : 'none');
+      return response({
+        provider,
+        ready: provider !== 'none',
+        from: fromEmail || null,
+        serviceId: ejs?.serviceId || null,
+        hint: provider === 'none'
+          ? 'أضف RESEND_API_KEY و RESEND_FROM_EMAIL في Edge Functions → Secrets'
+          : (provider === 'resend' ? 'Resend جاهز — جرّب «📤 إرسال الآن»' : 'EmailJS جاهز'),
+      });
+    }
     if (action === 'list_branch_contacts') {
       if (profile.role !== 'admin') throw new Error('إدارة بريد الفروع متاحة للمدير فقط');
       const [{ data: contacts }, fleetRows] = await Promise.all([

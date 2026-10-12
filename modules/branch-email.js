@@ -77,6 +77,7 @@
       <div class="rd-card-h"><h3>📧 تقرير الفحص الأسبوعي لكل فرع</h3><span class="rd-chip">بريد لكل فرع</span></div>
       <p class="muted-small">كل أسبوع: كل فرع يستلم إيميل فيه أرقام لوحاته التي لم يتم فحصها (أو رخصتها منتهية). التفعيل يتم من «الإرسال المجدول» أدناه.</p>
       <div class="branch-mail-actions">
+        <button type="button" class="btn btn-ghost btn-small" id="branch-mail-preflight">🔌 فحص الإعداد</button>
         <button type="button" class="btn btn-ghost btn-small" id="branch-mail-reload">↻ تحديث</button>
         <button type="button" class="btn btn-ghost btn-small" id="branch-mail-preview">👁 معاينة القائمة</button>
         <button type="button" class="btn btn-primary btn-small" id="branch-mail-save">💾 حفظ البريد</button>
@@ -110,6 +111,14 @@
       writeDraft(draft);
     });
 
+    container.querySelector('#branch-mail-preflight').onclick = async () => {
+      try {
+        status(st, 'جارٍ فحص خدمة البريد…');
+        const info = await call('mail_preflight');
+        const label = { resend: 'Resend ✅', emailjs: 'EmailJS ✅', none: 'غير مُعد ⚠️' }[info.provider] || info.provider;
+        status(st, `الوسيط: ${label}` + (info.from ? ` — البريد المرسِل: ${info.from}` : '') + (info.hint ? ` — ${info.hint}` : ''), !info.ready);
+      } catch (e) { status(st, String(e.message || e), true); }
+    };
     container.querySelector('#branch-mail-reload').onclick = () => load();
     container.querySelector('#branch-mail-preview').onclick = async () => {
       try {
