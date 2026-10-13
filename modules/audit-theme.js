@@ -238,8 +238,20 @@ function initTheme(){
     document.body.appendChild(backdrop);
   }
   const sidebar=document.querySelector('.sidebar');
-  const close=()=>{ sidebar?.classList.remove('open'); backdrop.classList.remove('show'); };
-  const open=()=>{ sidebar?.classList.add('open'); backdrop.classList.add('show'); };
+  const close=()=>{
+    if(!sidebar) return;
+    sidebar.classList.remove('open');
+    sidebar.style.zIndex='';
+    backdrop.classList.remove('show');
+  };
+  const open=()=>{
+    if(!sidebar) return;
+    /* z-index مضمون من JS كمان: القائمة فوق الـ backdrop دائمًا
+       (وإلا أي ضغطة على تبويب تقع على الـ backdrop فتبفل القائمة) */
+    sidebar.classList.add('open');
+    sidebar.style.zIndex='70';
+    backdrop.classList.add('show');
+  };
   btn.addEventListener('click', ()=> sidebar?.classList.contains('open') ? close() : open());
   backdrop.addEventListener('click', close);
   document.querySelectorAll('.nav-item').forEach(item=>{

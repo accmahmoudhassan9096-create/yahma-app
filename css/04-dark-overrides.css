@@ -268,8 +268,14 @@ body.dark-mode .topbar-actions .top-dd > .top-dd-menu{
   .more-divider{height:1px;background:var(--line);margin:4px 8px}
 
   /* Sidebar overlay for mobile */
-  .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(15,25,45,.45);z-index:55}
+  .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(15,25,45,.45);z-index:50}
   .sidebar-backdrop.show{display:block}
+  /* القائمة لازم تكون فوق الـ backdrop.
+     02-components.css فيه .sidebar{z-index:20!important} فكان الـ backdrop (55)
+     فوق القائمة، وأي ضغطة على تبويب كانت بتقع على الـ backdrop فبتقفل القائمة
+     والقسم ما بيفتحش. specificity أعلى + ترتيب أبعد في الملف. */
+  .sidebar{z-index:60!important}
+  .sidebar.open{z-index:70!important}
 
   /* Status tags with icons */
   .tag{display:inline-flex;align-items:center;justify-content:center;gap:4px}
