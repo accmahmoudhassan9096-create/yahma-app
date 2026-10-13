@@ -49,13 +49,21 @@ function dataContext(){
 
 // Keep the public entry point stable while the data module owns its implementation.
 let _loadDataInFlight = null;
+/* نُعرّف الـ context فور تحميل الملف حتى يجد hook استعادة الجلسة الأسطول
+   حتى لو لم يُستدعَ loadData بعد (حالة العميل العائد من الخلفية) */
+try{ window.YahmaAppContext = dataContext(); } catch (_) {}
 async function loadData(forceCloud=false){
   if(_loadDataInFlight) return _loadDataInFlight;
   _loadDataInFlight = _loadDataImpl(forceCloud);
   try{ return await _loadDataInFlight; }
   finally{ _loadDataInFlight = null; }
 }
-function _loadDataImpl(forceCloud=false){ return dataService.loadData(forceCloud, dataContext()); }
+function _loadDataImpl(forceCloud=false){
+  const ctx = dataContext();
+  /* متاح لغيره (استعادة الجلسة عند رجوع التطبيق) بدون تمرير context يدويًا */
+  try{ if (typeof window !== 'undefined') window.YahmaAppContext = ctx; } catch (_) {}
+  return dataService.loadData(forceCloud, ctx);
+}
 
 function refreshFleetFromCloud(){ return realtimeService.refresh(dataContext()); }
 function attachRealtimeSync(){ return realtimeService.attach(dataContext()); }

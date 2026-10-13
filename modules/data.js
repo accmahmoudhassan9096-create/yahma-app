@@ -67,17 +67,34 @@
     if (!client) throw new Error('عميل Supabase غير جاهز');
     const { data: authData, error: authError } = await client.auth.getSession();
     if (authError) throw authError;
-    if (!authData?.session?.user) throw new Error('انتهت جلسة الدخول؛ سجّل الدخول مجددًا لمزامنة السيارات');
+    if (!authData?.session?.user) {
+      markSessionExpired('انتهت جلسة الدخول؛ سجّل الدخول مجددًا لمزامنة السيارات');
+      throw new Error('انتهت جلسة الدخول؛ سجّل الدخول مجددًا لمزامنة السيارات');
+    }
 
     const rows = [];
     for (let from = 0; ; from += PAGE_SIZE) {
       const { data, error } = await client.from(table).select('*')
         .order('id', { ascending: true }).range(from, from + PAGE_SIZE - 1);
-      if (error) throw error;
+      if (error) {
+        /* 401/403 = جلسة غير صالحة: نسجّلها بوضوح بدل «تعذر الاتصال» المضلّل */
+        const code = Number(error.code) || 0;
+        const status = Number(error.status) || 0;
+        if (code === 42501 || status === 401 || status === 403 || /jwt|token|auth/i.test(String(error.message || ''))) {
+          markSessionExpired('انتهت صلاحية الجلسة على هذا الجهاز — سجّل الدخول من جديد');
+        }
+        throw error;
+      }
       if (data?.length) rows.push(...data);
       if (!data || data.length < PAGE_SIZE) break;
     }
     return rows;
+  }
+
+  /*-session منتهية: يمنع عرض شاشة فارغة صامتة ويطلب تسجيل دخول واضح */
+  function markSessionExpired(message) {
+    global.__yahmaSessionExpired = true;
+    global.__yahmaSessionExpiredMsg = message || 'انتهت جلسة الدخول';
   }
 
   function stableString(value) {
@@ -197,7 +214,9 @@
         }
       } catch (error) {
         console.warn('تعذر التحديث من Supabase:', error);
-        global.syncMessage = 'وضع محلي (تعذر الاتصال)';
+        global.syncMessage = global.__yahmaSessionExpired
+          ? global.__yahmaSessionExpiredMsg
+          : 'وضع محلي (تعذر الاتصال)';
         if (!usedCache || !fleet.length) {
           try { fleet = JSON.parse(global.localStorage.getItem(STORAGE_KEY) || '[]'); } catch (_) { fleet = []; }
           if (!fleet.length && !cloudMode) fleet = context.seedData();
@@ -206,14 +225,18 @@
         }
         const syncEl = global.document.getElementById('sync-status');
         if (syncEl) {
-          syncEl.textContent = global.currentUser
-            ? '⚠️ تعذر تحديث السيارات من Supabase — اضغط تحديث أو سجّل الدخول مجددًا'
-            : '⚠️ تعذر الاتصال بالسحابة — تعمل ببيانات محلية';
+          syncEl.textContent = global.__yahmaSessionExpired
+            ? '⚠️ انتهت جلسة الدخول على هذا الجهاز — سجّل الدخول من جديد'
+            : (global.currentUser
+              ? '⚠️ تعذر تحديث السيارات من Supabase — اضغط تحديث أو سجّل الدخول مجددًا'
+              : '⚠️ تعذر الاتصال بالسحابة — تعمل ببيانات محلية');
           syncEl.className = 'sync-status offline';
           syncEl.title = error?.message || 'تعذر جلب السيارات من Supabase';
         }
       }
     }
+
+    installResumeHook();
 
     fleet = context.getFleet();
     if (!Array.isArray(fleet)) { fleet = []; setFleet(context, fleet); }
@@ -272,11 +295,57 @@
     }
   }
 
+  /* استعادة تلقائية: الموبايل يقتل الجلسة في الخلفية، ولما المستخدم يرجع
+     للتطبيق تبقى الجلسة منتهية والبيانات فاضية. هنا بنعيد الجلب مرة واحدة
+     بلا تدخل من المستخدم. تُركَّب مرة واحدة فقط عند تحميل الملف. */
+  function installResumeHook() {
+    if (global.__yahmaResumeHook) return;
+    if (!global.document || !global.document.addEventListener) return;
+    global.__yahmaResumeHook = true;
+    let lastResume = 0;
+    let busy = false;
+    const fleetSize = () => {
+      const ctx = global.YahmaAppContext;
+      const list = ctx && typeof ctx.getFleet === 'function' ? ctx.getFleet() : null;
+      return Array.isArray(list) ? list.length : -1;
+    };
+    const resume = async (event) => {
+      /* فحص الظهور مطلوب لحدث visibilitychange فقط؛ focus/pageshow تعني
+         رجوع المستخدم للتطبيق أصلًا */
+      if (event && event.type === 'visibilitychange'
+          && global.document.visibilityState
+          && global.document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (busy || now - lastResume < 10000) return;
+      const size = fleetSize();
+      if (size > 0 && !global.__yahmaSessionExpired) return;
+      lastResume = now;
+      busy = true;
+      try {
+        global.__yahmaSessionExpired = false;
+        /* نقطة الدخول العامة تبني الـ context بنفسها وتحدّث الـ fleet */
+        await global.loadData(true);
+        if (typeof global.render === 'function') global.render();
+      } catch (_) {
+        /* نُبقي البيانات المحلية كما هي؛ سيظهر التنبيه للمستخدم */
+      } finally {
+        busy = false;
+      }
+    };
+    const onVisibility = () => resume({ type: 'visibilitychange' });
+    global.document.addEventListener('visibilitychange', onVisibility);
+    global.addEventListener('focus', () => resume({ type: 'focus' }));
+    global.addEventListener('pageshow', () => resume({ type: 'pageshow' }));
+  }
+
   global.YahmaData = Object.assign(global.YahmaData || {}, {
     toVehicleRow,
     fromVehicleRow,
     fetchAllVehicles,
     loadData,
-    saveData
+    saveData,
+    markSessionExpired,
+    installResumeHook
   });
+  installResumeHook();
 })(typeof window !== 'undefined' ? window : globalThis);
