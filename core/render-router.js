@@ -212,8 +212,10 @@ function showBranchScopeNotice(content){
   if(first) content.insertBefore(banner,first); else content.appendChild(banner);
   banner.querySelector('[data-ywarn="cloud"]').onclick=async()=>{ try{ if(typeof loadData==='function'){ await loadData(true); render(); } }catch(_){} };
   banner.querySelector('[data-ywarn="relogin"]').onclick=()=>{
-    try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(_){}
-    setTimeout(()=>location.reload(),400);
+    /* نمرّ عبر yahmaSignOut ليخرج محليًا فورًا حتى لو الشبكة تعطّلت */
+    try{ if(typeof window.yahmaSignOut==='function'){ window.yahmaSignOut(); } }
+    catch(_){ try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(__){} }
+    setTimeout(()=>location.reload(),600);
   };
 }
 
@@ -247,8 +249,10 @@ function showDataWarning(content){
       if(typeof loadData==='function'){ await loadData(true); render(); } }catch(_){}
   };
   banner.querySelector('[data-ywarn="relogin"]').onclick=()=>{
-    try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(_){}
-    setTimeout(()=>location.reload(),400);
+    /* نمرّ عبر yahmaSignOut ليخرج محليًا فورًا حتى لو الشبكة تعطّلت */
+    try{ if(typeof window.yahmaSignOut==='function'){ window.yahmaSignOut(); } }
+    catch(_){ try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(__){} }
+    setTimeout(()=>location.reload(),600);
   };
 }
 

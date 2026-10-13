@@ -31,21 +31,11 @@
       logout.textContent=previous;
       logout._yahmaLogoutRunning=false;
     };
-    /*鎖 protection: إغلاق أي جلسة ناجحة ولو يبقى signOut معلق على شبكة ضعيفة */
-    var hardStop=setTimeout(function(){
-      try{
-        finish();
-        var w2=document.getElementById('sync-status');
-        if(w2){ w2.textContent='تعذر تأكيد تسجيل الخروج — حدّث الصفحة'; w2.className='sync-status offline'; }
-      }catch(_){}
-    }, 8000);
+    /* حماية: لو signOut اتعلق على شبكة ضعيفة، نعيد تهيئة الزر بعد 8 ثواني.
+        yahmaSignOut بيخرج المستخدم محليًا فورًا، فمفيش سبب نوقفه. */
+    var hardStop=setTimeout(function(){ finish(); }, 8000);
     Promise.resolve(typeof window.yahmaSignOut==='function'?window.yahmaSignOut():false)
-      .then(function(ok){
-        if(ok===false){
-          try{ window.alert('تعذر تسجيل الخروج. حدّث الصفحة وحاول تاني.'); }catch(_){}
-        }
-      })
-      .catch(function(){ })
+      .catch(function(err){ console.warn('signOut error', err); })
       .then(function(){ clearTimeout(hardStop); finish(); });
   },true);
   async function openUserAdmin(){

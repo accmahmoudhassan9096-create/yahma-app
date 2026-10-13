@@ -76,36 +76,44 @@ function showAppScreen(){
   }, 2500);
 }
 
+/* ---- الخروج من الجهاز ----
+   القاعدة: المستخدم يقدر يخرج دايمًا حتى لو الشبكة وحشة أو السيرفر واقع.
+   فالخروج المحلي (مسح الجلسة من الجهاز + رجوع لشاشة الدخول) هو الأساس،
+   وإلغاء الـ refresh token على السيرفر مجرد تنظيف في الخلفية. */
+function yahmaClearLocalSession(){
+  var uid = (window.currentUser && window.currentUser.id) || window._bootedUid || '';
+  window._bootedUid=null;
+  try{ _sessionBootUid = null; }catch(_){}
+  window.currentUser=null;
+  window.currentUserPermissions=[];
+  window.currentRole='view';
+  window.currentUserBranch='';
+  window.currentUserName='';
+  window.__yahmaSessionExpired=false;
+  /* مسح كاش الدور والبيانات حتى ما تفتحش بيانات المستخدم ده بعد الدخول التالي */
+  try{ if(uid) localStorage.removeItem(roleCacheKey(uid)); }catch(_){}
+  try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k && k.indexOf('fleet-role-cache:')===0) localStorage.removeItem(k); } }catch(_){}
+}
+
 window.yahmaSignOut = async function(){
-  const authError = document.getElementById('auth-error');
+  /* 1) الخروج المحلي فوري — ده اللي المستخدم شايفه، ولا يعتمد على الشبكة */
   try{
-    if(window._demoMode){
-      window._demoMode=false;
-      window._bootedUid=null;
-      window.currentUser=null;
-      window.currentUserPermissions=[];
-      window.currentRole='view';
-      showAuthScreen();
-      return true;
-    }
-    if(!window.supabaseReady || !window.supabaseClient){
-      throw new Error('خدمة تسجيل الدخول غير متاحة. حدّث الصفحة ثم حاول مرة أخرى.');
-    }
-    const {error}=await window.supabaseClient.auth.signOut({scope:'local'});
-    if(error) throw error;
-    window._bootedUid=null;
-    window.currentUser=null;
-    window.currentUserPermissions=[];
-    window.currentRole='view';
-    window.currentUserBranch='';
+    window._demoMode=false;
+    yahmaClearLocalSession();
     showAuthScreen();
-    return true;
   }catch(error){
-    console.error('تعذر تسجيل الخروج',error);
-    if(authError) authError.textContent='تعذر تسجيل الخروج: '+(error.message||'تحقق من الاتصال ثم حاول مرة أخرى');
-    else window.alert('تعذر تسجيل الخروج: '+(error.message||'تحقق من الاتصال ثم حاول مرة أخرى'));
-    return false;
+    console.error('تعذر تنظيف الجلسة المحلية',error);
   }
+  /* 2) إلغاء الجلسة على السيرفر في الخلفية — لا يعطّل الخروج ولا يعلّمه فشل.
+        scope:'global' بيبلّغ السيرفر ويطلب حذف الـ refresh token. */
+  if(!window.supabaseReady || !window.supabaseClient) return true;
+  try{
+    const r = await window.supabaseClient.auth.signOut({scope:'global'});
+    if(r && r.error) console.warn('signOut remote:', r.error && r.error.message);
+  }catch(error){
+    console.warn('تعذر إلغاء الجلسة على السيرفر (المستخدم خرج محليًا):', error && error.message);
+  }
+  return true;
 };
 
 function roleCacheKey(uid){ return 'fleet-role-cache:'+uid; }
