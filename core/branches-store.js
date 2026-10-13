@@ -52,9 +52,31 @@ const PAGE_PERMISSION_OPTIONS=[
   {id:'transfers',label:'التنازلات'},{id:'reports',label:'التقارير'},{id:'audit',label:'سجل النشاط'}
 ];
 window.currentUserPermissions=Array.isArray(window.currentUserPermissions)?window.currentUserPermissions:[];
+/* ===== إصلاح: allowed_tabs فاضي/ null كان بيخفي كل التبويبات =====
+   الدالة كانت بترجّع مصفوفة فاضية لو الحقل اتسجل null أو [] في profiles،
+   فالمستخدم كان بيفضل محبوس في الرئيسية (dashboard) على الموبايل.
+   القاعدة الجديدة: لو مفيش تحديد صريح، امنح كل الأقسام عدا السجل الإداري. */
+window.ALL_YAHMA_TABS=(typeof PAGE_PERMISSION_OPTIONS!=='undefined'&&Array.isArray(PAGE_PERMISSION_OPTIONS))
+  ? PAGE_PERMISSION_OPTIONS.map(function(p){return p.id;})
+  : ['dashboard','fleet','branches','renewals','payments','license-renewals','insurance-renewals','inspections','transfers','reports','audit'];
+window.defaultYahmaTabsForRole=function(role){
+  var all=window.ALL_YAHMA_TABS||[];
+  if(role==='admin') return all.slice();
+  /* «view» و«ops» يشوفوا كل الأقسام عدا سجل النشاط (إداري بحت) */
+  return all.filter(function(id){ return id!=='audit'; });
+};
+window.resolveYahmaPermissions=function(allowed, role){
+  if(Array.isArray(allowed) && allowed.length) return allowed.slice();
+  return window.defaultYahmaTabsForRole(role);
+};
 window.canAccessYahmaTab=function(tab){
   if(tab==='dashboard'||window.currentRole==='admin'||window._demoMode)return true;
-  return Array.isArray(window.currentUserPermissions)&&window.currentUserPermissions.includes(tab);
+  if(Array.isArray(window.currentUserPermissions)&&window.currentUserPermissions.includes(tab))return true;
+  /* أمان: لو اللPermissions اتقرت فاضية لسبب ما، اسمح بكل التبويبات عدا الإداري */
+  if(!Array.isArray(window.currentUserPermissions)||!window.currentUserPermissions.length){
+    return window.defaultYahmaTabsForRole(window.currentRole).includes(tab);
+  }
+  return false;
 };
 
 // شبكة أمان ضد شاشة التحميل الأبدية

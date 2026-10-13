@@ -178,7 +178,10 @@ async function fetchUserRole(uid){
         continue;
       }
       if(data && ['admin','ops','view'].includes(data.role)){
-        window.currentUserPermissions=Array.isArray(data.allowed_tabs)?data.allowed_tabs:[];
+        /* allowed_tabs فاضي/ null كان بيخفي كل التبويبات — راجع resolveYahmaPermissions */
+        window.currentUserPermissions=(typeof window.resolveYahmaPermissions==='function')
+          ? window.resolveYahmaPermissions(data.allowed_tabs, data.role)
+          : (Array.isArray(data.allowed_tabs)?data.allowed_tabs:[]);
         if(data.branch_name) window.currentUserBranch = data.branch_name;
         else window.currentUserBranch = '';
         if(data.full_name) window.currentUserName = data.full_name;

@@ -294,9 +294,20 @@ function initTheme(){
 
  function applyRole(){
   const role=window.currentRole||'view';
+  let visibleTabs=0;
   document.querySelectorAll('.nav-item[data-tab]').forEach(item=>{
     item.style.display=window.canAccessYahmaTab(item.dataset.tab)?'':'none';
-  });
+     if(window.canAccessYahmaTab(item.dataset.tab)) visibleTabs++;
+   });
+   /* كل الأقسام مخفية = المستخدم محبوس بلا سبب؛ نوضّح بدل الصمت */
+   const sidebar=document.querySelector('.sidebar');
+   if(sidebar){
+     let hint=sidebar.querySelector('.yahma-no-tabs-hint');
+     if(visibleTabs<=1){
+       if(!hint){ hint=document.createElement('div'); hint.className='yahma-no-tabs-hint'; sidebar.appendChild(hint); }
+       hint.innerHTML='<b>لا توجد أقسام متاحة لحسابك</b><span>صلاحيات حسابك فارغة. كلّم المدير لتفعيل الأقسام.</span>';
+     }else if(hint){ hint.remove(); }
+   }
   const accountSettings=document.getElementById('btn-account-settings');
   if(accountSettings) accountSettings.innerHTML='<span>⚙</span> '+(role==='admin'?'إدارة المستخدمين':'إعدادات الحساب');
   const badge=document.getElementById('role-badge');

@@ -33,7 +33,10 @@
         return 'view';
       }
       if (data && data.role) {
-        window.currentUserPermissions = Array.isArray(data.allowed_tabs) ? data.allowed_tabs : [];
+        /* allowed_tabs فاضي/ null كان بيخفي كل التبويبات — راجع resolveYahmaPermissions */
+        window.currentUserPermissions = (typeof window.resolveYahmaPermissions === 'function')
+          ? window.resolveYahmaPermissions(data.allowed_tabs, data.role)
+          : (Array.isArray(data.allowed_tabs) ? data.allowed_tabs : []);
         // حفظ اسم الفرع لو موجود
         if (data.branch_name) window.currentUserBranch = data.branch_name;
         if (data.full_name) window.currentUserName = data.full_name;
