@@ -45,19 +45,20 @@
       catch(e){ console.error('render', e); }
     }
     var debounced=debounce(run, 50);
+    /* ⚠️ بنستخدم setTimeout بدل requestAnimationFrame.
+       rAF لا تعمل عندما تكون الصفحة في الخلفية أو مخفية على الموبايل،
+       وبتخلي render معلّق — فكان التبويب يتغيّر في البيانات بينما
+       الشاشة تظل على المحتوى القديم. setTimeout بيشتغل دايمًا. */
     window.render = function(){
       lastThis=this; lastArgs=arguments;
-      if(pending){ debounced(); return; }
-      pending=true;
-      // أول استدعاء فوري تقريبًا، والتالي يتجمّع
-      if(typeof requestAnimationFrame==='function'){
-        requestAnimationFrame(function(){ debounced(); });
-      } else {
-        debounced();
-      }
+      debounced();
     };
     window.render._perfWrapped = true;
     window.render._orig = orig;
+    window.render._perfImmediate = function(){
+      lastThis=this; lastArgs=arguments;
+      try{ orig.apply(lastThis, lastArgs||[]); }catch(e){ console.error('render', e); }
+    };
   }
 
   // بحث عام: debounce

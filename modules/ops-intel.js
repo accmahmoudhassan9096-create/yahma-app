@@ -672,30 +672,21 @@
   }
 
   // Wrap render if available
+  /* ⚠️ ملاحظة مهمة: الكود القديم كان بيعيد إسناد `render = window.render`
+     وده كان بيكسر الـ closure بتاع render-router (اللي بيقرا currentTab من
+     branches-store)، فالتبويب كان بيتغيّر في البيانات بدون ما الشاشة تتحدث.
+     بقى بنغلّف window.render فقط، من غير المساس بالـ binding العام. */
   function hookRender(){
+    const markHooked = (fn)=>{ fn._opsHooked=true; return fn; };
     if(typeof window.render==='function' && !window.render._opsHooked){
       const orig=window.render;
-      window.render=function(){
+      window.render = markHooked(function(){
         let r;
         try{ r=orig.apply(this, arguments); }
         catch(err){ console.error('render error', err); }
         try{ setTimeout(enhanceAfterRender, 40); }catch(e){}
         return r;
-      };
-      window.render._opsHooked=true;
-    } else if(typeof render==='function' && !render._opsHooked){
-      // fleet uses global function render (not always on window)
-      const orig=render;
-      window.render = function(){
-        let r;
-        try{ r=orig.apply(this, arguments); }
-        catch(err){ console.error('render error', err); }
-        try{ setTimeout(enhanceAfterRender, 40); }catch(e){}
-        return r;
-      };
-      // also reassign global binding if possible
-      try{ render = window.render; }catch(e){}
-      window.render._opsHooked=true;
+      });
     }
   }
 

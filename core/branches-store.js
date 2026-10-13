@@ -11,6 +11,21 @@ let editingId = null;
 let editingBranchId = null;
 let currentTab = 'dashboard';
 
+/* ===== تنبيه مهم (كان سبب في bugs سابقتين) =====
+   `let` في أعلى السكربت بيعمل binding في الـ global lexical environment،
+   مش property على window. يعني `window.currentTab = 'x'` بيعمل متغير تاني
+   لا يقرؤه التطبيق إطلاقًا. عشان كده كل كود خارجي يعدّل التبويب لازم
+   يمرّ من الدوال دي (أو ينادي معالج التبويب الأصلي). */
+window.yahmaGetTab = function () { return currentTab; };
+window.yahmaSetTab = function (tab) {
+  if (typeof tab === 'string' && tab) currentTab = tab;
+  /* نزامن الـ window property كمان — لو أي كود قديم لسه بيقرا window.currentTab */
+  try { window.currentTab = currentTab; } catch (_) {}
+  return currentTab;
+};
+/* نفس المشكلة مع fleet/branches — نوفّر قارئات الآمنة أيضًا */
+window.yahmaGetFleet = function () { return fleet; };
+
 /* ===== نطاق الفرع للمستخدم =====
    المدير يرى كل الفروع. غير المدير المرتبط بفرع (profiles.branch_name)
    يرى سيارات فرعه فقط — والتنفيذ الحقيقي على الخادم عبر RLS

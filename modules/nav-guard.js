@@ -76,9 +76,48 @@
     if (bd) bd.classList.remove('show');
   }
 
+  function getTab() {
+    try {
+      if (typeof global.yahmaGetTab === 'function') return global.yahmaGetTab();
+    } catch (_) {}
+    try { return global.currentTab; } catch (_) {}
+    return '';
+  }
+
+  /* ⚠️ لازم نستخدم yahmaSetTab: المتغير currentTab معرّف بـ let
+     فـ window.currentTab = x بيعمل متغير تاني ما بيتبعتش للتطبيق. */
+  function setTab(tab) {
+    if (typeof global.yahmaSetTab === 'function') { global.yahmaSetTab(tab); return true; }
+    try { global.currentTab = tab; } catch (_) { return false; }
+    return false;
+  }
+
+  function contentSignature() {
+    var c = document.getElementById('content');
+    if (!c) return '';
+    /* بصمة المحتوى: أول 200 حرف + الطول — تكشف إن المحتوى اتغيّر فعلاً */
+    return c.textContent.replace(/\s+/g, ' ').slice(0, 200) + '#' + c.children.length;
+  }
+
+  function drawNow() {
+    /* نفضّل الرسم الفوري (يتخطى الـ rAF) لو متاح — مهم على الموبايل */
+    try {
+      if (global.render && typeof global.render._perfImmediate === 'function') {
+        global.render._perfImmediate();
+        return;
+      }
+    } catch (_) {}
+    try { if (typeof global.render === 'function') global.render(); }
+    catch (_) {}
+    /* شبكة أمان أخيرة: لو رسم بعد 60ms لسه المحتوى زي ما هو، نحاول
+       نداء الرندر مباشرة مرة ثانية (setTimeout بيشتغل حتى لو rAF معطّلة) */
+    setTimeout(function () { drawNow(); }, 60);
+  }
+
   function goTab(tab) {
     if (!tab || switching) return;
     switching = true;
+    var before = contentSignature();
     try {
       if (typeof global.canAccessYahmaTab === 'function' && !global.canAccessYahmaTab(tab)) {
         try { global.alert('هذا القسم غير متاح لحسابك. كلّم المدير لتفعيله.'); } catch (_) {}
@@ -87,25 +126,26 @@
       document.querySelectorAll('.nav-item').forEach(function (i) {
         i.classList.toggle('active', i.dataset.tab === tab);
       });
-      /* نغيّر التبويب من داخل نطاق window جوا المتصفح */
-      try { global.currentTab = tab; } catch (_) {}
-      if (typeof global.render === 'function') global.render();
-      else if (typeof global.yahmaRender === 'function') global.yahmaRender();
+      setTab(tab);
+      drawNow();
     } catch (e) {
       push('tab', 'تعذر فتح القسم: ' + (e && e.message), e && e.stack);
       try { global.alert('تعذر فتح القسم: ' + (e && e.message ? e.message : 'خطأ غير متوقع')); } catch (_) {}
     } finally {
       closeMobileSidebar();
-      setTimeout(function () { switching = false; }, 250);
-      /* تأكيد: لو التبويب ما اتغيّرش نعيد المحاولة مرة واحدة */
-      setTimeout(function () {
-        try {
-          if (typeof global.currentTab !== 'undefined' && global.currentTab !== tab) {
-            global.currentTab = tab;
-            if (typeof global.render === 'function') global.render();
-          }
-        } catch (_) {}
-      }, 300);
+      setTimeout(function () { switching = false; }, 200);
+      /* شبكة أمان 1: render() محجوب بـ rAF على الموبايل أحيانًا فيعلّق.
+         لو المحتوى ما اتغيّرش خلال 350ms، نرسم فورًا بـ setTimeout
+         (يتخطى الحجب لأن setTimeout بيشتغل دايمًا حتى لو rAF لا تعمل). */
+      var tries = 0;
+      var check = function () {
+        tries++;
+        if (getTab() !== tab) setTab(tab);
+        if (contentSignature() !== before || tries > 3) return;
+        drawNow();
+        setTimeout(check, 220);
+      };
+      setTimeout(check, 350);
     }
   }
   global.yahmaGoTab = goTab;

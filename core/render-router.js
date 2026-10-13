@@ -113,7 +113,9 @@ function renderInspectionPayments(content){
 }
 
 function render(){
-  if(!window.canAccessYahmaTab(currentTab)) currentTab='dashboard';
+  /* نقرأ التبويب من الـ API العام (yahmaGetTab) بدل الـ binding المحلي. */
+  if(typeof window.yahmaGetTab === 'function'){ currentTab = window.yahmaGetTab(); }
+  if(!window.canAccessYahmaTab(currentTab)) { currentTab='dashboard'; if(typeof window.yahmaSetTab==='function') window.yahmaSetTab('dashboard'); }
   document.querySelectorAll('.nav-item').forEach(item=>item.classList.toggle('active',item.dataset.tab===currentTab));
   const emailPdfButton=document.getElementById('btn-email-filtered-pdf');
   if(emailPdfButton) emailPdfButton.style.display=window.currentRole==='admin'?'inline-flex':'none';

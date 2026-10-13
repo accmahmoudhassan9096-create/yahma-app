@@ -359,7 +359,7 @@ document.querySelectorAll('.nav-item').forEach(item=>{
       renderEmergencyFleet(document.getElementById('content'));
       try{ window.alert('تعذر فتح القسم: '+(e&&e.message||'خطأ غير متوقع')); }catch(_){}
     }
-    /* تأكيد بصري إن التبويب اتغيّر فعلًا — يمنع شك الل��خدم في إن الضغط اشتغل */
+    /* تأكيد بصري إن التبويب اتغيّر فعلًا — يمنع شك المستخدم في إن الضغط اشتغل */
     setTimeout(function(){
       if(typeof currentTab !== 'undefined' && currentTab !== nextTab){
         try{ currentTab = nextTab; render(); }catch(_){}
