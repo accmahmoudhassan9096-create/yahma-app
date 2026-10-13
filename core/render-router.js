@@ -175,11 +175,48 @@ if(currentTab === 'dashboard') renderDashboard(content);
     }else renderEmergencyFleet(content);
   }
   try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){}
+  try{ showBranchScopeNotice(content); }catch(_){}
   try{ showDataWarning(content); }catch(_){}
 }
 
 /* ===== تنبيه صريح عند فشل تحميل البيانات =====
    بدون كده المستخدم يشوف شاشة فاضية ويظن إن الأسطول فاضي */
+/* ===== تنبيه نطاق الفرع: سبب شائع جدًا لاختفاء البيانات =====
+   حساب ops/view مرتبط بفرع واحد فقط؛ لو profiles.branch_name فاضي
+   فلن يرى أي سيارة — وده ال��يician بدون أي رسالة خطأ من Supabase */
+function showBranchScopeNotice(content){
+  if(!content) return;
+  const old=document.getElementById('yahma-branch-warn');
+  if(old) old.remove();
+  let role=''; try{ role=String(typeof currentRole!=='undefined'?currentRole:''); }catch(_){}
+  if(!role || role==='admin') return;
+  let branch=''; try{ branch=String((typeof window.currentUserBranch!=='undefined'&&window.currentUserBranch)||'').trim(); }catch(_){}
+  let list=null; try{ list=(typeof fleet!=='undefined'&&Array.isArray(fleet))?fleet:null; }catch(_){}
+  const noBranch=!branch;
+  if(!list || list.length) return;          /* فيه بيانات → لا شيء */
+  let body;
+  if(noBranch){
+    body='<b>حسابك غير مربوط بأي فرع — لذلك لا يظهر لك أي أسطول</b>'
+      +'<span>صلاحيتك محدودة بفرع واحد، ولم يُسجَّل لك فرع بعد. كلّم المدير لربط حسابك بفرع (إدارة المستخدمين ← فرع)، أو يحوّلك لمدير.</span>';
+  }else{
+    body='<b>لا توجد سيارات مرتبطة بفرعك</b>'
+      +'<span>حسابك مربوط بالفرع: <b>'+escapeHtml(branch)+'</b> — والتطبيق لا يرى أي سيارة في هذا الاسم. تأكد من مطابقة اسم الفرع في «إدارة المستخدمين» لأسماء الفروع في الأسطول.</span>';
+  }
+  const banner=document.createElement('div');
+  banner.id='yahma-branch-warn';
+  banner.className='yahma-data-warn';
+  banner.innerHTML='<div class="ywarn-ico">🔒</div><div class="ywarn-body">'+body+'</div>'
+    +'<div class="ywarn-acts"><button type="button" class="btn btn-primary btn-small" data-ywarn="cloud">↻ إعادة المحاولة</button>'
+    +'<button type="button" class="btn btn-ghost btn-small" data-ywarn="relogin">تسجيل خروج ودخول</button></div>';
+  const first=content.firstElementChild;
+  if(first) content.insertBefore(banner,first); else content.appendChild(banner);
+  banner.querySelector('[data-ywarn="cloud"]').onclick=async()=>{ try{ if(typeof loadData==='function'){ await loadData(true); render(); } }catch(_){} };
+  banner.querySelector('[data-ywarn="relogin"]').onclick=()=>{
+    try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(_){}
+    setTimeout(()=>location.reload(),400);
+  };
+}
+
 function showDataWarning(content){
   if(!content) return;
   const old=document.getElementById('yahma-data-warn');

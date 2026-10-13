@@ -39,6 +39,8 @@
   <div class="row"><span>جلسة الدخول</span><b id="sess">—</b></div>
   <div class="row"><span>البريد</span><b id="user">—</b></div>
   <div class="row"><span>الدور (profiles)</span><b id="role">—</b></div>
+  <div class="row"><span>الفرع المربوط بالحساب</span><b id="branch">—</b></div>
+  <div class="row"><span>التنبيهات</span><b id="verdict">—</b></div>
 </div>
 
 <div class="card">
@@ -116,9 +118,12 @@ async function run(){
     log('session: ' + (sess ? sess.user.email : 'none') + ' (' + (Date.now()-t0) + 'ms)');
     if(sess){
       set('user', sess.user.email || '—', 'ok');
-      var pres = await sb.from('profiles').select('role').eq('id', sess.user.id).single();
+      var pres = await sb.from('profiles').select('role, branch_name, allowed_tabs').eq('id', sess.user.id).single();
       set('role', pres.data ? pres.data.role : ('خطأ: ' + (pres.error ? pres.error.message : '؟')), pres.data ? 'ok':'bad');
-      log('role: ' + JSON.stringify(pres.data) + ' err=' + (pres.error ? pres.error.message : 'none'));
+      log('profile: ' + JSON.stringify(pres.data) + ' err=' + (pres.error ? pres.error.message : 'none'));
+      var bn = pres.data ? String(pres.data.branch_name || '') : '';
+      set('branch', bn || '(فارغ — لا يرى أي سيارة)', bn ? 'ok' : 'bad');
+      log('branch_name: ' + (bn || '(NULL)'));
     }
 
     var t1 = Date.now();
@@ -129,9 +134,21 @@ async function run(){
       set('err', vres.error.message + ' (code: ' + (vres.error.code||'—') + ')', 'bad');
       log('VEHICLES ERROR: ' + vres.error.message + ' | code=' + vres.error.code);
     }else{
-      set('cnt', (vres.count!=null?vres.count:'?') + ' سيارة · ' + ms + 'ms', 'ok');
+      set('cnt', (vres.count!=null?vres.count:'?') + ' سيارة · ' + ms + 'ms', (vres.count?'ok':'bad'));
       set('err', 'لا يوجد', 'ok');
       log('vehicles count=' + vres.count + ' in ' + ms + 'ms · rows=' + JSON.stringify((vres.data||[]).slice(0,3)));
+      var vcount = vres.count||0;
+      var vr=null, vb='';
+      try{ var pr = await sb.from('profiles').select('role, branch_name').eq('id', sess.user.id).single(); vr=(pr.data&&pr.data.role)||''; vb=String((pr.data&&pr.data.branch_name)||''); }catch(_){}
+      if(vcount===0 && vr && vr!=='admin' && !vb){
+        set('verdict','⚠️ السبب: حسابك غير مربوط بفرع — بالتالي لا يظهر لك أي أسطول. كلّم المدير لربط حسابك بفرع.', 'bad');
+      }else if(vcount===0 && vr && vr!=='admin' && vb){
+        set('verdict','⚠️ السبب: الفرع المرتبط بحسابك («'+vb+'») لا يحتوي على بيانات. تأكد من مطابقة الاسم.', 'bad');
+      }else if(vcount===0){
+        set('verdict','لا توجد سيارات مرئية بهذا الحساب — راجع الدور والفرع.', 'warn');
+      }else{
+        set('verdict','✅ كل شيء سليم: ' + vcount + ' سيارة مرئية لحسابك.', 'ok');
+      }
     }
   }catch(e){
     set('conn','خطأ: ' + e.message, 'bad');
