@@ -175,6 +175,41 @@ if(currentTab === 'dashboard') renderDashboard(content);
     }else renderEmergencyFleet(content);
   }
   try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){}
+  try{ showDataWarning(content); }catch(_){}
+}
+
+/* ===== تنبيه صريح عند فشل تحميل البيانات =====
+   بدون كده المستخدم يشوف شاشة فاضية ويظن إن الأسطول فاضي */
+function showDataWarning(content){
+  if(!content) return;
+  const old=document.getElementById('yahma-data-warn');
+  if(old) old.remove();
+  let list=null;
+  try{ list=(typeof fleet!=='undefined'&&Array.isArray(fleet))?fleet:null; }catch(_){}
+  if(!list || list.length) return;                 /* فيه بيانات → لا شيء */
+  const msg=String((typeof window.syncMessage!=='undefined'&&window.syncMessage)||'').trim();
+  const failed=/تعذر|محلي|فشل|انتهت|غير متاح|error/i.test(msg);
+  const reason=failed?msg:'لم يتم تحميل السيارات من السحابة';
+  const banner=document.createElement('div');
+  banner.id='yahma-data-warn';
+  banner.className='yahma-data-warn';
+  banner.innerHTML='<div class="ywarn-ico">⚠️</div><div class="ywarn-body"><b>لم تظهر البيانات ('+escapeHtml(reason)+')</b>'
+    +'<span>غالبًا انتهت جلسة الدخول أو الشبكة ضعيفة. جرّب: تحديث البيانات، أو تسجيل الخروج والدخول من جديد.</span></div>'
+    +'<div class="ywarn-acts">'
+    +'<button type="button" class="btn btn-primary btn-small" data-ywarn="reload">↻ تحديث الآن</button>'
+    +'<button type="button" class="btn btn-ghost btn-small" data-ywarn="cloud">جلب من السحابة</button>'
+    +'<button type="button" class="btn btn-ghost btn-small" data-ywarn="relogin">تسجيل خروج ودخول</button>'
+    +'</div>';
+  const first=content.firstElementChild;
+  if(first) content.insertBefore(banner,first); else content.appendChild(banner);
+  banner.querySelector('[data-ywarn="reload"]').onclick=()=>location.reload();
+  banner.querySelector('[data-ywarn="cloud"]').onclick=async()=>{
+    try{ if(typeof loadData==='function'){ await loadData(true); render(); } }catch(_){}
+  };
+  banner.querySelector('[data-ywarn="relogin"]').onclick=()=>{
+    try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(_){}
+    setTimeout(()=>location.reload(),400);
+  };
 }
 
 /* التغليف ضروري بعد التقسيم: openEmailFilteredPdfModal معرّفة في core/pdf-share.js

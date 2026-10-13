@@ -839,6 +839,17 @@ html, body{
 .branch-mail-active{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .branch-mail-err{color:#CE4B3D}
 
+/* تنبيه فشل تحميل البيانات */
+.yahma-data-warn{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#FFF4E5;border:1px solid #F0C987;border-inline-start:5px solid #D98A1B;border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.yahma-data-warn .ywarn-ico{font-size:20px}
+.yahma-data-warn .ywarn-body{display:flex;flex-direction:column;gap:3px;flex:1 1 260px;min-width:0}
+.yahma-data-warn .ywarn-body b{color:#8A4B08;font-size:13.5px}
+.yahma-data-warn .ywarn-body span{color:#8A6534;font-size:12px}
+.yahma-data-warn .ywarn-acts{display:flex;gap:6px;flex-wrap:wrap}
+body.dark-mode .yahma-data-warn{background:#3A2C12;border-color:#7A5B1E;border-inline-start-color:#E3B24E}
+body.dark-mode .yahma-data-warn .ywarn-body b{color:#F2D49B}
+body.dark-mode .yahma-data-warn .ywarn-body span{color:#C9AE83}
+
 /* فلتر اللوحات الوارد من قائمة عمل الفروع */
 .fleet-plate-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding:7px 10px;border:1px dashed var(--line);border-radius:8px;font-size:12px;color:var(--ink);background:rgba(11,170,134,.06)}
 
