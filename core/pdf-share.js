@@ -344,15 +344,28 @@ document.getElementById('btn-delete').addEventListener('click', ()=>window.Yahma
 
 document.querySelectorAll('.nav-item').forEach(item=>{
   item.addEventListener('click', ()=>{
-    if(!window.canAccessYahmaTab(item.dataset.tab)) return;
+    if(!window.canAccessYahmaTab(item.dataset.tab)){
+      /* بدل ما نتجاهل بصمت: نقول للمستخدم ليه القسم مش متاح */
+      try{ window.alert('هذا القسم غير متاح لحسابك. كلّم المدير لتفعيله.'); }catch(_){}
+      return;
+    }
     document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
     item.classList.add('active');
-    currentTab = item.dataset.tab;
+    const nextTab = item.dataset.tab;
+    currentTab = nextTab;
     try{ render(); }
     catch(e){
       console.error('tab render failed',e);
       renderEmergencyFleet(document.getElementById('content'));
+      try{ window.alert('تعذر فتح القسم: '+(e&&e.message||'خطأ غير متوقع')); }catch(_){}
     }
+    /* تأكيد بصري إن التبويب اتغيّر فعلًا — يمنع شك الل��خدم في إن الضغط اشتغل */
+    setTimeout(function(){
+      if(typeof currentTab !== 'undefined' && currentTab !== nextTab){
+        try{ currentTab = nextTab; render(); }catch(_){}
+      }
+      document.querySelectorAll('.nav-item').forEach(i=>i.classList.toggle('active',i.dataset.tab===nextTab));
+    }, 0);
   });
 });
 
