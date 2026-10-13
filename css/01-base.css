@@ -476,6 +476,9 @@ body{background:var(--paper);background-image:radial-gradient(circle at 100% 0%,
 .yahma-no-tabs-hint span{font-size:10.5px;line-height:1.6;color:rgba(255,255,255,.80);}
 .yahma-side-version{margin:2px 0 6px;text-align:center;font-size:10px;color:rgba(255,255,255,.62);letter-spacing:.2px;flex:0 0 auto;}
 .yahma-side-version b{color:#fff;font-weight:700;}
+.yahma-error-hint{margin:0 0 8px;padding:9px 11px;border-radius:11px;background:rgba(255,214,102,.14);border:1px solid rgba(255,214,102,.40);display:flex;flex-direction:column;gap:4px;direction:rtl;text-align:right;}
+.yahma-error-hint b{font-size:11.5px;color:#FFD666;font-weight:700;}
+.yahma-error-hint span{font-size:10px;line-height:1.55;color:rgba(255,255,255,.85);word-break:break-word;}
 /* لافتة التحديث */
 .yahma-update-toast{position:fixed;z-index:10080;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));width:min(460px,calc(100vw - 24px));display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:14px;background:#fff;border:1px solid var(--line);box-shadow:0 16px 40px rgba(15,25,60,.24);direction:rtl;font-family:inherit;}
 .yahma-update-toast .yut-ico{flex:0 0 34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff;background:linear-gradient(135deg,#12AAA6,#08706F);}
