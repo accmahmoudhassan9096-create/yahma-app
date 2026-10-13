@@ -35,7 +35,7 @@
      للقاعدة الصحيحة حتى لا تتغير مقاسات العرض الحالية. */
   .app{display:flex;min-height:100vh;}
 
-  .sidebar{width:236px;flex:0 0 236px;background:linear-gradient(195deg,var(--navy) 0%,var(--navy-deep) 100%);color:#EDEFF3;display:flex;flex-direction:column;padding:26px 16px;gap:5px;box-shadow:4px 0 24px rgba(9,15,40,.18);position:relative;z-index:5;}
+  .sidebar{width:236px;flex:0 0 236px;background:linear-gradient(195deg,var(--navy) 0%,var(--navy-deep) 100%);color:#EDEFF3;display:flex;flex-direction:column;padding:26px 16px;gap:5px;box-shadow:4px 0 24px rgba(9,15,40,.18);position:relative;z-index:5;overflow-y:auto;overscroll-behavior:contain;}
   .brand{display:flex;align-items:center;gap:11px;margin-bottom:30px;padding:0 8px;}
   .brand-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--gold-light),var(--gold));display:flex;align-items:center;justify-content:center;flex:0 0 36px;box-shadow:0 4px 12px rgba(198,149,46,.35);}
   .brand-mark svg{width:20px;height:20px;}
@@ -474,7 +474,7 @@ body{background:var(--paper);background-image:radial-gradient(circle at 100% 0%,
 .yahma-no-tabs-hint{margin:10px 6px 0;padding:11px 12px;border-radius:11px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);display:flex;flex-direction:column;gap:5px;direction:rtl;text-align:right;}
 .yahma-no-tabs-hint b{font-size:12.5px;color:#fff;font-weight:700;}
 .yahma-no-tabs-hint span{font-size:10.5px;line-height:1.6;color:rgba(255,255,255,.80);}
-.yahma-side-version{margin-top:10px;text-align:center;font-size:10px;color:rgba(255,255,255,.62);letter-spacing:.2px;}
+.yahma-side-version{margin:2px 0 6px;text-align:center;font-size:10px;color:rgba(255,255,255,.62);letter-spacing:.2px;flex:0 0 auto;}
 .yahma-side-version b{color:#fff;font-weight:700;}
 /* لافتة التحديث */
 .yahma-update-toast{position:fixed;z-index:10080;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));width:min(460px,calc(100vw - 24px));display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:14px;background:#fff;border:1px solid var(--line);box-shadow:0 16px 40px rgba(15,25,60,.24);direction:rtl;font-family:inherit;}
