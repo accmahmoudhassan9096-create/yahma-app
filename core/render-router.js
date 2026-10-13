@@ -183,9 +183,10 @@ if(currentTab === 'dashboard') renderDashboard(content);
 
 /* ===== تنبيه صريح عند فشل تحميل البيانات =====
    بدون كده المستخدم يشوف شاشة فاضية ويظن إن الأسطول فاضي */
-/* ===== تنبيه نطاق الفرع: سبب شائع جدًا لاختفاء البيانات =====
-   حساب ops/view مرتبط بفرع واحد فقط؛ لو profiles.branch_name فاضي
-   فلن يرى أي سيارة — وده ال��يician بدون أي رسالة خطأ من Supabase */
+/* ===== تنبيه نطاق الفرع =====
+   القاعدة: فرع محدد ⇐ ذلك الفرع فقط. بدون فرع ⇐ كل الفروع.
+   التنبيه يظهر فقط لو الحساب مربوط بفرع ما فيه ولا سيارة، لأن
+   الاسم هنا لازم يطابق أسماء الفروع في الأسطول بالحرف (الخادم بيطابق كذلك). */
 function showBranchScopeNotice(content){
   if(!content) return;
   const old=document.getElementById('yahma-branch-warn');
@@ -194,16 +195,10 @@ function showBranchScopeNotice(content){
   if(!role || role==='admin') return;
   let branch=''; try{ branch=String((typeof window.currentUserBranch!=='undefined'&&window.currentUserBranch)||'').trim(); }catch(_){}
   let list=null; try{ list=(typeof fleet!=='undefined'&&Array.isArray(fleet))?fleet:null; }catch(_){}
-  const noBranch=!branch;
+  if(!branch) return;                       /* بدون فرع ⇐ كل الفروع، مفيش سبب للتنبيه */
   if(!list || list.length) return;          /* فيه بيانات → لا شيء */
-  let body;
-  if(noBranch){
-    body='<b>حسابك غير مربوط بأي فرع — لذلك لا يظهر لك أي أسطول</b>'
-      +'<span>صلاحيتك محدودة بفرع واحد، ولم يُسجَّل لك فرع بعد. كلّم المدير لربط حسابك بفرع (إدارة المستخدمين ← فرع)، أو يحوّلك لمدير.</span>';
-  }else{
-    body='<b>لا توجد سيارات مرتبطة بفرعك</b>'
-      +'<span>حسابك مربوط بالفرع: <b>'+escapeHtml(branch)+'</b> — والتطبيق لا يرى أي سيارة في هذا الاسم. تأكد من مطابقة اسم الفرع في «إدارة المستخدمين» لأسماء الفروع في الأسطول.</span>';
-  }
+  let body='<b>لا توجد سيارات مرتبطة بفرعك</b>'
+    +'<span>حسابك مربوط بالفرع: <b>'+escapeHtml(branch)+'</b> — والتطبيق لا يرى أي سيارة بهذا الاسم. تأكد من مطابقته لأسماء الفروع في الأسطول، أو اختر «كل الفروع» من «إدارة المستخدمين».</span>';
   const banner=document.createElement('div');
   banner.id='yahma-branch-warn';
   banner.className='yahma-data-warn';
