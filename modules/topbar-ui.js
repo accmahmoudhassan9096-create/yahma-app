@@ -41,13 +41,33 @@
   async function openUserAdmin(){
     if(window.currentRole!=='admin'){ alert('إدارة المستخدمين متاحة للمدير فقط.'); return; }
     var old=document.getElementById('user-admin-overlay'); if(old) old.remove();
-    var branchOptions='<option value="">كل الفروع</option>'+([...new Map((Array.isArray(branches)?branches:[]).filter(function(b){return b&&b.name;}).map(function(b){return [String(b.name).trim(),String(b.name).trim()];}))].map(function(pair){return '<option value="'+escapeHtml(pair[0])+'">'+escapeHtml(pair[1])+'</option>';}).join(''));
+    /* ===== أسماء الفروع =====
+       دليل الفروع محفوظ على الجهاز (IndexedDB) وممكن يكون ناقص أو مختلف
+       عن الأسماء الحقيقية الموجودة في بيانات السيارات. ولأن الخادم بيطابق
+       الاسم بالحرف (yahma_can_access_branch)، لازم القائمة تعرض الأسماء
+       الحقيقية من الأسطول مع عدد سيارات كل فرع. */
+    var branchCounts=new Map();
+    var fleetList=(typeof fleet!=='undefined'&&Array.isArray(fleet))?fleet:[];
+    fleetList.forEach(function(c){
+      var n=String((c&&c.branch)||'').trim(); if(!n) return;
+      branchCounts.set(n,(branchCounts.get(n)||0)+1);
+    });
+    (Array.isArray(branches)?branches:[]).forEach(function(b){
+      var n=b&&b.name?String(b.name).trim():''; if(!n) return;
+      if(!branchCounts.has(n)) branchCounts.set(n,0);
+    });
+    var sortedBranches=Array.from(branchCounts.entries()).sort(function(a,b){ return b[1]-a[1]; });
+    var branchOptions='<option value="">كل الفروع (بدون تقييد)</option>'
+      +sortedBranches.map(function(pair){
+          var label=pair[0]+' — '+pair[1]+' سيارة';
+          return '<option value="'+escapeHtml(pair[0])+'">'+escapeHtml(label)+'</option>';
+        }).join('');
     var allPageIds=PAGE_PERMISSION_OPTIONS.map(function(page){return page.id;});
     var permissionGrid=function(className,selected,disabled){return '<div class="ua-permission-grid '+className+'">'+PAGE_PERMISSION_OPTIONS.map(function(page){return '<label><input type="checkbox" value="'+page.id+'" '+(selected.includes(page.id)?'checked ':'')+(disabled?'disabled':'')+'><span>'+page.label+'</span></label>';}).join('')+'</div>';};
     var selectedPermissions=function(scope){return Array.from(scope.querySelectorAll('input[type="checkbox"]:checked')).map(function(input){return input.value;});};
     var syncPermissions=function(scope,role){var inputs=scope.querySelectorAll('input[type="checkbox"]');inputs.forEach(function(input){input.disabled=role==='admin';if(role==='admin')input.checked=true;});};
     var ov=document.createElement('div'); ov.id='user-admin-overlay'; ov.className='overlay'; ov.style.display='flex';
-    ov.innerHTML='<div class="modal user-admin-modal"><div class="user-admin-head"><div><h2>إدارة المستخدمين</h2><p>أضف المستخدم وحدد دوره والفرع والأقسام التي يستطيع رؤيتها.</p></div><button type="button" class="btn btn-ghost btn-small" id="user-admin-close">إغلاق</button></div><form id="user-admin-form" class="user-admin-form"><input id="ua-name" placeholder="الاسم الكامل" required><input id="ua-email" type="email" dir="ltr" placeholder="البريد الإلكتروني" required><input id="ua-password" type="password" dir="ltr" placeholder="كلمة المرور المؤقتة" minlength="8" required><select id="ua-role"><option value="view">مشاهدة فقط</option><option value="ops">تشغيل</option><option value="admin">مدير</option></select><select id="ua-branch">'+branchOptions+'</select><div class="ua-permissions-block"><strong>الأقسام المسموح بها</strong><small>الرئيسية متاحة للجميع. المدير لديه وصول كامل.</small>'+permissionGrid('ua-new-permissions',allPageIds,false)+'</div><button class="btn btn-primary" type="submit">إضافة المستخدم</button></form><div id="user-admin-message" class="user-admin-message"></div><div class="user-admin-list" id="user-admin-list"><div class="empty">جارِ تحميل المستخدمين...</div></div></div>';
+    ov.innerHTML='<div class="modal user-admin-modal"><div class="user-admin-head"><div><h2>إدارة المستخدمين</h2><p>أضف المستخدم وحدد دوره والفرع والأقسام التي يستطيع رؤيتها.</p></div><button type="button" class="btn btn-ghost btn-small" id="user-admin-close">إغلاق</button></div><form id="user-admin-form" class="user-admin-form"><input id="ua-name" placeholder="الاسم الكامل" required><input id="ua-email" type="email" dir="ltr" placeholder="البريد الإلكتروني" required><input id="ua-password" type="password" dir="ltr" placeholder="كلمة المرور المؤقتة" minlength="8" required><select id="ua-role"><option value="view">مشاهدة فقط</option><option value="ops">تشغيل</option><option value="admin">مدير</option></select><select id="ua-branch">'+branchOptions+'</select><small class="ua-branch-note">اختر الفرع بالاسم الظاهر مع عدد سياراته — الاسم لازم يطابق تمامًا عشان يظهر للمستخدم.</small><div class="ua-permissions-block"><strong>الأقسام المسموح بها</strong><small>الرئيسية متاحة للجميع. المدير لديه وصول كامل.</small>'+permissionGrid('ua-new-permissions',allPageIds,false)+'</div><button class="btn btn-primary" type="submit">إضافة المستخدم</button></form><div id="user-admin-message" class="user-admin-message"></div><div class="user-admin-list" id="user-admin-list"><div class="empty">جارِ تحميل المستخدمين...</div></div></div>';
     document.body.appendChild(ov);
     var close=function(){ov.remove()}; ov.onclick=function(e){if(e.target===ov) close()}; ov.querySelector('#user-admin-close').onclick=close;
     var msg=ov.querySelector('#user-admin-message'), list=ov.querySelector('#user-admin-list');
@@ -57,7 +77,11 @@
       if(result.error){list.innerHTML='<div class="empty">تعذر تحميل المستخدمين: '+escapeHtml(result.error.message)+'</div>';return;}
       var myId=window.currentUser&&window.currentUser.id;
       list.innerHTML=(result.data||[]).map(function(u){
-        var options=branchOptions.replace('value="'+escapeHtml(u.branch_name||'')+'"','value="'+escapeHtml(u.branch_name||'')+'" selected');
+        var wanted=String(u.branch_name||'').trim();
+        var options=branchOptions.split('<option ').map(function(chunk){
+            var isMatch=wanted && chunk.indexOf('value="'+escapeHtml(wanted)+'"')>=0;
+            return isMatch ? '<option selected '+chunk : '<option '+chunk;
+          }).join('');
         var deleteBtn=(u.id===myId)?'':'<button type="button" class="btn btn-ghost btn-small ua-delete-user" style="color:var(--red,#CE4B3D)">حذف</button>';
         var allowed=Array.isArray(u.allowed_tabs)?u.allowed_tabs:allPageIds;
         return '<div class="user-admin-row" data-user-id="'+escapeHtml(u.id)+'"><div class="ua-user-summary"><b>'+escapeHtml(u.full_name||'بدون اسم')+'</b><small>'+escapeHtml(u.role||'view')+'</small></div><div class="ua-user-fields"><select class="ua-existing-branch">'+options+'</select><select class="ua-existing-role"><option value="view" '+(u.role==='view'?'selected':'')+'>مشاهدة</option><option value="ops" '+(u.role==='ops'?'selected':'')+'>تشغيل</option><option value="admin" '+(u.role==='admin'?'selected':'')+'>مدير</option></select></div><div class="ua-user-permissions"><strong>الأقسام المسموح بها</strong>'+permissionGrid('ua-existing-permissions',allowed,u.role==='admin')+'</div><div class="ua-user-actions"><button type="button" class="btn btn-ghost btn-small ua-save-role">حفظ الصلاحيات</button>'+deleteBtn+'</div></div>';
