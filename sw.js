@@ -2,10 +2,11 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v124';
+const CACHE_NAME = 'yahma-shell-v125';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
+  './diagnostic.html',
   /* style.css فُرّق إلى أربعة ملفات بنفس الترتيب (يجب أن يبقى 04 آخرًا) */
   './css/01-base.css',
   './css/02-components.css',

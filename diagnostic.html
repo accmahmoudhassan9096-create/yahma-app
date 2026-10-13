@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تشخيص المنصة — يهماء</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{color-scheme:light}
+  *{box-sizing:border-box}
+  body{margin:0;padding:16px;font-family:system-ui,'Segoe UI',Tahoma,Arial,sans-serif;background:#f5f7fb;color:#16203a;font-size:15px;line-height:1.7}
+  h1{font-size:19px;margin:0 0 4px}
+  .sub{color:#5b6785;font-size:13px;margin-bottom:14px}
+  .card{background:#fff;border:1px solid #dde4f2;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed #e6eaf4;padding:6px 0}
+  .row:last-child{border-bottom:0}
+  .row span{color:#5b6785;font-size:13px;flex:0 0 42%}
+  .row b{font-weight:700;word-break:break-all;text-align:left;flex:1}
+  .ok{color:#0b7a53}.bad{color:#c0392b}.warn{color:#b7791f}
+  button{margin:6px 4px 0 0;padding:10px 16px;border-radius:999px;border:1px solid #16203a;background:#16203a;color:#fff;font:inherit;font-weight:700}
+  button.ghost{background:#fff;color:#16203a}
+  pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:10px;overflow:auto;font-size:12px;max-height:320px;white-space:pre-wrap}
+  #log{min-height:40px;color:#16203a;font-size:13px}
+</style>
+</head>
+<body>
+<h1>🔍 تشخيص المنصة</h1>
+<div class="sub">افتح الصفحة دي على نفس المتصفح/التطبيق اللي فيه المشكلة، وابعتهالي النتيجة.</div>
+
+<div class="card">
+  <div class="row"><span>الرابط (المصدر)</span><b id="origin">—</b></div>
+  <div class="row"><span>النسخة (SW)</span><b id="swv">—</b></div>
+  <div class="row"><span>حالة Service Worker</span><b id="sws">—</b></div>
+  <div class="row"><span>سعة التخزين</span><b id="quota">—</b></div>
+  <div class="row"><span>اتصال Supabase</span><b id="conn">—</b></div>
+</div>
+
+<div class="card">
+  <div class="row"><span>جلسة الدخول</span><b id="sess">—</b></div>
+  <div class="row"><span>البريد</span><b id="user">—</b></div>
+  <div class="row"><span>الدور (profiles)</span><b id="role">—</b></div>
+</div>
+
+<div class="card">
+  <div class="row"><span>عدد السيارات في السحابة</span><b id="cnt">—</b></div>
+  <div class="row"><span>أول خطأ من Supabase</span><b id="err">—</b></div>
+  <div class="row"><span>البيانات المحفوظة على الجهاز</span><b id="local">—</b></div>
+</div>
+
+<div class="card">
+  <div id="log">… جاري الفحص</div>
+  <button id="again">إعادة الفحص</button>
+  <button class="ghost" id="copy">نسخ النتيجة</button>
+  <button class="ghost" id="wipe">مسح ذاكرة الموقع</button>
+</div>
+
+<h3 style="font-size:15px;margin:16px 0 6px">السجل الكامل</h3>
+<pre id="raw">…</pre>
+
+<script>
+var REF='dzildqysxdlnfsmjttjg';
+var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aWxkcXlzeGRsbmZzbWp0dGpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNTU3NTMsImV4cCI6MjEwNTYzMTc1M30.UdcML-28I0ndel65IMBxfG7wMOZjRK9ZlrjTj_JFyVc';
+var lines=[];
+function log(s){ lines.push(String(s)); document.getElementById('raw').textContent=lines.join('\n'); }
+function set(id,v,cls){ var e=document.getElementById(id); e.textContent=v; if(cls) e.className=cls; }
+function qs(id){ return document.getElementById(id); }
+
+async function run(){
+  lines=[]; qs('raw').textContent='…'; qs('log').textContent='… جاري الفحص';
+  set('origin', location.origin + '  ·  ' + location.pathname);
+  log('origin: ' + location.origin + location.pathname);
+
+  // 1) Service worker + version
+  try{
+    if('serviceWorker' in navigator){
+      var regs = await navigator.serviceWorker.getRegistrations();
+      set('sws', regs.length ? (regs[0].active ? 'نشط ✓' : 'غير نشط') : 'غير مسجّل', regs.length && regs[0].active ? 'ok':'warn');
+      log('service worker registrations: ' + regs.length);
+    } else { set('sws','المتصفح لا يدعم SW','warn'); }
+  }catch(e){ set('sws','خطأ: '+e.message,'bad'); log('SW error: ' + e.message); }
+  try{
+    if('caches' in window){
+      var keys = await caches.keys();
+      set('swv', keys.length ? keys.join(' , ') : 'لا يوجد كاش', keys.length?'ok':'warn');
+      log('cache keys: ' + JSON.stringify(keys));
+    }
+  }catch(e){ log('cache error: ' + e.message); }
+
+  // 2) storage quota
+  try{
+    if(navigator.storage && navigator.storage.estimate){
+      var est = await navigator.storage.estimate();
+      set('quota', Math.round((est.usage||0)/1048576) + ' MB مستخدم من ' + Math.round((est.quota||0)/1048576) + ' MB',
+        (est.quota && (est.usage/est.quota) > 0.9) ? 'bad' : '');
+      log('storage usage: ' + est.usage + ' / ' + est.quota);
+    }
+  }catch(e){ set('quota','غير متاح',''); }
+
+  // 3) local cache count
+  try{
+    var raw = localStorage.getItem('fleet-data-v2');
+    var arr = raw ? JSON.parse(raw) : [];
+    set('local', Array.isArray(arr) ? arr.length + ' سيارة محفوظة' : 'لا توجد نسخة محفوظة', Array.isArray(arr)&&arr.length?'ok':'warn');
+    log('localStorage fleet count: ' + (Array.isArray(arr)?arr.length:'n/a'));
+  }catch(e){ set('local','خطأ في القراءة',''); }
+
+  // 4) Supabase: session + data
+  try{
+    if(typeof supabase === 'undefined'){ set('conn','مكتبة Supabase لم تُحمّل','bad'); log('supabase SDK missing'); return done(); }
+    set('conn','… جاري الاتصال');
+    var sb = supabase.createClient('https://'+REF+'.supabase.co', ANON);
+    var t0 = Date.now();
+    var sres = await sb.auth.getSession();
+    var sess = sres.data && sres.data.session;
+    set('sess', sess ? 'جلسة موجودة' : 'لا توجد جلسة — سجّل الدخول', sess?'ok':'bad');
+    log('session: ' + (sess ? sess.user.email : 'none') + ' (' + (Date.now()-t0) + 'ms)');
+    if(sess){
+      set('user', sess.user.email || '—', 'ok');
+      var pres = await sb.from('profiles').select('role').eq('id', sess.user.id).single();
+      set('role', pres.data ? pres.data.role : ('خطأ: ' + (pres.error ? pres.error.message : '؟')), pres.data ? 'ok':'bad');
+      log('role: ' + JSON.stringify(pres.data) + ' err=' + (pres.error ? pres.error.message : 'none'));
+    }
+
+    var t1 = Date.now();
+    var vres = await sb.from('vehicles').select('car_id', { count: 'exact' }).range(0, 4);
+    var ms = Date.now() - t1;
+    if(vres.error){
+      set('cnt','فشل', 'bad');
+      set('err', vres.error.message + ' (code: ' + (vres.error.code||'—') + ')', 'bad');
+      log('VEHICLES ERROR: ' + vres.error.message + ' | code=' + vres.error.code);
+    }else{
+      set('cnt', (vres.count!=null?vres.count:'?') + ' سيارة · ' + ms + 'ms', 'ok');
+      set('err', 'لا يوجد', 'ok');
+      log('vehicles count=' + vres.count + ' in ' + ms + 'ms · rows=' + JSON.stringify((vres.data||[]).slice(0,3)));
+    }
+  }catch(e){
+    set('conn','خطأ: ' + e.message, 'bad');
+    log('supabase exception: ' + e.message);
+  }
+  done();
+}
+
+function done(){
+  var txt = lines.join('\n');
+  qs('raw').textContent = txt;
+  qs('log').textContent = 'تم الفحص — انسخ النتيجة وابعتهالي.';
+  log('--- انتهى ---');
+}
+
+qs('again').onclick = run;
+qs('copy').onclick = function(){
+  var txt = '== تشخيص يهماء ==\n' + location.origin + '\n' + lines.join('\n');
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).then(function(){ qs('log').textContent='تم النسخ — الصقه هنا'; });
+  else { window.prompt('انسخ النص:', txt); }
+};
+qs('wipe').onclick = function(){
+  if(!confirm('مسح كل ذاكرة الموقع (بيانات، كاش، تسجيل دخول)؟')) return;
+  try{ localStorage.clear(); sessionStorage.clear(); }catch(e){}
+  if('caches' in window) caches.keys().then(function(k){ return Promise.all(k.map(function(x){ return caches.delete(x); })); }).then(function(){
+    if(navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function(r){ return Promise.all(r.map(function(x){ return x.unregister(); })); });
+  }).then(function(){ location.reload(); });
+};
+run();
+</script>
+</body>
+</html>
