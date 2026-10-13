@@ -634,7 +634,7 @@ body.dark-mode .rd-exp-row:hover,.dark-mode .rd-bt-r:hover{background:#263442}
 .topbar-user-meta span{font-size:10px!important}
 .topbar-user-meta span::after{display:none!important}
 .topbar-user-chevron{font-size:15px;color:var(--muted);line-height:1;margin-right:1px}
-.user-dropdown{position:absolute;top:calc(100% + 10px);left:0;width:270px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 38px rgba(15,25,60,.18);padding:8px;z-index:10060}
+.user-dropdown{position:fixed;top:calc(100% + 10px);left:0;width:270px;max-width:calc(100vw - 16px);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 38px rgba(15,25,60,.18);padding:8px;z-index:10060}
 .user-dropdown[hidden]{display:none}
 .user-dropdown-head{display:flex;align-items:center;gap:10px;padding:9px 8px 10px;direction:rtl}
 .user-dropdown-head>div:last-child{display:flex;flex-direction:column;min-width:0;text-align:right}

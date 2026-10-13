@@ -23,11 +23,30 @@
     closeMenu();
     if(logout._yahmaLogoutRunning) return;
     logout._yahmaLogoutRunning=true;
+    var previous=logout.textContent;
     logout.disabled=true;
-    Promise.resolve(typeof window.yahmaSignOut==='function'?window.yahmaSignOut():false).finally(function(){
+    logout.textContent='جارِ تسجيل الخروج...';
+    var finish=function(){
       logout.disabled=false;
+      logout.textContent=previous;
       logout._yahmaLogoutRunning=false;
-    });
+    };
+    /*鎖 protection: إغلاق أي جلسة ناجحة ولو يبقى signOut معلق على شبكة ضعيفة */
+    var hardStop=setTimeout(function(){
+      try{
+        finish();
+        var w2=document.getElementById('sync-status');
+        if(w2){ w2.textContent='تعذر تأكيد تسجيل الخروج — حدّث الصفحة'; w2.className='sync-status offline'; }
+      }catch(_){}
+    }, 8000);
+    Promise.resolve(typeof window.yahmaSignOut==='function'?window.yahmaSignOut():false)
+      .then(function(ok){
+        if(ok===false){
+          try{ window.alert('تعذر تسجيل الخروج. حدّث الصفحة وحاول تاني.'); }catch(_){}
+        }
+      })
+      .catch(function(){ })
+      .then(function(){ clearTimeout(hardStop); finish(); });
   },true);
   async function openUserAdmin(){
     if(window.currentRole!=='admin'){ alert('إدارة المستخدمين متاحة للمدير فقط.'); return; }
@@ -103,15 +122,67 @@
     };
     renderUsers();
   }
+  /* ===== تموضع القائمة داخل حدود الشاشة =====
+     القائمة position:absolute والدور RTL، فـ right:0 كان بيخرجها خارج
+     الشاشة تمامًا على الموبايل (الزر خارج الإطار → لا يمكن الضغط عليه).
+     هنا نحسب الموضع بعد فتحها ونثبّته بالبكسل. */
+  var MENU_MIN_MARGIN = 8;
+  function positionMenu(menu, trigger){
+    if(!menu||!trigger) return;
+    /* القائمة تُثبَّت على الشاشة (fixed) حتى تكون الإحداثيات نسبةً للـ viewport
+       وليست نسبةً لحاوية الشريط العلوي (وإلا خرجت من الشاشة في RTL) */
+    menu.style.position='fixed';
+    menu.style.removeProperty('left');
+    menu.style.removeProperty('right');
+    menu.style.removeProperty('max-width');
+    var vw=window.innerWidth||document.documentElement.clientWidth||0;
+    var vh=window.innerHeight||document.documentElement.clientHeight||0;
+    var cs=getComputedStyle(menu);
+    var maxAllowed=Math.max(200, vw-MENU_MIN_MARGIN*2);
+    var natural=menu.offsetWidth||parseFloat(cs.width)||270;
+    var w=Math.min(natural, maxAllowed);
+    var mh=menu.offsetHeight||0;
+    var t=trigger.getBoundingClientRect();
+    /* على RTL نبدأ من حافة الزر اليمنى؛ مع ضمان عدم الخروج من الشاشة */
+    var left=Math.round(t.right-w);
+    if(left+w+MENU_MIN_MARGIN>vw) left=vw-w-MENU_MIN_MARGIN;
+    if(left<MENU_MIN_MARGIN) left=MENU_MIN_MARGIN;
+    var top=Math.round(t.bottom+8);
+    var spaceBelow=vh-top-MENU_MIN_MARGIN;
+    if(mh>spaceBelow){
+      var above=t.top-8-MENU_MIN_MARGIN;
+      if(above>0) top=Math.max(MENU_MIN_MARGIN, Math.round(above-mh));
+    }
+    if(top+mh>vh-MENU_MIN_MARGIN) top=Math.max(MENU_MIN_MARGIN, vh-MENU_MIN_MARGIN-mh);
+    menu.style.width=w+'px';
+    menu.style.maxHeight=Math.max(160, vh-top-MENU_MIN_MARGIN)+'px';
+    menu.style.overflowY='auto';
+    menu.style.left=left+'px';
+    menu.style.top=top+'px';
+  }
+  function openMenu(menu, trigger){
+    menu.hidden=false;
+    positionMenu(menu, trigger);
+    trigger.setAttribute('aria-expanded','true');
+  }
   function init(){
     var trigger=document.getElementById('topbar-user'), menu=document.getElementById('user-dropdown');
     if(!trigger||!menu||trigger._yahmaBound) return;
     var userWrap=document.getElementById('topbar-user-wrap'), notifySlot=document.getElementById('notify-slot-anchor');
     if(userWrap&&notifySlot&&notifySlot.parentNode===userWrap.parentNode) notifySlot.parentNode.insertBefore(userWrap,notifySlot.nextSibling);
     trigger._yahmaBound=true;
-    trigger.addEventListener('click',function(e){e.stopPropagation(); syncProfileMenu(); menu.hidden=!menu.hidden; trigger.setAttribute('aria-expanded',String(!menu.hidden));});
+    trigger.addEventListener('click',function(e){
+      e.stopPropagation();
+      syncProfileMenu();
+      if(menu.hidden) openMenu(menu, trigger);
+      else closeMenu();
+    });
     document.addEventListener('click',function(e){if(!e.target.closest('#topbar-user-wrap')) closeMenu();});
     document.addEventListener('keydown',function(e){if(e.key==='Escape') closeMenu();});
+    /* إعادة التموضع عند تدوير الشاشة أو تغيّر الحجم */
+    var reposition=function(){ if(menu&&!menu.hidden) positionMenu(menu, trigger); };
+    window.addEventListener('resize', reposition);
+    window.addEventListener('orientationchange', function(){ setTimeout(reposition, 250); });
     var settings=document.getElementById('btn-account-settings');
     if(settings){ settings.textContent=window.currentRole==='admin'?'إدارة المستخدمين':'إعدادات الحساب'; settings.addEventListener('click',function(){closeMenu(); openUserAdmin();}); }
     syncProfileMenu();
