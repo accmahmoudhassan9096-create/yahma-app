@@ -19,7 +19,9 @@
           <button class="btn btn-primary" id="btn-add-branch">+ إضافة فرع</button>
           <!-- تحديث الفرع/الحالة من غير مكانه: الرفع الرئيسي «رفع / تحديث سيارات الأسطول» بيحدّث العمودين. -->
           <button class="btn btn-branch-import" id="btn-branch-status-import-2" hidden>تحديث فرع/حالة (Excel)</button>
-          <button class="btn btn-ghost" id="btn-branch-status-template-2">نموذج Excel</button>
+          <!-- نموذج تحديث الفرع/الحالة: بيتبعت مع المستورد اللي خفياه، فاتخفى هو كمان.
+               نموذج الأسطول الفارغ (umt-template) هو المستخدم دلوقتي. -->
+          <button class="btn btn-ghost" id="btn-branch-status-template-2" hidden>نموذج Excel</button>
         </div>
       </div>
       <div class="filter-panel">
@@ -105,6 +107,7 @@
     $('btn-add-branch').onclick = () => openBranchModal(null);
     $('btn-branch-status-import-2').onclick = () => $('file-branch-status')?.click();
     $('btn-branch-status-template-2').onclick = downloadBranchStatusTemplate;
+    /* العناصر المخفية اتشالت من الواجهة — الربط الاختياري بيخلّيها آمنة لو رجعت */
     $('br-search').oninput = draw;
     draw();
   }
