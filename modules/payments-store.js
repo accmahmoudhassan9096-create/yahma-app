@@ -203,22 +203,30 @@ function diagnose() {
         status: 'pending',
         requested_at: entry.requestedAt
       };
-      var res = await global.supabaseClient.from('inspection_payments').insert(payload);
+      /* نطلب الرجوع بالسجل نفسه عشان ناخد الـ UUID الحقيقي.
+         بدون .select() الـ insert بيقبل بس مش بيرجّع id،
+         فتبقى السجلات المحلية بمفاتيح نصية و الـ update بيفشل
+         بـ invalid input syntax for type uuid. */
+      var res = await global.supabaseClient.from('inspection_payments')
+        .insert(payload)
+        .select('id,car_id,requested_at')
+        .single();
       if (res.error) {
         global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
         return { ok: true, local: true, error: res.error.message };
       }
       global.__yahmaPaymentsCloudError = '';
-      var created = Array.isArray(res.data) && res.data[0] ? res.data[0] : null;
+      var created = res.data || null;
       if (created && created.id) {
-        entry.id = created.id;
-        var list = readJSON(PENDING_KEY, []).map(function (p) {
-          return p.id === 'req-' + entry.carId ? null : p;
-        }).filter(Boolean);
-        var match = null;
-        list.forEach(function (p) { if (String(p.carId) === entry.carId && String(p.requestedAt) === entry.requestedAt) match = p; });
-        if (match) match.id = created.id;
-        else list.unshift(entry);
+        var list = readJSON(PENDING_KEY, []);
+        var found = false;
+        list.forEach(function (p) {
+          if (String(p.carId) === entry.carId && String(p.requestedAt) === entry.requestedAt) {
+            p.id = created.id;
+            found = true;
+          }
+        });
+        if (!found) list.unshift(entry);
         writeJSON(PENDING_KEY, list);
       }
       return { ok: true };
@@ -227,8 +235,43 @@ function diagnose() {
     }
   }
 
+  /* السجلات المخزّنة على السيرفر بمفاتيح UUID.
+   لو كان المفتاح نصيًا (طلب قديم قبل المزامنة) نحدّث محليًا بس،
+   عشان ما نطلعش خطأ «invalid input syntax for type uuid». */
+  var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function isCloudId(id) {
+    return UUID_RE.test(String(id || ''));
+  }
+  /* لو السجل لسه بمفتاح نصي، نجيب الـ UUID الحقيقي من السيرفر عبر car_id */
+  async function resolveCloudId(id, fallbackCarId) {
+    if (isCloudId(id)) return id;
+    if (!tableReady()) return null;
+    try {
+      var q = await window.supabaseClient
+        .from('inspection_payments')
+        .select('id')
+        .eq('car_id', String(fallbackCarId || ''))
+        .eq('status', 'pending')
+        .limit(1);
+      if (q.error || !q.data || !q.data.length) return null;
+      var realId = q.data[0].id;
+      /* نحدّث المفتاح في الكاش المحلي عشان المرة الجاية يبقى صحيح */
+      [PENDING_KEY, PAID_KEY].forEach(function (key) {
+        var list = readJSON(key, []);
+        var changed = false;
+        list.forEach(function (p) {
+          if (String(p.id) === String(id) && String(p.carId) === String(fallbackCarId)) {
+            p.id = realId; changed = true;
+          }
+        });
+        if (changed) writeJSON(key, list);
+      });
+      return realId;
+    } catch (_) { return null; }
+  }
+
   /* تسجيل الدفع: pending ⇐ paid */
-  async function markPaid(id) {
+  async function markPaid(id, carId) {
     var stamp = new Date().toISOString();
     var pending = readJSON(PENDING_KEY, []);
     var paid = readJSON(PAID_KEY, []);
@@ -244,11 +287,17 @@ function diagnose() {
     writeJSON(PENDING_KEY, pending);
     writeJSON(PAID_KEY, paid);
     if (!tableReady()) return { ok: true, local: true };
+    /* لو المفتاح نصي (سجل قديم) نجيب الـ UUID الحقيقي الأول */
+    var cloudId = isCloudId(id) ? id : await resolveCloudId(id, carId || (found && found.carId));
+    if (!cloudId) {
+      global.__yahmaPaymentsCloudError = '';
+      return { ok: true, local: true };
+    }
     try {
-      var res = await global.supabaseClient
+      var res = await window.supabaseClient
         .from('inspection_payments')
         .update({ status: 'paid', paid_at: stamp })
-        .eq('id', id);
+        .eq('id', cloudId);
       if (res.error) {
         global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
         return { ok: true, local: true, error: res.error.message };
@@ -256,21 +305,27 @@ function diagnose() {
       global.__yahmaPaymentsCloudError = '';
       return { ok: true };
     } catch (err) {
+      global.__yahmaPaymentsCloudError = String((err && err.message) || err);
       return { ok: true, local: true, error: err && err.message };
     }
   }
 
   /* إلغاء الطلب */
-  async function cancel(id) {
+  async function cancel(id, carId) {
     var pending = readJSON(PENDING_KEY, []);
-    var before = pending.length;
+    var carOfRequest = carId || (pending.find(function (p) { return String(p.id) === String(id); }) || {}).carId;
     pending = pending.filter(function (p) { return String(p.id) !== String(id); });
     writeJSON(PENDING_KEY, pending);
     if (!tableReady()) return { ok: true, local: true };
+    var cloudId = isCloudId(id) ? id : await resolveCloudId(id, carOfRequest);
+    if (!cloudId) {
+      global.__yahmaPaymentsCloudError = '';
+      return { ok: true, local: true };
+    }
     try {
-      var res = await global.supabaseClient.from('inspection_payments')
+      var res = await window.supabaseClient.from('inspection_payments')
         .update({ status: 'cancelled' })
-        .eq('id', id);
+        .eq('id', cloudId);
       if (res && res.error) {
         global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
         return { ok: true, local: true, error: res.error.message };

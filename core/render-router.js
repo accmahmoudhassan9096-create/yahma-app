@@ -159,7 +159,7 @@ function renderInspectionPayments(content){
     const car=byId.get(String(item.carId));
     if(button.dataset.paymentCancel){
       if(!confirm('إلغاء طلب الدفع للسيارة '+(car?.plate||item.plate)+'؟'))return;
-      await window.YahmaPayments.cancel(id);
+      await window.YahmaPayments.cancel(id, item.carId);
       if(typeof window.log==='function') window.log('إلغاء طلب دفع فحص','السيارة '+(car?.plate||item.plate||''));
       render();return;
     }
@@ -174,7 +174,7 @@ function renderInspectionPayments(content){
       alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
       return;
     }
-    await window.YahmaPayments.markPaid(id);
+    await window.YahmaPayments.markPaid(id, item.carId);
     if(typeof window.log==='function') window.log('تسجيل دفع وتجديد فحص','السيارة '+car.plate);
     /* ⇐ السلسلة المطلوبة: تحت الدفع ← تم الدفع ← تجديد الرخص */
     goTabFromRouter('paid');
