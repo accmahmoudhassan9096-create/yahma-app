@@ -235,6 +235,41 @@ function diagnose() {
     }
   }
 
+  /* بعد تجديد الرخصة: السطر يخلص من «تم الدفع» ويتشال من القائمة،
+   لكن السجل بيفضل في القاعدة كسجل (note = 'license-renewed'). */
+  var DONE_NOTE = 'license-renewed';
+  async function markLicenseRenewed(id, carId) {
+    var pending = readJSON(PENDING_KEY, []);
+    var paid = readJSON(PAID_KEY, []);
+    [pending, paid].forEach(function (list) {
+      list.forEach(function (p) {
+        if (String(p.id) === String(id) || (carId && String(p.carId) === String(carId))) {
+          p.note = DONE_NOTE;
+          p.licenseRenewedAt = new Date().toISOString();
+        }
+      });
+    });
+    writeJSON(PENDING_KEY, pending);
+    writeJSON(PAID_KEY, paid);
+    if (!tableReady()) return { ok: true, local: true };
+    var cloudId = isCloudId(id) ? id : await resolveCloudId(id, carId);
+    if (!cloudId) { global.__yahmaPaymentsCloudError = ''; return { ok: true, local: true }; }
+    try {
+      var res = await window.supabaseClient.from('inspection_payments')
+        .update({ note: DONE_NOTE })
+        .eq('id', cloudId);
+      if (res && res.error) {
+        global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
+        return { ok: true, local: true, error: res.error.message };
+      }
+      global.__yahmaPaymentsCloudError = '';
+      return { ok: true };
+    } catch (err) {
+      global.__yahmaPaymentsCloudError = String((err && err.message) || err);
+      return { ok: true, local: true, error: err && err.message };
+    }
+  }
+
   /* السجلات المخزّنة على السيرفر بمفاتيح UUID.
    لو كان المفتاح نصيًا (طلب قديم قبل المزامنة) نحدّث محليًا بس،
    عشان ما نطلعش خطأ «invalid input syntax for type uuid». */
@@ -345,7 +380,9 @@ function diagnose() {
     localByStatus: localByStatus,
     requestPayment: requestPayment,
     markPaid: markPaid,
+    markLicenseRenewed: markLicenseRenewed,
     cancel: cancel,
+    DONE_NOTE: DONE_NOTE,
     PENDING_KEY: PENDING_KEY,
     PAID_KEY: PAID_KEY
   };

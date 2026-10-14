@@ -83,8 +83,10 @@ function loadInspectionPayments(){
   catch(_){return [];}
 }
 function loadPaidInspections(){
+  var done=(window.YahmaPayments&&window.YahmaPayments.DONE_NOTE)||'license-renewed';
   if(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function'){
-    return window.YahmaPayments.localByStatus('paid');
+    return window.YahmaPayments.localByStatus('paid')
+      .filter(function(p){ return String(p.note||'')!==done; });
   }
   return [];
 }
@@ -181,11 +183,17 @@ function renderInspectionPayments(content){
   }));
 }
 
-/* ===== تبويب «تم الدفع» ===== */
+/* ===== تبويب «تم الدفع» =====
+   السطور اللي اتجدّدت رخصتها بتتشال من هنا (بتسجّل في note)،
+   عشان التبويب يبقى «اللي فاضل» بس — والتاريخ محفوظ في الأسطول وسجل النشاط. */
 function renderPaidInspections(content){
   document.getElementById('topbar-title').textContent='تم الدفع';
   document.getElementById('topbar-sub').textContent='طلبات تم دفع تجديد فحصها واعتمادها';
   const paid=loadPaidInspections();
+  const doneNote=(window.YahmaPayments&&window.YahmaPayments.DONE_NOTE)||'license-renewed';
+  const allPaid=(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function')
+    ? window.YahmaPayments.localByStatus('paid') : paid;
+  const doneCount=allPaid.filter(function(p){ return String(p.note||'')===doneNote; }).length;
   const byId=new Map(fleet.map(car=>[String(car.id),car]));
   const rows=paid.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
   const today=new Date(); today.setHours(0,0,0,0);
@@ -200,6 +208,7 @@ function renderPaidInspections(content){
     <div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>إجمالي المدفوع</small></span></div>
     <div class="fleet-summary-card"><span class="fleet-summary-icon">✓</span><span><b>${todayCount}</b><small>مدفوع اليوم</small></span></div>
     <div class="fleet-summary-card ${pendingLicense?'attention':''}"><span class="fleet-summary-icon">📄</span><span><b>${pendingLicense}</b><small>بانتظار تجديد الرخصة</small></span></div>
+    <div class="fleet-summary-card"><span class="fleet-summary-icon">✅</span><span><b>${doneCount}</b><small>تم تجديد رخصها</small></span></div>
   </div>
   <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تم الدفع</strong><span>الخطوة التالية: تجديد الرخصة — اضغط «تجديد الآن» لتسجيل الرخصة مباشرة من هنا</span></div></div>
   ${paymentsSyncWarningHtml()}
@@ -207,21 +216,52 @@ function renderPaidInspections(content){
   ${rows.length?rows.map(({item,car})=>{
       const needs=needsLicense({car});
       return `<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td>${needs
-        ? `<button type="button" class="btn btn-primary btn-small" data-go-license="${escapeHtml(car.id)}">تجديد الرخصة ←</button>`
+        ? `<button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(item.id)}">تجديد الرخصة</button>`
         : `<span class="tag green">الرخصة سارية</span>`}</td></tr>`;
     }).join(''):'<tr><td colspan="6"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
-  /* الانتقال لتبويب «تجديد الرخص» — نمرّ بنفس مسار التبويبات العادي
-     عشان الرسم يحصل مرة واحدة فقط (من غير تكرار ولا تردد). */
-  content.querySelectorAll('[data-go-license]').forEach(button=>button.addEventListener('click',()=>{
-    if(!window.canAccessYahmaTab('license-renewals')){alert('لا تملك صلاحية الوصول إلى قسم تجديد الرخص.');return;}
-    goTabFromRouter('license-renewals');
+  /* الضغطة بتجدد الرخصة على طول (3 سنين) وبتشيل السطر من القائمة */
+  content.querySelectorAll('[data-renew-license]').forEach(button=>button.addEventListener('click',()=>{
+    const item=loadPaidInspections().find(p=>String(p.id)===String(button.dataset.renewLicense));
+    if(!item){renderPaidInspections(content);return;}
+    const car=fleet.find(c=>String(c.id)===String(item.carId));
+    renewLicenseFromPaid(item, car, content);
   }));
 }
 
-/* انتقال آمن للتبويب: نغيّر التبويب عبر API العام ثم نرسم مرة واحدة.
-   ملاحظة: ما ننقرش على عنصر القائمة — النقرة بتسبب رسمين. */
+/* ===== تجديد الرخصة من «تم الدفع» =====
+   الضغطة بتجدد الرخصة على طول (3 سنين افتراضيًا) وبتشيل السطر من
+   القائمة — عشان يبقى تبويب «الخطوة الجاية» الحقيقي، After ما خلصت. */
+function renewLicenseFromPaid(item, car, content){
+  if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية تجديد الرخص.');return;}
+  if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return;}
+  const suggested=(typeof window.defaultLicenseExpiry==='function')
+    ? window.defaultLicenseExpiry()
+    : (function(){ const d=new Date(); d.setFullYear(d.getFullYear()+3); return d.toISOString().slice(0,10); })();
+  const raw=prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):', suggested);
+  if(!raw) return;
+  const normalized=(typeof window.normalizeDateValue==='function') ? window.normalizeDateValue(raw) : raw;
+  const previous=car.licenseExpiry;
+  car.licenseExpiry=normalized||raw;
+  if(!car.licenseStatus||String(car.licenseStatus).includes('منته')) car.licenseStatus='نشط';
+  saveData([car.id]).then(function(saved){
+    if(saved===false){
+      car.licenseExpiry=previous;
+      saveData([car.id]);
+      alert('تعذر حفظ التغيير على Supabase. تحقق من الاتصال ثم أعد المحاولة.');
+      return;
+    }
+    return window.YahmaPayments.markLicenseRenewed(item.id, item.carId).then(function(){
+      if(typeof window.log==='function') window.log('تجديد رخصة بعد دفع فحص','السيارة '+car.plate);
+      renderPaidInspections(content);
+    });
+  }).catch(function(){
+    alert('تعذر تجديد الرخصة. تحقق من الاتصال ثم أعد المحاولة.');
+  });
+}
+
+/* انتقال آمن للتبويب: نغيّر التبويب عبر السابط العامة ثم نرسم مرة واحدة. */
 function goTabFromRouter(tab){
   try{
     if(typeof window.yahmaSetTab==='function') window.yahmaSetTab(tab);
@@ -230,8 +270,6 @@ function goTabFromRouter(tab){
   document.querySelectorAll('.nav-item').forEach(function(i){
     i.classList.toggle('active', i.dataset.tab===tab);
   });
-  /* render() بيقرا التبويب من yahmaGetTab — فنداء واحد كافي.
-     بنمر على الأغلفة بس لو هيكDelayed، ونحاول _perfImmediate مرة واحدة. */
   try{
     if(typeof window.render==='function'&&typeof window.render._perfImmediate==='function'){
       window.render._perfImmediate();
