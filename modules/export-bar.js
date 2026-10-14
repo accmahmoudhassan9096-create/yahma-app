@@ -104,8 +104,12 @@
     var t = tab();
     if (!t) return;
     var bar = document.getElementById(ID);
+    /* التبويبات بتعمل content.innerHTML = ... فبتنسخ الشريط —
+       لازم نرجّعوه جوّه #content كل مرة. */
     if (!bar) { build(); bar = document.getElementById(ID); }
     if (!bar) return;
+    var host = document.getElementById('content');
+    if (host && bar.parentNode !== host) host.insertBefore(bar, host.firstChild);
 
     var d = data();
     bar.hidden = false;
