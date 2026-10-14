@@ -320,6 +320,13 @@
           && global.document.visibilityState !== 'visible') return;
       const now = Date.now();
       if (busy || now - lastResume < 10000) return;
+      /* REQUIRE a real signed-in user before any foreground refresh.
+         The old guard only checked "fleet is empty", so every page open
+         (on mobile: focus + pageshow + visibilitychange all fire) called
+         loadData(true) with NO session -> 401 "session expired" noise on
+         the login screen before the user had even typed anything. */
+      if (global._demoMode) return;
+      if (!global.currentUser || !global.currentUser.id) return;
       const size = fleetSize();
       if (size > 0 && !global.__yahmaSessionExpired) return;
       lastResume = now;
