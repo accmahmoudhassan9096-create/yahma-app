@@ -1522,18 +1522,11 @@ ${d.accLine}
     el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click();}};
   });
 
-  // 3D tilt on cards
+  // تم إلغاء تأثير الميلان (3D tilt) — كان بيخلي الكارت يلتف ويزحلق
+// المحتوى تحته لما الماوس يتحرك فوقه، وده كان مزعج أثناء القراءة.
+  // الباقي زي ما هو: تظليل بسيط من CSS بس.
   content.querySelectorAll('.rd-3d').forEach(card=>{
-    card.addEventListener('mousemove', e=>{
-      if(e.target.closest('.rd-kpi, .rd-exp-row, .rd-bar-row, .rd-bt-r')) return;
-      const r = card.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width;
-      const y = (e.clientY - r.top) / r.height;
-      const rx = (0.5 - y) * 8;
-      const ry = (x - 0.5) * 10;
-      card.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(6px)`;
-    });
-    card.addEventListener('mouseleave', ()=>{ card.style.transform = ''; });
+    card.style.transformStyle = 'flat';
   });
 }
 

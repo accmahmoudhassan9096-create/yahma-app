@@ -804,9 +804,28 @@ html, body{
   z-index: 1;
   clear: both;
 }
+/* ===== إلغاء تأثير الميلان (3D tilt) في التقارير =====
+   الـ rd-shell كان فيه perspective + preserve-3d، فكان الكارت يميل
+   لما الماوس يقف عليه (ويبان «رجّاج» ويزحلق المحتوى تحته).
+   هنا: نثبّت الكروت — highlight بسيط بدل الحركة. */
+.rd-shell{perspective:none !important;}
+.rd-shell .rd-card,
+.rd-shell .rd-card:hover,
+.rd-shell .rd-3d,
+.rd-shell .rd-3d:hover{
+  transform:none !important;
+  transform-style:flat !important;
+  transition:box-shadow .15s ease, border-color .15s ease !important;
+  will-change:auto !important;
+}
+.rd-shell .rd-card:hover{
+  box-shadow:0 12px 30px rgba(15,25,60,.09) !important;
+  border-color:rgba(8,112,111,.32) !important;
+}
+.rd-shell .rd-grid > *,
+.rd-shell .rd-kpis > *{transform:none !important;}
+
 /* ===== شريط أدوات التقارير: مضغوط + ثابت =====
-   كان 254px (فلاتر 144 + أزرار 86) وبيتحرك مع السكرول.
-   دلوقتي صف واحد مضغوط + sticky فوق المحتوى. */
 .rd-shell .rd-toolbar{
   position: sticky;
   top: 0;
