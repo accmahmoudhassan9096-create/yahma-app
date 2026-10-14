@@ -371,9 +371,55 @@
   global.YahmaExportLazy = YahmaExport;
 
   /* ===== تصدير موحّد لكل التبويبات =====
-     كل تبويب بيعرّف window._yahmaCurrentPdfData() → {title, subtitle, headers, rows}.
-     الدالة دي بتاخد البيانات دي وتعمل Excel أو PDF بنفس الشكل العربي.
-     فلازم أي تبويب جديد يعرّف الدالة دي علشان التصدير يشتغل فيه. */
+     مصدر البيانات واحد: مزوّد التبويب (_yahmaCurrentPdfData) ولّا —
+     لو مش معرّف — الجدول المعروض على الشاشة.
+     مهم إن المصدر يبقى واحد، عشان الزرار مايتفعّلش وأنت ضغطته يطلع
+     رسالة «غير مدعوم». */
+  function cleanCell(v) {
+    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim() || '—';
+  }
+
+  function dataFromRenderedTable() {
+    try {
+      var root = global.document.getElementById('content');
+      if (!root) return null;
+      var table = root.querySelector('table');
+      if (!table) return null;
+      var ths = Array.prototype.slice.call(table.querySelectorAll('thead th'));
+      if (!ths.length) return null;
+      /* نقرأ النص الخام الأول عشان نعرف العمود فاضي فعلاً ولا لأ،
+     لأن cleanCell بترجّع '—' بدل النص الفاضي. */
+      var rawHeaders = ths.map(function (th) {
+        return String(th.textContent == null ? '' : th.textContent).replace(/\s+/g, ' ').trim();
+      });
+      var headers = rawHeaders.map(function (h) { return h || '—'; });
+      var trs = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+      var rows = [];
+      trs.forEach(function (tr) {
+        var tds = Array.prototype.slice.call(tr.children);
+        if (tds.length < 2) return;
+        var txt = cleanCell(tr.textContent);
+        if (txt.indexOf('لا توجد') === 0 || txt.indexOf('لا يوجد') === 0) return;
+        var cells = tds.map(function (td) { return cleanCell(td.textContent); });
+        if (cells.length) rows.push(cells);
+      });
+      /* أعمدة بلا عنوان = checkbox تحديد أو عمود إجراءات.
+         هنقصها من الرأس ومن الصفوف مع بعض عشان مايبقاش في زوايا فاضية
+         في الملف ولا نص ملزوق زي «دورة التجهيزTimeline». */
+      var firstEmpty = rawHeaders.indexOf('');
+      var cutAt = firstEmpty >= 0 ? firstEmpty : headers.length;
+      headers = headers.slice(0, cutAt);
+      rows = rows.map(function (cells) { return cells.slice(0, cutAt); });
+      var titleNode = global.document.getElementById('topbar-title');
+      return {
+        title: cleanCell(titleNode && titleNode.textContent) || 'تقرير',
+        subtitle: rows.length ? ('عدد السجلات: ' + rows.length) : '',
+        headers: headers,
+        rows: rows
+      };
+    } catch (e) { return null; }
+  }
+
   function currentTabData() {
     try {
       if (typeof global._yahmaCurrentPdfData === 'function') {
@@ -381,7 +427,7 @@
         if (d && Array.isArray(d.headers) && Array.isArray(d.rows)) return d;
       }
     } catch (e) { console.warn('currentTabData', e); }
-    return null;
+    return dataFromRenderedTable();
   }
 
   function slug(s) {

@@ -23,6 +23,49 @@ function renderDashboard(content, context){
   const renInsp = fleet.filter(c => inspectionDisplayStatus(c.inspectionStatus).level !== 'green').length;
   const renLic = fleet.filter(c => dateStatus(c.licenseExpiry).level !== 'green').length;
   const renIns = fleet.filter(c => textTag(c.insuranceStatus).level !== 'green').length;
+
+  /* ===== تصدير الرئيسية =====
+     مفيش جدول في الشاشة، فبن export مُلخّص تنفيذي + توزيع الفروع.
+     ده اللي المستخدم محتاج ينسخه لما يطلب تقرير الحالة. */
+  window._yahmaCurrentPdfData = () => {
+    const rows = [];
+    const summary = [
+      ['إجمالي الأسطول', total],
+      ['جاهزة للتأجير', ready],
+      ['قيد التجهيز (أوراق ناقصة)', inPrepExcl],
+      ['غير جاهزة', notReady],
+      ['مؤجرة', rented],
+      ['تحت الصيانة', fleet.filter(maintStatus).length],
+      ['خارج الخدمة', fleet.filter(outStatus).length],
+      ['فحص مطلوب', renInsp],
+      ['رخص تحتاج متابعة', renLic],
+      ['تأمين يحتاج متابعة', renIns],
+      ['نسبة الجاهزية', (total ? Math.round(ready / total * 1000) / 10 : 0) + '%']
+    ];
+    summary.forEach(function (r) { rows.push([r[0], String(r[1])]); });
+
+    /* توزيع الفروع — الجزء المفيد فعلًا في تقرير الحالة */
+    const byBranch = new Map();
+    fleet.forEach(function (c) {
+      const b = String(c.branch || '').trim() || 'بدون فرع';
+      const cur = byBranch.get(b) || { total: 0, ready: 0 };
+      cur.total++;
+      try { if (vehicleReadiness(c).ready) cur.ready++; } catch (_) {}
+      byBranch.set(b, cur);
+    });
+    Array.from(byBranch.entries())
+      .sort(function (a, b) { return b[1].total - a[1].total; })
+      .forEach(function (e) {
+        rows.push([e[0], String(e[1].total), String(e[1].ready), String(e[1].total - e[1].ready)]);
+      });
+
+    return {
+      title: 'الملخص التنفيذي للأسطول',
+      subtitle: 'إجمالي ' + total + ' سيارة — جاهزة ' + ready + ' — ' + new Date().toLocaleDateString('ar-EG'),
+      headers: ['البند / الفرع', 'الإجمالي', 'جاهزة', 'غير جاهزة'],
+      rows: rows
+    };
+  };
   const renCard = fleet.filter(c => cardDisplayStatus(c.cardExpiry, c.cardStatus).level !== 'green').length;
   let finalReview = 0;
   // مراجعة نهائية

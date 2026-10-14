@@ -11,7 +11,8 @@
 (function (global) {
   'use strict';
 
-  var SKIP_TABS = { dashboard: 1 };
+  /* مفيش استثناءات — الرئيسية كمان ليها تصدير (ملخص تنفيذي). */
+  var SKIP_TABS = {};
   var ID = 'yahma-export-bar';
 
   function tab() {
@@ -27,49 +28,20 @@
       .trim() || '—';
   }
 
-  /* fallback: اقرأ الجدول المعروض على الصفحة نفسها.
-     ده يضمن إن التصدير شغال في أي تبويب حتى لو مش معرّف
-     _yahmaCurrentPdfData — بيصدّر بالظبط اللي المستخدم شايفه. */
-  function dataFromTable() {
-    var root = document.getElementById('content');
-    if (!root) return null;
-    var table = root.querySelector('table');
-    if (!table) return null;
-    var ths = Array.prototype.slice.call(table.querySelectorAll('thead th'));
-    if (!ths.length) return null;
-    var headers = ths.map(function (th) { return clean(th.textContent); });
-    /* شريط اختيار الكروت مالهاش عنوان — نشيله */
-    var pickIdx = headers.findIndex(function (h) { return h === ''; });
-    if (pickIdx >= 0) {
-      headers.splice(pickIdx, 1);
-    }
-    var trs = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
-    var rows = [];
-    trs.forEach(function (tr) {
-      var tds = Array.prototype.slice.call(tr.children);
-      if (tds.length <= 1 && clean(tr.textContent).indexOf('لا توجد') === 0) return;
-      if (tds.length < 2) return;
-      var cells = tds.map(function (td) { return clean(td.textContent); });
-      if (pickIdx >= 0 && cells.length > pickIdx) cells.splice(pickIdx, 1);
-      if (cells.length) rows.push(cells);
-    });
-    var title = (document.getElementById('topbar-title') || {}).textContent || 'تقرير';
-    return {
-      title: clean(title),
-      subtitle: rows.length ? ('عدد السجلات: ' + rows.length) : '',
-      headers: headers,
-      rows: rows
-    };
-  }
-
+  /* مصدر البيانات واحد مع YahmaExport.currentTabData() — مش نسخة تانية.
+     لو الشرط اتكرر هنا كان ممكن الزرار يتفعّل والضغط يطلع «غير مدعوم». */
   function data() {
+    try {
+      if (global.YahmaExport && typeof global.YahmaExport.currentTabData === 'function') {
+        return global.YahmaExport.currentTabData();
+      }
+    } catch (_) {}
     try {
       if (typeof global._yahmaCurrentPdfData === 'function') {
         var d = global._yahmaCurrentPdfData();
         if (d && Array.isArray(d.headers) && Array.isArray(d.rows)) return d;
       }
     } catch (_) {}
-    try { return dataFromTable(); } catch (_) {}
     return null;
   }
 
@@ -125,7 +97,7 @@
   }
 
   /* بتتنادى في نهاية كل render.
-     القاعدة: الشريط ظاهر في كل تبويب غير الرئيسية، حتى لو الجدول
+     القاعدة: الشريط ظاهر في كل التبويبات بلا استثناء، حتى لو الجدول
      فاضي — الزراير بتتظبط معطّلة وقتها. إخفاءه كان بيخلي بعض
      التبويبات تظهر زرار وبعضها لأ. */
   function sync() {
@@ -134,7 +106,6 @@
     var bar = document.getElementById(ID);
     if (!bar) { build(); bar = document.getElementById(ID); }
     if (!bar) return;
-    if (SKIP_TABS[t]) { bar.hidden = true; return; }
 
     var d = data();
     bar.hidden = false;
