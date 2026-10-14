@@ -804,6 +804,31 @@ html, body{
   z-index: 1;
   clear: both;
 }
+/* ===== تثبيت شريط أدوات التقارير =====
+  Toolbar التقارير كان بيختفي مع السكرول، فكنت بترجع فوق كل مرة
+   عشان تغيّر التقرير. دلوقتي يفضل ثابت فوق المحتوى. */
+.rd-shell .rd-toolbar{
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--paper, #F6F8FC);
+  padding-top: 6px;
+  padding-bottom: 6px;
+  margin-top: -6px;
+  margin-bottom: 8px;
+}
+.rd-shell .rd-filter-status{position: relative; z-index: 39;}
+body.dark-mode .rd-shell .rd-toolbar{background: #101828;}
+body.dark-mode .rd-shell .rd-toolbar{border-bottom: 1px solid rgba(255,255,255,.08);}
+/* على الموبايل نثبّت بس شريط الأزرار (أقصر) عشان ما ياخدش نص الشاشة */
+@media(max-width:700px){
+  .rd-shell .rd-toolbar{
+    background: var(--paper, #F6F8FC);
+    padding: 4px 0;
+    margin: -4px 0 6px;
+  }
+}
+
 /* تبويبات الجداول: مسطرة تمرير رأسية واحدة فقط — المحتوى عمود ثابت والجدول يتمرر داخليًا */
 .content.content-table{
   display: flex !important;
