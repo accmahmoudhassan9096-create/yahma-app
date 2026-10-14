@@ -346,6 +346,35 @@
     global.document.addEventListener('visibilitychange', onVisibility);
     global.addEventListener('focus', () => resume({ type: 'focus' }));
     global.addEventListener('pageshow', () => resume({ type: 'pageshow' }));
+
+    /* ===== day rollover watcher =====
+       Tab filters are computed at render time from "now" (e.g. inspection
+       = not done OR licence lapses within 3 months). That already tracks the
+       calendar on its own, BUT only when a render happens. If the app stays
+       open across midnight and nobody switches tabs, the list would show
+       yesterday's answer. So: remember today's stamp, and re-render the
+       moment the date rolls over - checked on foreground events and on a
+       slow interval so it also catches an app left open untouched. */
+    const dayStamp = () => {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    };
+    let lastDay = dayStamp();
+    const checkDay = () => {
+      const now = dayStamp();
+      if (now === lastDay) return;
+      lastDay = now;
+      try {
+        if (typeof global.render === 'function') global.render();
+      } catch (_) {}
+    };
+    try {
+      global.setInterval(checkDay, 60000);
+      global.addEventListener('focus', checkDay);
+      global.document.addEventListener('visibilitychange', function () {
+        if (global.document.visibilityState === 'visible') checkDay();
+      });
+    } catch (_) {}
   }
 
   global.YahmaData = Object.assign(global.YahmaData || {}, {

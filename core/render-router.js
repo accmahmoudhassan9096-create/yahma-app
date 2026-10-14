@@ -348,6 +348,13 @@ function goTabFromRouter(tab){
 let __yahmaFullFleet = null;
 
 function render(){
+  /* تاريخ آخر رسم — المراقب في data.js بيقارنه باليوم الحالي
+     ويعمل re-render تلقائي لما اليوم يتغير، حتى لو المستخدم
+     سايب التطبيق مفتوح من غير ما يبدّل تبويب. */
+  try {
+    const _d = new Date();
+    window.__yahmaRenderDay = _d.getFullYear() + '-' + String(_d.getMonth() + 1).padStart(2, '0') + '-' + String(_d.getDate()).padStart(2, '0');
+  } catch (_) {}
   /* نقرأ التبويب من الـ API العام (yahmaGetTab) بدل الـ binding المحلي. */
   if(typeof window.yahmaGetTab === 'function'){ currentTab = window.yahmaGetTab(); }
   if(!window.canAccessYahmaTab(currentTab)) { currentTab='dashboard'; if(typeof window.yahmaSetTab==='function') window.yahmaSetTab('dashboard'); }
