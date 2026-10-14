@@ -190,19 +190,49 @@ function renderPaidInspections(content){
   const rows=paid.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
   const today=new Date(); today.setHours(0,0,0,0);
   const todayCount=rows.filter(({item})=>item.paidAt&&new Date(item.paidAt)>=today).length;
+  /* هل الرخصة اتجدّدت فعلاً؟ لو التاريخ لسه قادم/منتهي يبقى الخطوة الجاية */
+  const needsLicense=({car})=>{
+    const d=car.licenseExpiry?new Date(car.licenseExpiry):null;
+    return !d || isNaN(d.getTime()) || d.getTime() < Date.now();
+  };
+  const pendingLicense=rows.filter(needsLicense).length;
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip">
     <div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>إجمالي المدفوع</small></span></div>
     <div class="fleet-summary-card"><span class="fleet-summary-icon">✓</span><span><b>${todayCount}</b><small>مدفوع اليوم</small></span></div>
+    <div class="fleet-summary-card ${pendingLicense?'attention':''}"><span class="fleet-summary-icon">📄</span><span><b>${pendingLicense}</b><small>بانتظار تجديد الرخصة</small></span></div>
   </div>
-  <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تم الدفع</strong><span>اضغط «تجديد الرخص» للانتقال للخطوة التالية</span></div></div>
+  <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تم الدفع</strong><span>الخطوة التالية: تجديد الرخصة — اضغط «تجديد الآن» لتسجيل الرخصة مباشرة من هنا</span></div></div>
   ${paymentsSyncWarningHtml()}
   <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>الإجراء</th></tr></thead><tbody>
-  ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td><button type="button" class="btn btn-ghost btn-small" data-go-license="1">تجديد الرخص →</button></td></tr>`).join(''):'<tr><td colspan="6"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
+  ${rows.length?rows.map(({item,car})=>{
+      const needs=needsLicense({car});
+      return `<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td>${needs
+        ? `<button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(car.id)}">تجديد الرخصة الآن</button>`
+        : `<span class="tag green">الرخصة سارية</span>`}</td></tr>`;
+    }).join(''):'<tr><td colspan="6"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
-  content.querySelectorAll('[data-go-license]').forEach(button=>button.addEventListener('click',()=>{
-    if(!window.canAccessYahmaTab('license-renewals')){alert('لا تملك صلاحية الوصول إلى قسم تجديد الرخص.');return;}
-    goTabFromRouter('license-renewals');
+  content.querySelectorAll('[data-renew-license]').forEach(button=>button.addEventListener('click',async()=>{
+    if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية تجديد الرخص.');return;}
+    const car=fleet.find(c=>String(c.id)===String(button.dataset.renewLicense));
+    if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return;}
+    const nextDate=prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):',
+      (function(){ const d=new Date(); d.setFullYear(d.getFullYear()+1); return d.toISOString().slice(0,10); })());
+    if(!nextDate) return;
+    const previous=car.licenseExpiry;
+    const normalized=(typeof window.YahmaUtils!=='undefined'&&window.YahmaUtils.normalizeDateValue)
+      ? window.YahmaUtils.normalizeDateValue(nextDate) : nextDate;
+    car.licenseExpiry=normalized||nextDate;
+    const saved=await saveData([car.id]);
+    if(saved===false){
+      car.licenseExpiry=previous;
+      await saveData([car.id]);
+      alert('تعذر حفظ التغيير على Supabase. تحقق من الاتصال ثم أعد المحاولة.');
+      return;
+    }
+    if(typeof window.log==='function') window.log('تجديد رخصة بعد دفع فحص','السيارة '+car.plate);
+    renderPaidInspections(content);
+    if(typeof render==='function') render();
   }));
 }
 
