@@ -10,12 +10,18 @@ function buildInspectionWhatsAppMessage(cars){
 }
 
 
+/* نفس خط الواجهة (Cairo) عشان العربي يطلع متّصل ومظبوط على أي جهاز.
+   فرض Tahoma كان بيخلي المتصفح يرجع لخط بديل على الأجهزة اللي مش
+   عليها Windows fonts، فالعربي بيطلع حروفه مقطّعة في الـPDF. */
+var YAHMA_PDF_FONT = "'Cairo','IBM Plex Sans Arabic','Noto Sans Arabic',Tahoma,'Segoe UI',Arial,sans-serif";
+
 function buildPdfReportHtml(title, headers, rows, subtitle){
   const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const head=(headers||[]).map(h=>'<th>'+esc(h)+'</th>').join('');
   const body=(rows||[]).map(r=>'<tr>'+(r||[]).map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('');
   return (
-    '<div class="pdf-root" style="box-sizing:border-box;width:1000px;padding:24px;background:#ffffff;color:#1A2433;font-family:Tahoma,\'Segoe UI\',Arial,sans-serif;direction:rtl;text-align:right;">'+
+    '<div class="pdf-root" style="box-sizing:border-box;width:1000px;padding:24px;background:#ffffff;color:#1A2433;font-family:' + YAHMA_PDF_FONT + ';direction:rtl;text-align:right;">'+
+      '<style>.pdf-root *{font-family:' + YAHMA_PDF_FONT + ' !important}</style>'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #C6952E;padding-bottom:12px;margin-bottom:16px;">'+
         '<div>'+
           '<div style="font-size:22px;font-weight:800;color:#1F3C88;line-height:1.3;">'+esc(title)+'</div>'+
@@ -46,22 +52,37 @@ async function generateReportPdfBlob(title, headers, rows, subtitle){
   document.body.appendChild(host);
 
   try{
+    // لازم الخط يخلص تحميل قبل الرسم، وإلا الـclone بيرسم بخط بديل
+    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){}
     // انتظر رسم المتصفح
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     await new Promise(r=>setTimeout(r, 250));
 
     const node=host.querySelector('.pdf-root')||host;
-    const canvas=await html2canvas(node,{
-      scale:2,
-      useCORS:true,
-      allowTaint:true,
-      backgroundColor:'#ffffff',
-      logging:false,
-      width:node.scrollWidth||1000,
-      height:Math.max(node.scrollHeight||100, 200),
-      windowWidth:node.scrollWidth||1000,
-      windowHeight:Math.max(node.scrollHeight||100, 200)
-    });
+
+    /* The page is drawn by the browser itself (SVG foreignObject).
+       html2canvas re-implements text layout, and with the fonts used
+       here the Arabic comes out with disconnected letters. The browser
+       knows how to shape it correctly. */
+    let canvas=null;
+    try{
+      if(window.YahmaCaptureViaSvg){
+        canvas=await window.YahmaCaptureViaSvg(node, 2, 0.9);
+      }
+    }catch(e){ console.warn('تعذر الرسم عبر SVG، بنستخدم html2canvas:', e); }
+    if(!canvas){
+      canvas=await html2canvas(node,{
+        scale:2,
+        useCORS:true,
+        allowTaint:true,
+        backgroundColor:'#ffffff',
+        logging:false,
+        width:node.scrollWidth||1000,
+        height:Math.max(node.scrollHeight||100, 200),
+        windowWidth:node.scrollWidth||1000,
+        windowHeight:Math.max(node.scrollHeight||100, 200)
+      });
+    }
 
     if(!canvas || canvas.width<20 || canvas.height<20){
       throw new Error('تعذر رسم التقرير (Canvas فارغ)');

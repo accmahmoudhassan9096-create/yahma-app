@@ -178,6 +178,17 @@
   }
 
   /** بناء مضيف الجدول بنفس شكل تقرير التقارير (RTL + رأس أزرق + تناوب صفوف) */
+  /* خط الـPDF: Cairo أول واحد — لأنه نفس خط الواجهة، ومحمّل من
+     Google Fonts فبيكون موجود على أي جهاز. Tahoma/Segoe/Arial كانت
+     بتتفرض على الـPDF، وعلى الأجهزة اللي مش عليها (أندرويد مثلًا)
+     المتصفح بيرجع لخط مش مناسب فالعربي بيطلع حروفه مقطّعة.
+     عاملين-system generics في الآخر احتياطًا. */
+  const PDF_FONT = "'Cairo','IBM Plex Sans Arabic','Noto Sans Arabic',Tahoma,'Segoe UI',Arial,sans-serif";
+
+  async function ensureFontsReady() {
+    try { if (global.document && global.document.fonts && typeof global.document.fonts.ready !== 'undefined') await global.document.fonts.ready; } catch (_) {}
+  }
+
   function buildTablePdfHost(o) {
     const headers = o.headers || [];
     const rows = o.rows || [];
@@ -190,8 +201,9 @@
     /* ظاهر جزئيًا (opacity منخفضة) — off-screen يسبب PDF فاضي في بعض المتصفحات */
     host.style.cssText = 'position:fixed;left:0;top:0;width:' + PDF_HOST_W + 'px;background:#fff;z-index:2147483646;opacity:0.02;pointer-events:none;overflow:visible;';
     host.innerHTML =
-      '<div class="pdf-root" style="box-sizing:border-box;width:' + PDF_HOST_W + 'px;padding:24px;background:#fff;color:#1A2433;font-family:Tahoma,\'Segoe UI\',Arial,sans-serif;direction:rtl;text-align:right;">' +
+      '<div class="pdf-root" style="box-sizing:border-box;width:' + PDF_HOST_W + 'px;padding:24px;background:#fff;color:#1A2433;font-family:' + PDF_FONT + ';direction:rtl;text-align:right;">' +
       '<style>' +
+      '.pdf-root *{font-family:' + PDF_FONT + ' !important}' +
       '.pdf-root table{width:100%;border-collapse:collapse}' +
       '.pdf-root th{background:#1F3C88;color:#fff;padding:8px 6px;text-align:right;font-size:11px;font-weight:700;border:1px solid #1F3C88}' +
       '.pdf-root td{padding:7px 6px;border-bottom:1px solid #E6EAF0;text-align:right;font-size:11px;vertical-align:top}' +
@@ -215,11 +227,82 @@
     return host;
   }
 
-  /** التقاط عقدة → JPEG بنفس إعدادات التقارير (scale 1.5 + جودة 0.85) */
+  /* ============================================================
+     التقاطaccurate: المتصفح بيرسم بنفسه عبر SVG <foreignObject>
+     ------------------------------------------------------------
+     html2canvas بيعيد تنفيذ تخطيط النص بنفسه، وبيقسّم النص حرف حرف
+     لما encounters نص مش بسيط — فالعربي بيطلع حروفه مقطّعة وكلماته
+     مرتّبة غلط. ده كان بيحصل في كل ملفات PDF.
+     الحل ده بيخلّي المتصفح يرسم الصفحة زي ما بيعرضها بالظبط،
+     فالتشكيل والـRTL بيطلعوا صحيحين 100%.
+     ============================================================ */
+  function captureViaSvg(node, scale, quality) {
+    var sc = scale || 1.5;
+    var q = quality == null ? 0.85 : quality;
+    var w = Math.max(node.scrollWidth || 0, node.offsetWidth || 0, 200);
+    var h = Math.max(node.scrollHeight || 0, node.offsetHeight || 0, 100);
+
+    var clone = node.cloneNode(true);
+    clone.style.margin = '0';
+    clone.style.position = 'static';
+    clone.style.width = w + 'px';
+    clone.style.height = 'auto';
+    clone.style.boxShadow = 'none';
+
+    /* بننسخ الـstyle الخاص بـ.pdf-root جوه الـSVG بس — مش CSS التطبيق
+       كله، عشان ما تبقاش قواعد الموبايل أو أي حاجة تانية Legislative
+       على الـPDF. الـroot عنده تنسيقه الكامل بالفعل. */
+    var own = [];
+    var st = node.querySelectorAll ? node.querySelectorAll('style') : [];
+    for (var i = 0; i < st.length; i++) own.push(st[i].textContent || '');
+
+    var html =
+      '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + w + 'px;background:#fff;">' +
+      '<style type="text/css"><![CDATA[' + own.join('\n') + ']]></style>' +
+      clone.outerHTML +
+      '</div>';
+
+    var svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="' + Math.round(w * sc) + '" height="' + Math.round(h * sc) + '" viewBox="0 0 ' + w + ' ' + h + '">' +
+      '<foreignObject x="0" y="0" width="' + w + '" height="' + h + '">' + html + '</foreignObject>' +
+      '</svg>';
+
+    return new Promise(function (resolve, reject) {
+      var img = new global.Image();
+      img.onload = function () {
+        try {
+          var canvas = global.document.createElement('canvas');
+          canvas.width = Math.round(w * sc);
+          canvas.height = Math.round(h * sc);
+          var ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var data = canvas.toDataURL('image/jpeg', q);
+          var res = { data: data, w: canvas.width, h: canvas.height };
+          canvas.width = 0; canvas.height = 0;
+          resolve(res);
+        } catch (e) { reject(e); }
+      };
+      img.onerror = function () { reject(new Error('تعذر رسم التقرير عبر SVG')); };
+      var url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      img.src = url;
+    });
+  }
+
+  /** التقاط عقدة → JPEG. بنستخدم SVG أولاً، و html2canvas احتياطاً. */
   async function captureNodeJpeg(node, scale, quality) {
+    /* لازم الخط يكون خلص تحميل قبل الرسم، وإلا الـclone بيترسم بخط
+       بديل وبعدها العربي بيطلع مكسور. */
+    await ensureFontsReady();
+    try {
+      return await captureViaSvg(node, scale, quality);
+    } catch (svgErr) {
+      console.warn('تعذر الرسم عبر SVG، بنستخدم html2canvas:', svgErr);
+    }
     await ensurePdfLibs();
     const h2c = global.html2canvas;
-    if (typeof h2c !== 'function') throw new Error('html2canvas غير متاحة — تحقق من الاتصال بالإنترنت');
+    if (typeof h2c !== 'function') throw new Error('تعذر رسم التقرير — تحقق من الاتصال بالإنترنت');
     const sc = scale || 1.5;
     const q = quality == null ? 0.85 : quality;
     const w = Math.max(node.scrollWidth || 0, node.offsetWidth || 0, 200);
@@ -467,6 +550,22 @@
   YahmaExport.exportTabExcel = exportTabExcel;
   YahmaExport.exportTabPdf = exportTabPdf;
   YahmaExport.currentTabData = currentTabData;
+  /* pdf-share.js بيستخدم نفس التقاط الـSVG عشان العربي يطلع متّصل
+     في كل ملفات PDF، مش في تصدير الجداول بس. */
+  global.YahmaCaptureViaSvg = async function (node, scale, quality) {
+    await ensureFontsReady();
+    const r = await captureViaSvg(node, scale, quality);
+    const img = new global.Image();
+    await new Promise(function (res, rej) {
+      img.onload = res;
+      img.onerror = function () { rej(new Error('تعذر تحميل الصورة')); };
+      img.src = r.data;
+    });
+    const c = global.document.createElement('canvas');
+    c.width = r.w; c.height = r.h;
+    c.getContext('2d').drawImage(img, 0, 0);
+    return c;
+  };
 
   // Intercept common export button clicks early
   document.addEventListener('click', function (e) {
