@@ -1,3 +1,76 @@
+/* ===== تشخيص المزامنة (يرجع وعد بنتيجة واضحة) =====
+   بنجرّب INSERT ثم DELETE على نفس السجل عشان نعرف إن السياسات شغالة،
+   من غير ما نأثر على أي بيانات حقيقية. */
+function yahmaPaymentsTableReady() {
+  return !!(typeof window !== 'undefined' && window.supabaseReady && window.supabaseClient);
+}
+function diagnose() {
+  var result = {
+    supabaseReady: yahmaPaymentsTableReady(),
+    session: false,
+    email: '',
+    readOk: false,
+    readCount: null,
+    writeOk: false,
+    writeError: '',
+    verdict: ''
+  };
+  var chain = Promise.resolve();
+  chain = chain.then(function () {
+    if (!yahmaPaymentsTableReady()) return;
+    return window.supabaseClient.auth.getSession().then(function (s) {
+      if (s && s.data && s.data.session) {
+        result.session = true;
+        result.email = s.data.session.user.email || '';
+      }
+      return window.supabaseClient.from('inspection_payments').select('id').limit(1);
+    }).then(function (q) {
+      if (!q) return;
+      result.readOk = !q.error;
+      result.readCount = q.error ? null : (q.data || []).length;
+      if (q.error) result.writeError = 'القراءة: ' + q.error.message;
+    }).catch(function (e) {
+      result.writeError = String((e && e.message) || e);
+    });
+  }).catch(function (e) {
+    result.writeError = String((e && e.message) || e);
+  });
+
+  /* الكتابة بتنجح بس لو فيه جلسة صالحة ودور admin/ops */
+  return chain.then(function () {
+    if (!result.session) {
+      if (!result.writeError) result.writeError = 'لا توجد جلسة دخول صالحة على هذا الجهاز';
+      result.verdict = result.readOk
+        ? 'القراءة شغالة، والكتابة متوقفة (لا توجد جلسة)'
+        : 'الجدول غير متاح';
+      return result;
+    }
+    var probe = 'diagnose-' + Date.now();
+    return window.supabaseClient.from('inspection_payments')
+      .insert({ car_id: probe, plate: 'DIAG', branch: '', status: 'pending' })
+      .select('id')
+      .single()
+      .then(function (ins) {
+        if (ins && ins.error) {
+          result.writeError = ins.error.message;
+        } else {
+          result.writeOk = true;
+          return window.supabaseClient.from('inspection_payments').delete().eq('car_id', probe);
+        }
+        return null;
+      })
+      .catch(function (e) {
+        result.writeError = String((e && e.message) || e);
+      })
+      .then(function () {
+        result.verdict = result.readOk && result.writeOk
+          ? 'المزامنة شغالة بالكامل'
+          : (result.readOk ? 'القراءة شغالة، والكتابة متوقفة' : 'الجدول غير متاح');
+        return result;
+      });
+  });
+}
+
 /* ===== طابور دفعات تجديد الفحص =====
    تبويبان يشتغلوا على نفس البيانات:
      • «تحت الدفع» = status: 'pending'
@@ -8,6 +81,8 @@
    تلقائيًا للتخزين المحلي حتى ما يتعطّلش الشغل. */
 (function (global) {
   'use strict';
+
+  var DIAGNOSE = diagnose;
 
   var LEGACY_KEY = 'yahma-inspection-payments-v1';
   var PENDING_KEY = 'yahma-payment-pending-v1';
@@ -210,6 +285,7 @@
 
   global.YahmaPayments = {
     sync: sync,
+    diagnose: DIAGNOSE,
     localAll: localAll,
     localByStatus: localByStatus,
     requestPayment: requestPayment,

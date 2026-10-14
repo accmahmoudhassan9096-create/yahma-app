@@ -101,8 +101,40 @@ function paymentsSyncWarningHtml(){
   var err=String((typeof window!=='undefined'&&window.__yahmaPaymentsCloudError)||'').trim();
   if(!err) return '';
   return '<div class="payments-sync-warn"><b>⚠️ المزامنة السحابية متوقفة</b>'
-    +'<span>الطلبات محفوظة على هذا الجهاز بس ومش هتظهر لغيرك. شغّل ملف '
-    +'<code>supabase/fix-payment-policies.sql</code> في Supabase، أو اعمل «تحديث الصفحة».</span></div>';
+    +'<span>'+escapeHtml(err)+'</span>'
+    +'<button type="button" class="btn btn-ghost btn-small" data-pay-diag="1">فحص الاتصال بقاعدة البيانات</button></div>';
+}
+/* زر «فحص الاتصال»: يشغّل diagnose ويعرض النتيجة في نفس المكان */
+function bindPaymentsDiagnostic(root){
+  if(!root) return;
+  const btn=root.querySelector('[data-pay-diag]');
+  if(!btn || btn._bound) return;
+  btn._bound=true;
+  btn.addEventListener('click',async()=>{
+    btn.disabled=true;
+    const old=btn.textContent;
+    btn.textContent='جارِ الفحص...';
+    let res=null;
+    try{ res=await window.YahmaPayments.diagnose(); }catch(e){ res={verdict:'فشل الفحص: '+(e&&e.message||'?')}; }
+    btn.disabled=false;
+    btn.textContent=old;
+    const host=root.querySelector('.payments-sync-warn');
+    if(!host) return;
+    const lines=[
+      '<b>'+escapeHtml(res.verdict||'')+'</b>',
+      '<span>الاتصال بـ Supabase: '+(res.supabaseReady?'موجود':'غير موجود')+'</span>',
+      '<span>جلسة الدخول: '+(res.session?('صالحة — '+(res.email||'')):'غير موجودة على هذا الجهاز')+'</span>',
+      '<span>قراءة الجدول: '+(res.readOk?('شغالة'+(res.readCount!=null?' ('+res.readCount+' صف)':'')):('فاشلة — '+(res.writeError||'')))+'</span>',
+      '<span>الكتابة: '+(res.writeOk?'شغالة':'متوقفة — '+(res.writeError||''))+'</span>'
+    ];
+    host.innerHTML=lines.join('');
+    var style=host.style;
+    if(res.writeOk){
+      style.background='rgba(18,170,166,.12)';
+      style.borderColor='rgba(18,170,166,.45)';
+      window.__yahmaPaymentsCloudError='';
+    }
+  });
 }
 
 function renderInspectionPayments(content){
@@ -117,6 +149,7 @@ function renderInspectionPayments(content){
   <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>حالة الدفع</th><th>الإجراء</th></tr></thead><tbody>
   ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td colspan="5"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
   </tbody></table></div>`;
+  bindPaymentsDiagnostic(content);
   content.querySelectorAll('[data-payment-done],[data-payment-cancel]').forEach(button=>button.addEventListener('click',async()=>{
     if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية إدارة طلبات الدفع.');return;}
     const id=button.dataset.paymentDone||button.dataset.paymentCancel;
@@ -166,6 +199,7 @@ function renderPaidInspections(content){
   <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>الإجراء</th></tr></thead><tbody>
   ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td><button type="button" class="btn btn-ghost btn-small" data-go-license="1">تجديد الرخص →</button></td></tr>`).join(''):'<tr><td colspan="6"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
   </tbody></table></div>`;
+  bindPaymentsDiagnostic(content);
   content.querySelectorAll('[data-go-license]').forEach(button=>button.addEventListener('click',()=>{
     if(!window.canAccessYahmaTab('license-renewals')){alert('لا تملك صلاحية الوصول إلى قسم تجديد الرخص.');return;}
     goTabFromRouter('license-renewals');
