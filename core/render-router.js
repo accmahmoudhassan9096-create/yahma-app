@@ -206,21 +206,32 @@ function renderPaidInspections(content){
   }));
 }
 
-/* انتقال آمن للتبويب (يستخدم نفس API العام بدل window.currentTab) */
+/* انتقال آمن للتبويب: نغيّر التبويب عبر API العام ثم نرسم مرة واحدة.
+   ملاحظة: ما ننقرش على عنصر القائمة — النقرة بتسبب رسمين. */
 function goTabFromRouter(tab){
   try{
     if(typeof window.yahmaSetTab==='function') window.yahmaSetTab(tab);
     else window.currentTab=tab;
   }catch(_){}
-  try{ document.querySelector('.nav-item[data-tab="'+tab+'"]')?.click(); }catch(_){}
+  document.querySelectorAll('.nav-item').forEach(function(i){
+    i.classList.toggle('active', i.dataset.tab===tab);
+  });
+  /* الرسم الحقيقي جوا عدة أغلفة (perf/smooth/ops) وكل واحدة ممكن
+     تؤجل أو تتجاهل الطلب. عشان كده نمر على الدالة الأصلية مباشرة. */
   setTimeout(function(){
     try{
-      if(typeof window.yahmaGetTab==='function'&&window.yahmaGetTab()!==tab){
-        window.yahmaSetTab(tab);
-        render();
+      let fn = window.render;
+      let guard = 0;
+      while(fn && guard < 12){
+        const next = (typeof fn._perfImmediate === 'function') ? fn._perfImmediate
+                   : (fn._orig || fn._perfOrig || null);
+        if(!next || next === fn) break;
+        fn = next;
+        guard++;
       }
+      fn.call(window);
     }catch(_){}
-  },200);
+  },140);
 }
 
 function render(){

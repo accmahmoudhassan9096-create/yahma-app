@@ -10,19 +10,21 @@
     var orig = window.render;
     if(typeof orig !== 'function' || orig._smoothWrapped) return;
     window.render = function(){
+      /* The rendering itself is synchronous; the queue was causing repeated redraws. */
       if(renderBusy){ pendingRender = true; return; }
       renderBusy = true;
       pendingRender = false;
       try{ return orig.apply(this, arguments); }
       finally{
-        // احتياطي: rAF لا يُستدعى في تبويبة مخفية/خلفية، فتبقى renderBusy=true
-        // إلى الأبد ويتعطّل كل رسم لاحق. الـ setTimeout يُحرّر البوابة في كل الحالات.
         var released = false;
         var release = function(){
           if(released) return;
           released = true;
           renderBusy = false;
-          if(pendingRender){ pendingRender = false; window.render(); }
+          /* Follow-up requests are handled once at the caller side (nav-guard
+             with a bounded retry) — re-queueing here created an endless loop
+             that made the screen flicker and blocked tab switching. */
+          pendingRender = false;
         };
         requestAnimationFrame(release);
         setTimeout(release, 250);

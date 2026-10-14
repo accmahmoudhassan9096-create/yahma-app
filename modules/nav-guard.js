@@ -109,9 +109,8 @@
     } catch (_) {}
     try { if (typeof global.render === 'function') global.render(); }
     catch (_) {}
-    /* شبكة أمان أخيرة: لو رسم بعد 60ms لسه المحتوى زي ما هو، نحاول
-       نداء الرندر مباشرة مرة ثانية (setTimeout بيشتغل حتى لو rAF معطّلة) */
-    setTimeout(function () { drawNow(); }, 60);
+    /* ملاحظة: ما نعادش جدولة رسم هنا — كان بيعمل حلقة لا نهائية
+       كل 60ms فكان الشاشة "ترتبش" باستمرار. المحاولات محدودة في goTab. */
   }
 
   function goTab(tab) {
@@ -134,16 +133,15 @@
     } finally {
       closeMobileSidebar();
       setTimeout(function () { switching = false; }, 200);
-      /* شبكة أمان 1: render() محجوب بـ rAF على الموبايل أحيانًا فيعلّق.
-         لو المحتوى ما اتغيّرش خلال 350ms، نرسم فورًا بـ setTimeout
-         (يتخطى الحجب لأن setTimeout بيشتغل دايمًا حتى لو rAF لا تعمل). */
+      /* شبكة أمان محدودة: لو المحتوى ما اتغيّرش، نعيد الرسم مرة أو مرتين
+         كحد أقصى. مهم: التكرار محدود عشان ما يحصلش "تردد" في الشاشة. */
       var tries = 0;
       var check = function () {
         tries++;
         if (getTab() !== tab) setTab(tab);
-        if (contentSignature() !== before || tries > 3) return;
+        if (contentSignature() !== before || tries >= 3) return;
         drawNow();
-        setTimeout(check, 220);
+        setTimeout(check, 250);
       };
       setTimeout(check, 350);
     }
