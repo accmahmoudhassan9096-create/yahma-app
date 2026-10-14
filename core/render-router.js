@@ -75,41 +75,108 @@ function renderAuditPage(content){
 
 const INSPECTION_PAYMENTS_KEY='yahma-inspection-payments-v1';
 function loadInspectionPayments(){
+  /* المصدر الجديد: وحدة الدفعات (.pending). نحتفظ بالقديم للتوافق. */
+  if(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function'){
+    return window.YahmaPayments.localByStatus('pending');
+  }
   try{const items=JSON.parse(localStorage.getItem(INSPECTION_PAYMENTS_KEY)||'[]');return Array.isArray(items)?items:[];}
   catch(_){return [];}
 }
+function loadPaidInspections(){
+  if(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function'){
+    return window.YahmaPayments.localByStatus('paid');
+  }
+  return [];
+}
+/* تنسيق تاريخ عربي موحّد يتعامل مع نصوص ISO وتوقيت المتصفح معًا */
+function formatArabicDate(value){
+  if(!value) return '—';
+  var d=new Date(value);
+  if(isNaN(d.getTime())) return String(value);
+  return d.toLocaleDateString('ar-EG',{year:'numeric',month:'short',day:'numeric'})+' — '+
+         d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
+}
+
 function renderInspectionPayments(content){
-  document.getElementById('topbar-title').textContent='الدفع';
+  document.getElementById('topbar-title').textContent='تحت الدفع';
   document.getElementById('topbar-sub').textContent='طلبات دفع تجديد فحص السيارات';
   const pending=loadInspectionPayments();
   const byId=new Map(fleet.map(car=>[String(car.id),car]));
   const rows=pending.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
-  content.innerHTML=`<div class="fleet-summary-strip module-summary-strip"><div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>طلبات دفع معلقة</small></span></div></div>
-  <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تجديد الفحص</strong><span>بعد تسجيل الدفع سيتم اعتماد الفحص كسليم</span></div></div>
+  content.innerHTML=`<div class="fleet-summary-strip module-summary-strip"><div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>طلبات تحت الدفع</small></span></div></div>
+  <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تجديد الفحص بانتظار الدفع</strong><span>بعد تسجيل الدفع تنتقل الطلب إلى تبويب «تم الدفع»</span></div></div>
   <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>حالة الدفع</th><th>الإجراء</th></tr></thead><tbody>
-  ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(new Date(item.requestedAt).toLocaleString('ar-EG'))}</td><td><span class="tag amber">بانتظار الدفع</span></td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td colspan="5"><div class="empty">لا توجد طلبات دفع معلقة</div></td></tr>'}
+  ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td colspan="5"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
   </tbody></table></div>`;
   content.querySelectorAll('[data-payment-done],[data-payment-cancel]').forEach(button=>button.addEventListener('click',async()=>{
     if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية إدارة طلبات الدفع.');return;}
-    const items=loadInspectionPayments(),index=items.findIndex(item=>item.id===button.dataset.paymentDone||item.id===button.dataset.paymentCancel);
-    if(index<0)return;
-    const item=items[index],car=byId.get(String(item.carId));
+    const id=button.dataset.paymentDone||button.dataset.paymentCancel;
+    if(!id)return;
+    const item=loadInspectionPayments().find(p=>String(p.id)===String(id));
+    if(!item)return;
+    const car=byId.get(String(item.carId));
     if(button.dataset.paymentCancel){
       if(!confirm('إلغاء طلب الدفع للسيارة '+(car?.plate||item.plate)+'؟'))return;
-      items.splice(index,1);localStorage.setItem(INSPECTION_PAYMENTS_KEY,JSON.stringify(items));
-      if(typeof window.log==='function') window.log('إلغاء طلب دفع فحص','السيارة '+(car?.plate||item.plate||''));render();return;
+      await window.YahmaPayments.cancel(id);
+      if(typeof window.log==='function') window.log('إلغاء طلب دفع فحص','السيارة '+(car?.plate||item.plate||''));
+      render();return;
     }
     if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return;}
-    if(!window.canAccessYahmaTab('license-renewals')){alert('لا تملك صلاحية الوصول إلى قسم تجديد الرخص.');return;}
-    if(!confirm('تأكيد تسجيل دفع تجديد الفحص للسيارة '+car.plate+' واعتماد الفحص كسليم؟'))return;
+    if(!confirm('تأكيد تسجيل دفع تجديد الفحص للسيارة '+car.plate+'؟'))return;
     const previousInspectionStatus=car.inspectionStatus;
     car.inspectionStatus='سليم';
     const saved=await saveData([car.id]);
-    if(saved===false){car.inspectionStatus=previousInspectionStatus;await saveData([car.id]);alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');return;}
-    items.splice(index,1);localStorage.setItem(INSPECTION_PAYMENTS_KEY,JSON.stringify(items));
+    if(saved===false){
+      car.inspectionStatus=previousInspectionStatus;
+      await saveData([car.id]);
+      alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
+      return;
+    }
+    await window.YahmaPayments.markPaid(id);
     if(typeof window.log==='function') window.log('تسجيل دفع وتجديد فحص','السيارة '+car.plate);
-    document.querySelector('.nav-item[data-tab="license-renewals"]')?.click();
+    /* ⇐ السلسلة المطلوبة: تحت الدفع ← تم الدفع ← تجديد الرخص */
+    goTabFromRouter('paid');
   }));
+}
+
+/* ===== تبويب «تم الدفع» ===== */
+function renderPaidInspections(content){
+  document.getElementById('topbar-title').textContent='تم الدفع';
+  document.getElementById('topbar-sub').textContent='طلبات تم دفع تجديد فحصها واعتمادها';
+  const paid=loadPaidInspections();
+  const byId=new Map(fleet.map(car=>[String(car.id),car]));
+  const rows=paid.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const todayCount=rows.filter(({item})=>item.paidAt&&new Date(item.paidAt)>=today).length;
+  content.innerHTML=`<div class="fleet-summary-strip module-summary-strip">
+    <div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>إجمالي المدفوع</small></span></div>
+    <div class="fleet-summary-card"><span class="fleet-summary-icon">✓</span><span><b>${todayCount}</b><small>مدفوع اليوم</small></span></div>
+  </div>
+  <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تم الدفع</strong><span>اضغط «تجديد الرخص» للانتقال للخطوة التالية</span></div></div>
+  <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>الإجراء</th></tr></thead><tbody>
+  ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td><button type="button" class="btn btn-ghost btn-small" data-go-license="1">تجديد الرخص →</button></td></tr>`).join(''):'<tr><td colspan="6"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
+  </tbody></table></div>`;
+  content.querySelectorAll('[data-go-license]').forEach(button=>button.addEventListener('click',()=>{
+    if(!window.canAccessYahmaTab('license-renewals')){alert('لا تملك صلاحية الوصول إلى قسم تجديد الرخص.');return;}
+    goTabFromRouter('license-renewals');
+  }));
+}
+
+/* انتقال آمن للتبويب (يستخدم نفس API العام بدل window.currentTab) */
+function goTabFromRouter(tab){
+  try{
+    if(typeof window.yahmaSetTab==='function') window.yahmaSetTab(tab);
+    else window.currentTab=tab;
+  }catch(_){}
+  try{ document.querySelector('.nav-item[data-tab="'+tab+'"]')?.click(); }catch(_){}
+  setTimeout(function(){
+    try{
+      if(typeof window.yahmaGetTab==='function'&&window.yahmaGetTab()!==tab){
+        window.yahmaSetTab(tab);
+        render();
+      }
+    }catch(_){}
+  },200);
 }
 
 function render(){
@@ -136,6 +203,8 @@ function render(){
     const transfersBadge=document.getElementById('count-transfers'); if(transfersBadge) transfersBadge.textContent=transfersCount;
     const pendingPayments=loadInspectionPayments().length;
     const paymentCount=document.getElementById('count-payments'); if(paymentCount) paymentCount.textContent=pendingPayments;
+    const paidCount=document.getElementById('count-paid'); if(paidCount) paidCount.textContent=loadPaidInspections().length;
+    try{ if(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function'){ window.YahmaPayments.localByStatus('pending'); window.YahmaPayments.localByStatus('paid'); } }catch(_){}
   const cb=document.getElementById('count-branches'); if(cb) cb.textContent = branches.length;
   const cp=document.getElementById('count-preparation'); if(cp) cp.textContent = getPrepTasks().filter(t=>t.status!=='done').length;
   const sync=document.getElementById('sync-status');if(sync){sync.textContent=window.syncMessage||'جاري الاتصال';sync.className='sync-status '+(window.supabaseReady?'online':'offline');}
@@ -146,7 +215,7 @@ function render(){
     /* بيانات PDF الخاصة بالتبويب تُعاد توليدها مع كل عرض — نمسح القديمة حتى لا يصدّر زر PDF بيانات تبويب سابق */
     window._yahmaCurrentPdfData = null;
     /* تبويبات الجداول: مسطرة تمرير رأسية واحدة فقط لا غير */
-    var TABLE_TABS = ['fleet','branches','payments']; /* مثبّتة: الجدول يتمرر داخليًا والفلاتر والترقيم ثابتة */
+    var TABLE_TABS = ['fleet','branches','payments','paid']; /* مثبّتة: الجدول يتمرر داخليًا والفلاتر والترقيم ثابتة */
     var FLOW_TABS = ['renewals','license-renewals','insurance-renewals','inspections','transfers']; /* انسيابية: المحتوى يتمرر مرة واحدة والجدول بطوله الطبيعي */
     content.classList.toggle('content-table', TABLE_TABS.indexOf(currentTab) >= 0);
     content.classList.toggle('content-flow', FLOW_TABS.indexOf(currentTab) >= 0);
@@ -162,6 +231,7 @@ if(currentTab === 'dashboard') renderDashboard(content);
     else if(currentTab === 'license-renewals') renderRenewals(content,'license');
     else if(currentTab === 'insurance-renewals') renderRenewals(content,'insurance');
     else if(currentTab === 'payments') renderInspectionPayments(content);
+    else if(currentTab === 'paid') renderPaidInspections(content);
     else if(currentTab === 'inspections') renderFollowUp(content);
     else if(currentTab === 'transfers') renderTransfers(content);
     else if(currentTab === 'reports') renderReports(content);

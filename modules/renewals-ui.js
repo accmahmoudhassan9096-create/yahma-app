@@ -372,18 +372,30 @@ function renderRenewals(content, mode='inspection'){
             await deleteRenCars([car.id]);
             return;
           }
-          if(btn.dataset.renewInsp){
-            const car=fleet.find(c=>c.id===btn.dataset.renewInsp); if(!car) return;
-            if(typeof currentRole!=='undefined'&&currentRole!=='admin'&&currentRole!=='ops'){alert('ليس لديك صلاحية تسجيل تجديد الفحص.');return;}
-            if(typeof window.canAccessYahmaTab==='function'&&!window.canAccessYahmaTab('payments')){alert('لا تملك صلاحية الوصول إلى قسم الدفع.');return;}
-            const paymentQueue=readPaymentQueue();
-            if(paymentQueue.some(item=>String(item.carId)===String(car.id))){alert('السيارة موجودة بالفعل في قائمة الدفع.');return;}
-            if(!confirm('نقل السيارة '+car.plate+' إلى قائمة الدفع لتجديد الفحص؟')) return;
-            paymentQueue.unshift({id:'ip-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),carId:car.id,plate:car.plate||'',branch:car.branch||'',requestedAt:new Date().toISOString(),status:'pending'});
-            localStorage.setItem('yahma-inspection-payments-v1',JSON.stringify(paymentQueue));
-            if(typeof window.log==='function') window.log('طلب دفع فحص','السيارة '+(car.plate||''));
-            if(typeof render==='function') render();
-            document.querySelector('.nav-item[data-tab="payments"]')?.click();
+            if(btn.dataset.renewInsp){
+             const car=fleet.find(c=>c.id===btn.dataset.renewInsp); if(!car) return;
+             if(typeof currentRole!=='undefined'&&currentRole!=='admin'&&currentRole!=='ops'){alert('لس لديك صلاحية تسجيل تجديد الفحص.');return;}
+             if(typeof window.canAccessYahmaTab==='function'&&!window.canAccessYahmaTab('payments')){alert('لا تملك صلاحية الوصول إلى قسم تحت الدفع.');return;}
+             /* الوحدة الجديدة: طابور دفع مرتبط بالموارد + على Supabase (يشتغل على كل الأجهزة) */
+             if(window.YahmaPayments&&typeof window.YahmaPayments.requestPayment==='function'){
+               const existing=window.YahmaPayments.localByStatus('pending');
+               if(existing.some(item=>String(item.carId)===String(car.id))){alert('السيارة موجودة بالفعل في قائمة «تحت الدفع».');return;}
+               if(!confirm('نقل السيارة '+car.plate+' إلى «تحت الدفع» لتجديد الفحص؟')) return;
+               await window.YahmaPayments.requestPayment(car);
+               if(typeof window.log==='function') window.log('طلب دفع فحص','السيارة '+(car.plate||''));
+               if(typeof render==='function') render();
+               document.querySelector('.nav-item[data-tab="payments"]')?.click();
+               return;
+             }
+             /* احتياطي: التخزين المحلي القديم لو الوحدة لم تتحملتش */
+             const paymentQueue=readPaymentQueue();
+             if(paymentQueue.some(item=>String(item.carId)===String(car.id))){alert('السيارة موجودة بالفعل في قائمة الدفع.');return;}
+             if(!confirm('نقل السيارة '+car.plate+' إلى قائمة الدفع لتجديد الفحص؟')) return;
+             paymentQueue.unshift({id:'ip-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),carId:car.id,plate:car.plate||'',branch:car.branch||'',requestedAt:new Date().toISOString(),status:'pending'});
+             localStorage.setItem('yahma-inspection-payments-v1',JSON.stringify(paymentQueue));
+             if(typeof window.log==='function') window.log('طلب دفع فحص','السيارة '+(car.plate||''));
+             if(typeof render==='function') render();
+             document.querySelector('.nav-item[data-tab="payments"]')?.click();
           } else if(btn.dataset.renewLic){
             const car=fleet.find(c=>c.id===btn.dataset.renewLic); if(!car) return;
             const newDate=prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):', addDays(todayStr(),365));

@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v138';
+const CACHE_NAME = 'yahma-shell-v139';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -35,6 +35,7 @@ const LOCAL_APP_SHELL = [
   './manifest.json',
   /* modules/auth.js أُزيل: موقوف التحميل (كود ميت) — حتى لا يُثبَّت في الكاش */
   './modules/data.js',
+  './modules/payments-store.js',
   './modules/email-schedule.js',
   './modules/branch-email.js',
   './modules/realtime.js',

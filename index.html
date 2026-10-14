@@ -71,8 +71,13 @@
     </button>
     <button type="button" class="nav-item" data-tab="payments">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
-      الدفع
+      تحت الدفع
       <span class="nav-count alert" id="count-payments">0</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="paid">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+      تم الدفع
+      <span class="nav-count" id="count-paid">0</span>
     </button>
     <button type="button" class="nav-item" data-tab="license-renewals">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
@@ -398,6 +403,7 @@
      مراقب الـ 8 ثوانٍ) وmodules/utils.js (global.escapeHtml عبر Object.assign).
      الملف محفوظ على القرص ويمكن حذفه بعد التأكد. -->
 <script src="modules/data.js"></script>
+<script src="modules/payments-store.js"></script>
 <script src="modules/email-schedule.js"></script>
 <script src="modules/branch-email.js"></script>
 <script src="modules/realtime.js"></script>
