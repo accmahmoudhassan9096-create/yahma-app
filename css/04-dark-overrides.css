@@ -650,6 +650,31 @@ body{text-rendering:optimizeSpeed;-webkit-font-smoothing:antialiased}
   content-visibility: visible !important;
   contain-intrinsic-size: auto 48px;
 }
+/* ===== خط Cairo + تصغير عام للأحجام =====
+   طبقة واحدة في آخر ملف عشان تتغلّب على كل الأحكام الموروثة،
+   فبدل ما نعدّل مئات القيم. الأحجام النسبية (em/rem/% و inherit)
+   مش بتتأثر — فقط الـ px الثابتة. */
+html{font-size:94%;}
+
+/* الجداول والعناصر الكثيفة — نص أصغر شوية عشان يبقى عمود أكبر */
+table, .fleet-table, .fleet-table td, .fleet-table th,
+th, td{font-size:10.5px;}
+td.plate{font-size:11.5px;}
+
+/* النصوص الثانوية — نثبّت الinherit عشان ما يتكبّرش من الـhtml */
+.nav-item, .btn, input, select, textarea{font-size:11px;}
+.fleet-summary-card small, .empty, .muted-small{font-size:10.5px;}
+
+/* العناوين الرئيسية — نفس النسبة */
+.topbar h1{font-size:18px;}
+.brand-name{font-size:14px;}
+.brand-sub, .sidebar-foot, .topbar-sub{font-size:10.5px;}
+.modal h2{font-size:16px;}
+.field label{font-size:11px;}
+
+/* بطاقات الداشبورد */
+.home-kpi b, .kpi-value, .fleet-summary-card b{font-size:16px;}
+
 /* تقليل تأثيرات ثقيلة على الأجهزة الضعيفة */
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{

@@ -29,7 +29,7 @@
     --shadow-lg:0 16px 40px rgba(15,25,60,.14);
   }
   *{box-sizing:border-box;}
-  body{margin:0;font-size:12px;font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--paper);background-image:radial-gradient(circle at 100% 0%,rgba(198,149,46,.06),transparent 45%),radial-gradient(circle at 0% 100%,rgba(21,35,80,.05),transparent 40%);background-attachment:fixed;color:var(--ink);letter-spacing:-0.1px;}
+  body{margin:0;font-size:11px;font-family:'Cairo','IBM Plex Sans Arabic',sans-serif;background:var(--paper);background-image:radial-gradient(circle at 100% 0%,rgba(198,149,46,.06),transparent 45%),radial-gradient(circle at 0% 100%,rgba(21,35,80,.05),transparent 40%);background-attachment:fixed;color:var(--ink);letter-spacing:-0.1px;}
   /* ملاحظة: font-size:12px محفوظ هنا عمدًا — كان يأتي من مقتطف قالب الطباعة
      الملوّن (تمت إزالته) وكل النصوص التي لا تحدّد مقاسها كانت ترثه، فنقلناه
      للقاعدة الصحيحة حتى لا تتغير مقاسات العرض الحالية. */
