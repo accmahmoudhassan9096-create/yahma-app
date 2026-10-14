@@ -16,13 +16,26 @@
 <link rel="stylesheet" href="css/02-components.css">
 <link rel="stylesheet" href="css/03-motion-layout.css">
 <link rel="stylesheet" href="css/04-dark-overrides.css"><!-- لاحقًا: التراكبات المتأخرة والوضع الليلي يجب أن تبقى آخر ملف -->
-<!-- Dexie.js — IndexedDB خفيف وسريع -->
-<script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
+<!-- ⭐ المكتبات محلية مش من CDN.
+     كان Supabase بيتحمّل من jsdelivr، وأي شبكة بتحجبه أو بتبطّئه
+     كانت بتخلي التطبيق يفتح «وضع محلي» ويطلع 0 سيارة — وده اللي
+     حصل لأمين على الآيفون. دلوقتي كل حاجة على نطاقنا ourselves. -->
+<script src="vendor/dexie.min.js"></script>
 <!-- Supabase JS -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<!-- xlsx و jspdf و html2canvas لا تُحمَّل هنا أبدًا — modules/export.js بيحمّلها فقط
-     عند أول استخدام فعلي (زر تصدير/استيراد أو تحميل نموذج)، وapp-core.js بينتظرها
-     عبر ensureXlsxReady() قبل أي استخدام مباشر لـ XLSX. -->
+<script src="vendor/supabase.min.js"></script>
+<script>
+  /* شبكة أمان: لو الملفات المحلية فشلت لأي سبب، نرجع للـCDN. */
+  (function () {
+    if (typeof supabase === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"><\/script>');
+    }
+    if (typeof Dexie === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"><\/script>');
+    }
+  })();
+</script>
+<!-- مكتبات التصدير (Excel / PDF) — محلية كمان، وبيتحمّلوا أول مرة
+     عند الاستخدام. modules/export.js بينتظرها عبر ensureXlsxReady(). -->
 </head>
 <body>
 <div id="auth-screen">

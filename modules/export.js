@@ -4,10 +4,17 @@
 (function (global) {
   'use strict';
 
+  /* المكتبات محلية أولًا (vendor/) والـCDN احتياط.
+     السبب: على شبكات بتحجب الـCDN، التصدير كان بيفشل بصمت. */
   const CDN = {
+    xlsx: 'vendor/xlsx.full.min.js',
+    html2canvas: 'vendor/html2canvas.min.js',
+    jspdf: 'vendor/jspdf.umd.min.js',
+  };
+  const CDN_FALLBACK = {
     xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-    html2canvas: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
-    jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    html2canvas: 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+    jspdf: 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
   };
 
   const loaded = Object.create(null);
@@ -33,17 +40,27 @@
     return loaded[url];
   }
 
+  /* بنجرب المحلي الأول، ولو فشل (شبكة بتقطع ملفاتنا) نرجع للـCDN */
+  async function loadLib(key) {
+    try {
+      await loadScript(CDN[key]);
+    } catch (e) {
+      console.warn('تعذر تحميل ' + key + ' محليًا، بنجرب CDN:', e);
+      await loadScript(CDN_FALLBACK[key]);
+    }
+  }
+
   async function ensureXlsx() {
     if (typeof global.XLSX !== 'undefined') return global.XLSX;
-    await loadScript(CDN.xlsx);
-    if (typeof global.XLSX === 'undefined') throw new Error('XLSX غير متاحة');
+    await loadLib('xlsx');
+    if (typeof global.XLSX === 'undefined') throw new Error('مكتبة Excel غير متاحة — تحقق من الاتصال بالإنترنت');
     return global.XLSX;
   }
 
   async function ensurePdfLibs() {
     const tasks = [];
-    if (typeof global.html2canvas !== 'function') tasks.push(loadScript(CDN.html2canvas));
-    if (!(global.jspdf || global.jsPDF)) tasks.push(loadScript(CDN.jspdf));
+    if (typeof global.html2canvas !== 'function') tasks.push(loadLib('html2canvas'));
+    if (!(global.jspdf || global.jsPDF)) tasks.push(loadLib('jspdf'));
     await Promise.all(tasks);
   }
 

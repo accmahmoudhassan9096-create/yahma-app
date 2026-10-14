@@ -2,11 +2,20 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v170';
+const CACHE_NAME = 'yahma-shell-v171';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
   './diagnostic.html',
+  /* ⭐ المكتبات محلية مش CDN — كاش إجباري.
+     لو الـCDN اتحجب، Supabase ماحمّلتش والتطبيق فتح «وضع محلي»
+     وطلع 0 سيارة (اللي حصل لأمين على الآيفون). دلوقتي كل مكتبة
+     لازمة موجودة عندنا وبتتكيّش مع التطبيق. */
+  './vendor/supabase.min.js',
+  './vendor/dexie.min.js',
+  './vendor/xlsx.full.min.js',
+  './vendor/html2canvas.min.js',
+  './vendor/jspdf.umd.min.js',
   /* style.css فُرّق إلى أربعة ملفات بنفس الترتيب (يجب أن يبقى 04 آخرًا) */
   './css/01-base.css',
   './css/02-components.css',
@@ -65,9 +74,8 @@ const LOCAL_APP_SHELL = [
   './icon-512.png',
 ];
 const OPTIONAL_CDN = [
-  'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  /* الخط بس. المكتبات كلها بقت محلية في vendor/ — الـCDN بقى
+     شبكة أمان نادرة، وبيتفركّش مع التطبيق. */
   'https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap',
 ];
 

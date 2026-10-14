@@ -29,9 +29,14 @@ document.documentElement.classList.add('yahma-booting');
       throw new Error('Supabase SDK not loaded');
     }
   } catch (e) {
-    console.warn('Supabase unavailable; local mode enabled', e);
+    /* المطابخ دي بقت محلية في vendor/، فوصول مصادقة فاشل معناه
+       إن في حاجة غلط فعلاً — مش شبكة بتقطع CDN. بنقولها صراحة
+       بدل «الوضع المحلي» اللي بيخلي المستخدم يفتكر إن البيانات
+       مش موجودة أصلاً. */
+    console.error('Supabase SDK unavailable — login will not work:', e);
     window.supabaseReady = false;
-    window.syncMessage = 'الوضع المحلي';
+    window.syncMessage = 'تعذر تحميل مكتبة الدخول';
+    window.__yahmaSdkMissing = true;
   }
 
 })();
@@ -378,7 +383,7 @@ function initAuthGate(){
     window._authResolved = true;
     window._demoMode = false;
     window.currentRole = 'view';
-    showAuthScreen('تعذر الاتصال بخدمة تسجيل الدخول — تحقق من الإنترنت (مانع الإعلانات قد يحجب مكتبات الدخول). أو استخدم زر الدخول التجريبي بالأسفل.');
+    showAuthScreen('تعذّر تحميل مكتبة تسجيل الدخول. اعمل «تحديث قسري للتطبيق» من القائمة، وإن استمرت المشكلة اعمل «تحديث الآن» وهيحمّل الملف تاني.');
     return;
   }
 
