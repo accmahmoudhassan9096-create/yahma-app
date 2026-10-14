@@ -27,15 +27,22 @@
       return;
     }
 
-    let emailNotice = null;
-    if (!editingId) emailNotice = await context.notifyYahmaEvent('vehicle_added', { plate, branch: data.branch || '' });
+    /* إرسال الإشعار لا يجب أن يوقف حفظ السيارة أبدًا.
+       كنا ننتظر الـ edge function، ولو رجّع خطأ بتظهر رسالة
+       «لم يتم تحديث المستند» رغم إن البيانات اتحفظت فعلاً. */
     context.log(editingId ? 'تعديل سيارة' : 'إضافة سيارة', plate + ' — ' + (data.carStatus || 'غير محدد'));
     context.closeModal();
     context.render();
-    if (emailNotice && ((!emailNotice.ok && !emailNotice.skipped) || emailNotice.failed)) {
-      context.alert(emailNotice.ok
-        ? `تم حفظ السيارة وإرسال ${emailNotice.sent} إشعار، وتعذر إرسال ${emailNotice.failed}.`
-        : 'تم حفظ السيارة، لكن تعذر إرسال إشعار البريد: ' + emailNotice.error);
+    if (!editingId && typeof context.notifyYahmaEvent === 'function') {
+      /* في الخلفية ومن غير await — الحفظ خلص والشاشة اتحدّثت */
+      Promise.resolve()
+        .then(function () { return context.notifyYahmaEvent('vehicle_added', { plate, branch: data.branch || '' }); })
+        .then(function (notice) {
+          if (notice && ((!notice.ok && !notice.skipped) || notice.failed)) {
+            console.warn('تعذر إرسال إشعار إضافة السيارة', notice.error || notice.failed);
+          }
+        })
+        .catch(function (err) { console.warn('تعذر إرسال إشعار إضافة السيارة', err && err.message); });
     }
   }
 

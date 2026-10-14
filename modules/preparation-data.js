@@ -114,11 +114,20 @@
 
     const saved = await context.saveData([car.id]);
     if (!saved && context.supabaseReady) return { ok: false, reason: 'save' };
-    const notice = await context.notifyYahmaEvent('vehicle_approved', {
-      plate: car.plate || '',
-      branch: car.branch || ''
-    });
-    return { ok: true, notice };
+    /* الاعتماد تم بالفعل — الإشعار بتبعت في الخلفية ومش بيؤثر على النتيجة */
+    if (typeof context.notifyYahmaEvent === 'function') {
+      Promise.resolve()
+        .then(function () {
+          return context.notifyYahmaEvent('vehicle_approved', { plate: car.plate || '', branch: car.branch || '' });
+        })
+        .then(function (notice) {
+          if (notice && ((!notice.ok && !notice.skipped) || notice.failed)) {
+            console.warn('تعذر إرسال إشعار الاعتماد', notice.error || notice.failed);
+          }
+        })
+        .catch(function (err) { console.warn('تعذر إرسال إشعار الاعتماد', err && err.message); });
+    }
+    return { ok: true };
   }
 
   global.YahmaPreparationData = { checklistForCar, statusForCar, getTasks, saveTask, statusLabel, dueState, saveInlineStatus, approveCar };

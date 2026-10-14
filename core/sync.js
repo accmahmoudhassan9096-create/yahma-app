@@ -70,19 +70,49 @@ function attachRealtimeSync(){ return realtimeService.attach(dataContext()); }
 
 function manualRefresh(){ return realtimeService.manualRefresh(dataContext()); }
 
+/* إرسال إشعار بريد — ما بيأثرش على حفظ البيانات أبدًا.
+   فيه مهلة زمنية: لو الـ edge function اتعلق أو رجّع 400، نرجع بسرعة
+   بدل ما نخلي المستخدم يستنى أو يشوف رسالة «لم يتم تحديث المستند». */
+const YAHMA_MAIL_TIMEOUT_MS = 6000;
+function yahmaWithTimeout(promise, ms, label){
+  return new Promise(function(resolve){
+    let settled=false;
+    const timer=setTimeout(function(){
+      if(settled) return;
+      settled=true;
+      resolve({ok:false,timeout:true,error:label||'انتهت مهلة إرسال الإشعار'});
+    }, ms);
+    Promise.resolve(promise).then(function(v){
+      if(settled) return;
+      settled=true;
+      clearTimeout(timer);
+      resolve(v);
+    }).catch(function(e){
+      if(settled) return;
+      settled=true;
+      clearTimeout(timer);
+      resolve({ok:false,error:(e&&e.message)||'تعذر إرسال الإشعار'});
+    });
+  });
+}
+
 window.notifyYahmaEvent=async function(event,payload={}){
   if(window._demoMode||!window.supabaseReady||!window.supabaseClient) return {ok:false,skipped:true};
-  try{
-    const {data,error}=await window.supabaseClient.functions.invoke('send-user-email',{body:{event,payload}});
-    if(error) throw error;
-    if(data?.error) throw new Error(data.error);
-    if(!data?.sent) throw new Error('لم يُرسل البريد لأي مستخدم');
-    return {ok:true,sent:data.sent,failed:data.failed||0};
-  }catch(error){
-    const message=error?.message||'تعذر إرسال إشعار البريد';
-    console.warn('Automatic email notification failed:',event,message);
-    return {ok:false,error:message};
+  const result = await yahmaWithTimeout(
+    (async function(){
+      const {data,error}=await window.supabaseClient.functions.invoke('send-user-email',{body:{event,payload}});
+      if(error) throw error;
+      if(data?.error) throw new Error(data.error);
+      if(!data?.sent) throw new Error('لم يُرسل البريد لأي مستخدم');
+      return {ok:true,sent:data.sent,failed:data.failed||0};
+    })(),
+    YAHMA_MAIL_TIMEOUT_MS,
+    'انتهت مهلة الإشعار — تم حفظ البيانات بنجاح'
+  );
+  if(!result.ok){
+    console.warn('Automatic email notification failed:',event,result.error);
   }
+  return result;
 };
 
 function saveData(idsToSave){ return dataService.saveData(idsToSave, dataContext()); }
