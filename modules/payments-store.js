@@ -235,17 +235,25 @@ function diagnose() {
     }
   }
 
-  /* بعد تجديد الرخصة: السطر يخلص من «تم الدفع» ويتشال من القائمة،
-   لكن السجل بيفضل في القاعدة كسجل (note = 'license-renewed'). */
+  /* بعد تجديد الرخصة: السطر يخرج من «تم الدفع» ويفضل محفوظ في
+   «تم التجديد» مع تاريخ التنفيذ (note = 'license-renewed|<ISO>'). */
   var DONE_NOTE = 'license-renewed';
-  async function markLicenseRenewed(id, carId) {
+  function doneStamp(p) {
+    var n = String(p.note || '');
+    return n.indexOf(DONE_NOTE + '|') === 0 ? n.slice(DONE_NOTE.length + 1) : null;
+  }
+  function isRenewed(p) { return String(p.note || '').indexOf(DONE_NOTE) === 0; }
+
+  async function markLicenseRenewed(id, carId, when) {
+    var stamp = when || new Date().toISOString();
+    var note = DONE_NOTE + '|' + stamp;
     var pending = readJSON(PENDING_KEY, []);
     var paid = readJSON(PAID_KEY, []);
     [pending, paid].forEach(function (list) {
       list.forEach(function (p) {
         if (String(p.id) === String(id) || (carId && String(p.carId) === String(carId))) {
-          p.note = DONE_NOTE;
-          p.licenseRenewedAt = new Date().toISOString();
+          p.note = note;
+          p.licenseRenewedAt = stamp;
         }
       });
     });
@@ -253,19 +261,19 @@ function diagnose() {
     writeJSON(PAID_KEY, paid);
     if (!tableReady()) return { ok: true, local: true };
     var cloudId = isCloudId(id) ? id : await resolveCloudId(id, carId);
-    if (!cloudId) { global.__yahmaPaymentsCloudError = ''; return { ok: true, local: true }; }
+    if (!cloudId) { window.__yahmaPaymentsCloudError = ''; return { ok: true, local: true }; }
     try {
       var res = await window.supabaseClient.from('inspection_payments')
-        .update({ note: DONE_NOTE })
+        .update({ note: note })
         .eq('id', cloudId);
       if (res && res.error) {
-        global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
+        window.__yahmaPaymentsCloudError = String(res.error.message || res.error);
         return { ok: true, local: true, error: res.error.message };
       }
-      global.__yahmaPaymentsCloudError = '';
+      window.__yahmaPaymentsCloudError = '';
       return { ok: true };
     } catch (err) {
-      global.__yahmaPaymentsCloudError = String((err && err.message) || err);
+      window.__yahmaPaymentsCloudError = String((err && err.message) || err);
       return { ok: true, local: true, error: err && err.message };
     }
   }
@@ -381,6 +389,10 @@ function diagnose() {
     requestPayment: requestPayment,
     markPaid: markPaid,
     markLicenseRenewed: markLicenseRenewed,
+    isRenewed: isRenewed,
+    doneStamp: doneStamp,
+    renewedList: function () { return localByStatus('paid').filter(isRenewed); },
+    pendingList: function () { return localByStatus('paid').filter(function (p) { return !isRenewed(p); }); },
     cancel: cancel,
     DONE_NOTE: DONE_NOTE,
     PENDING_KEY: PENDING_KEY,

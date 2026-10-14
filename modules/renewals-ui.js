@@ -5,8 +5,8 @@ function renderRenewals(content, mode='inspection'){
   const canDelete=!(typeof currentRole!=='undefined'&&currentRole==='view');
   const licenseMode=mode==='license';
   const insuranceMode=mode==='insurance';
-  document.getElementById('topbar-title').textContent = insuranceMode?'التأمين':licenseMode?'تجديد الرخص':'الفحص';
-  document.getElementById('topbar-sub').textContent = insuranceMode?'متابعة وتجديد تأمين السيارات':licenseMode?'متابعة وتجديد رخص السيارات':'متابعة السيارات المطلوب فحصها';
+  document.getElementById('topbar-title').textContent = insuranceMode?'التأمين':licenseMode?'رخص منتهية':'الفحص';
+  document.getElementById('topbar-sub').textContent = insuranceMode?'متابعة وتجديد تأمين السيارات':licenseMode?'الرخص المنتهية فقط — اضغط تجديد لتبدأ دورة الدفع':'متابعة السيارات المطلوب فحصها';
   const uniq=(field)=>{
     const map=new Map();
     fleet.forEach(c=>{
@@ -140,6 +140,11 @@ function renderRenewals(content, mode='inspection'){
     return fleet.filter(c=>{
       // تبويبات الفحص والرخص والتأمين تعرض كل السيارات (الأسوأ أولًا حسب الفرز) — الفلاتر السريعة تضيّق عند الحاجة
       if(!licenseMode&&!insuranceMode&&pendingIds.has(String(c.id))) return false;
+      /* تبويب «رخص منتهية» يعرض المنتهي بس افتراضيًا
+         (لو المستخدم ما اخترش فلتر صريح من الفلاتر) */
+      if(licenseMode && !activeRQ && !val('ren-lic-condition')){
+        if(dateStatus(c.licenseExpiry).level!=='red') return false;
+      }
       if(q){
         const hay=[c.plate,c.brand,c.model,c.owner,c.branch,c.carStatus,c.inspectionStatus,c.insuranceCompany].map(v=>String(v||'').toLowerCase()).join(' ');
         if(!hay.includes(q)) return false;

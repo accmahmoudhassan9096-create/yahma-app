@@ -83,10 +83,15 @@ function loadInspectionPayments(){
   catch(_){return [];}
 }
 function loadPaidInspections(){
-  var done=(window.YahmaPayments&&window.YahmaPayments.DONE_NOTE)||'license-renewed';
-  if(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function'){
-    return window.YahmaPayments.localByStatus('paid')
-      .filter(function(p){ return String(p.note||'')!==done; });
+  if(window.YahmaPayments&&typeof window.YahmaPayments.pendingList==='function'){
+    return window.YahmaPayments.pendingList();
+  }
+  return [];
+}
+/* «تم التجديد»: السطور اللي اكتملت خطتها (تجديد الرخصة اتسجّل) */
+function loadRenewedInspections(){
+  if(window.YahmaPayments&&typeof window.YahmaPayments.renewedList==='function'){
+    return window.YahmaPayments.renewedList();
   }
   return [];
 }
@@ -230,10 +235,45 @@ function renderPaidInspections(content){
   }));
 }
 
+/* ===== تبويب «تم التجديد» =====
+   الخطوة الأخيرة في الدورة: السيارة اتجدّدت رخصتها واتسجّل تاريخ التنفيذ.
+   كل سطر بيعرض التواريخ الثلاثة: الطلب / الدفع / التجديد. */
+function renderRenewedInspections(content){
+  document.getElementById('topbar-title').textContent='تم التجديد';
+  document.getElementById('topbar-sub').textContent='سيارات اكتملت دورة تجديد الفحص والرخصة';
+  const list=loadRenewedInspections();
+  const byId=new Map(fleet.map(car=>[String(car.id),car]));
+  const rows=list.map(item=>({item,car:byId.get(String(item.carId))})).filter(r=>r.car);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const stampOf=(p)=>(window.YahmaPayments&&typeof window.YahmaPayments.doneStamp==='function')
+    ? window.YahmaPayments.doneStamp(p) : p.licenseRenewedAt || null;
+  const todayCount=rows.filter(({item})=>{ const s=stampOf(item); return s && new Date(s)>=today; }).length;
+  content.innerHTML=`<div class="fleet-summary-strip module-summary-strip">
+    <div class="fleet-summary-card"><span class="fleet-summary-icon">✓</span><span><b>${rows.length}</b><small>إجمالي المجدّد</small></span></div>
+    <div class="fleet-summary-card"><span class="fleet-summary-icon">📅</span><span><b>${todayCount}</b><small>تم تجديدها اليوم</small></span></div>
+  </div>
+  <div class="filter-panel"><div class="filter-panel-title"><strong>تم تجديد الرخصة</strong><span>هذه السيارات اتجدّدت رخصها بالفعل وهي مسجّلة في الأسطول</span></div></div>
+  ${paymentsSyncWarningHtml()}
+  <div class="table-scroll"><table class="fleet-table"><thead><tr>
+    <th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>تاريخ التجديد</th><th>الرخصة الجديدة</th><th>الحالة</th>
+  </tr></thead><tbody>
+  ${rows.length?rows.map(({item,car})=>{
+      const stamp=stampOf(item);
+      return `<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td>
+        <td>${escapeHtml(car.branch||item.branch||'—')}</td>
+        <td>${escapeHtml(formatArabicDate(item.requestedAt))}</td>
+        <td>${escapeHtml(formatArabicDate(item.paidAt))}</td>
+        <td><b>${escapeHtml(formatArabicDate(stamp))}</b></td>
+        <td>${escapeHtml(car.licenseExpiry||'—')}</td>
+        <td><span class="tag green">تم التجديد</span></td></tr>`;
+    }).join(''):'<tr><td colspan="7"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>'}
+  </tbody></table></div>`;
+  bindPaymentsDiagnostic(content);
+}
+
 /* ===== تجديد الرخصة من «تم الدفع» =====
-   الضغطة بتجدد الرخصة على طول (3 سنين افتراضيًا) وبتشيل السطر من
-   القائمة — عشان يبقى تبويب «الخطوة الجاية» الحقيقي، After ما خلصت. */
-function renewLicenseFromPaid(item, car, content){
+   بتحدّد الرخصة (3 سنين افتراضيًا) وبتتحوّل للخطوة «تم التجديد». */
+async function renewLicenseFromPaid(item, car, content){
   if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية تجديد الرخص.');return;}
   if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return;}
   const suggested=(typeof window.defaultLicenseExpiry==='function')
@@ -245,20 +285,19 @@ function renewLicenseFromPaid(item, car, content){
   const previous=car.licenseExpiry;
   car.licenseExpiry=normalized||raw;
   if(!car.licenseStatus||String(car.licenseStatus).includes('منته')) car.licenseStatus='نشط';
-  saveData([car.id]).then(function(saved){
-    if(saved===false){
-      car.licenseExpiry=previous;
-      saveData([car.id]);
-      alert('تعذر حفظ التغيير على Supabase. تحقق من الاتصال ثم أعد المحاولة.');
-      return;
-    }
-    return window.YahmaPayments.markLicenseRenewed(item.id, item.carId).then(function(){
-      if(typeof window.log==='function') window.log('تجديد رخصة بعد دفع فحص','السيارة '+car.plate);
-      renderPaidInspections(content);
-    });
-  }).catch(function(){
-    alert('تعذر تجديد الرخصة. تحقق من الاتصال ثم أعد المحاولة.');
-  });
+  const saved=await saveData([car.id]);
+  if(saved===false){
+    car.licenseExpiry=previous;
+    await saveData([car.id]);
+    alert('تعذر حفظ التغيير على Supabase. تحقق من الاتصال ثم أعد المحاولة.');
+    return;
+  }
+  /* تاريخ التنفيذ لحظة التجديد */
+  const doneAt=new Date().toISOString();
+  await window.YahmaPayments.markLicenseRenewed(item.id, item.carId, doneAt);
+  if(typeof window.log==='function') window.log('تجديد رخصة بعد دفع فحص','السيارة '+car.plate);
+  /* الخطوة الجاية في الدورة: تم التجديد */
+  goTabFromRouter('renewed');
 }
 
 /* انتقال آمن للتبويب: نغيّر التبويب عبر السابط العامة ثم نرسم مرة واحدة. */
@@ -304,6 +343,7 @@ function render(){
     const pendingPayments=loadInspectionPayments().length;
     const paymentCount=document.getElementById('count-payments'); if(paymentCount) paymentCount.textContent=pendingPayments;
     const paidCount=document.getElementById('count-paid'); if(paidCount) paidCount.textContent=loadPaidInspections().length;
+    const renewedCount=document.getElementById('count-renewed'); if(renewedCount) renewedCount.textContent=loadRenewedInspections().length;
     try{ if(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function'){ window.YahmaPayments.localByStatus('pending'); window.YahmaPayments.localByStatus('paid'); } }catch(_){}
   const cb=document.getElementById('count-branches'); if(cb) cb.textContent = branches.length;
   const cp=document.getElementById('count-preparation'); if(cp) cp.textContent = getPrepTasks().filter(t=>t.status!=='done').length;
@@ -315,7 +355,7 @@ function render(){
     /* بيانات PDF الخاصة بالتبويب تُعاد توليدها مع كل عرض — نمسح القديمة حتى لا يصدّر زر PDF بيانات تبويب سابق */
     window._yahmaCurrentPdfData = null;
     /* تبويبات الجداول: مسطرة تمرير رأسية واحدة فقط لا غير */
-    var TABLE_TABS = ['fleet','branches','payments','paid']; /* مثبّتة: الجدول يتمرر داخليًا والفلاتر والترقيم ثابتة */
+    var TABLE_TABS = ['fleet','branches','payments','paid','renewed']; /* مثبّتة: الجدول يتمرر داخليًا والفلاتر والترقيم ثابتة */
     var FLOW_TABS = ['renewals','license-renewals','insurance-renewals','inspections','transfers']; /* انسيابية: المحتوى يتمرر مرة واحدة والجدول بطوله الطبيعي */
     content.classList.toggle('content-table', TABLE_TABS.indexOf(currentTab) >= 0);
     content.classList.toggle('content-flow', FLOW_TABS.indexOf(currentTab) >= 0);
@@ -332,6 +372,7 @@ if(currentTab === 'dashboard') renderDashboard(content);
     else if(currentTab === 'insurance-renewals') renderRenewals(content,'insurance');
     else if(currentTab === 'payments') renderInspectionPayments(content);
     else if(currentTab === 'paid') renderPaidInspections(content);
+    else if(currentTab === 'renewed') renderRenewedInspections(content);
     else if(currentTab === 'inspections') renderFollowUp(content);
     else if(currentTab === 'transfers') renderTransfers(content);
     else if(currentTab === 'reports') renderReports(content);
