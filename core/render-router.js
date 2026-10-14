@@ -220,9 +220,9 @@ function renderPaidInspections(content){
   <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>الإجراء</th></tr></thead><tbody>
   ${rows.length?rows.map(({item,car})=>{
       const needs=needsLicense({car});
-      return `<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td>${needs
+      return `<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td><div class="row-actions">${needs
         ? `<button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(item.id)}">تجديد الرخصة</button>`
-        : `<span class="tag green">الرخصة سارية</span>`}</td></tr>`;
+        : `<span class="tag green">الرخصة سارية</span>`}<button type="button" class="btn btn-ghost btn-small row-del" data-drop-payment="${escapeHtml(item.id)}" title="إزالة الطلب من القائمة">حذف</button></div></td></tr>`;
     }).join(''):'<tr><td colspan="6"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
@@ -232,6 +232,18 @@ function renderPaidInspections(content){
     if(!item){renderPaidInspections(content);return;}
     const car=fleet.find(c=>String(c.id)===String(item.carId));
     renewLicenseFromPaid(item, car, content);
+  }));
+  /* حذف الطلب نهائيًا من السجل (للطلبات المسجّلة بالغلط) */
+  content.querySelectorAll('[data-drop-payment]').forEach(button=>button.addEventListener('click',async()=>{
+    if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية حذف الطلبات.');return;}
+    const item=loadPaidInspections().find(p=>String(p.id)===String(button.dataset.dropPayment));
+    if(!item)return;
+    const plate=(item.plate||'—');
+    if(!confirm('حذف طلب الدفع للسيارة '+plate+' نهائيًا؟\nهذا لا يغير بيانات السيارة — الطلب بس هيتشال من القائمة.'))return;
+    await window.YahmaPayments.cancel(item.id, item.carId);
+    if(typeof window.log==='function') window.log('حذف طلب دفع فحص','السيارة '+plate);
+    renderPaidInspections(content);
+    if(typeof render==='function') render();
   }));
 }
 
@@ -255,7 +267,7 @@ function renderRenewedInspections(content){
   <div class="filter-panel"><div class="filter-panel-title"><strong>تم تجديد الرخصة</strong><span>هذه السيارات اتجدّدت رخصها بالفعل وهي مسجّلة في الأسطول</span></div></div>
   ${paymentsSyncWarningHtml()}
   <div class="table-scroll"><table class="fleet-table"><thead><tr>
-    <th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>تاريخ التجديد</th><th>الرخصة الجديدة</th><th>الحالة</th>
+    <th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>تاريخ التجديد</th><th>الرخصة الجديدة</th><th>الحالة</th><th>إجراء</th>
   </tr></thead><tbody>
   ${rows.length?rows.map(({item,car})=>{
       const stamp=stampOf(item);
@@ -265,10 +277,21 @@ function renderRenewedInspections(content){
         <td>${escapeHtml(formatArabicDate(item.paidAt))}</td>
         <td><b>${escapeHtml(formatArabicDate(stamp))}</b></td>
         <td>${escapeHtml(car.licenseExpiry||'—')}</td>
-        <td><span class="tag green">تم التجديد</span></td></tr>`;
-    }).join(''):'<tr><td colspan="7"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>'}
+        <td><span class="tag green">تم التجديد</span></td>
+        <td><button type="button" class="btn btn-ghost btn-small" data-drop-renewed="${escapeHtml(item.id)}">حذف</button></td></tr>`;
+    }).join(''):'<tr><td colspan="8"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
+  content.querySelectorAll('[data-drop-renewed]').forEach(button=>button.addEventListener('click',async()=>{
+    if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية الحذف.');return;}
+    const item=loadRenewedInspections().find(p=>String(p.id)===String(button.dataset.dropRenewed));
+    if(!item)return;
+    if(!confirm('حذف سجل التجديد للسيارة '+(item.plate||'—')+'؟\nرخصة السيارة هتفضل كما هي في الأسطول.'))return;
+    await window.YahmaPayments.cancel(item.id, item.carId);
+    if(typeof window.log==='function') window.log('حذف سجل تجديد','السيارة '+(item.plate||''));
+    renderRenewedInspections(content);
+    if(typeof render==='function') render();
+  }));
 }
 
 /* ===== تجديد الرخصة من «تم الدفع» =====

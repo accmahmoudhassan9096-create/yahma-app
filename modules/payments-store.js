@@ -356,9 +356,15 @@ function diagnose() {
   /* إلغاء الطلب */
   async function cancel(id, carId) {
     var pending = readJSON(PENDING_KEY, []);
-    var carOfRequest = carId || (pending.find(function (p) { return String(p.id) === String(id); }) || {}).carId;
+    var paidList = readJSON(PAID_KEY, []);
+    /* الطلب ممكن يكون في القائمتين — لازم نشوفهم كلهم */
+    var matchInPending = pending.find(function (p) { return String(p.id) === String(id); });
+    var matchInPaid = paidList.find(function (p) { return String(p.id) === String(id); });
+    var carOfRequest = carId || (matchInPending || matchInPaid || {}).carId;
     pending = pending.filter(function (p) { return String(p.id) !== String(id); });
+    paidList = paidList.filter(function (p) { return String(p.id) !== String(id); });
     writeJSON(PENDING_KEY, pending);
+    writeJSON(PAID_KEY, paidList);
     if (!tableReady()) return { ok: true, local: true };
     var cloudId = isCloudId(id) ? id : await resolveCloudId(id, carOfRequest);
     if (!cloudId) {

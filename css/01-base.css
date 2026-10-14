@@ -484,6 +484,8 @@ body{background:var(--paper);background-image:radial-gradient(circle at 100% 0%,
 .payments-sync-warn b{font-size:12px;color:#B26A00;font-weight:700;}
 .payments-sync-warn span{font-size:11px;line-height:1.6;color:var(--ink);}
 .payments-sync-warn code{direction:ltr;display:inline-block;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:10.5px;}
+.row-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.row-del{color:var(--red,#CE4B3D)!important;}
 /* أدوات البيانات جوّه قائمة المستخدم — على الموبايل بس (الشريط العلوي مزدحم) */
 .user-mobile-tools{display:none;flex-direction:column;gap:1px;}
 .user-mobile-tools-title{font-size:10px;color:var(--muted);padding:6px 9px 4px;}
