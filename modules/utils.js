@@ -33,6 +33,23 @@
     return Math.round((d - now) / 86400000);
   }
 
+  /* ينتهي خلال N شهر من النهاردة (شهر تقويمي، مش 30 يوم × N).
+     بترجع true لو التاريخ فات أو داخل نفس الفترة — ده اللي بنحتاجه
+     لقاعدة «الرخصة بتخلص قريب = السيارة محتاجة فحص». */
+  function expiresWithinMonths(dateStr, months) {
+    const days = daysFromNow(dateStr);
+    if (days === null) return false;
+    if (days < 0) return true;                    // انتهت خلاص
+    const n = Number(months) || 0;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const limit = new Date(now.getTime());
+    limit.setMonth(limit.getMonth() + n);        // 3 شهور = ~90–92 يوم حسب الشهر
+    const end = new Date(now.getFullYear(), now.getMonth() + n, now.getDate());
+    const target = new Date(normalizeDateValue(dateStr) + 'T00:00:00');
+    return target <= end;
+  }
+
   function dateStatus(dateStr, soonThreshold = 30) {
     const days = daysFromNow(dateStr);
     if (days === null) return { level: 'grey', label: 'غير محدد', days: null };
@@ -327,7 +344,7 @@
   function todayStr() { return new Date().toISOString().slice(0, 10); }
 
   const api = {
-    uid, normalizeDateValue, daysFromNow, dateStatus, licenseDisplayStatus,
+    uid, normalizeDateValue, daysFromNow, expiresWithinMonths, dateStatus, licenseDisplayStatus,
     cardDisplayStatus, inspectionDisplayStatus, textTag, escapeHtml,
     fmtDate, addDays, addYears, defaultLicenseExpiry, LICENSE_YEARS, todayStr,
     carStatusOut, carStatusActive, carStatusMatch, carStatusReady, normStatus,

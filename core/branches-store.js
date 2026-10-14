@@ -118,8 +118,24 @@ function fleetForTab(tab, list){
   var ins  = (typeof textTag==='function') ? function(c){ return textTag(c.insuranceStatus).level; }
            : function(c){ return String(c.insuranceStatus||'').includes('ساري')?'green':'red'; };
 
+  /* Inspection tab: a car needs inspection when
+     (a) its inspection status is not "done", OR
+     (b) its licence expires within the next 3 months (or already expired),
+         so we renew it together with the inspection instead of finding
+         out the licence has lapsed afterwards. */
+  var licenseSoon = (typeof window.YahmaUtils === 'object' && typeof window.YahmaUtils.expiresWithinMonths === 'function')
+    ? function(c){ return window.YahmaUtils.expiresWithinMonths(c.licenseExpiry, 3); }
+    : function(c){
+        var d=(typeof daysFromNow==='function')?daysFromNow(c.licenseExpiry):null;
+        if(d===null) return false;
+        if(d<0) return true;
+        var lim=new Date(); lim.setHours(0,0,0,0); lim.setMonth(lim.getMonth()+3);
+        return (new Date(String(c.licenseExpiry).slice(0,10)+'T00:00:00'))<=lim;
+      };
+  function needsInspection(c){ return insp(c)!=='green' || licenseSoon(c); }
+
   switch(tab){
-    case 'renewals':      return all.filter(function(c){ return insp(c)!=='green'; });
+    case 'renewals':      return all.filter(needsInspection);
     case 'payments':      return window.YahmaPayments ? filterByPaymentIds(all,'pending') : all;
     case 'paid':          return window.YahmaPayments ? filterByPaymentIds(all,'paid') : all;
     case 'renewed':       return window.YahmaPayments ? filterByPaymentIds(all,'renewed') : all;
