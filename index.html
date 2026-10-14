@@ -44,6 +44,24 @@
     
   </div>
 </div>
+<!-- شاشة القفل: بتظهر لما جلسة Supabase موجودة بس التطبيق لسه مفتعلش -->
+<div id="app-lock-screen" hidden>
+  <div class="auth-card lock-card">
+    <div class="lock-ico">🔒</div>
+    <h2>المنصة مقفولة</h2>
+    <p class="sub" id="lock-user-line">اكتب كلمة المرور للمتابعة</p>
+    <form id="app-lock-form" autocomplete="off">
+      <div class="auth-field">
+        <label for="lock-password">كلمة المرور</label>
+        <input type="password" id="lock-password" autocomplete="current-password" enterkeyhint="go">
+      </div>
+      <div id="lock-error" class="lock-error"></div>
+      <button class="btn btn-primary" type="submit" id="lock-submit">فتح المنصة</button>
+    </form>
+    <button type="button" class="btn btn-ghost lock-logout" id="lock-logout">تسجيل الخروج من الحساب</button>
+    <p class="lock-note">الجلسة محفوظة على الجهاز — لازم كلمة المرور عند كل فتح.</p>
+  </div>
+</div>
 <div class="app hidden" id="app-root">
   <div class="sidebar">
     <div class="brand yahma-brand">
@@ -203,6 +221,8 @@
               <button type="button" class="user-menu-item" id="umt-template" role="menuitem"><span>▤</span> نموذج أسطول فارغ</button>
               <button type="button" class="user-menu-item" id="umt-email-pdf" role="menuitem"><span>✉</span> إرسال التقرير PDF بالبريد</button>
               <button type="button" class="user-menu-item" id="umt-backup" role="menuitem"><span>⤓</span> تنزيل نسخة احتياطية</button>
+              <button type="button" class="user-menu-item" id="umt-lock-now" role="menuitem"><span>🔒</span> قفل المنصة دلوقتي</button>
+              <button type="button" class="user-menu-item" id="umt-lock-toggle" role="menuitem"><span>⚙️</span> <span id="umt-lock-toggle-label">إيقاف قفل المنصة</span></button>
               <button type="button" class="user-menu-item" id="umt-hard-refresh" role="menuitem"><span>⟳</span> تحديث قسري للتطبيق</button>
             </div>
             <button type="button" class="user-menu-item user-menu-logout" id="btn-profile-logout" role="menuitem"><span>↪</span> تسجيل الخروج</button>
@@ -438,6 +458,7 @@
 <script src="modules/fleet-excel.js"></script>
 <!-- منطق التطبيق: أُقسم من app-core.js إلى core/* بالترتيب نفسه للتنفيذ -->
 <script src="core/auth-boot.js"></script>
+  <script src="modules/app-lock.js"></script>
 <script src="core/branches-store.js"></script>
 <script src="core/sync.js"></script>
 <script src="core/report-glue.js"></script>

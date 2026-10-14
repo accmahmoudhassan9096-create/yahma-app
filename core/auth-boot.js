@@ -61,6 +61,13 @@ function showAuthScreen(msg){
   if(err) err.textContent = msg || '';
 }
 function showAppScreen(){
+  /* 🔒 قفل المنصة: لو فيه جلسة بس القفل مقفول، ما نعرضش أي بيانات.
+     الدالة اللي جوّه الـgate هي اللي بتكمّل (showAppScreen جواها تاني)
+     بعد ما المستخدم يكتب كلمة المرور الصح. */
+  if(typeof window.YahmaAppLock==='function' || (window.YahmaAppLock && typeof window.YahmaAppLock.gate==='function')){
+    const go=function(){ showAppScreen(); };
+    if(!window.YahmaAppLock.gate(go)) return;
+  }
   document.documentElement.classList.remove('yahma-booting');
   document.documentElement.classList.add('yahma-ready');
   document.getElementById('auth-screen').classList.add('hidden');
@@ -99,6 +106,8 @@ window.yahmaSignOut = async function(){
   /* 1) الخروج المحلي فوري — ده اللي المستخدم شايفه، ولا يعتمد على الشبكة */
   try{
     window._demoMode=false;
+    if(window.YahmaAppLock && typeof window.YahmaAppLock.relock==='function') window.YahmaAppLock.relock();
+    try{ var ls=document.getElementById('app-lock-screen'); if(ls) ls.hidden=true; }catch(_){}
     yahmaClearLocalSession();
     showAuthScreen();
   }catch(error){
@@ -131,27 +140,38 @@ function activateAuthenticatedSession(user){
   window.currentUser=user;
   window.currentUserPermissions=[];
   setTimeout(async function(){
+    /* 🔒 كل تحميل البيانات معلّق لحد ما القفل يتفتح.
+       putBoot(fn) بينفّذ fn فورًا لو مفتوح، أو بعد كلمة المرور. */
+    const putBoot=function(fn){
+      if(window.YahmaAppLock && typeof window.YahmaAppLock.gate==='function') return window.YahmaAppLock.gate(fn);
+      try{ fn(); }catch(e){ console.warn(e); }
+      return true;
+    };
     try{
       const role=await fetchUserRole(uid);
       if(!window.currentUser||window.currentUser.id!==uid) return;
       window.currentRole=role;
       // نطاق الفرع: صفِّ أي بيانات متبقية من جلسة سابقة قبل العرض والتحميل
       try{ if(typeof scopeFleetToUser==='function' && typeof fleet!=='undefined' && Array.isArray(fleet)) fleet=scopeFleetToUser(fleet); }catch(_){}
-      if(typeof applyRole==='function') applyRole();
-      showAppScreen();
-      if(typeof loadData==='function') await loadData(false);
-      try{ if(typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){}
-      try{ if(typeof migrateCarStatusValues==='function') await migrateCarStatusValues(); }catch(_){}
-      try{ if(typeof migrateCarBrands==='function') await migrateCarBrands(); }catch(_){}
-      try{ if(typeof migrateInspectionStatus==='function') await migrateInspectionStatus(); }catch(_){}
-      if(typeof render==='function') render();
+      putBoot(async function(){
+        if(typeof applyRole==='function') applyRole();
+        showAppScreen();
+        if(typeof loadData==='function') await loadData(false);
+        try{ if(typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){}
+        try{ if(typeof migrateCarStatusValues==='function') await migrateCarStatusValues(); }catch(_){}
+        try{ if(typeof migrateCarBrands==='function') await migrateCarBrands(); }catch(_){}
+        try{ if(typeof migrateInspectionStatus==='function') await migrateInspectionStatus(); }catch(_){}
+        if(typeof render==='function') render();
+      });
     }catch(error){
       console.error('تعذر تهيئة حساب المستخدم',error);
       if(window.currentUser&&window.currentUser.id===uid){
         window.currentRole=cachedRoleOrView(uid);
-        showAppScreen();
-        if(typeof loadData==='function') await loadData(false);
-        if(typeof applyRole==='function') applyRole();
+        putBoot(async function(){
+          showAppScreen();
+          if(typeof loadData==='function') await loadData(false);
+          if(typeof applyRole==='function') applyRole();
+        });
       }
     }
   },0);

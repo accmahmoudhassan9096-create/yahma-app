@@ -804,7 +804,57 @@ html, body{
   z-index: 1;
   clear: both;
 }
-/* صف المالك في تقرير الملاك: قابل للضغط */
+/* ===== قفل المنصة =====
+   نفس هيكل شاشة الدخول عشان يبان متناسق، بس بلون تحذيري. */
+#app-lock-screen{
+  position:fixed; inset:0; z-index:1200;
+  display:flex; align-items:center; justify-content:center;
+  padding:18px;
+  background:linear-gradient(160deg,#0F766E 0%,#0B5F58 55%,#084A44 100%);
+  overflow:auto;
+}
+#app-lock-screen[hidden]{display:none !important;}
+#app-lock-screen .lock-card{
+  width:100%; max-width:380px;
+  background:#fff; border-radius:18px;
+  padding:26px 22px 20px;
+  box-shadow:0 24px 60px rgba(0,0,0,.28);
+  text-align:center;
+}
+#app-lock-screen .lock-ico{font-size:40px; line-height:1; margin-bottom:8px;}
+#app-lock-screen h2{margin:0 0 6px; font-size:20px; color:#12303A;}
+#app-lock-screen .sub{margin:0 0 18px; font-size:12.5px; color:#5B6B76; line-height:1.6;}
+#app-lock-screen .auth-field{text-align:right;}
+#app-lock-screen .auth-field label{font-size:12px;}
+#app-lock-screen .auth-field input{
+  width:100%; padding:11px 12px; font-size:15px;
+  border:1px solid #D6DCE7; border-radius:10px; font-family:inherit;
+  background:#fff; color:#12303A;
+}
+#app-lock-screen .auth-field input:focus{
+  outline:none; border-color:#12AAA6;
+  box-shadow:0 0 0 3px rgba(18,170,166,.18);
+}
+#app-lock-screen .lock-error{
+  min-height:18px; font-size:12px; color:#CE4B3D;
+  text-align:center; margin:2px 0 8px;
+}
+#app-lock-screen #lock-submit{width:100%; justify-content:center; padding:12px;}
+#app-lock-screen .lock-logout{
+  width:100%; justify-content:center; margin-top:10px;
+  font-size:12px; color:#5B6B76;
+}
+#app-lock-screen .lock-note{
+  margin:14px 0 0; font-size:10.5px; color:#8A97A1; line-height:1.6;
+}
+body.dark-mode #app-lock-screen{background:linear-gradient(160deg,#0A2A27 0%,#061E1C 100%);}
+body.dark-mode #app-lock-screen .lock-card{background:#111C2E; box-shadow:0 24px 60px rgba(0,0,0,.5);}
+body.dark-mode #app-lock-screen h2{color:#EAF1F5;}
+body.dark-mode #app-lock-screen .sub{color:#A9B6C4;}
+body.dark-mode #app-lock-screen .auth-field input{background:#0B1524; border-color:#2C3B52; color:#EAF1F5;}
+body.dark-mode #app-lock-screen .auth-field input:focus{border-color:#12AAA6; box-shadow:0 0 0 3px rgba(18,170,166,.22);}
+body.dark-mode #app-lock-screen .lock-logout{color:#A9B6C4;}
+body.dark-mode #app-lock-screen .lock-note{color:#7C8A98;}
 .rd-owner-row{cursor:pointer;transition:background .15s ease;}
 .rd-owner-row:hover{background:rgba(91,52,173,.06);}
 .rd-owner-row:active{background:rgba(91,52,173,.12);}

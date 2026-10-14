@@ -202,6 +202,45 @@
         if(typeof window.yahmaAskHardRefresh==='function') window.yahmaAskHardRefresh();
       });
     }
+    /* قفل المنصة: اقفل دلوقتي / شغّل ووقّف القفل */
+    var lockNow=document.getElementById('umt-lock-now');
+    if(lockNow && !lockNow._yahmaBound){
+      lockNow._yahmaBound=true;
+      lockNow.addEventListener('click',function(e){
+        e.preventDefault();
+        closeMenu();
+        if(typeof window.YahmaAppLock==='undefined') return;
+        if(!window.YahmaAppLock.isEnabled()){
+          try{ window.alert('القفل متوقف دلوقتي — شغّله من «إيقاف قفل المنصة» الأول.'); }catch(_){}
+          return;
+        }
+        window.YahmaAppLock.relock();
+        window.YahmaAppLock.show();
+      });
+    }
+    var lockToggle=document.getElementById('umt-lock-toggle');
+    var lockLabel=document.getElementById('umt-lock-toggle-label');
+    if(lockToggle && !lockToggle._yahmaBound){
+      lockToggle._yahmaBound=true;
+      var syncLockLabel=function(){
+        if(!lockLabel || typeof window.YahmaAppLock==='undefined') return;
+        lockLabel.textContent = window.YahmaAppLock.isEnabled() ? 'إيقاف قفل المنصة' : 'تشغيل قفل المنصة';
+      };
+      syncLockLabel();
+      lockToggle.addEventListener('click',function(e){
+        e.preventDefault();
+        if(typeof window.YahmaAppLock==='undefined') return;
+        var on = !window.YahmaAppLock.isEnabled();
+        window.YahmaAppLock.setEnabled(on);
+        syncLockLabel();
+        closeMenu();
+        try{
+          window.alert(on
+            ? 'قفل المنصة شغّال — هطلب كلمة المرور عند كل فتح للتطبيق.'
+            : 'قفل المنصة متوقف — التطبيق هيفتح على طول.');
+        }catch(_){}
+      });
+    }
     Object.keys(map).forEach(function(id){
       var trigger=document.getElementById(id);
       if(!trigger || trigger._mobileBound) return;
