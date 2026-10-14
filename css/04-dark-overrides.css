@@ -804,29 +804,80 @@ html, body{
   z-index: 1;
   clear: both;
 }
-/* ===== تثبيت شريط أدوات التقارير =====
-  Toolbar التقارير كان بيختفي مع السكرول، فكنت بترجع فوق كل مرة
-   عشان تغيّر التقرير. دلوقتي يفضل ثابت فوق المحتوى. */
+/* ===== شريط أدوات التقارير: مضغوط + ثابت =====
+   كان 254px (فلاتر 144 + أزرار 86) وبيتحرك مع السكرول.
+   دلوقتي صف واحد مضغوط + sticky فوق المحتوى. */
 .rd-shell .rd-toolbar{
   position: sticky;
   top: 0;
   z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   background: var(--paper, #F6F8FC);
-  padding-top: 6px;
-  padding-bottom: 6px;
-  margin-top: -6px;
-  margin-bottom: 8px;
+  padding: 6px 0 8px;
+  margin: -6px 0 8px;
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 6px 14px rgba(15,25,60,.06);
+}
+/* الفلاتر: صف واحد أفقي مع تمرير — بدل 4 صفوف بتاخد نص الشاشة */
+.rd-shell .rd-filters{
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.rd-shell .rd-filters > *{
+  margin: 0 !important;
+  flex: 0 0 auto !important;
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  font-size: 11px !important;
+}
+.rd-shell .rd-filters input,
+.rd-shell .rd-filters select{
+  height: 30px !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  min-width: 0 !important;
+}
+/* الأزرار: صف واحد أفقي مع تمرير */
+.rd-shell .rd-actions{
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.rd-shell .rd-actions .btn,
+.rd-shell .rd-actions > button{
+  flex: 0 0 auto !important;
+  padding: 5px 10px !important;
+  font-size: 11px !important;
+  height: 30px !important;
+  border-radius: 8px !important;
+  white-space: nowrap;
 }
 .rd-shell .rd-filter-status{position: relative; z-index: 39;}
 body.dark-mode .rd-shell .rd-toolbar{background: #101828;}
-body.dark-mode .rd-shell .rd-toolbar{border-bottom: 1px solid rgba(255,255,255,.08);}
-/* على الموبايل نثبّت بس شريط الأزرار (أقصر) عشان ما ياخدش نص الشاشة */
+
 @media(max-width:700px){
-  .rd-shell .rd-toolbar{
-    background: var(--paper, #F6F8FC);
-    padding: 4px 0;
-    margin: -4px 0 6px;
-  }
+  .rd-shell .rd-toolbar{gap: 4px; padding: 4px 0 6px; margin: -4px 0 6px;}
+  .rd-shell .rd-filters,
+  .rd-shell .rd-actions{gap: 4px !important;}
+  .rd-shell .rd-filters input,
+  .rd-shell .rd-filters select{height: 28px !important; font-size: 10.5px !important;}
+  .rd-shell .rd-actions .btn{height: 28px !important; padding: 4px 8px !important; font-size: 10.5px !important;}
 }
 
 /* تبويبات الجداول: مسطرة تمرير رأسية واحدة فقط — المحتوى عمود ثابت والجدول يتمرر داخليًا */
