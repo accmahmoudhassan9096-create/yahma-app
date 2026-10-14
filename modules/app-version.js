@@ -8,6 +8,7 @@
   var CURRENT = '';
   var reloadTimer = null;
   var onUpdate = null;
+  var startedAt = Date.now();
 
   function setBadge(version) {
     CURRENT = version || '';
@@ -147,10 +148,24 @@
       /* التطبيق يعمل بدون SW كمان — نسكت */
     }
 
+    /* ⭐ إعادة تحميل تلقائية لما نسخة جديدة تاخد التحكم.
+       من غير السطر ده المستخدم بيفضل شغال على كود قديم — والـSW
+       القديم (cache-first) بيوصّل文件和 القديمة. أول ما الـSW الجديد
+       ياخد control بنعمل reload مرة واحدة بس عشان ياخد الكود الجديد.
+       الحماية: بنسجل إننا عملنا reload بالفعل عشان ما نعملش loop. */
     let refreshing = false;
+    const RELOAD_FLAG = 'yahma-reloaded-for-sw';
     navigator.serviceWorker.addEventListener('controllerchange', function () {
       if (refreshing) return;
+      /* لو الصفحة لسه بتعمل أول تحميل — متحملش دلوقتي */
+      if (Date.now() - startedAt < 4000) return;
+      if (sessionStorage.getItem(RELOAD_FLAG) === window.__yahmaVersion) return;
+      /* لو فيه نموذج مفتوح أو مستخدم بيكتب — نستنى */
+      var busy = document.querySelector('.overlay:not(.hidden), .modal, input:focus, select:focus, textarea:focus');
+      if (busy) { showUpdateBanner(); return; }
       refreshing = true;
+      try { sessionStorage.setItem(RELOAD_FLAG, window.__yahmaVersion || '1'); } catch (_) {}
+      try { location.reload(); } catch (_) {}
     });
   }
 
