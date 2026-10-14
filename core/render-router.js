@@ -207,32 +207,16 @@ function renderPaidInspections(content){
   ${rows.length?rows.map(({item,car})=>{
       const needs=needsLicense({car});
       return `<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td>${needs
-        ? `<button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(car.id)}">تجديد الرخصة الآن</button>`
+        ? `<button type="button" class="btn btn-primary btn-small" data-go-license="${escapeHtml(car.id)}">تجديد الرخصة ←</button>`
         : `<span class="tag green">الرخصة سارية</span>`}</td></tr>`;
     }).join(''):'<tr><td colspan="6"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
-  content.querySelectorAll('[data-renew-license]').forEach(button=>button.addEventListener('click',async()=>{
-    if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية تجديد الرخص.');return;}
-    const car=fleet.find(c=>String(c.id)===String(button.dataset.renewLicense));
-    if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return;}
-    const nextDate=prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):',
-      (function(){ const d=new Date(); d.setFullYear(d.getFullYear()+3); return d.toISOString().slice(0,10); })());
-    if(!nextDate) return;
-    const previous=car.licenseExpiry;
-    const normalized=(typeof window.YahmaUtils!=='undefined'&&window.YahmaUtils.normalizeDateValue)
-      ? window.YahmaUtils.normalizeDateValue(nextDate) : nextDate;
-    car.licenseExpiry=normalized||nextDate;
-    const saved=await saveData([car.id]);
-    if(saved===false){
-      car.licenseExpiry=previous;
-      await saveData([car.id]);
-      alert('تعذر حفظ التغيير على Supabase. تحقق من الاتصال ثم أعد المحاولة.');
-      return;
-    }
-    if(typeof window.log==='function') window.log('تجديد رخصة بعد دفع فحص','السيارة '+car.plate);
-    renderPaidInspections(content);
-    if(typeof render==='function') render();
+  /* الانتقال لتبويب «تجديد الرخص» — نمرّ بنفس مسار التبويبات العادي
+     عشان الرسم يحصل مرة واحدة فقط (من غير تكرار ولا تردد). */
+  content.querySelectorAll('[data-go-license]').forEach(button=>button.addEventListener('click',()=>{
+    if(!window.canAccessYahmaTab('license-renewals')){alert('لا تملك صلاحية الوصول إلى قسم تجديد الرخص.');return;}
+    goTabFromRouter('license-renewals');
   }));
 }
 
@@ -246,22 +230,15 @@ function goTabFromRouter(tab){
   document.querySelectorAll('.nav-item').forEach(function(i){
     i.classList.toggle('active', i.dataset.tab===tab);
   });
-  /* الرسم الحقيقي جوا عدة أغلفة (perf/smooth/ops) وكل واحدة ممكن
-     تؤجل أو تتجاهل الطلب. عشان كده نمر على الدالة الأصلية مباشرة. */
-  setTimeout(function(){
-    try{
-      let fn = window.render;
-      let guard = 0;
-      while(fn && guard < 12){
-        const next = (typeof fn._perfImmediate === 'function') ? fn._perfImmediate
-                   : (fn._orig || fn._perfOrig || null);
-        if(!next || next === fn) break;
-        fn = next;
-        guard++;
-      }
-      fn.call(window);
-    }catch(_){}
-  },140);
+  /* render() بيقرا التبويب من yahmaGetTab — فنداء واحد كافي.
+     بنمر على الأغلفة بس لو هيكDelayed، ونحاول _perfImmediate مرة واحدة. */
+  try{
+    if(typeof window.render==='function'&&typeof window.render._perfImmediate==='function'){
+      window.render._perfImmediate();
+    }else if(typeof window.render==='function'){
+      window.render();
+    }
+  }catch(_){}
 }
 
 function render(){

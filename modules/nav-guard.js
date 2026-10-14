@@ -92,13 +92,6 @@
     return false;
   }
 
-  function contentSignature() {
-    var c = document.getElementById('content');
-    if (!c) return '';
-    /* بصمة المحتوى: أول 200 حرف + الطول — تكشف إن المحتوى اتغيّر فعلاً */
-    return c.textContent.replace(/\s+/g, ' ').slice(0, 200) + '#' + c.children.length;
-  }
-
   function drawNow() {
     /* نفضّل الرسم الفوري (يتخطى الـ rAF) لو متاح — مهم على الموبايل */
     try {
@@ -116,7 +109,6 @@
   function goTab(tab) {
     if (!tab || switching) return;
     switching = true;
-    var before = contentSignature();
     try {
       if (typeof global.canAccessYahmaTab === 'function' && !global.canAccessYahmaTab(tab)) {
         try { global.alert('هذا القسم غير متاح لحسابك. كلّم المدير لتفعيله.'); } catch (_) {}
@@ -132,18 +124,9 @@
       try { global.alert('تعذر فتح القسم: ' + (e && e.message ? e.message : 'خطأ غير متوقع')); } catch (_) {}
     } finally {
       closeMobileSidebar();
+      /* ما فيهش إعادة محاولة هنا: الرسم بقى متزامن ومضمون (شِلنا حلقة
+         smooth)، وأي إعادة محاولة بتسبب "تردد" في الشاشة. */
       setTimeout(function () { switching = false; }, 200);
-      /* شبكة أمان محدودة: لو المحتوى ما اتغيّرش، نعيد الرسم مرة أو مرتين
-         كحد أقصى. مهم: التكرار محدود عشان ما يحصلش "تردد" في الشاشة. */
-      var tries = 0;
-      var check = function () {
-        tries++;
-        if (getTab() !== tab) setTab(tab);
-        if (contentSignature() !== before || tries >= 3) return;
-        drawNow();
-        setTimeout(check, 250);
-      };
-      setTimeout(check, 350);
     }
   }
   global.yahmaGoTab = goTab;
