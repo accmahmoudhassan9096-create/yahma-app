@@ -191,7 +191,7 @@
       readyPct: total ? Math.round(ready / total * 1000) / 10 : 0,
       fails: Object.entries(failures).sort((a, b) => b[1] - a[1]).slice(0, 8),
       branches,
-      owners: Object.entries(ownerMap).sort((a, b) => b[1] - a[1]).slice(0, 6),
+      owners: Object.entries(ownerMap).sort((a, b) => b[1] - a[1]),
       acc: accountingIndicators(rows),
       fleetRows
     };
@@ -715,16 +715,17 @@ function renderReports(content, context){
         </div>
       </div>
 
-      <div class="rd-card rd-3d">
-        <div class="rd-card-h"><h3>توزيع الملاك</h3></div>
-        <div class="rd-bars">
-          ${owners.map(([n,c])=>`
-            <div class="rd-bar-row">
+      <div class="rd-card rd-3d" id="rd-owners-card">
+        <div class="rd-card-h"><h3>توزيع الملاك</h3><span class="rd-chip">${owners.length} مالك</span></div>
+        <div class="rd-bars" id="rd-owners-bars">
+          ${(owners.length?owners:[]).slice(0,8).map(([n,c])=>`
+            <div class="rd-bar-row rd-owner-row" data-owner="${esc(n)}" title="اضغط لعرض سيارات ${esc(n)}">
               <span>${esc(n)}</span>
-              <div class="rd-bar-track"><i style="width:${Math.round(c/Math.max(1,owners[0][1])*100)}%;background:linear-gradient(90deg,#5a34ad,#7a4fd6)"></i></div>
+              <div class="rd-bar-track"><i style="width:${Math.round(c/Math.max(1,(owners[0]||[0,1])[1])*100)}%;background:linear-gradient(90deg,#5a34ad,#7a4fd6)"></i></div>
               <b>${c}</b>
             </div>`).join('')||'<div class="rd-empty">—</div>'}
         </div>
+        ${owners.length>8?`<button type="button" class="btn btn-ghost btn-small" id="rd-owners-more" style="margin-top:8px">عرض كل الملاك (${owners.length})</button>`:''}
       </div>
     </div>
 
@@ -1528,6 +1529,44 @@ ${d.accLine}
   content.querySelectorAll('.rd-3d').forEach(card=>{
     card.style.transformStyle = 'flat';
   });
+
+  /* ===== تقرير الملاك: عرض الكل + تصفية بالضغط على المالك ===== */
+  const ownersBars = document.getElementById('rd-owners-bars');
+  const ownersAll = window.__lastReportAgg?.owners || [];
+  const ownersMore = document.getElementById('rd-owners-more');
+  if (ownersMore && ownersBars && ownersAll.length) {
+    let expanded = false;
+    ownersMore.addEventListener('click', () => {
+      expanded = !expanded;
+      const shown = expanded ? ownersAll : ownersAll.slice(0, 8);
+      ownersBars.innerHTML = shown.map(([n, c]) => {
+        const pct = Math.round(c / Math.max(1, ownersAll[0][1]) * 100);
+        return '<div class="rd-bar-row rd-owner-row" data-owner="' + esc(n) + '" title="اضغط لعرض سيارات ' + esc(n) + '">'
+          + '<span>' + esc(n) + '</span>'
+          + '<div class="rd-bar-track"><i style="width:' + pct + '%;background:linear-gradient(90deg,#5a34ad,#7a4fd6)"></i></div>'
+          + '<b>' + c + '</b></div>';
+      }).join('');
+      ownersMore.textContent = expanded
+        ? 'عرض أقل'
+        : 'عرض كل الملاك (' + ownersAll.length + ')';
+      bindOwnerRows();
+    });
+  }
+  function bindOwnerRows() {
+    if (!ownersBars) return;
+    ownersBars.querySelectorAll('.rd-owner-row').forEach(row => {
+      if (row._bound) return;
+      row._bound = true;
+      row.addEventListener('click', () => {
+        const name = row.dataset.owner;
+        if (!name || typeof openDrill !== 'function') return;
+        const all = typeof fleet !== 'undefined' ? fleet : [];
+        const list = all.filter(c => String(c.owner || 'غير محدد').trim() === String(name).trim());
+        openDrill('مالك: ' + name, list);
+      });
+    });
+  }
+  bindOwnerRows();
 }
 
 

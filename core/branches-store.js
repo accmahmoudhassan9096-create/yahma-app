@@ -94,6 +94,55 @@ window.canAccessYahmaTab=function(tab){
   return false;
 };
 
+/* ===== فلترة الأسطول حسب التبويب =====
+   كل تبويب يعرض سياراته بس بدل الأسطول كله:
+     • الفحص        → اللي محتاجة فحص
+     • الدفع/الدفعية → اللي في طابور الدفع
+     • رخص منتهية   → رخصها منتهية
+     • التأمين      → تأمينها منتهي
+     • بطاقات التشغيل → كارت منتهي/قارب
+     • تنازلات      → اللي اتنازلت
+   الأسطول والفروع والتقارير → كل الأسطول (كما هم). */
+function fleetForTab(tab, list){
+  var all = Array.isArray(list) ? list : (typeof fleet !== 'undefined' && Array.isArray(fleet) ? fleet : []);
+  if(!tab) return all;
+  /* الأسطول/الفروع/الرئيسية/التقارير/السجل: كل السيارات */
+  if(['dashboard','fleet','branches','reports','audit','preparation'].indexOf(tab)>=0) return all;
+
+  var lvl = (typeof dateStatus==='function') ? function(d){ return dateStatus(d).level; }
+           : function(d){ return d ? 'green' : 'grey'; };
+  var insp = (typeof inspectionDisplayStatus==='function') ? function(c){ return inspectionDisplayStatus(c.inspectionStatus).level; }
+           : function(c){ return c.inspectionStatus==='تم الفحص'?'green':'red'; };
+  var card = (typeof cardDisplayStatus==='function') ? function(c){ return cardDisplayStatus(c.cardExpiry,c.cardStatus).level; }
+           : function(c){ return c.cardExpiry ? 'green' : 'grey'; };
+  var ins  = (typeof textTag==='function') ? function(c){ return textTag(c.insuranceStatus).level; }
+           : function(c){ return String(c.insuranceStatus||'').includes('ساري')?'green':'red'; };
+
+  switch(tab){
+    case 'renewals':      return all.filter(function(c){ return insp(c)!=='green'; });
+    case 'payments':      return window.YahmaPayments ? filterByPaymentIds(all,'pending') : all;
+    case 'paid':          return window.YahmaPayments ? filterByPaymentIds(all,'paid') : all;
+    case 'renewed':       return window.YahmaPayments ? filterByPaymentIds(all,'renewed') : all;
+    case 'license-renewals': return all.filter(function(c){ return lvl(c.licenseExpiry)==='red'; });
+    case 'insurance-renewals': return all.filter(function(c){ return ins(c)!=='green'; });
+    case 'inspections':   return all.filter(function(c){ return card(c)!=='green'; });
+    case 'transfers':     return all.filter(function(c){ return String(c.transferDone||'').trim()==='نعم'; });
+    default: return all;
+  }
+}
+function filterByPaymentIds(all, kind){
+  var ids = new Set();
+  try{
+    var rows = kind==='pending' ? window.YahmaPayments.localByStatus('pending')
+           : kind==='paid'    ? window.YahmaPayments.pendingList()
+           :                    window.YahmaPayments.renewedList();
+    (rows||[]).forEach(function(p){ ids.add(String(p.carId)); });
+  }catch(_){ return all; }
+  if(!ids.size) return [];
+  return all.filter(function(c){ return ids.has(String(c.id)); });
+}
+window.fleetForTab = fleetForTab;
+
 // شبكة أمان ضد شاشة التحميل الأبدية
 function forceLocalBoot(){
   if(window.currentUser && !window._demoMode) return; // مستخدم مسجّل دخول على السحابة — لا تحوّل للوضع التجريبي أبدًا

@@ -54,6 +54,13 @@ function renderTransfers(content){
         <button class="btn btn-ghost btn-small" id="tr-clear">↺ مسح الفلاتر</button>
       </div>
     </div>
+    <div class="tr-toolbar">
+      <button class="btn btn-primary btn-small" id="tr-import-btn" title="رفع ملف التنازلات (رقم السيارة/الماركه/النوع/الموديل/الشركه)">📥 رفع ملف التنازلات</button>
+      <input type="file" id="file-transfer-import" accept=".xlsx,.xls,.csv" style="display:none">
+      <button class="btn btn-excel-export btn-small" id="tr-export-xlsx" title="تصدير النتائج المفلترة">📊 Excel</button>
+      <button class="btn btn-ghost btn-small" id="tr-export-pdf" title="تصدير PDF للنتائج المفلترة">📄 PDF</button>
+      <span class="muted-small">بيانات التنازل من أعمدة الإكسل أو من ملف التنازلات المخصص.</span>
+    </div>
     ${canDelete?`<div class="bulk-bar" id="tr-bulk-bar" style="display:none">
       <div class="bulk-bar-info"><span id="tr-bulk-count">0 محددة</span></div>
       <div class="bulk-bar-actions">
@@ -99,13 +106,6 @@ function renderTransfers(content){
           <option value="100">100 (حد أقصى سلس)</option>
         </select>
       </label>
-    </div>
-    <div class="panel" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <button class="btn btn-primary btn-small" id="tr-import-btn" title="رفع ملف التنازلات (رقم السيارة/الماركه/النوع/الموديل/الشركه)">📥 رفع ملف التنازلات</button>
-      <input type="file" id="file-transfer-import" accept=".xlsx,.xls,.csv" style="display:none">
-      <button class="btn btn-excel-export btn-small" id="tr-export-xlsx" title="تصدير النتائج المفلترة">📊 Excel</button>
-      <button class="btn btn-ghost btn-small" id="tr-export-pdf" title="تصدير PDF للنتائج المفلترة">📄 PDF</button>
-      <span class="muted-small">بيانات التنازل من أعمدة الإكسل (تنازل/تاريخ التنازل/المالك السابق/حالة التنازل/ملاحظات التنازل) أو من ملف التنازلات المخصص.</span>
     </div>
   `;
 

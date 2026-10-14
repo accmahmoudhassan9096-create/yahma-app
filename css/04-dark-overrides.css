@@ -804,6 +804,23 @@ html, body{
   z-index: 1;
   clear: both;
 }
+/* صف المالك في تقرير الملاك: قابل للضغط */
+.rd-owner-row{cursor:pointer;transition:background .15s ease;}
+.rd-owner-row:hover{background:rgba(91,52,173,.06);}
+.rd-owner-row:active{background:rgba(91,52,173,.12);}
+
+/* ===== شريط أدوات التنازلات: ثابت فوق زي التقارير ===== */
+.tr-toolbar{
+  position: sticky;
+  top: 0;
+  z-index: 38;
+  background: var(--paper, #F6F8FC);
+  padding: 6px 0;
+  margin-top: 10px !important;
+  border-bottom: 1px solid var(--line);
+}
+body.dark-mode .tr-toolbar{background: #101828;}
+
 /* ===== إلغاء تأثير الميلان (3D tilt) في التقارير =====
    الـ rd-shell كان فيه perspective + preserve-3d، فكان الكارت يميل
    لما الماوس يقف عليه (ويبان «رجّاج» ويزحلق المحتوى تحته).
@@ -825,7 +842,7 @@ html, body{
 .rd-shell .rd-grid > *,
 .rd-shell .rd-kpis > *{transform:none !important;}
 
-/* ===== شريط أدوات التقارير: مضغوط + ثابت =====
+/* ===== شريط أدوات التقارير: مضغوط + ثابت ===== */
 .rd-shell .rd-toolbar{
   position: sticky;
   top: 0;
@@ -901,13 +918,12 @@ body.dark-mode .rd-shell .rd-toolbar{background: #101828;}
 
 /* تبويبات الجداول: مسطرة تمرير رأسية واحدة فقط — المحتوى عمود ثابت والجدول يتمرر داخليًا */
 .content.content-table{
-  display: flex !important;
-  flex-direction: column !important;
+  display: block !important;
   min-height: 0 !important;
-  overflow: hidden !important;
-  overflow-y: hidden !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
 }
-.content.content-table > *{flex: 0 0 auto;min-width: 0;}
+.content.content-table > *{min-width: 0;}
 .content.content-table > .table-scroll{
   flex: 1 1 auto !important;
   min-height: 0 !important;
@@ -924,6 +940,47 @@ body.dark-mode .rd-shell .rd-toolbar{background: #101828;}
   max-height: none !important;
 }
 .content.content-flow > .table-scroll > table{border:1px solid var(--line);}
+
+/* الأسطول والفروع: نفس سلوك تبويب الفحص — مسطرة واحدة للشاشة
+   والجدول بطوله الطبيعي، بدل مسطرتين (داخلية + خارجية). */
+.content.content-table > .table-scroll{
+  display: contents !important;
+  max-height: none !important;
+  overflow: visible !important;
+  border: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+.content.content-table > .table-scroll > table{
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 24px rgba(8,112,111,.10), inset 0 1px 0 rgba(255,255,255,.75);
+}
+.content.content-table > .table-scroll > table > thead > tr > th{
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+/* الـ pager والفلاتر مابقاش flex — بقى block */
+.content.content-table > .pager,
+.content.content-table > .filter-panel{
+  width: 100%;
+}
+/* المسطرة الأفقية للجدول العريض: واضحة وم走下去 زي الفحص.
+   الجدول بيتمرر أفقياً جوه .content (مش جوه .table-scroll)،
+   عشان كده الـthead اللاصق يفضل شغال مع التمرير الرأسي. */
+.content.content-table > .table-scroll > table{
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+  overflow: visible !important;
+}
+.content.content-table::-webkit-scrollbar{height:11px;}
+.content.content-table::-webkit-scrollbar-track{background:rgba(8,112,111,.06);border-radius:8px;}
+.content.content-table::-webkit-scrollbar-thumb{
+  background:#7FC5C2;border-radius:8px;border:2px solid transparent;background-clip:padding-box;
+}
+.content.content-table::-webkit-scrollbar-thumb:hover{background:#4FA9A5;background-clip:padding-box;}
 /* خريطة المناطق */
 .home-map-card{margin-top:14px}
 .home-map-wrap{display:grid;grid-template-columns:1.25fr .75fr;gap:14px;align-items:start}

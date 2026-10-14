@@ -374,6 +374,19 @@ function render(){
   updateLastSyncLabel();
 
   const content = document.getElementById('content');
+  /* ===== فلترة الأسطول حسب التبويب =====
+     كل تبويب يعرض سياراته فقط (اللي محتاجة فحص / رخص منتهية / تأمين...),
+     والأسطول والفروع والتقارير يفضلوا كل الأسطول.
+     بنلفّ fleet مؤقتاً وقت الرسم ونرجّعها فوراً — فالتعديل والحفظ شغالين عادي. */
+  let scopedFleet=null;
+  if (typeof fleetForTab==='function' && currentTab
+      && ['dashboard','fleet','branches','reports','audit','preparation'].indexOf(currentTab)<0){
+    try{
+      if(window.YahmaData) window.YahmaData.__fullFleet = fleet;
+      scopedFleet = fleetForTab(currentTab, fleet);
+      fleet = scopedFleet;
+    }catch(_){ scopedFleet=null; }
+  }
   try{
     /* بيانات PDF الخاصة بالتبويب تُعاد توليدها مع كل عرض — نمسح القديمة حتى لا يصدّر زر PDF بيانات تبويب سابق */
     window._yahmaCurrentPdfData = null;
@@ -413,6 +426,13 @@ if(currentTab === 'dashboard') renderDashboard(content);
   try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){}
   try{ showBranchScopeNotice(content); }catch(_){}
   try{ showDataWarning(content); }catch(_){}
+  /* نرجّع الأسطول الكامل بعد الرسم — عشان التعديل والحفظ يشتغلوا على الكل */
+  if(scopedFleet && typeof window.YahmaData!=='undefined'){
+    try{
+      const full=window.YahmaData.__fullFleet;
+      if(Array.isArray(full)) fleet=full;
+    }catch(_){}
+  }
 }
 
 /* ===== تنبيه صريح عند فشل تحميل البيانات =====
