@@ -341,6 +341,12 @@ function goTabFromRouter(tab){
   }catch(_){}
 }
 
+/* نسخة كاملة من الأسطول وقت الرسم.
+   لازم تكون متغير مستقل (مش على window.YahmaData) عشان:
+   1) لو YahmaData لسه متحمّلش، الرجوع يفضل شغال.
+   2) ما نلحقش بجوز في حالة مرحلية فلتر we نرجّعه بعد ما الـ warning يتقري. */
+let __yahmaFullFleet = null;
+
 function render(){
   /* نقرأ التبويب من الـ API العام (yahmaGetTab) بدل الـ binding المحلي. */
   if(typeof window.yahmaGetTab === 'function'){ currentTab = window.yahmaGetTab(); }
@@ -382,7 +388,7 @@ function render(){
   if (typeof fleetForTab==='function' && currentTab
       && ['dashboard','fleet','branches','reports','audit','preparation'].indexOf(currentTab)<0){
     try{
-      if(window.YahmaData) window.YahmaData.__fullFleet = fleet;
+      __yahmaFullFleet = fleet;
       scopedFleet = fleetForTab(currentTab, fleet);
       fleet = scopedFleet;
     }catch(_){ scopedFleet=null; }
@@ -423,16 +429,14 @@ if(currentTab === 'dashboard') renderDashboard(content);
       document.getElementById('reports-retry')?.addEventListener('click',()=>render());
     }else renderEmergencyFleet(content);
   }
+  /* ⚠️ نرجّع الأسطول الكامل فور انتهاء الرسم وقبل أي فحص للبيانات.
+     لو رجعنا بعد showDataWarning — البانر هيشوف القائمة المفلترة (ممكن تكون فاضية)
+     ويقول «لم تظهر البيانات» خطأً. الأولوية هنا للأمان. */
+  if(__yahmaFullFleet && Array.isArray(__yahmaFullFleet)){ fleet = __yahmaFullFleet; }
+  __yahmaFullFleet = null;
   try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){}
   try{ showBranchScopeNotice(content); }catch(_){}
   try{ showDataWarning(content); }catch(_){}
-  /* نرجّع الأسطول الكامل بعد الرسم — عشان التعديل والحفظ يشتغلوا على الكل */
-  if(scopedFleet && typeof window.YahmaData!=='undefined'){
-    try{
-      const full=window.YahmaData.__fullFleet;
-      if(Array.isArray(full)) fleet=full;
-    }catch(_){}
-  }
 }
 
 /* ===== تنبيه صريح عند فشل تحميل البيانات =====
