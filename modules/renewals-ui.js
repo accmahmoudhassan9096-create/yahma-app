@@ -5,8 +5,8 @@ function renderRenewals(content, mode='inspection'){
   const canDelete=!(typeof currentRole!=='undefined'&&currentRole==='view');
   const licenseMode=mode==='license';
   const insuranceMode=mode==='insurance';
-  document.getElementById('topbar-title').textContent = insuranceMode?'التأمين':licenseMode?'رخص منتهية':'الفحص';
-  document.getElementById('topbar-sub').textContent = insuranceMode?'متابعة وتجديد تأمين السيارات':licenseMode?'الرخص المنتهية فقط — اضغط تجديد لتبدأ دورة الدفع':'متابعة السيارات المطلوب فحصها';
+  document.getElementById('topbar-title').textContent = insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص';
+  document.getElementById('topbar-sub').textContent = insuranceMode?'متابعة وتجديد تأمين السيارات':licenseMode?'كل رخص محتاجة متابعة — منتهية وقاربت الانتهاء ومفيش لها تاريخ':'متابعة السيارات المطلوب فحصها';
   const uniq=(field)=>{
     const map=new Map();
     fleet.forEach(c=>{
@@ -21,9 +21,10 @@ function renderRenewals(content, mode='inspection'){
   const optionList=(items,placeholder)=>`<option value="">${placeholder}</option>${items.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('')}`;
   const readPaymentQueue=()=>{try{const items=JSON.parse(localStorage.getItem('yahma-inspection-payments-v1')||'[]');return Array.isArray(items)?items:[]}catch(_){return [];}};
   const pendingIds=new Set(readPaymentQueue().map(item=>String(item.carId)));
-  const needInsp=getUninspectedCars().filter(car=>!pendingIds.has(String(car.id))).length;
-  const needLic=fleet.filter(c=>dateStatus(c.licenseExpiry).level!=='green').length;
-  const needInsurance=fleet.filter(c=>textTag(c.insuranceStatus).level!=='green').length;
+  /* نفس fleetForTab بالظبط — عشان الرقم في البطاقة يطابق عدد صفوف الجدول */
+  const needInsp=typeof fleetForTab==='function'?fleetForTab('renewals', fleet).filter(car=>!pendingIds.has(String(car.id))).length:getUninspectedCars().filter(car=>!pendingIds.has(String(car.id))).length;
+  const needLic=typeof fleetForTab==='function'?fleetForTab('license-renewals', fleet).length:fleet.filter(c=>dateStatus(c.licenseExpiry).level!=='green').length;
+  const needInsurance=typeof fleetForTab==='function'?fleetForTab('insurance-renewals', fleet).length:fleet.filter(c=>textTag(c.insuranceStatus).level!=='green').length;
   const goodInsp=fleet.filter(car=>inspectionDisplayStatus(car.inspectionStatus).level==='green').length;
   const goodLic=fleet.length-needLic;
   content.innerHTML = `
@@ -47,7 +48,7 @@ function renderRenewals(content, mode='inspection'){
     <div class="filter-panel">
       <div class="filter-panel-title"><strong>🔎 فلاتر ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</strong><span>صفِّ النتائج حسب أي بند — ثم صدّر Excel أو PDF</span></div>
       <div class="quick-filters" id="ren-quick">
-        ${insuranceMode?`<button type="button" class="quick-filter" data-rq="insurance_bad">🛡️ يحتاج متابعة</button>`:licenseMode?`<button type="button" class="quick-filter" data-rq="lic_expired">🔴 منتهية</button><button type="button" class="quick-filter" data-rq="lic_soon">🟡 قريبة الانتهاء</button>`:`<button type="button" class="quick-filter" data-rq="insp_bad">🔍 تحتاج فحص</button>`}
+        ${insuranceMode?`<button type="button" class="quick-filter" data-rq="insurance_bad">🛡️ يحتاج متابعة</button>`:licenseMode?`<button type="button" class="quick-filter" data-rq="lic_expired">🔴 منتهية</button><button type="button" class="quick-filter" data-rq="lic_soon">🟡 قريبة الانتهاء</button><button type="button" class="quick-filter" data-rq="lic_unknown">⚪ مفيش تاريخ</button>`:`<button type="button" class="quick-filter" data-rq="insp_bad">🔍 تحتاج فحص</button>`}
         ${licenseMode||insuranceMode?'':`
         <button type="button" class="quick-filter" data-rq="active">🟢 سيارة نشطة</button>
         <button type="button" class="quick-filter" data-rq="maintenance">🔧 تحت الصيانة</button>
@@ -140,10 +141,13 @@ function renderRenewals(content, mode='inspection'){
     return fleet.filter(c=>{
       // تبويبات الفحص والرخص والتأمين تعرض كل السيارات (الأسوأ أولًا حسب الفرز) — الفلاتر السريعة تضيّق عند الحاجة
       if(!licenseMode&&!insuranceMode&&pendingIds.has(String(c.id))) return false;
-      /* تبويب «رخص منتهية» يعرض المنتهي بس افتراضيًا
-         (لو المستخدم ما اخترش فلتر صريح من الفلاتر) */
-      if(licenseMode && !activeRQ && !val('ren-lic-condition')){
-        if(dateStatus(c.licenseExpiry).level!=='red') return false;
+      /* تبويب الرخص: بيعرض كل حاجة محتاجة متابعة افتراضيًا —
+         منتهية + قاربت الانتهاء + مفيش لها تاريخ.
+         الرقم في القائمة (needLic) بيحسب نفس الثلاثة بالظبط،
+         ولو|displayed المنتهي بس هنا؟ بيظهر تعارض زي «720 محتاجة
+         تجديد» والجدول بيقول «438». الفلاتر السريعة تحت بتضيّق. */
+      if(licenseMode && !activeRQ && !val('ren-lic-condition') && !val('ren-lic-status')){
+        if(dateStatus(c.licenseExpiry).level==='green') return false;
       }
       if(q){
         const hay=[c.plate,c.brand,c.model,c.owner,c.branch,c.carStatus,c.inspectionStatus,c.insuranceCompany].map(v=>String(v||'').toLowerCase()).join(' ');
@@ -174,6 +178,7 @@ function renderRenewals(content, mode='inspection'){
         if(activeRQ==='lic_ok' && lic!=='green') return false;
         if(activeRQ==='lic_expired' && lic!=='red') return false;
         if(activeRQ==='lic_soon' && lic!=='amber') return false;
+        if(activeRQ==='lic_unknown' && lic!=='grey') return false;
         if(activeRQ==='active' && !carStatusMatch(st,'متاحة للايجار')) return false;
         if(activeRQ==='maintenance' && !st.includes('صيانة')) return false;
         if(activeRQ==='out' && !carStatusOut(st)) return false;

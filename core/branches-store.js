@@ -139,7 +139,7 @@ function fleetForTab(tab, list){
     case 'payments':      return window.YahmaPayments ? filterByPaymentIds(all,'pending') : all;
     case 'paid':          return window.YahmaPayments ? filterByPaymentIds(all,'paid') : all;
     case 'renewed':       return window.YahmaPayments ? filterByPaymentIds(all,'renewed') : all;
-    case 'license-renewals': return all.filter(function(c){ return lvl(c.licenseExpiry)==='red'; });
+    case 'license-renewals': return all.filter(function(c){ return lvl(c.licenseExpiry)!=='green'; });
     case 'insurance-renewals': return all.filter(function(c){ return ins(c)!=='green'; });
     case 'inspections':   return all.filter(function(c){ return card(c)!=='green'; });
     case 'transfers':     return all.filter(function(c){ return String(c.transferDone||'').trim()==='نعم'; });

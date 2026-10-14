@@ -364,12 +364,22 @@ function render(){
   if(typeof loadBranches==='function'){ try{ if(!branches.length) loadBranches(); }catch(_){ } }
   document.getElementById('count-fleet').textContent = fleet.length;
   // تاب "الفحص والرخصة والتأمين": فحص + رخصة + تأمين
+  /* الأرقام دي لازم تُحسب بنفس منطق الفلترة في fleetForTab بالظبط،
+     وإلا ظهر تعارض زي «720 محتاجة تجديد» والجدول «438».
+     fleetForTab هو المصدر الوحيد للحقيقة. */
   const pendingInspectionIds=new Set(loadInspectionPayments().map(item=>String(item.carId)));
-  const renewalAlerts = fleet.filter(c => inspectionDisplayStatus(c.inspectionStatus).level !== 'green'&&!pendingInspectionIds.has(String(c.id))).length;
-  const licenseAlerts = fleet.filter(c => dateStatus(c.licenseExpiry).level !== 'green').length;
-  const insuranceAlerts = fleet.filter(c => textTag(c.insuranceStatus).level !== 'green').length;
+  const tabCount=(tab, extra)=>{
+    try{
+      if(typeof fleetForTab!=='function') return 0;
+      const list=fleetForTab(tab, fleet);
+      return extra ? list.filter(extra).length : list.length;
+    }catch(_){ return 0; }
+  };
+  const renewalAlerts = tabCount('renewals', c=>!pendingInspectionIds.has(String(c.id)));
+  const licenseAlerts = tabCount('license-renewals');
+  const insuranceAlerts = tabCount('insurance-renewals');
   // تاب "بطاقات التشغيل": تنبيهات الكارت (بطاقة التشغيل)
-  const followUpAlerts = fleet.filter(c => dateStatus(c.cardExpiry).level !== 'green' || (c.cardStatus&&String(c.cardStatus).includes('ملغ')) || (c.cardStatus&&String(c.cardStatus).includes('موقوف'))).length;
+  const followUpAlerts = tabCount('inspections');
     document.getElementById('count-renewals').textContent = renewalAlerts;
     const licenseCount=document.getElementById('count-license-renewals'); if(licenseCount) licenseCount.textContent=licenseAlerts;
     const insuranceCount=document.getElementById('count-insurance-renewals'); if(insuranceCount) insuranceCount.textContent=insuranceAlerts;
