@@ -184,9 +184,21 @@ async function handleDomainUpdateFile(file, cfg){
     if(car) hits.push({car, record});
     else misses.push(record.car.plate);
   });
+  /* أسماء الحقول بالعربي عشان رسالة التأكيد توري المستخدم بالظبط
+     إيه اللي هيتم تحديثه — قبل كده كانت بتقول «التأمين» بس حتى لو
+     الملف بيحدّث لون ومدينه ومالك وفرع. */
+  const FIELD_LABELS = {
+    insuranceStatus:'حالة التأمين', insuranceCompany:'شركة التأمين',
+    insuranceExpiry:'انتهاء التأمين', licenseExpiry:'انتهاء الرخصة',
+    licenseStatus:'حالة الرخصة', inspectionStatus:'حالة الفحص',
+    color:'اللون', city:'المدينة', serial:'الرقم التسلسلي',
+    owner:'المالك', branch:'الفرع', carStatus:'حالة السيارة'
+  };
   const shouldContinue = confirm(
-    `معاينة تحديث ${title}:\n${useful.length} صف (${hits.length} موجودة سيتم تحديثها، ${misses.length} غير موجودة ستُتجاهل)\n`+
-    `الحقول المحدّثة فقط: ${title} — بلا إدراج سيارات جديدة.`
+    `معاينة تحديث ${title}:\n${useful.length} صف (${hits.length} موجودة سيتم تحديثها، ${misses.length} غير موجودة ستُتجاهل)\n\n`+
+    `الحقول التي سيتم تحديثها:\n`+
+    fields.map(f=>'  • '+(FIELD_LABELS[f]||f)).join('\n')+
+    `\n\n(القيم الفارغة في الملف مش هتغيّر حاجة — والبلا إدراج سيارات جديدة.)`
   );
   if(!shouldContinue) return {cancelled:true};
   let updated = 0;
@@ -204,7 +216,8 @@ async function handleDomainUpdateFile(file, cfg){
     await saveData(affectedIds);
     render();
   }
-  alert(`اكتمل تحديث ${title}: ${updated} محدثة من أصل ${useful.length}.`+(misses.length?`\nلوحات غير موجودة (${misses.length}): ${misses.slice(0,8).join('، ')}`:''));
+  alert(`اكتمل تحديث ${title}: ${updated} سيارة اتحدثت من أصل ${useful.length}.`
+    +(misses.length?`\nلوحات غير موجودة (${misses.length}): ${misses.slice(0,8).join('، ')}`:''));
   return {updated, missed: misses.length};
 }
 

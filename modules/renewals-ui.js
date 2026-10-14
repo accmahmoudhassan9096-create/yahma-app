@@ -70,7 +70,7 @@ function renderRenewals(content, mode='inspection'){
       <div class="filter-footer">
         <span id="ren-filter-count">عرض 0 من ${fleet.length}</span>
         <button class="btn btn-ghost btn-small" id="ren-clear">↺ مسح الفلاتر</button>
-        <button class="btn btn-primary btn-small" id="ren-upload-btn" title="رفع شيت ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'} — يحدّث هذا المجال فقط">📥 رفع شيت ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</button>
+        <button class="btn btn-primary btn-small" id="ren-upload-btn" title="رفع شيت ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'} — ${insuranceMode?'يحدّث: حالة التأمين، الشركة، الانتهاء، اللون، المدينة، الرقم التسلسلي، المالك، الفرع، حالة السيارة':licenseMode?'يحدّث تاريخ وحالة الرخصة فقط':'يحدّث حالة الفحص فقط'}">📥 رفع شيت ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</button>
         <input type="file" id="file-ren-upload" accept=".xlsx,.xls,.csv" style="display:none">
       </div>
     </div>
@@ -521,13 +521,24 @@ function renderRenewals(content, mode='inspection'){
   $('ren-bulk-ins-ok')?.addEventListener('click',()=>bulkSetInsurance('ساري'));
   $('ren-bulk-ins-no')?.addEventListener('click',()=>bulkSetInsurance('لا يوجد'));
   $('ren-bulk-clear')?.addEventListener('click',()=>{selectedRenIds.clear();draw();});
+  /* حقول كل تبويب عند رفع الشيت.
+     التأمين: المطلوب يحدّث بيانات السيارة الأساسية كمان — اللون
+     والمدينة والرقم التسلسلي والمالك والفرع وحالة السيارة — مش
+     حالة التأمين بس. */
+  const UPLOAD_FIELDS = {
+    insurance: ['insuranceStatus','insuranceCompany','insuranceExpiry',
+                'color','city','serial','owner','branch','carStatus'],
+    license: ['licenseExpiry','licenseStatus'],
+    inspection: ['inspectionStatus']
+  };
+
   $('ren-upload-btn')?.addEventListener('click',()=>$('file-ren-upload')?.click());
   $('file-ren-upload')?.addEventListener('change',async e=>{
     const file=e.target.files[0];
     if(!file) return;
-    const cfg=insuranceMode?{title:'التأمين',fields:['insuranceStatus','insuranceCompany','insuranceExpiry']}
-      :licenseMode?{title:'الرخص',fields:['licenseExpiry','licenseStatus']}
-      :{title:'الفحص',fields:['inspectionStatus']};
+    const cfg=insuranceMode?{title:'التأمين',fields:UPLOAD_FIELDS.insurance}
+      :licenseMode?{title:'الرخص',fields:UPLOAD_FIELDS.license}
+      :{title:'الفحص',fields:UPLOAD_FIELDS.inspection};
     await handleDomainUpdateFile(file,cfg);
     e.target.value='';
   });
