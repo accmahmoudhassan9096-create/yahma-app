@@ -179,6 +179,18 @@
             <div class="user-dropdown-role"><span class="role-dot"></span><span id="user-dropdown-role">مدير النظام</span></div>
             <div class="user-dropdown-divider"></div>
             <button type="button" class="user-menu-item" id="btn-account-settings" role="menuitem"><span>⚙</span> إعدادات الحساب</button>
+            <div class="user-mobile-tools" id="user-mobile-tools">
+              <div class="user-dropdown-divider"></div>
+              <div class="user-mobile-tools-title">أدوات البيانات</div>
+              <button type="button" class="user-menu-item" id="umt-import" role="menuitem"><span>↑</span> رفع / تحديث سيارات الأسطول</button>
+              <button type="button" class="user-menu-item" id="umt-branch-status" role="menuitem"><span>↑</span> تحديث الفرع وحالة السيارة</button>
+              <button type="button" class="user-menu-item" id="umt-sold" role="menuitem"><span>↑</span> رفع السيارات المباعة</button>
+              <button type="button" class="user-menu-item" id="umt-export-xlsx" role="menuitem"><span>↓</span> تصدير Excel</button>
+              <button type="button" class="user-menu-item" id="umt-export-pdf" role="menuitem"><span>↓</span> تصدير PDF</button>
+              <button type="button" class="user-menu-item" id="umt-template" role="menuitem"><span>▤</span> نموذج أسطول فارغ</button>
+              <button type="button" class="user-menu-item" id="umt-email-pdf" role="menuitem"><span>✉</span> إرسال التقرير PDF بالبريد</button>
+              <button type="button" class="user-menu-item" id="umt-backup" role="menuitem"><span>⤓</span> تنزيل نسخة احتياطية</button>
+            </div>
             <button type="button" class="user-menu-item user-menu-logout" id="btn-profile-logout" role="menuitem"><span>↪</span> تسجيل الخروج</button>
           </div>
         </div>
@@ -193,11 +205,11 @@
 
         <div class="notify-slot" id="notify-slot-anchor"></div>
 
-        <button class="btn tb-icon" id="btn-email-filtered-pdf" type="button" title="إرسال التقرير المفلتر PDF بالبريد" aria-label="إرسال التقرير المفلتر PDF بالبريد" style="color:#0E6E6C;background:#EAF5F4;border:1px solid #B8D4D3">
+        <button class="btn tb-icon tb-desktop-only" id="btn-email-filtered-pdf" type="button" title="إرسال التقرير المفلتر PDF بالبريد" aria-label="إرسال التقرير المفلتر PDF بالبريد" style="color:#0E6E6C;background:#EAF5F4;border:1px solid #B8D4D3">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="m4 7 8 6 8-6"/><path d="M8 17h8"/></svg>
         </button>
 
-                <div class="tb-io-group" title="استيراد وتصدير">
+                <div class="tb-io-group tb-desktop-only" title="استيراد وتصدير">
 <div class="top-dd" id="dd-import">
           <button class="btn tb-action tb-import" id="btn-dd-import" type="button" title="استيراد">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V8"/><path d="M7 13l5-5 5 5"/><path d="M4 4h16"/></svg>
@@ -227,7 +239,7 @@
         </div>
         </div>
 
-<div class="top-dd" id="dd-backup">
+<div class="top-dd tb-desktop-only" id="dd-backup">
           <button class="btn tb-action tb-backup" id="btn-dd-backup" type="button" title="نسخة احتياطية">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 15v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4"/><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/></svg>
             <span class="btn-label">نسخة احتياطية</span>
@@ -243,7 +255,7 @@
           </div>
         </div>
 
-        <div class="top-dd" id="dd-templates">
+        <div class="top-dd tb-desktop-only" id="dd-templates">
           <button class="btn tb-action tb-templates" id="btn-dd-templates" type="button" title="نماذج">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg>
             <span class="btn-label">نماذج</span>

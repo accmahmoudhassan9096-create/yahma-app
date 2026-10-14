@@ -179,6 +179,39 @@
     positionMenu(menu, trigger);
     trigger.setAttribute('aria-expanded','true');
   }
+  /* ===== أدوات البيانات على الموبايل =====
+     الأزرار دي مخفية من الشريط العلوي على الموبايل (الزحام)،
+     لكن لازم يفضل للمستخدم طريقة وصول — فبنقلها لقائمة المستخدم.
+     بننداء نفس الأزرار الأصلية عشان الصلاحيات تفضل محسوبة صح. */
+  function bindMobileTools(){
+    var map={
+      'umt-import':'btn-import',
+      'umt-branch-status':'btn-branch-status-import',
+      'umt-sold':'btn-sold-import',
+      'umt-export-xlsx':'btn-export',
+      'umt-export-pdf':'btn-export-pdf',
+      'umt-template':'btn-template',
+      'umt-email-pdf':'btn-email-filtered-pdf',
+      'umt-backup':'btn-backup'
+    };
+    Object.keys(map).forEach(function(id){
+      var trigger=document.getElementById(id);
+      if(!trigger || trigger._mobileBound) return;
+      trigger._mobileBound=true;
+      trigger.addEventListener('click',function(e){
+        e.preventDefault();
+        closeMenu();
+        var target=document.getElementById(map[id]);
+        if(!target){ return; }
+        /* نحترم نفس قواعد الصلاحية المطبّقة على الزر الأصلي */
+        if(target.disabled){
+          try{ window.alert('هذا الإجراء يحتاج صلاحية مدير أو تشغيل.'); }catch(_){}
+          return;
+        }
+        setTimeout(function(){ target.click(); }, 80);
+      });
+    });
+  }
   function init(){
     var trigger=document.getElementById('topbar-user'), menu=document.getElementById('user-dropdown');
     if(!trigger||!menu||trigger._yahmaBound) return;
@@ -199,6 +232,7 @@
     window.addEventListener('orientationchange', function(){ setTimeout(reposition, 250); });
     var settings=document.getElementById('btn-account-settings');
     if(settings){ settings.textContent=window.currentRole==='admin'?'إدارة المستخدمين':'إعدادات الحساب'; settings.addEventListener('click',function(){closeMenu(); openUserAdmin();}); }
+    bindMobileTools();
     syncProfileMenu();
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();

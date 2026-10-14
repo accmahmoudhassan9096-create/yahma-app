@@ -653,7 +653,7 @@ body.dark-mode .topbar-brand-copy strong{color:#F3F6FF}
 body.dark-mode .topbar-search-wrap input{background:#111827!important;border-color:#374151!important}
 body.dark-mode .topbar-user:hover,body.dark-mode .topbar-actions #btn-theme{background:#1F2937!important}
 @media(max-width:1100px){.topbar-v43{grid-template-columns:auto 1fr;gap:12px}.topbar-brand{grid-column:1}.topbar-actions{grid-column:2}.topbar-left{grid-column:1/-1;grid-row:2}.topbar-actions{justify-content:flex-start}.topbar-search-wrap{max-width:none!important}}
-@media(max-width:700px){.topbar-v43{grid-template-columns:1fr auto;padding:10px 14px!important}.topbar-brand{min-width:0}.topbar-brand-copy strong{font-size:12px}.topbar-brand-copy span{font-size:9px}.topbar-brand-mark{width:37px;height:37px;flex-basis:37px}.topbar-actions{gap:3px}.topbar-user-meta{display:none!important}.topbar-user-chevron{display:none}.user-dropdown{left:auto;right:0}.topbar-search-wrap input{height:42px;font-size:12px!important}.topbar-actions #btn-theme,.topbar-actions #btn-refresh,.notify-btn{width:36px!important;height:36px!important}}
+@media(max-width:700px){.topbar-v43{grid-template-columns:1fr auto;padding:10px 14px!important}.topbar-brand{min-width:0}.topbar-brand-copy strong{font-size:12px}.topbar-brand-copy span{font-size:9px}.topbar-brand-mark{width:37px;height:37px;flex-basis:37px}.topbar-actions{gap:3px}.topbar-user-meta{display:none!important}.topbar-user-chevron{display:none}.user-dropdown{left:auto;right:0}.topbar-search-wrap input{height:42px;font-size:12px!important}.topbar-actions #btn-theme,.topbar-actions #btn-refresh,.notify-btn{width:36px!important;height:36px!important}.tb-desktop-only{display:none!important}}
 
 
 
@@ -764,6 +764,13 @@ body.dark-mode .home-hero.hero-executive{background:linear-gradient(110deg,#102d
 .topbar-actions>.top-dd>button{display:inline-flex!important;align-items:center!important;gap:6px!important;height:40px!important;padding:0 10px!important;border-radius:10px!important;white-space:nowrap!important;font-size:12px!important}
 .topbar-actions>#btn-add-car{display:inline-flex!important;order:10;height:40px!important;padding:0 12px!important;border-radius:10px!important;white-space:nowrap!important;font-size:12px!important}
 .topbar.is-dashboard .topbar-actions .btn-import-dd,.topbar.is-dashboard .topbar-actions .btn-export-dd,.topbar.is-dashboard #dd-templates,.topbar.is-dashboard #dd-backup,.topbar.is-dashboard #btn-add-car{display:inline-flex!important}
+/* على الموبايل: نخفي أدوات البيانات من الشريط (الزحام) ونقلها لقائمة المستخدم.
+   لازم تكون هنا بعد قواعد الاستعادة فوق عشان يغلبوها. */
+@media(max-width:700px){
+  .topbar-actions .tb-desktop-only,
+  .topbar-actions>.tb-desktop-only,
+  .topbar.is-dashboard .topbar-actions .tb-desktop-only{display:none!important}
+}
 .topbar.is-dashboard #dd-templates,.topbar.is-dashboard #dd-backup{display:block!important}
 .topbar-actions>.top-dd .top-dd-menu{display:none!important}
 .topbar-actions>.top-dd.open>.top-dd-menu{display:block!important;visibility:visible!important;pointer-events:auto!important}

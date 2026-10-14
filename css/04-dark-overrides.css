@@ -276,6 +276,15 @@ body.dark-mode .topbar-actions .top-dd > .top-dd-menu{
      والقسم ما بيفتحش. specificity أعلى + ترتيب أبعد في الملف. */
   .sidebar{z-index:60!important}
   .sidebar.open{z-index:70!important}
+  /* على الموبايل: أدوات البيانات مخفية من الشريط (الزحام) ونقلناها لقائمة المستخدم.
+     لازم تكون هنا لأن 03 فيه display:block!important على .top-dd بيغلب القواعد الأسبق. */
+  @media(max-width:700px){
+    .topbar-actions .tb-desktop-only,
+    .topbar-actions>.tb-desktop-only,
+    .topbar-actions>#dd-backup.tb-desktop-only,
+    .topbar-actions>#dd-templates.tb-desktop-only,
+    .topbar.is-dashboard .topbar-actions .tb-desktop-only{display:none!important}
+  }
 
   /* Status tags with icons */
   .tag{display:inline-flex;align-items:center;justify-content:center;gap:4px}
