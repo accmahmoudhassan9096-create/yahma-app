@@ -327,7 +327,7 @@
   async function bulkRenewLicense(){
     const cars=getSelectedCars();
     if(!cars.length) return;
-    const defaultDate=addDays(todayStr(),365);
+    const defaultDate=defaultLicenseExpiry();
     const newDate=prompt('تاريخ انتهاء الرخصة الجديد لـ '+cars.length+' سيارة (YYYY-MM-DD):', defaultDate);
     if(!newDate) return;
     const normalized=normalizeDateValue(newDate)||newDate;

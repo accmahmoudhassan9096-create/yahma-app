@@ -274,7 +274,7 @@ function renderRenewals(content, mode='inspection'){
   async function bulkRenewLicense(){
     const cars=renSelectedCars();
     if(!cars.length) return;
-    const def=addDays(todayStr(),365);
+    const def=defaultLicenseExpiry();
     const raw=prompt('تاريخ انتهاء الرخصة الجديد لـ '+cars.length+' سيارة (YYYY-MM-DD):', def);
     if(!raw) return;
     const val=normalizeDateValue(raw)||raw;
@@ -398,7 +398,7 @@ function renderRenewals(content, mode='inspection'){
              document.querySelector('.nav-item[data-tab="payments"]')?.click();
           } else if(btn.dataset.renewLic){
             const car=fleet.find(c=>c.id===btn.dataset.renewLic); if(!car) return;
-            const newDate=prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):', addDays(todayStr(),365));
+            const newDate=prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):', defaultLicenseExpiry());
             if(!newDate) return;
             car.licenseExpiry=normalizeDateValue(newDate)||newDate;
             if(!car.licenseStatus||String(car.licenseStatus).includes('منته')) car.licenseStatus='نشط';

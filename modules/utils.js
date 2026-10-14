@@ -312,12 +312,25 @@
     return d.toISOString().slice(0, 10);
   }
 
+  /* رخصة السيارة في مصر صالحة 3 سنوات — بنحسب بالسنة مش بالأيام
+     عشان 365*3 يتخطى سنة كاملة في Leap years. */
+  const LICENSE_YEARS = 3;
+  function addYears(dateStr, n) {
+    const d = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
+    d.setFullYear(d.getFullYear() + n);
+    return d.toISOString().slice(0, 10);
+  }
+  function defaultLicenseExpiry(from) {
+    return addYears(from || todayStr(), LICENSE_YEARS);
+  }
+
   function todayStr() { return new Date().toISOString().slice(0, 10); }
 
   const api = {
     uid, normalizeDateValue, daysFromNow, dateStatus, licenseDisplayStatus,
     cardDisplayStatus, inspectionDisplayStatus, textTag, escapeHtml,
-    fmtDate, addDays, todayStr, carStatusOut, carStatusActive, carStatusMatch, carStatusReady, normStatus,
+    fmtDate, addDays, addYears, defaultLicenseExpiry, LICENSE_YEARS, todayStr,
+    carStatusOut, carStatusActive, carStatusMatch, carStatusReady, normStatus,
     brandKey, canonicalBrand, REGION_DEFS, regionOfBranch, CITY_COORDS, cityOfBranch,
     CHURN_DOCS, CHURN_BUCKETS, carChurn, churnStats
   };

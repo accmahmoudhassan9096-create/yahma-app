@@ -217,7 +217,7 @@ function renderPaidInspections(content){
     const car=fleet.find(c=>String(c.id)===String(button.dataset.renewLicense));
     if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return;}
     const nextDate=prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):',
-      (function(){ const d=new Date(); d.setFullYear(d.getFullYear()+1); return d.toISOString().slice(0,10); })());
+      (function(){ const d=new Date(); d.setFullYear(d.getFullYear()+3); return d.toISOString().slice(0,10); })());
     if(!nextDate) return;
     const previous=car.licenseExpiry;
     const normalized=(typeof window.YahmaUtils!=='undefined'&&window.YahmaUtils.normalizeDateValue)
