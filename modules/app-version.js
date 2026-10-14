@@ -15,8 +15,48 @@
     if (!badge) return;
     var short = CURRENT ? CURRENT.replace('yahma-shell-v', 'v') : '—';
     badge.innerHTML = 'الإصدار <b>' + (short || '—') + '</b>';
-    badge.title = 'إصدار التطبيق: ' + (CURRENT || 'غير معروف');
+    badge.title = 'إصدار التطبيق: ' + (CURRENT || 'غير معروف') + ' — اضغط لازمّاك على أحدث نسخة';
     try { global.__yahmaVersion = CURRENT; } catch (_) {}
+    try {
+      if (!badge.getAttribute('role')) badge.setAttribute('role', 'button');
+      badge.setAttribute('tabindex', '0');
+      badge.style.cursor = 'pointer';
+      if (!badge.__yahmaBound) {
+        badge.__yahmaBound = true;
+        var hard = function (e) { if (e) e.preventDefault(); askHardRefresh(); };
+        badge.addEventListener('click', hard);
+        badge.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') hard(e); });
+      }
+    } catch (_) {}
+  }
+
+  /* ===== تحديث قسري =====
+     يمسح Service Worker والكاش كله ويعيد تحميل الصفحة من السيرفر.
+     ده الضمان الوحيد إن المستخدم يقدر يخرج من نسخة قديمة. */
+  async function hardRefresh() {
+    try { window.__yahmaWarnDismissed = false; } catch (_) {}
+    try { var t = document.getElementById('yahma-update-toast'); if (t) t.remove(); } catch (_) {}
+    try {
+      if ('serviceWorker' in navigator) {
+        var regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(function (r) { return r.unregister(); }));
+      }
+    } catch (_) {}
+    try {
+      if (global.caches && caches.keys) {
+        var keys = await caches.keys();
+        await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+      }
+    } catch (_) {}
+    try { location.replace(location.pathname + '?hard=' + Date.now()); } catch (_) {}
+  }
+
+  function askHardRefresh() {
+    var msg = 'يعمل «تحديث قسري» بيمسح الكاش والنسخة المخزّنة بالكامل،'
+            + ' وبيعيد تحميل التطبيق من السيرفر.\n\nمتأكد؟';
+    try {
+      if (typeof global.confirm === 'function' && global.confirm(msg)) hardRefresh();
+    } catch (_) { hardRefresh(); }
   }
 
   async function readVersion() {
@@ -41,6 +81,7 @@
     toast.innerHTML = '<div class="yut-ico">⟳</div>'
       + '<div class="yut-body"><b>فيه تحديث جديد للتطبيق</b>'
       + '<span>اضغط «تحديث الآن» لتشغيل آخر إصدار.</span></div>'
+      + '<button type="button" class="btn btn-ghost btn-small" id="yut-hard">تحديث قسري</button>'
       + '<button type="button" class="btn btn-primary btn-small" id="yut-reload">تحديث الآن</button>';
     document.body.appendChild(toast);
     var go = function () {
@@ -48,6 +89,8 @@
       try { location.reload(); } catch (_) {}
     };
     toast.querySelector('#yut-reload').addEventListener('click', go);
+    /* تحديث قسري: بيمسح الكاش كله — للمستخدم اللي شايف نسخة قديمة */
+    toast.querySelector('#yut-hard').addEventListener('click', function () { askHardRefresh(); });
     /* تحديث تلقائي بعد 6 ثواني، لكن لو فيه نموذج مفتوح نستنى */
     reloadTimer = setInterval(function () {
       const busy = document.querySelector('.overlay:not(.hidden), .modal, input:focus, select:focus, textarea:focus');
@@ -69,9 +112,10 @@
 
   function watch(reg) {
     if (!reg) return;
-    if (reg.waiting && navigator.serviceWorker.controller) {
-      if (compareVersions(CURRENT, '')) showUpdateBanner();
-    }
+    /* نسخة في انتظار التفعيل = نسخة أحدث جاهزة — اعرض اللافتة.
+       الكود القديم كان بيقارن CURRENT بـ '' والنتيجة دايمًا false،
+       فالمستخدم ماكانش بيشوف أي تنبيه. */
+    if (reg.waiting && navigator.serviceWorker) showUpdateBanner();
     reg.addEventListener('updatefound', function () {
       const sw = reg.installing;
       if (!sw) return;
@@ -115,8 +159,13 @@
     setBadge: setBadge,
     readVersion: readVersion,
     showUpdateBanner: showUpdateBanner,
+    hardRefresh: hardRefresh,
+    askHardRefresh: askHardRefresh,
+    compareVersions: compareVersions,
     get current() { return CURRENT; }
   };
+  global.yahmaHardRefresh = hardRefresh;
+  global.yahmaAskHardRefresh = askHardRefresh;
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

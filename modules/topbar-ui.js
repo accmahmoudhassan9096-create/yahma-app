@@ -194,6 +194,16 @@
       'umt-email-pdf':'btn-email-filtered-pdf',
       'umt-backup':'btn-backup'
     };
+    /* «تحديث قسري» مش مرتبط بزر مخفي — بينادي الدالة نفسها مباشرة */
+    var hardBtn=document.getElementById('umt-hard-refresh');
+    if(hardBtn && !hardBtn._yahmaBound){
+      hardBtn._yahmaBound=true;
+      hardBtn.addEventListener('click',function(e){
+        e.preventDefault();
+        closeMenu();
+        if(typeof window.yahmaAskHardRefresh==='function') window.yahmaAskHardRefresh();
+      });
+    }
     Object.keys(map).forEach(function(id){
       var trigger=document.getElementById(id);
       if(!trigger || trigger._mobileBound) return;

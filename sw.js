@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v157';
+const CACHE_NAME = 'yahma-shell-v158';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -69,13 +69,25 @@ const OPTIONAL_CDN = [
   'https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap',
 ];
 
+/* التثبيت لازم يكون صامد: cache.addAll بيفشل ذرّيًا لو ملف واحد رجّع
+   خطأ، وكان معناه إن التحديث كله بيموت صامت والمستخدم يفضل على
+   نسخته القديمة للأبد. هنا بنضيف كل ملف لوحده — الملف الغلط لحاله
+   مايضرّش الباقي. */
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(async (cache) => {
-        await cache.addAll(LOCAL_APP_SHELL);
-        await Promise.allSettled(OPTIONAL_CDN.map((url) => cache.add(url)));
-      })
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const results = await Promise.allSettled([
+        ...LOCAL_APP_SHELL.map((url) => cache.add(new Request(url, { cache: 'reload' }))),
+        ...OPTIONAL_CDN.map((url) => cache.add(url)),
+      ]);
+      const failed = results
+        .map((r, i) => (r.status === 'rejected' ? (i < LOCAL_APP_SHELL.length ? LOCAL_APP_SHELL[i] : OPTIONAL_CDN[i - LOCAL_APP_SHELL.length]) : null))
+        .filter(Boolean);
+      if (failed.length) console.warn('[yahma-sw] precache failed for:', failed);
+      /* الملف الأساسي لازم يكون موجود — من غيره التطبيق مش هيشتغل أصلاً */
+      const core = await cache.match(new Request('./index.html', { cache: 'reload' }));
+      if (!core) throw new Error('index.html precache failed');
+    })
   );
   self.skipWaiting();
 });
@@ -89,6 +101,23 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+/* بنطابق داخل كاش النسخة الحالية بس — مش أي كاش — عشان ما نقدّمش
+   ملف من نسخة قديمة بالصدفة أثناء تداخل الكاشات. */
+async function shellMatch(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  let hit = await cache.match(request);
+  if (hit) return hit;
+  /* التنقل بـ ?query (زي ?v=157) مش بيلاقي './index.html' في الكاش */
+  try {
+    const url = new URL(request.url);
+    if (request.mode === 'navigate' || url.pathname.endsWith('/')) {
+      hit = await cache.match(new URL('./index.html', self.location.href).href);
+      if (hit) return hit;
+    }
+  } catch (_) {}
+  return null;
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return; // لا تلمس عمليات الحفظ/الرفع
@@ -99,16 +128,34 @@ self.addEventListener('fetch', (event) => {
   // اتصال Supabase (auth + بيانات + realtime) لازم يفضل حي دايمًا، بره الكاش تمامًا
   if (url.hostname.endsWith('.supabase.co') || url.hostname.endsWith('.supabase.in')) return;
 
+  // ملفات التطبيق: الشبكة أولًا — يضمن أحدث كود على طول.
+  // الكاش احتياطي بس لما الشبكة تفشل (تشغيل أوفلاين).
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(req, clone)).catch(() => {});
+          }
+          return res;
+        })
+        .catch(() => shellMatch(req, CACHE_NAME).then((hit) => hit || Response.error()))
+    );
+    return;
+  }
+
+  // مكتبات خارجية (CDN): الكاش أولًا — لأنها ثابتة ومش بتتغير.
   event.respondWith(
     caches.match(req).then((cached) => {
-      const network = fetch(req).then((res) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => {
         if (res && res.ok) {
           const clone = res.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
         }
         return res;
-      }).catch(() => cached);
-      return cached || network;
+      }).catch(() => Response.error());
     })
   );
 });
