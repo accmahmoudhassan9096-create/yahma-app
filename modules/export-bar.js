@@ -96,20 +96,58 @@
     });
   }
 
+  /* الشريط بيتحط جنب أول زرار «رفع/تصدير» في الشاشة — عشان يبقى
+     في نفس الصف اللي المستخدم متعوّد عليه بدل ما يبقى لوحده فوق.
+     لو مفيش زرار مناسب، بيرجع لأول المحتوى. */
+  var ANCHOR_RE = /(upload|import|export|template)/i;
+  function findAnchor() {
+    var content = document.getElementById('content');
+    if (!content) return null;
+    var buttons = content.querySelectorAll('button[id]');
+    for (var i = 0; i < buttons.length; i++) {
+      var b = buttons[i];
+      if (b.closest('#' + ID)) continue;
+      if (!ANCHOR_RE.test(b.id || '')) continue;
+      if (b.offsetParent === null) continue;                 /* مخفي */
+      var p = b.parentNode;
+      if (!p || p === content) continue;
+      /* لازم الأب يكون صف مرن (flex) — لو grid أو block، الشريط
+         هيتلخبط جوّههار ويفصل التصميم. */
+      try {
+        if (getComputedStyle(p).display.indexOf('flex') < 0) continue;
+      } catch (_) { continue; }
+      return b;
+    }
+    return null;
+  }
+
+  function place(bar) {
+    var content = document.getElementById('content');
+    if (!content) return;
+    var anchor = findAnchor();
+    if (anchor && anchor.parentNode && anchor.parentNode !== bar.parentNode) {
+      if (bar.parentNode !== anchor.parentNode || bar.previousElementSibling !== anchor) {
+        anchor.parentNode.insertBefore(bar, anchor.nextSibling);
+      }
+      bar.classList.add('is-inline');
+      return;
+    }
+    if (bar.parentNode !== content) content.insertBefore(bar, content.firstChild);
+    bar.classList.remove('is-inline');
+  }
+
   /* بتتنادى في نهاية كل render.
      القاعدة: الشريط ظاهر في كل التبويبات بلا استثناء، حتى لو الجدول
-     فاضي — الزراير بتتظبط معطّلة وقتها. إخفاءه كان بيخلي بعض
-     التبويبات تظهر زرار وبعضها لأ. */
+     فاضي — الزراير بتتظبط معطّلة وقتها. */
   function sync() {
     var t = tab();
     if (!t) return;
     var bar = document.getElementById(ID);
     /* التبويبات بتعمل content.innerHTML = ... فبتنسخ الشريط —
-       لازم نرجّعوه جوّه #content كل مرة. */
+       لازم نرجّعوه في مكانه كل مرة. */
     if (!bar) { build(); bar = document.getElementById(ID); }
     if (!bar) return;
-    var host = document.getElementById('content');
-    if (host && bar.parentNode !== host) host.insertBefore(bar, host.firstChild);
+    place(bar);
 
     var d = data();
     bar.hidden = false;

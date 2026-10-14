@@ -886,6 +886,27 @@ body.dark-mode #app-lock-screen .lock-note{color:#7C8A98;}
 }
 .yx-bar[hidden]{display:none !important;}
 
+/* وضع «inline»: الشريط جنب زرار الرفع/التصدير في نفس الصف.
+   بياخد المساحة اللي محتاجها بس — الاسم والعدد بيختفيوا عشان
+   ما نكبّرش الصف. */
+.yx-bar.is-inline{
+  width:auto;
+  margin:0;
+  padding:3px 4px 3px 4px;
+  gap:6px;
+  background:transparent;
+  border-color:transparent;
+  box-shadow:none;
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+  align-self:center;
+  flex:0 0 auto;
+}
+/* inline bar must not shrink away next to its neighbour */
+.yx-bar.is-inline .yx-btn{flex:0 0 auto;}
+.yx-bar.is-inline .yx-info{display:none;}
+.yx-bar.is-inline .yx-btn{padding:7px 13px;font-size:12px;}
+
 .yx-info{display:flex;flex-direction:column;line-height:1.25;min-width:0;}
 .yx-title{font-size:12px;font-weight:800;color:var(--ink,#172C2E);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px;}
 .yx-count{font-size:10.5px;color:var(--muted,#6B7A88);}
