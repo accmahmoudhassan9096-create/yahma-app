@@ -478,6 +478,7 @@ function showDataWarning(content){
   if(!content) return;
   const old=document.getElementById('yahma-data-warn');
   if(old) old.remove();
+  if(window.__yahmaWarnDismissed) return;   /* المستخدم أقفله — ما نرجعوش له تاني */
   let list=null;
   try{ list=(typeof fleet!=='undefined'&&Array.isArray(fleet))?fleet:null; }catch(_){}
   if(!list || list.length) return;                 /* فيه بيانات → لا شيء */
@@ -488,28 +489,43 @@ function showDataWarning(content){
   const banner=document.createElement('div');
   banner.id='yahma-data-warn';
   banner.className='yahma-data-warn';
-  banner.innerHTML='<div class="ywarn-ico">'+(expired?'🔑':'⚠️')+'</div><div class="ywarn-body"><b>'+(expired?escapeHtml(reason):('لم تظهر البيانات ('+escapeHtml(reason)+')'))+'</b>'
+  banner.innerHTML='<button type="button" class="ywarn-close" data-ywarn="close" aria-label="إغلاق التنبيه" title="إغلاق">✕</button>'
+    +'<div class="ywarn-ico">'+(expired?'🔑':'⚠️')+'</div><div class="ywarn-body"><b>'+(expired?escapeHtml(reason):('لم تظهر البيانات ('+escapeHtml(reason)+')'))+'</b>'
     +'<span>'+(expired?'الجلسة على هذا الجهاز انتهت — سجّل الدخول من جديد وسترجع البيانات فورًا.'
       :'غالبًا انتهت جلسة الدخول أو الشبكة ضعيفة. جرّب: تحديث البيانات، أو تسجيل الخروج والدخول من جديد.')+'</span></div>'
     +'<div class="ywarn-acts">'
-    +'<button type="button" class="btn btn-primary btn-small" data-ywarn="reload">↻ تحديث الآن</button>'
-    +'<button type="button" class="btn btn-ghost btn-small" data-ywarn="cloud">جلب من السحابة</button>'
-    +'<button type="button" class="btn btn-ghost btn-small" data-ywarn="relogin">تسجيل خروج ودخول</button>'
+    +(expired?'<button type="button" class="btn btn-primary btn-small" data-ywarn="relogin">🔑 تسجيل دخول</button>'
+             :'<button type="button" class="btn btn-primary btn-small" data-ywarn="cloud">⬇ حدّث من السحابة</button>')
+    +'<button type="button" class="btn btn-ghost btn-small" data-ywarn="reload">↻ تحديث الآن</button>'
+    +'<button type="button" class="btn btn-ghost btn-small" data-ywarn="relogin2">'+(expired?'تسجيل خروج ودخول':'إعادة تسجيل الدخول')+'</button>'
     +'</div>';
   const first=content.firstElementChild;
   if(first) content.insertBefore(banner,first); else content.appendChild(banner);
+  banner.querySelector('[data-ywarn="close"]').onclick=()=>{ window.__yahmaWarnDismissed=true; hideDataWarning(); };
   banner.querySelector('[data-ywarn="reload"]').onclick=()=>location.reload();
-  banner.querySelector('[data-ywarn="cloud"]').onclick=async()=>{
+  banner.querySelector('[data-ywarn="cloud"]')?.addEventListener('click',async()=>{
     try{ if(typeof window.__yahmaSessionExpired!=='undefined') window.__yahmaSessionExpired=false;
-      if(typeof loadData==='function'){ await loadData(true); render(); } }catch(_){}
-  };
-  banner.querySelector('[data-ywarn="relogin"]').onclick=()=>{
+      if(typeof loadData==='function'){ await loadData(true); } }catch(_){}
+    render();
+  });
+  const relogin=()=>{
     /* نمرّ عبر yahmaSignOut ليخرج محليًا فورًا حتى لو الشبكة تعطّلت */
     try{ if(typeof window.yahmaSignOut==='function'){ window.yahmaSignOut(); } }
     catch(_){ try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(__){} }
     setTimeout(()=>location.reload(),600);
   };
+  banner.querySelector('[data-ywarn="relogin"]')?.addEventListener('click',relogin);
+  banner.querySelector('[data-ywarn="relogin2"]')?.addEventListener('click',relogin);
 }
+/* إخفاء التنبيه فورًا — بنستدعيها لحظة وصول البيانات حتى لو مفيش render جديد */
+function hideDataWarning(){ const b=document.getElementById('yahma-data-warn'); if(b) b.remove(); }
+window.hideDataWarning = hideDataWarning;
+/* نداءها من طبقة البيانات بعد كل تحميل — يضمن إن التحذير مايفضلش معلّق على الشاشة */
+window.yahmaRefreshDataWarning = function(){
+  hideDataWarning();
+  if(window.__yahmaWarnDismissed) return;
+  try{ const c=document.getElementById('content'); if(c) showDataWarning(c); }catch(_){}
+};
 
 /* التغليف ضروري بعد التقسيم: openEmailFilteredPdfModal معرّفة في core/pdf-share.js
    (ملف لاحق) — المرجع المباشر وقت التحميل كان سيسقط بـ ReferenceError بعد الفصل. */

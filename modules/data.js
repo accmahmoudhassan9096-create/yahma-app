@@ -254,6 +254,9 @@
         context.renderEmergencyFleet(global.document.getElementById('content'));
       }
     }
+    /* بعد أي تحميل ناجح: نشيل تنبيه «لم تظهر البيانات» أو نعيد تقييمه.
+       بدون السطر ده كان يفضل معلّق على الشاشة لو البيانات وصلت بعد أول رسم. */
+    try { global.yahmaRefreshDataWarning(); } catch (_) {}
     try { context.attachRealtimeSync(); } catch (_) {}
   }
 

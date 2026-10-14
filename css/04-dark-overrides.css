@@ -1032,7 +1032,18 @@ body.dark-mode .rd-shell .rd-toolbar{background: #101828;}
 .branch-mail-err{color:#CE4B3D}
 
 /* تنبيه فشل تحميل البيانات */
-.yahma-data-warn{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#FFF4E5;border:1px solid #F0C987;border-inline-start:5px solid #D98A1B;border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.yahma-data-warn{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#FFF4E5;border:1px solid #F0C987;border-inline-start:5px solid #D98A1B;border-radius:12px;padding:12px 14px;margin-bottom:14px;position:relative}
+/* زرار الإقفال — عشان التحذير مايقفلش المستخدم في أي شاشة */
+.yahma-data-warn .ywarn-close{
+  position:absolute;inset-inline-end:8px;top:6px;
+  width:26px;height:26px;border-radius:50%;cursor:pointer;
+  border:1px solid #E0B36A;background:#FFF9EF;color:#8A4B08;
+  font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;
+  padding:0;font-family:inherit;transition:background .15s ease;
+}
+.yahma-data-warn .ywarn-close:hover{background:#FDE9C8;color:#5A3206}
+body.dark-mode .yahma-data-warn .ywarn-close{border-color:#7A5B1E;background:#2A2008;color:#F2D49B}
+body.dark-mode .yahma-data-warn .ywarn-close:hover{background:#463413;color:#FFF0D0}
 .yahma-data-warn .ywarn-ico{font-size:20px}
 .yahma-data-warn .ywarn-body{display:flex;flex-direction:column;gap:3px;flex:1 1 260px;min-width:0}
 .yahma-data-warn .ywarn-body b{color:#8A4B08;font-size:13.5px}
