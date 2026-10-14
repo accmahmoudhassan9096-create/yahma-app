@@ -157,6 +157,14 @@ function renderInspectionPayments(content){
   ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td colspan="5"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
+  window._yahmaCurrentPdfData=()=>({
+    title:'طلبات فحص تحت الدفع',
+    subtitle:'عدد الطلبات: '+rows.length,
+    headers:['رقم اللوحة','الفرع','تاريخ الطلب','حالة الدفع'],
+    rows:rows.map(({item,car})=>[
+      car.plate||item.plate||'—', car.branch||item.branch||'—',
+      formatArabicDate(item.requestedAt), 'تحت الدفع'])
+  });
   content.querySelectorAll('[data-payment-done],[data-payment-cancel]').forEach(button=>button.addEventListener('click',async()=>{
     if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية إدارة طلبات الدفع.');return;}
     const id=button.dataset.paymentDone||button.dataset.paymentCancel;
@@ -226,6 +234,14 @@ function renderPaidInspections(content){
     }).join(''):'<tr><td colspan="6"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
+  window._yahmaCurrentPdfData=()=>({
+    title:'طلبات تم الدفع',
+    subtitle:'عدد الطلبات: '+rows.length,
+    headers:['رقم اللوحة','الفرع','تاريخ الطلب','تاريخ الدفع','حالة الدفع'],
+    rows:rows.map(({item,car})=>[
+      car.plate||item.plate||'—', car.branch||item.branch||'—',
+      formatArabicDate(item.requestedAt), formatArabicDate(item.paidAt), 'تم الدفع'])
+  });
   /* الضغطة بتجدد الرخصة على طول (3 سنين) وبتشيل السطر من القائمة */
   content.querySelectorAll('[data-renew-license]').forEach(button=>button.addEventListener('click',()=>{
     const item=loadPaidInspections().find(p=>String(p.id)===String(button.dataset.renewLicense));
@@ -282,6 +298,15 @@ function renderRenewedInspections(content){
     }).join(''):'<tr><td colspan="8"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
+  window._yahmaCurrentPdfData=()=>({
+    title:'سجل تجديد الرخص',
+    subtitle:'عدد العمليات: '+rows.length,
+    headers:['رقم اللوحة','الفرع','تاريخ الطلب','تاريخ الدفع','تاريخ التجديد','الرخصة الجديدة','الحالة'],
+    rows:rows.map(({item,car})=>[
+      car.plate||item.plate||'—', car.branch||item.branch||'—',
+      formatArabicDate(item.requestedAt), formatArabicDate(item.paidAt),
+      formatArabicDate(stampOf(item)), car.licenseExpiry||'—', 'تم التجديد'])
+  });
   content.querySelectorAll('[data-drop-renewed]').forEach(button=>button.addEventListener('click',async()=>{
     if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية الحذف.');return;}
     const item=loadRenewedInspections().find(p=>String(p.id)===String(button.dataset.dropRenewed));
@@ -454,6 +479,8 @@ if(currentTab === 'dashboard') renderDashboard(content);
   try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){}
   try{ showBranchScopeNotice(content); }catch(_){}
   try{ showDataWarning(content); }catch(_){}
+  /* شريط التصدير (Excel + PDF) بيظهر في أي تبويب فيه جدول */
+  try{ if(window.YahmaExportBar&&typeof window.YahmaExportBar.sync==='function') window.YahmaExportBar.sync(); }catch(_){}
 }
 
 /* ===== تنبيه صريح عند فشل تحميل البيانات =====

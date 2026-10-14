@@ -54,10 +54,35 @@
     return new Date().toISOString().slice(0, 10);
   }
 
+  /* تنسيق عربي: الورقة RTL + الأعمدة بتتحسب من عرض النص.
+     قبل كده كان الملف بيفتح LTR والأعمدة بالترتيب المعكوس على
+     عين المستخدم العربي. !views بتخلي Excel يفتح الورقة RTL من اليمين. */
+  function autosizeCols(headers, rows) {
+    try {
+      return headers.map(function (h, i) {
+        var max = String(h == null ? '' : h).length;
+        var limit = Math.min(rows.length, 400);   // عيّنة كافية وبلا بطء
+        for (var r = 0; r < limit; r++) {
+          var row = rows[r] || [];
+          var v = row[i];
+          if (v == null) continue;
+          var len = String(v).length;
+          if (len > max) max = len;
+        }
+        return { wch: Math.max(9, Math.min(34, max + 3)) };
+      });
+    } catch (_) {
+      return headers.map(function () { return { wch: 16 }; });
+    }
+  }
+
   async function exportRowsToExcel(filename, sheetName, headers, rows) {
     const XLSX = await ensureXlsx();
     const ws = XLSX.utils.aoa_to_sheet([headers].concat(rows));
-    ws['!cols'] = headers.map(function () { return { wch: 16 }; });
+    ws['!cols'] = autosizeCols(headers, rows);
+    /* ⬅ RTL: лист Excel ينفتح من اليمين لليسار زي ما يتوقع العربي */
+    ws['!views'] = [{ RTL: true }];
+    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, sheetName || 'بيانات');
     XLSX.writeFile(wb, filename || ('export-' + todayStr() + '.xlsx'));
@@ -344,6 +369,58 @@
   // Patch legacy XLSX.writeFile callers to auto-load if missing
   const origDefine = Object.getOwnPropertyDescriptor(global, 'XLSX');
   global.YahmaExportLazy = YahmaExport;
+
+  /* ===== تصدير موحّد لكل التبويبات =====
+     كل تبويب بيعرّف window._yahmaCurrentPdfData() → {title, subtitle, headers, rows}.
+     الدالة دي بتاخد البيانات دي وتعمل Excel أو PDF بنفس الشكل العربي.
+     فلازم أي تبويب جديد يعرّف الدالة دي علشان التصدير يشتغل فيه. */
+  function currentTabData() {
+    try {
+      if (typeof global._yahmaCurrentPdfData === 'function') {
+        const d = global._yahmaCurrentPdfData();
+        if (d && Array.isArray(d.headers) && Array.isArray(d.rows)) return d;
+      }
+    } catch (e) { console.warn('currentTabData', e); }
+    return null;
+  }
+
+  function slug(s) {
+    const cleaned = String(s == null ? '' : s).replace(/[\\/:*?"<>|]/g, '').trim();
+    return (cleaned || 'تقرير').slice(0, 48);
+  }
+
+  async function exportTabExcel() {
+    const d = currentTabData();
+    if (!d) { alert('هذا التبويب لا يدعم التصدير بعد.'); return false; }
+    if (!d.rows.length) { alert('لا توجد نتائج مطابقة للفلاتر لتصديرها.'); return false; }
+    try {
+      await exportRowsToExcel(slug(d.title) + '-' + todayStr() + '.xlsx', slug(d.title), d.headers, d.rows);
+      return true;
+    } catch (e) {
+      console.error(e);
+      alert('تعذر تصدير Excel: ' + ((e && e.message) || e));
+      return false;
+    }
+  }
+
+  async function exportTabPdf(o) {
+    const d = currentTabData();
+    if (!d) { alert('هذا التبويب لا يدعم التصدير بعد.'); return false; }
+    if (!d.rows.length) { alert('لا توجد نتائج مطابقة للفلاتر لتصديرها.'); return false; }
+    const opt = o || {};
+    return await exportTablePdf({
+      title: d.title,
+      subtitle: d.subtitle || ('عدد السجلات: ' + d.rows.length),
+      headers: d.headers,
+      rows: d.rows,
+      filename: slug(d.title) + '-' + todayStr() + '.pdf',
+      buttonId: opt.buttonId
+    });
+  }
+
+  YahmaExport.exportTabExcel = exportTabExcel;
+  YahmaExport.exportTabPdf = exportTabPdf;
+  YahmaExport.currentTabData = currentTabData;
 
   // Intercept common export button clicks early
   document.addEventListener('click', function (e) {

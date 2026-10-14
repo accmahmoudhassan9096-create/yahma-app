@@ -859,7 +859,119 @@ body.dark-mode #app-lock-screen .lock-note{color:#7C8A98;}
 .rd-owner-row:hover{background:rgba(91,52,173,.06);}
 .rd-owner-row:active{background:rgba(91,52,173,.12);}
 
-/* ===== شريط أدوات التنازلات: ثابت فوق زي التقارير ===== */
+/* ===== شريط التصدير (Excel + PDF) — كل التبويبات =====
+   زراير متدرّجة لامعة مع لمعة بتعدّي عند المرور. */
+.yx-bar{
+  position:fixed;
+  inset-inline-start:calc(var(--sidebar-w, 248px) + 14px);
+  top:8px;
+  z-index:90;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:6px 8px 6px 12px;
+  border-radius:999px;
+  background:color-mix(in srgb, var(--panel,#fff) 88%, transparent);
+  border:1px solid var(--line,#D6DCE7);
+  box-shadow:0 6px 22px rgba(8,60,70,.14);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  animation:yx-in .28s ease both;
+}
+.yx-bar[hidden]{display:none !important;}
+@keyframes yx-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+.yx-info{display:flex;flex-direction:column;line-height:1.25;min-width:0;}
+.yx-title{font-size:12px;font-weight:800;color:var(--ink,#172C2E);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px;}
+.yx-count{font-size:10.5px;color:var(--muted,#6B7A88);}
+
+.yx-actions{display:flex;gap:8px;}
+
+.yx-btn{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 16px;
+  border:0;
+  border-radius:999px;
+  font-family:inherit;
+  font-size:12.5px;
+  font-weight:800;
+  color:#fff;
+  cursor:pointer;
+  overflow:hidden;
+  isolation:isolate;
+  white-space:nowrap;
+  transition:transform .16s ease, box-shadow .18s ease, filter .18s ease;
+  box-shadow:0 4px 14px rgba(0,0,0,.16);
+}
+.yx-btn:hover:not(:disabled){transform:translateY(-2px);filter:saturate(1.15);}
+.yx-btn:active:not(:disabled){transform:translateY(0);}
+.yx-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;}
+.yx-btn:focus-visible{outline:2px solid #12AAA6;outline-offset:2px;}
+
+.yx-xlsx{background:linear-gradient(135deg,#0F9B6C 0%,#0B7C57 55%,#075E43 100%);}
+.yx-xlsx:hover:not(:disabled){box-shadow:0 8px 22px rgba(11,124,87,.42);}
+.yx-pdf{background:linear-gradient(135deg,#E0483A 0%,#C8322A 55%,#9E221C 100%);}
+.yx-pdf:hover:not(:disabled){box-shadow:0 8px 22px rgba(200,50,42,.42);}
+
+/* اللمعة: شريط ضوئي يعدّي على الزر */
+.yx-shine{
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  background:linear-gradient(115deg,
+    transparent 20%,
+    rgba(255,255,255,.55) 42%,
+    rgba(255,255,255,.12) 52%,
+    transparent 70%);
+  transform:translateX(-120%);
+  pointer-events:none;
+}
+.yx-btn:hover:not(:disabled) .yx-shine{animation:yx-sweep .85s ease;}
+@keyframes yx-sweep{to{transform:translateX(120%);}}
+
+/* لمعة دايمة خفيفة على الزرار */
+.yx-btn::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-2;
+  border-radius:inherit;
+  background:linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0) 55%);
+}
+
+.yx-ico{font-size:14px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
+
+.yx-spin{
+  width:12px;height:12px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.35);
+  border-top-color:#fff;
+  animation:yx-spin .7s linear infinite;
+  display:inline-block;
+}
+@keyframes yx-spin{to{transform:rotate(360deg)}}
+
+/* الوضع الليلي */
+body.dark-mode .yx-bar{background:rgba(17,28,46,.9);border-color:#2C3B52;box-shadow:0 6px 22px rgba(0,0,0,.45);}
+body.dark-mode .yx-title{color:#EAF1F5;}
+body.dark-mode .yx-count{color:#9AA5B8;}
+
+/* الموبايل: الشريط يتصغّر ويقبل اللمس */
+@media(max-width:900px){
+  .yx-bar{
+    inset-inline-start:auto;
+    inset-inline-end:10px;
+    top:auto;
+    bottom:12px;
+    padding:6px 8px;
+    gap:8px;
+  }
+  .yx-info{display:none;}
+  .yx-btn{padding:10px 16px;font-size:13px;}
+  .yx-title{max-width:120px;}
+}
 .tr-toolbar{
   position: sticky;
   top: 0;
