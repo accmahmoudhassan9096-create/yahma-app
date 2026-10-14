@@ -17,7 +17,8 @@
         <div class="wa-toolbar-info"><strong>عدد الفروع:</strong> <span class="wa-count">${getBranches().length}</span></div>
         <div class="wa-toolbar-actions">
           <button class="btn btn-primary" id="btn-add-branch">+ إضافة فرع</button>
-          <button class="btn btn-branch-import" id="btn-branch-status-import-2">تحديث فرع/حالة (Excel)</button>
+          <!-- تحديث الفرع/الحالة من غير مكانه: الرفع الرئيسي «رفع / تحديث سيارات الأسطول» بيحدّث العمودين. -->
+          <button class="btn btn-branch-import" id="btn-branch-status-import-2" hidden>تحديث فرع/حالة (Excel)</button>
           <button class="btn btn-ghost" id="btn-branch-status-template-2">نموذج Excel</button>
         </div>
       </div>

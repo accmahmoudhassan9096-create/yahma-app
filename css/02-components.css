@@ -279,6 +279,16 @@ body.dark-mode .wm-tile{opacity:0.09}
   color:#666E8C !important;
   opacity:1 !important;
 }
+/* سطر توضيح تحت عناصر قائمة الاستيراد — يقول إن الرفع الرئيسي بيعمل كل حاجة */
+.top-dd-menu .top-dd-hint{
+  font-size:10.5px;
+  line-height:1.5;
+  color:#8A93A8;
+  padding:2px 12px 8px;
+  margin-top:-2px;
+  white-space:normal;
+}
+body.dark-mode .top-dd-menu .top-dd-hint{color:#9AA5B8;}
 .top-dd-menu .more-item.danger{color:#CE4B3D !important;}
 body.dark-mode .top-dd-menu{
   background:#1F2937 !important;

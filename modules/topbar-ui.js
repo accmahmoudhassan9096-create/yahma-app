@@ -186,8 +186,6 @@
   function bindMobileTools(){
     var map={
       'umt-import':'btn-import',
-      'umt-branch-status':'btn-branch-status-import',
-      'umt-sold':'btn-sold-import',
       'umt-export-xlsx':'btn-export',
       'umt-export-pdf':'btn-export-pdf',
       'umt-template':'btn-template',

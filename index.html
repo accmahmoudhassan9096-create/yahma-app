@@ -194,8 +194,10 @@
               <div class="user-dropdown-divider"></div>
               <div class="user-mobile-tools-title">أدوات البيانات</div>
               <button type="button" class="user-menu-item" id="umt-import" role="menuitem"><span>↑</span> رفع / تحديث سيارات الأسطول</button>
-              <button type="button" class="user-menu-item" id="umt-branch-status" role="menuitem"><span>↑</span> تحديث الفرع وحالة السيارة</button>
-              <button type="button" class="user-menu-item" id="umt-sold" role="menuitem"><span>↑</span> رفع السيارات المباعة</button>
+              <!-- «تحديث الفرع» و«رفع السيارات المباعة» مخفيين: الرفع الرئيسي بيعمل التلاتة.
+                   شيل hidden لو حبيت ترجّعهم. -->
+              <button type="button" class="user-menu-item" id="umt-branch-status" role="menuitem" hidden><span>↑</span> تحديث الفرع وحالة السيارة</button>
+              <button type="button" class="user-menu-item" id="umt-sold" role="menuitem" hidden><span>↑</span> رفع السيارات المباعة</button>
               <button type="button" class="user-menu-item" id="umt-export-xlsx" role="menuitem"><span>↓</span> تصدير Excel</button>
               <button type="button" class="user-menu-item" id="umt-export-pdf" role="menuitem"><span>↓</span> تصدير PDF</button>
               <button type="button" class="user-menu-item" id="umt-template" role="menuitem"><span>▤</span> نموذج أسطول فارغ</button>
@@ -231,8 +233,11 @@
           <div class="top-dd-menu" role="menu">
             <div class="top-dd-title">استيراد Excel</div>
             <button class="more-item" id="btn-import" role="menuitem">رفع / تحديث سيارات الأسطول</button>
-            <button class="more-item" id="btn-branch-status-import" role="menuitem">تحديث الفرع وحالة السيارة</button>
-            <button class="more-item" id="btn-sold-import" role="menuitem">رفع السيارات المباعة (حذف)</button>
+            <div class="top-dd-hint">بيحدّث كل الحقول — الفرع، حالة السيارة، الكارت، الرخصة… وبيحذف المباع تلقائيًا.</div>
+            <!-- الطريق الوحيد للرفع: تحديث الفرع وحالة السيارة وحذف المباع كله جوا الرفع الرئيسي.
+                 شيل hidden لو حبيت ترجّعهم. -->
+            <button class="more-item" id="btn-branch-status-import" role="menuitem" hidden>تحديث الفرع وحالة السيارة</button>
+            <button class="more-item" id="btn-sold-import" role="menuitem" hidden>رفع السيارات المباعة (حذف)</button>
           </div>
         </div>
 <div class="top-dd" id="dd-export">

@@ -337,17 +337,14 @@ function initTheme(){
     importBtn.disabled=(role!=='admin'&&role!=='ops');
     importBtn.title=(role==='admin'||role==='ops')?'رفع ملف Excel وإضافة أو تحديث سيارات الأسطول':'رفع ملف Excel — تحتاج صلاحية مدير أو تشغيل';
   }
+  /* «تحديث الفرع» و«رفع السيارات المباعة» اتشالوا من الواجهة:
+   الرفع الرئيسي «رفع / تحديث سيارات الأسطول» بيحدّث الفرع وحالة السيارة
+   (excel-import.js) وبيحذف المباع تلقائيًا لما حالة السيارة تكون «مباع».
+   سيبنا السطرين دول للتذكير لو حبيت ترجّعهم يوم. */
   const branchImpBtn=document.getElementById('btn-branch-status-import');
-  if(branchImpBtn){
-    branchImpBtn.style.display='';
-    branchImpBtn.disabled=(role!=='admin'&&role!=='ops');
-  }
+  if(branchImpBtn){ branchImpBtn.style.display='none'; }
   const soldBtn=document.getElementById('btn-sold-import');
-  if(soldBtn){
-    soldBtn.style.display='';
-    soldBtn.disabled=(role!=='admin'&&role!=='ops');
-    soldBtn.title=(role==='admin'||role==='ops')?'رفع ملف السيارات المباعة لحذفها من الأسطول':'سيارات مباعة — تحتاج صلاحية مدير أو تشغيل';
-  }
+  if(soldBtn){ soldBtn.style.display='none'; }
   if(role==='view') document.querySelectorAll('#btn-add-car,#btn-save').forEach(x=>x.disabled=true);
   else document.querySelectorAll('#btn-add-car,#btn-save').forEach(x=>x.disabled=false);
  }
