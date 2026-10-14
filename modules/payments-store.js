@@ -129,7 +129,11 @@
         requested_at: entry.requestedAt
       };
       var res = await global.supabaseClient.from('inspection_payments').insert(payload);
-      if (res.error) return { ok: true, local: true, error: res.error.message };
+      if (res.error) {
+        global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
+        return { ok: true, local: true, error: res.error.message };
+      }
+      global.__yahmaPaymentsCloudError = '';
       var created = Array.isArray(res.data) && res.data[0] ? res.data[0] : null;
       if (created && created.id) {
         entry.id = created.id;
@@ -170,7 +174,11 @@
         .from('inspection_payments')
         .update({ status: 'paid', paid_at: stamp })
         .eq('id', id);
-      if (res.error) return { ok: true, local: true, error: res.error.message };
+      if (res.error) {
+        global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
+        return { ok: true, local: true, error: res.error.message };
+      }
+      global.__yahmaPaymentsCloudError = '';
       return { ok: true };
     } catch (err) {
       return { ok: true, local: true, error: err && err.message };
@@ -185,11 +193,17 @@
     writeJSON(PENDING_KEY, pending);
     if (!tableReady()) return { ok: true, local: true };
     try {
-      await global.supabaseClient.from('inspection_payments')
+      var res = await global.supabaseClient.from('inspection_payments')
         .update({ status: 'cancelled' })
         .eq('id', id);
+      if (res && res.error) {
+        global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
+        return { ok: true, local: true, error: res.error.message };
+      }
+      global.__yahmaPaymentsCloudError = '';
       return { ok: true };
     } catch (err) {
+      global.__yahmaPaymentsCloudError = String((err && err.message) || err);
       return { ok: true, local: true, error: err && err.message };
     }
   }

@@ -96,6 +96,14 @@ function formatArabicDate(value){
   return d.toLocaleDateString('ar-EG',{year:'numeric',month:'short',day:'numeric'})+' — '+
          d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
 }
+/* تنبيه: المزامنة السحابية للدفعات معطّلة — الشغل محفوظ على الجهاز بس */
+function paymentsSyncWarningHtml(){
+  var err=String((typeof window!=='undefined'&&window.__yahmaPaymentsCloudError)||'').trim();
+  if(!err) return '';
+  return '<div class="payments-sync-warn"><b>⚠️ المزامنة السحابية متوقفة</b>'
+    +'<span>الطلبات محفوظة على هذا الجهاز بس ومش هتظهر لغيرك. شغّل ملف '
+    +'<code>supabase/fix-payment-policies.sql</code> في Supabase، أو اعمل «تحديث الصفحة».</span></div>';
+}
 
 function renderInspectionPayments(content){
   document.getElementById('topbar-title').textContent='تحت الدفع';
@@ -105,6 +113,7 @@ function renderInspectionPayments(content){
   const rows=pending.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip"><div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>طلبات تحت الدفع</small></span></div></div>
   <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تجديد الفحص بانتظار الدفع</strong><span>بعد تسجيل الدفع تنتقل الطلب إلى تبويب «تم الدفع»</span></div></div>
+  ${paymentsSyncWarningHtml()}
   <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>حالة الدفع</th><th>الإجراء</th></tr></thead><tbody>
   ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td colspan="5"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
   </tbody></table></div>`;
@@ -153,6 +162,7 @@ function renderPaidInspections(content){
     <div class="fleet-summary-card"><span class="fleet-summary-icon">✓</span><span><b>${todayCount}</b><small>مدفوع اليوم</small></span></div>
   </div>
   <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تم الدفع</strong><span>اضغط «تجديد الرخص» للانتقال للخطوة التالية</span></div></div>
+  ${paymentsSyncWarningHtml()}
   <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>الإجراء</th></tr></thead><tbody>
   ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td><button type="button" class="btn btn-ghost btn-small" data-go-license="1">تجديد الرخص →</button></td></tr>`).join(''):'<tr><td colspan="6"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
   </tbody></table></div>`;
