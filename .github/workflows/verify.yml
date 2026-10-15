@@ -1,15 +1,18 @@
-/* Runs the tests and the shell check on every push.
- *
- * This is not ceremony. The precache list in sw.js is hand written,
- * and a wrong filename there means the service worker install fails
- * and every client silently stays on the old version. That happened
- * repeatedly between v168 and v174, and nothing caught it until a
- * user reported seeing an old screen.
- *
- * check-shell.js fails on both directions: an entry with no file, and
- * a shipped asset with no cache entry.
- *
- * node:test is built into Node, so there is nothing to install. */
+# Runs the tests and the shell check on every push.
+#
+# This is not ceremony. The precache list in sw.js is hand written,
+# and a wrong filename there means the service worker install fails
+# and every client silently stays on the old version. That happened
+# repeatedly between v168 and v174, and nothing caught it until a
+# user reported seeing an old screen.
+#
+# check-shell.js fails on both directions: an entry with no file on
+# disk, and a shipped asset with no cache entry.
+#
+# node:test is built into Node, so there is nothing to install. That
+# is also why there is deliberately no package.json in this repo -
+# Cloudflare Pages sees one, decides this is a Node project, tries to
+# run a build against a project that has none, and every deploy fails.
 name: verify
 
 on:
