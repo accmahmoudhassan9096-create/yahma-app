@@ -171,21 +171,25 @@
         sent += sentIds.length;
       }
 
+      /* ⚠️ الـcount لازم يتحسب من الداتابيز بعد كل حالة.
+         لوreasnertناه بدون count، الـbadge بيختفي بالظبط لما الشبكة
+         تكون مقطوعة — أسوأ وقت ممكن يظهر فيه. */
       if (error) {
         attempts++;
         lastResult = { ok: false, sent: sent, failed: 0, at: Date.now(), error: error,
-                       reason: reason || 'flush' };
+                       count: await refreshCount(), reason: reason || 'flush' };
         var wait = Math.min(attempts < BACKOFF_MS.length ? BACKOFF_MS[attempts] : MAX_BACKOFF, MAX_BACKOFF);
         scheduleFlush(wait);
       } else {
         attempts = 0;
-        lastResult = { ok: true, sent: sent, failed: 0, at: Date.now(), count: 0, error: '' };
+        lastResult = { ok: true, sent: sent, failed: 0, at: Date.now(), count: await refreshCount(), error: '' };
       }
       return lastResult;
     } catch (err) {
       attempts++;
       lastResult = { ok: false, sent: 0, failed: 0, at: Date.now(),
-                     error: String((err && err.message) || err), reason: reason || 'flush' };
+                     error: String((err && err.message) || err),
+                     count: await refreshCount(), reason: reason || 'flush' };
       scheduleFlush(Math.min(attempts < BACKOFF_MS.length ? BACKOFF_MS[attempts] : MAX_BACKOFF, MAX_BACKOFF));
       return lastResult;
     } finally {
