@@ -771,8 +771,8 @@ function buildDonut(counts){
   const svg = `<svg viewBox="0 0 180 180" width="180" height="180">
     <g transform="rotate(-90 90 90)">${circles}</g>
     <circle cx="90" cy="90" r="${r - sw/2 - 3}" fill="var(--panel)"/>
-    <text x="90" y="86" text-anchor="middle" font-size="24" font-weight="700" fill="#17202B" font-family="IBM Plex Sans Arabic, sans-serif">${total}</text>
-    <text x="90" y="105" text-anchor="middle" font-size="11" fill="#6B7280" font-family="IBM Plex Sans Arabic, sans-serif">إجمالي العربيات</text>
+    <text x="90" y="86" text-anchor="middle" font-size="24" font-weight="700" fill="#17202B" font-family="Cairo, sans-serif">${total}</text>
+    <text x="90" y="105" text-anchor="middle" font-size="11" fill="#6B7280" font-family="Cairo, sans-serif">إجمالي العربيات</text>
   </svg>`;
   const legend = entries.map(([label,count],i)=>`
     <div class="legend-item">

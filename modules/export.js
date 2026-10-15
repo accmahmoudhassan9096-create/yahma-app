@@ -195,12 +195,46 @@
   }
 
   /** بناء مضيف الجدول بنفس شكل تقرير التقارير (RTL + رأس أزرق + تناوب صفوف) */
-  /* خط الـPDF: Cairo أول واحد — لأنه نفس خط الواجهة، ومحمّل من
-     Google Fonts فبيكون موجود على أي جهاز. Tahoma/Segoe/Arial كانت
-     بتتفرض على الـPDF، وعلى الأجهزة اللي مش عليها (أندرويد مثلًا)
-     المتصفح بيرجع لخط مش مناسب فالعربي بيطلع حروفه مقطّعة.
-     عاملين-system generics في الآخر احتياطًا. */
-  const PDF_FONT = "'Cairo','IBM Plex Sans Arabic','Noto Sans Arabic',Tahoma,'Segoe UI',Arial,sans-serif";
+  /* خط الـPDF: Cairo أول واحد — لأنه نفس خط الواجهة، واللي
+     اتحمّل local من css/fonts.css فبيكون موجود على أي جهاز
+     من غير ما نسلّم على حد.
+     Tahoma/Segoe/Arial كانت بتتفرض على الـPDF، وعلى الأجهزة
+     اللي مش عليها (أندرويد مثلًا) المتصفح بيرجع لخط مش مناسب
+     فالعربي بيطلع حروفه مقطّعة. جبنّاها system generics في
+     الآخر احتياطًا.
+     IBM Plex اتشال: مكانها في السلسلة بعد Cairo اللي بيغطي
+     عربي ولاتيني، فهي مكانها ميظهرش. و411KB تنقذ ببلاش. */
+  const PDF_FONT = "'Cairo','Noto Sans Arabic',Tahoma,'Segoe UI',Arial,sans-serif";
+
+  /* ===== @font-face المحلي =====
+     نافذة الطباعة (openPrintWindow) بتتفتح بـwindow.open وتكتب
+     HTML لوحدها — يعني مش داخل صفحة التطبيق، فمش بيشوف
+     css/fonts.css. قبل كنا كانت بتحط @import لـGoogle، وده
+     بالظبط الاعتماد على طرف تالت وقت التشغيل اللي اتصلّينا منه.
+
+     بتولّد نفس تعريفات الخط بس بـURL مطلق عشان يشتغل من أي
+     نافذة، ومن نفس النطاق. */
+  const LOCAL_FONT_FILES = [
+    { file: 'cairo-060006.woff2', range: 'U+0600-06FF, U+0750-077F, U+0870-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC' },
+    { file: 'cairo-010002.woff2', range: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD' },
+    { file: 'cairo-000000.woff2', range: 'U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF' }
+  ];
+  const FONT_WEIGHTS = [400, 500, 600, 700, 800];
+  function fontFaceCSS() {
+    let base = '';
+    try { base = new URL('fonts/', location.href).href; }
+    catch (_) { base = 'fonts/'; }
+    let out = '';
+    FONT_WEIGHTS.forEach(function (w) {
+      LOCAL_FONT_FILES.forEach(function (f) {
+        out += "@font-face{font-family:'Cairo';font-style:normal;font-weight:" + w +
+               ";font-display:swap;src:url('" + base + f.file + "') format('woff2')" +
+               ";unicode-range:" + f.range + ";}\n";
+      });
+    });
+    return out;
+  }
+  global.YahmaFonts = { faceCSS: fontFaceCSS, PDF_FONT: PDF_FONT };
 
   async function ensureFontsReady() {
     try { if (global.document && global.document.fonts && typeof global.document.fonts.ready !== 'undefined') await global.document.fonts.ready; } catch(_){yahmaErr(_,'export.js:206');}

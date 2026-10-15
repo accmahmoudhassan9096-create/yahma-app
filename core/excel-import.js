@@ -228,8 +228,12 @@ function openPrintWindow(title, subtitle, headers, rows, note){
   const bodyRows=rows.map(r=>`<tr>${r.map(c=>`<td>${escPdf(c)}</td>`).join('')}</tr>`).join('');
   const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>${escPdf(title)}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap');
-    *{box-sizing:border-box} body{font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;margin:24px;color:#1A2433;font-size:12px}
+    /* النافذة دي بتتفتح بـwindow.open وبتكتب HTML مستقل، فمش
+     بيشوف css/fonts.css. قبل كنا كنا حاطين @import لـGoogle
+     Fonts جوّاها — يعني تصدير PDF كان بيحتاج Google يرد. لو
+     اتحجب، العربي بيطلع بخط مختلف أو مقطّع. */
+    ${(typeof window!=='undefined' && window.YahmaFonts && typeof window.YahmaFonts.faceCSS==='function') ? window.YahmaFonts.faceCSS() : ''}
+    *{box-sizing:border-box} body{font-family:'Cairo','Noto Sans Arabic',Tahoma,'Segoe UI',Arial,sans-serif;margin:24px;color:#1A2433;font-size:12px}
     h1{font-size:20px;margin:0 0 4px;color:#1F3C88} .sub{color:#5A6A7E;margin-bottom:16px;font-size:12px}
     .meta{display:flex;justify-content:space-between;margin-bottom:12px;font-size:11px;color:#5A6A7E}
     table{width:100%;border-collapse:collapse;margin-top:8px}

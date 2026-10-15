@@ -8,10 +8,14 @@
 <meta name="theme-color" content="#152350">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=optional" rel="stylesheet">
+<!-- الخط على نطاقنا — مش من Google.
+     كان fonts.googleapis.com، وده نفس خطر الـCDN اللي خلّى أمين
+     يشوف صفر عربيات (v171) والـPDF العربي يبوظ (v170). التحميل
+     من Google بيحجب التطبيق كله لو الشبكة مش سليمة، وCairo ده
+     نفسه اللي الـPDF بيحتاجه.
+     preload للوزن الأساسي (400) عشان أول رسم ميتأخرش. -->
+<link rel="preload" href="fonts/cairo-060006.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/01-base.css">
 <link rel="stylesheet" href="css/02-components.css">
 <link rel="stylesheet" href="css/03-motion-layout.css">

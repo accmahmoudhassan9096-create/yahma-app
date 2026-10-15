@@ -13,7 +13,7 @@ function buildInspectionWhatsAppMessage(cars){
 /* نفس خط الواجهة (Cairo) عشان العربي يطلع متّصل ومظبوط على أي جهاز.
    فرض Tahoma كان بيخلي المتصفح يرجع لخط بديل على الأجهزة اللي مش
    عليها Windows fonts، فالعربي بيطلع حروفه مقطّعة في الـPDF. */
-var YAHMA_PDF_FONT = "'Cairo','IBM Plex Sans Arabic','Noto Sans Arabic',Tahoma,'Segoe UI',Arial,sans-serif";
+var YAHMA_PDF_FONT = "'Cairo','Noto Sans Arabic',Tahoma,'Segoe UI',Arial,sans-serif";
 
 function buildPdfReportHtml(title, headers, rows, subtitle){
   const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');

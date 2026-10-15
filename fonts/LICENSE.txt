@@ -1,0 +1,21 @@
+Cairo — SIL Open Font License 1.1
+Copyright 2007-2012 The Cairo Project Authors
+(https://github.com/Gue3bara/Cairo)
+
+The Cairo font is licensed under the SIL Open Font License, Version 1.1.
+Self-hosting is explicitly permitted by the licence, which requires that
+the licence text travel with the font files.
+
+Project home : https://github.com/Gue3bara/Cairo
+OFL text     : https://openfontlicense.org
+
+Files in this directory are the unmodified woff2 subsets served by Google
+Fonts for the Cairo variable font, covering these unicode ranges:
+
+  cairo-000000.woff2  latin-ext
+  cairo-010002.woff2  latin
+  cairo-060006.woff2  arabic
+
+No IBM Plex Sans Arabic files are kept. That family appeared second in a
+font stack that Cairo already satisfies, so it never rendered, and the
+16 files it needed were 411KB of nothing.

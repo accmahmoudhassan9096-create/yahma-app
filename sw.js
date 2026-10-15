@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v182';
+const CACHE_NAME = 'yahma-shell-v183';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -75,14 +75,19 @@ const LOCAL_APP_SHELL = [
   './modules/fleet-excel.js',
   './modules/smooth.js',
   './modules/cloud.js',
+  './css/fonts.css',
+  './fonts/cairo-000000.woff2',
+  './fonts/cairo-010002.woff2',
+  './fonts/cairo-060006.woff2',
   './icon-192.png',
   './icon-512.png',
 ];
-const OPTIONAL_CDN = [
-  /* الخط بس. المكتبات كلها بقت محلية في vendor/ — الـCDN بقى
-     شبكة أمان نادرة، وبيتفركّش مع التطبيق. */
-  'https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap',
-];
+/* مفيش CDN اختياري بقى.
+   كان الخط من fonts.googleapis.com وكنا بنعمله cache كشبكة أمان.
+   دلوقتي الخط local على نطاقنا (fonts/*.woff2، 79KB)، فمفيش أي
+   سبب يفضل في القائمة — والقائمة دي كانتمعناها إنها آخر نقطة
+   فشل في السلسلة. */
+const OPTIONAL_CDN = [];
 
 /* التثبيت لازم يكون صامد: cache.addAll بيفشل ذرّيًا لو ملف واحد رجّع
    خطأ، وكان معناه إن التحديث كله بيموت صامت والمستخدم يفضل على
