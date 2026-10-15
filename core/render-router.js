@@ -144,6 +144,60 @@ function bindPaymentsDiagnostic(root){
   });
 }
 
+/* ===== الرجوع للمرحلة السابقة =====
+
+   السلسلة: الفحص ← تحت الدفع ← تم الدفع ← تم التجديد
+
+   كل انتقال أمامي بيكتب على بيانات السيارة (حالة الفحص، تاريخ
+   الرخصة)، فالرجوع لورا لازم يرجّع الكتابة دي برضو — غير كده
+   السيارة هتطلع «سليم» برخصة متجددة رغم إن الطلب رجع طور.
+
+   الحقول القديمة متخزّنة في `prev_state` على جدول الدفعات، بتتسجّل
+   لحظة الانступ قدام في rememberCarState(). الحقول اللي مش في
+   اللقطة دي ما اتغيرتش في المرحلة دي، فبنسيبها زي ما هي. */
+const STAGE_BACK_FIELDS = {
+  paid:       ['inspectionStatus'],
+  renewed:    ['licenseExpiry', 'licenseStatus']
+};
+function applyPrevState(car, snapshot, stage){
+  if(!car) return [];
+  const fields = STAGE_BACK_FIELDS[stage] || [];
+  const changed = [];
+  fields.forEach(function(f){
+    if(!snapshot || !Object.prototype.hasOwnProperty.call(snapshot, f)) return;
+    if(car[f] === snapshot[f]) return;
+    car[f] = snapshot[f];
+    changed.push(f);
+  });
+  return changed;
+}
+/* سطور توضيح للحوار: إيه اللي هيتغيّر بالظبط — المستخدم يقرأ
+   ويوافق، بدل ما يقفل عتامة ويكتشف بعدين. */
+function prevRestoreLines(car, snapshot, stage){
+  const out = [];
+  if(STAGE_BACK_FIELDS[stage].indexOf('inspectionStatus') >= 0){
+    out.push('• حالة الفحص هترجع لـ«' + ((snapshot && snapshot.inspectionStatus) || 'لم يفحص') + '»');
+  }
+  if(STAGE_BACK_FIELDS[stage].indexOf('licenseExpiry') >= 0){
+    if(snapshot && snapshot.licenseExpiry) out.push('• الرخصة هترجع لتاريخ ' + snapshot.licenseExpiry);
+    else out.push('• مفيش تاريخ قديم مسجّل للرخصة — هتفضل زي ما هي');
+    if(snapshot && snapshot.licenseStatus) out.push('• حالة الرخصة هترجع لـ«' + snapshot.licenseStatus + '»');
+  }
+  return out.join('\n');
+}
+/* حراسة موحّدة للزراير — الطبقة مركزية بتعرف إيه مسموح لكل دور */
+function canRunPayments(action){
+  if(typeof window.YahmaPerms==='object'){
+    if(window.YahmaPerms.canEditNow()) return true;
+    alert(window.YahmaPerms.denyMessage(action||'هذا الإجراء'));
+    return false;
+  }
+  if(window.currentRole==='admin'||window.currentRole==='manager'||window.currentRole==='ops') return true;
+  alert('ليس لديك صلاحية '+ (action||'هذا الإجراء') +'.');
+  return false;
+}
+const NOT_INSPECTED = 'لم يفحص';
+
 function renderInspectionPayments(content){
   document.getElementById('topbar-title').textContent='تحت الدفع';
   document.getElementById('topbar-sub').textContent='طلبات دفع تجديد فحص السيارات';
@@ -166,21 +220,40 @@ function renderInspectionPayments(content){
       formatArabicDate(item.requestedAt), 'تحت الدفع'])
   });
   content.querySelectorAll('[data-payment-done],[data-payment-cancel]').forEach(button=>button.addEventListener('click',async()=>{
-    if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية إدارة طلبات الدفع.');return;}
+    if(!canRunPayments('إدارة طلبات الدفع')) return;
     const id=button.dataset.paymentDone||button.dataset.paymentCancel;
     if(!id)return;
     const item=loadInspectionPayments().find(p=>String(p.id)===String(id));
     if(!item)return;
     const car=byId.get(String(item.carId));
     if(button.dataset.paymentCancel){
-      if(!confirm('إلغاء طلب الدفع للسيارة '+(car?.plate||item.plate)+'؟'))return;
-      await window.YahmaPayments.cancel(id, item.carId);
-      if(typeof window.log==='function') window.log('إلغاء طلب دفع فحص','السيارة '+(car?.plate||item.plate||''));
+      /* إلغاء الطلب = رجوع مرحلة: الطلب يتشال والسيارة ترجع
+         «لم يفحص» فيتبويب الفحص، زي ما كانت قبل ما تطلب. */
+      const plate=(car?.plate||item.plate||'—');
+      if(!confirm('إلغاء طلب الدفع للسيارة «'+plate+'»؟\n\n'
+        +'• الطلب هيتشال من «تحت الدفع»\n'
+        +'• السيارة هترجع لِتبويب «الفحص» بحالة «'+NOT_INSPECTED+'»'))return;
+      if(car){
+        const before=car.inspectionStatus;
+        car.inspectionStatus=NOT_INSPECTED;
+        const saved=await saveData([car.id]);
+        if(saved===false){
+          car.inspectionStatus=before;
+          await saveData([car.id]);
+          alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
+          return;
+        }
+      }
+      await window.YahmaPayments.revertPendingToInspection(id, item.carId);
+      if(typeof window.log==='function') window.log('إلغاء طلب دفع فحص','السيارة '+plate+' — رجعت لِالفحص');
       render();return;
     }
     if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return;}
     if(!confirm('تأكيد تسجيل دفع تجديد الفحص للسيارة '+car.plate+'؟'))return;
     const previousInspectionStatus=car.inspectionStatus;
+    /* نحفظ القيمة القديمة في prev_state قبل ما نكتب الجديدة،
+       عشان «رجوع لِتحت الدفع» يقدر يرجّعها بالظبط. */
+    await window.YahmaPayments.rememberCarState(id, item.carId, { inspectionStatus: previousInspectionStatus });
     car.inspectionStatus='سليم';
     const saved=await saveData([car.id]);
     if(saved===false){
@@ -230,7 +303,7 @@ function renderPaidInspections(content){
       const needs=needsLicense({car});
       return `<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td><div class="row-actions">${needs
         ? `<button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(item.id)}">تجديد الرخصة</button>`
-        : `<span class="tag green">الرخصة سارية</span>`}<button type="button" class="btn btn-ghost btn-small row-del" data-drop-payment="${escapeHtml(item.id)}" title="إزالة الطلب من القائمة">حذف</button></div></td></tr>`;
+        : `<span class="tag green">الرخصة سارية</span>`}<button type="button" class="btn btn-ghost btn-small row-del" data-stepback-payment="${escapeHtml(item.id)}" title="رجوع السيارة لقائمة «تحت الدفع»">↩ رجوع لِتحت الدفع</button></div></td></tr>`;
     }).join(''):'<tr><td colspan="6"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
@@ -249,17 +322,37 @@ function renderPaidInspections(content){
     const car=fleet.find(c=>String(c.id)===String(item.carId));
     renewLicenseFromPaid(item, car, content);
   }));
-  /* حذف الطلب نهائيًا من السجل (للطلبات المسجّلة بالغلط) */
-  content.querySelectorAll('[data-drop-payment]').forEach(button=>button.addEventListener('click',async()=>{
-    if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية حذف الطلبات.');return;}
-    const item=loadPaidInspections().find(p=>String(p.id)===String(button.dataset.dropPayment));
+/* الرجوع: «تم الدفع» ⇌ «تحت الدفع» — الطلب يرجع طورًاً،
+   وحالة الفحص ترجع للقيمة اللي كانت قبل تسجيل الدفع. */
+  content.querySelectorAll('[data-stepback-payment]').forEach(button=>button.addEventListener('click',async()=>{
+    if(!canRunPayments('إدارة طلبات الدفع')) return;
+    const id=button.dataset.stepbackPayment;
+    const item=loadPaidInspections().find(p=>String(p.id)===String(id));
     if(!item)return;
-    const plate=(item.plate||'—');
-    if(!confirm('حذف طلب الدفع للسيارة '+plate+' نهائيًا؟\nهذا لا يغير بيانات السيارة — الطلب بس هيتشال من القائمة.'))return;
-    await window.YahmaPayments.cancel(item.id, item.carId);
-    if(typeof window.log==='function') window.log('حذف طلب دفع فحص','السيارة '+plate);
-    renderPaidInspections(content);
-    if(typeof render==='function') render();
+    const car=fleet.find(c=>String(c.id)===String(item.carId));
+    const plate=(car?.plate||item.plate||'—');
+    const snapshot=window.YahmaPayments.prevStateOf(item.id, item.carId);
+    if(!confirm('رجوع السيارة «'+plate+'» لِقائمة «تحت الدفع»؟\n\n'
+      +prevRestoreLines(car, snapshot, 'paid')+'\n'
+      +'• تاريخ الدفع هيتشال من الطلب\n'
+      +'• الطلب هيفضل في «تحت الدفع» مستني الدفع تاني'))return;
+    if(car){
+      const before=Object.assign({}, car);
+      applyPrevState(car, snapshot, 'paid');
+      if(car.inspectionStatus===undefined || car.inspectionStatus===null || car.inspectionStatus===''){
+        car.inspectionStatus=NOT_INSPECTED;
+      }
+      const saved=await saveData([car.id]);
+      if(saved===false){
+        Object.keys(before).forEach(function(k){ car[k]=before[k]; });
+        await saveData([car.id]);
+        alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
+        return;
+      }
+    }
+    await window.YahmaPayments.revertPaidToPending(item.id, item.carId);
+    if(typeof window.log==='function') window.log('رجوع طلب دفع لِتحت الدفع','السيارة '+plate);
+    render();
   }));
 }
 
@@ -294,7 +387,7 @@ function renderRenewedInspections(content){
         <td><b>${escapeHtml(formatArabicDate(stamp))}</b></td>
         <td>${escapeHtml(car.licenseExpiry||'—')}</td>
         <td><span class="tag green">تم التجديد</span></td>
-        <td><button type="button" class="btn btn-ghost btn-small" data-drop-renewed="${escapeHtml(item.id)}">حذف</button></td></tr>`;
+        <td><button type="button" class="btn btn-ghost btn-small" data-stepback-renewed="${escapeHtml(item.id)}" title="رجوع السيارة لِتبويب «تم الدفع»">↩ رجوع لِتم الدفع</button></td></tr>`;
     }).join(''):'<tr><td colspan="8"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
@@ -307,22 +400,41 @@ function renderRenewedInspections(content){
       formatArabicDate(item.requestedAt), formatArabicDate(item.paidAt),
       formatArabicDate(stampOf(item)), car.licenseExpiry||'—', 'تم التجديد'])
   });
-  content.querySelectorAll('[data-drop-renewed]').forEach(button=>button.addEventListener('click',async()=>{
-    if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية الحذف.');return;}
-    const item=loadRenewedInspections().find(p=>String(p.id)===String(button.dataset.dropRenewed));
+  /* الرجوع: «تم التجديد» ⇐ «تم الدفع» — السطر يخرج من «تم التجديد»
+     (مفيش note تجديد)، وتاريخ الرخصة يرجع للي كان قبل التجديد. */
+  content.querySelectorAll('[data-stepback-renewed]').forEach(button=>button.addEventListener('click',async()=>{
+    if(!canRunPayments('إدارة طلبات الدفع')) return;
+    const id=button.dataset.stepbackRenewed;
+    const item=loadRenewedInspections().find(p=>String(p.id)===String(id));
     if(!item)return;
-    if(!confirm('حذف سجل التجديد للسيارة '+(item.plate||'—')+'؟\nرخصة السيارة هتفضل كما هي في الأسطول.'))return;
-    await window.YahmaPayments.cancel(item.id, item.carId);
-    if(typeof window.log==='function') window.log('حذف سجل تجديد','السيارة '+(item.plate||''));
-    renderRenewedInspections(content);
-    if(typeof render==='function') render();
+    const car=fleet.find(c=>String(c.id)===String(item.carId));
+    const plate=(car?.plate||item.plate||'—');
+    const snapshot=window.YahmaPayments.prevStateOf(item.id, item.carId);
+    if(!confirm('رجوع السيارة «'+plate+'» لِتبويب «تم الدفع»؟\n\n'
+      +prevRestoreLines(car, snapshot, 'renewed')+'\n'
+      +'• سجل «تم التجديد» هيتشال\n'
+      +'• الطلب هيفضل في «تم الدفع»'))return;
+    if(car){
+      const before=Object.assign({}, car);
+      applyPrevState(car, snapshot, 'renewed');
+      const saved=await saveData([car.id]);
+      if(saved===false){
+        Object.keys(before).forEach(function(k){ car[k]=before[k]; });
+        await saveData([car.id]);
+        alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
+        return;
+      }
+    }
+    await window.YahmaPayments.revertRenewedToPaid(item.id, item.carId);
+    if(typeof window.log==='function') window.log('رجوع تجديد لِتم الدفع','السيارة '+plate);
+    render();
   }));
 }
 
 /* ===== تجديد الرخصة من «تم الدفع» =====
    بتحدّد الرخصة (3 سنين افتراضيًا) وبتتحوّل للخطوة «تم التجديد». */
 async function renewLicenseFromPaid(item, car, content){
-  if(window.currentRole!=='admin'&&window.currentRole!=='ops'){alert('ليس لديك صلاحية تجديد الرخص.');return;}
+  if(!canRunPayments('تجديد الرخص')) return;
   if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return;}
   const suggested=(typeof window.defaultLicenseExpiry==='function')
     ? window.defaultLicenseExpiry()
@@ -331,6 +443,13 @@ async function renewLicenseFromPaid(item, car, content){
   if(!raw) return;
   const normalized=(typeof window.normalizeDateValue==='function') ? window.normalizeDateValue(raw) : raw;
   const previous=car.licenseExpiry;
+  const previousStatus=car.licenseStatus;
+  /* حفظ التاريخ القديم قبل التجديد — من غير كده «رجوع لِتم الدفع»
+     هيسيب التاريخ الجديد في الأسطول ولا فيه رجعة منه. */
+  await window.YahmaPayments.rememberCarState(item.id, item.carId, {
+    licenseExpiry: previous,
+    licenseStatus: previousStatus
+  });
   car.licenseExpiry=normalized||raw;
   if(!car.licenseStatus||String(car.licenseStatus).includes('منته')) car.licenseStatus='نشط';
   const saved=await saveData([car.id]);
@@ -528,8 +647,8 @@ function showBranchScopeNotice(content){
 
   بعبارة أخرى: الأزرار اللي بتعدّل بيانات (حفظ/حذف/رفع/تعيين/تجديد) بتتعطّل
    وتاخد تلميح يوضّح للمستخدم إن حسابه محدود. */
-const EDIT_ACTION_RE = /(حذف|رفع|استيراد|تعيين|ضبط|تجديد|إضافة|تعديل|حفظ|تحديث|الإجراء|✏|🗑|📥|✚|➕|🗓|↻)/;
-const EDIT_ID_RE = /(upload|import|delete|del-|drop|bulk|save|add|edit|renew|set-|status|remove|trash)/i;
+const EDIT_ACTION_RE = /(حذف|رفع|استيراد|تعيين|ضبط|تجديد|إضافة|تعديل|حفظ|تحديث|الإجراء|رجوع|تسجيل الدفع|✏|🗑|📥|✚|➕|🗓|↻|↩)/;
+const EDIT_ID_RE = /(upload|import|delete|del-|drop|bulk|save|add|edit|renew|set-|status|remove|trash|stepback|payment-cancel|payment-done)/i;
 
 function applyTabEditPermission(content){
   if(!content) return;

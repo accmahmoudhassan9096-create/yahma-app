@@ -143,7 +143,7 @@ function diagnose() {
     try {
       var res = await global.supabaseClient
         .from('inspection_payments')
-        .select('id,car_id,plate,branch,status,requested_at,paid_at,note')
+        .select('id,car_id,plate,branch,status,requested_at,paid_at,note,prev_state')
         .in('status', ['pending', 'paid'])
         .order('requested_at', { ascending: false })
         .limit(2000);
@@ -157,7 +157,8 @@ function diagnose() {
           status: r.status,
           requestedAt: r.requested_at,
           paidAt: r.paid_at || null,
-          note: r.note || ''
+          note: r.note || '',
+          prevState: r.prev_state || null
         };
       });
       return rows;
@@ -387,6 +388,197 @@ function diagnose() {
     }
   }
 
+  /* ===== الرجوع للمرحلة السابقة =====
+
+     السلسلة: الفحص ← تحت الدفع ← تم الدفع ← تم التجديد
+
+     كل انتقال أمامي بيكتب على السيارة (حالة الفحص، تاريخ الرخصة)،
+     فلو رجعنا للوراء من غير ما نحفظ الحالة القديمة كانت هتفضل
+     القيمة الجديدة في الأسطول: ترجع السيارة «سليم» مع رخصة
+     متجددة حتى لو المستخدم طلب الرجوع لمرحلة الدفع.
+
+     هنا بنحفظ الحالة قبل كل تعديل في `prev_state` (عمود jsonb على
+     جدول inspection_payments)، والرجوع بيقرا منها بدل ما يخمّن.
+     العمود بيتحدّث بالدمج (merge) مش بالاستبدال، عشان لو السيارة
+     عدّت مرحلة تانية بعدين يفضل في الذاكرة_state تاني.
+
+     صيغة الحفظ:
+       { inspectionStatus, licenseExpiry, licenseStatus }
+     الحقول الناقصة في اللقطة معناها إن المرحلة دي ما غيّرتهاش. */
+
+  /* resolveCloudId بتدوّر على status='pending' بس — صح لمّا markPaid
+     هي اللي نادية، بس غلط لمّا نرجع سجل مدفوع. الرجوع محتاج UUID
+     لسجل في أي حالة، فبندوّر على الاتنين ونختار الأحدث. */
+  async function resolveAnyCloudId(id, carId) {
+    if (isCloudId(id)) return id;
+    if (!tableReady()) return null;
+    try {
+      var q = await global.supabaseClient
+        .from('inspection_payments')
+        .select('id,status,requested_at')
+        .eq('car_id', String(carId || ''))
+        .in('status', ['pending', 'paid'])
+        .order('requested_at', { ascending: false })
+        .limit(1);
+      if (q.error || !q.data || !q.data.length) return null;
+      return q.data[0].id;
+    } catch (_) { return null; }
+  }
+
+  /* تعديل الطلب على السحابة بمفتاح واحد — كل نداءات الرجوع
+     بتمر من هنا عشان مسار واحد: البحث عن UUID لو المفتاح نصي،
+     وكتابة الخطأ في نفس الرسالة اللي الواجهة بتقراها. */
+  async function patchCloud(id, carId, fields) {
+    if (!tableReady()) return { ok: true, local: true };
+    var cloudId = await resolveAnyCloudId(id, carId);
+    if (!cloudId) {
+      global.__yahmaPaymentsCloudError = '';
+      return { ok: true, local: true };
+    }
+    try {
+      var res = await global.supabaseClient.from('inspection_payments')
+        .update(fields)
+        .eq('id', cloudId);
+      if (res && res.error) {
+        global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
+        return { ok: true, local: true, error: res.error.message };
+      }
+      global.__yahmaPaymentsCloudError = '';
+      return { ok: true };
+    } catch (err) {
+      global.__yahmaPaymentsCloudError = String((err && err.message) || err);
+      return { ok: true, local: true, error: err && err.message };
+    }
+  }
+
+  /* حارس الصلاحية جوّه الوحدة نفسها، مش بس في الواجهة.
+
+   الأزرار محمية بـ canRunPayments، بس أي مسار تاني يقدر ينادي
+   الدالة دي مباشرة (سجل نشاط قديم، سكربت، console). RLS بيحمي
+   البيانات فعلاً، بس ده طبقة تانية قبل ما نكتب على السحابة أصلاً
+   — خصوصًا «مشاهدة» اللي المفروض ملوش أي كتابة. */
+  function canMutate() {
+    var P = global.YahmaPerms;
+    if (P && typeof P.canEditNow === 'function') return !!P.canEditNow();
+    return global.currentRole !== 'view';
+  }
+
+  /* حفظ الحالة القديمة قبل الانتقال للأمام. merge مش replace.
+     مش محمي بصلاحية: ده مش تغيير في حالة العمل، هو مجرد تذكّر
+     بالقيمة القديمة عشان الرجوع يقدر يرجّعها. لو قفلناه كان الرجوع
+     هيفشل صامت. */
+  async function rememberCarState(id, carId, fields) {
+    if (!fields) return;
+    var keys = Object.keys(fields);
+    if (!keys.length) return;
+    var merged = null;
+    [PENDING_KEY, PAID_KEY].forEach(function (key) {
+      var list = readJSON(key, []);
+      list.forEach(function (p) {
+        if (String(p.id) !== String(id) && !(carId && String(p.carId) === String(carId))) return;
+        var base = (p.prevState && typeof p.prevState === 'object') ? p.prevState : {};
+        Object.keys(fields).forEach(function (k) { base[k] = fields[k]; });
+        p.prevState = base;
+        merged = base;
+      });
+      writeJSON(key, list);
+    });
+    if (!merged) return;
+    await patchCloud(id, carId, { prev_state: merged });
+  }
+
+  /* قراءة اللقطة المحفوظة للطلب — المفتاح ممكن يكون UUID أو نصي */
+  function prevStateOf(id, carId) {
+    var hit = null;
+    [PENDING_KEY, PAID_KEY].forEach(function (key) {
+      readJSON(key, []).forEach(function (p) {
+        if (String(p.id) === String(id) || (carId && String(p.carId) === String(carId))) hit = p.prevState || hit;
+      });
+    });
+    if (hit) return hit;
+    /* مش في الكاش المحلي — نجيبه من السحابة */
+    if (!tableReady()) return null;
+    try {
+      var chain = window.supabaseClient.from('inspection_payments')
+        .select('prev_state')
+        .eq('car_id', String(carId || ''))
+        .in('status', ['pending', 'paid'])
+        .limit(1);
+      chain.then(function (res) {
+        if (res && res.data && res.data[0]) {
+          var list = readJSON(PAID_KEY, []).concat(readJSON(PENDING_KEY, []));
+          var touched = false;
+          list.forEach(function (p) {
+            if (String(p.carId) === String(carId) && !p.prevState) { p.prevState = res.data[0].prev_state || null; touched = true; }
+          });
+          if (touched) writeJSON(PAID_KEY, readJSON(PAID_KEY, []));
+        }
+      }).catch(function (_) {});
+    } catch (_) {}
+    return null;
+  }
+
+  /* ===== 2 ← 3 : «تم التجديد» يرجع «تم الدفع» =====
+     الطلب رجع حالته paid (من غير ما نمسح paid_at ولا note)، و تاريخ الرخصة
+     يرجع للقيمة اللي كانت قبل التجديد. */
+  async function revertRenewedToPaid(id, carId) {
+    if (!canMutate()) return { ok: false, error: 'permission' };
+    var stamp = null;
+    [PENDING_KEY, PAID_KEY].forEach(function (key) {
+      var list = readJSON(key, []);
+      list.forEach(function (p) {
+        if (String(p.id) === String(id) || (carId && String(p.carId) === String(carId))) {
+          var note = String(p.note || '');
+          if (note.indexOf(DONE_NOTE) === 0) stamp = doneStamp(p);
+          p.note = '';
+          delete p.licenseRenewedAt;
+        }
+      });
+      writeJSON(key, list);
+    });
+    return patchCloud(id, carId, { note: null });
+  }
+
+  /* ===== 1 ← 2 : «تم الدفع» يرجع «تحت الدفع» =====
+     الطلب لازم يتحرّك من قائمة المدفوع لقائمة المنتظر، مش بس
+     تتغيّر حالته: localAll() بيبني التبويبين من القائمتين، والقيمة
+     status='pending' وهو مخزّن في PAID_KEY بتقع من الفلترين —
+     يعني الطلب كان بيختفي من التبويبين كلهم. */
+  async function revertPaidToPending(id, carId) {
+    if (!canMutate()) return { ok: false, error: 'permission' };
+    var pending = readJSON(PENDING_KEY, []);
+    var paidList = readJSON(PAID_KEY, []);
+    var moved = null;
+    paidList = paidList.filter(function (p) {
+      var hit = String(p.id) === String(id) || (carId && String(p.carId) === String(carId));
+      if (!hit) return true;
+      p.status = 'pending';
+      p.paidAt = null;
+      p.note = '';
+      delete p.licenseRenewedAt;
+      moved = p;
+      return false;                       /* بيخرج من PAID_KEY */
+    });
+    if (moved) {
+      /* من غير ده كان هيتضاف مرتين لو الطلب لسه في PENDING_KEY */
+      pending = pending.filter(function (p) { return String(p.id) !== String(moved.id); });
+      pending.unshift(moved);
+    }
+    writeJSON(PENDING_KEY, pending);
+    writeJSON(PAID_KEY, paidList);
+    return patchCloud(id, carId, { status: 'pending', paid_at: null, note: null });
+  }
+
+  /* ===== 0 ← 1 : «تحت الدفع» يرجع «الفحص» =====
+     الطلب بيتشال نهائيًا (cancel موجود من زمان)، والفرق الجديد
+    prev_state بيتصفّر معاه عشان طلب قادم ما يورثش لقطة قديمة. */
+  async function revertPendingToInspection(id, carId) {
+    if (!canMutate()) return { ok: false, error: 'permission' };
+    var res = await cancel(id, carId);
+    await patchCloud(id, carId, { prev_state: null });
+    return res;
+  }
+
   global.YahmaPayments = {
     sync: sync,
     diagnose: DIAGNOSE,
@@ -400,6 +592,14 @@ function diagnose() {
     renewedList: function () { return localByStatus('paid').filter(isRenewed); },
     pendingList: function () { return localByStatus('paid').filter(function (p) { return !isRenewed(p); }); },
     cancel: cancel,
+    /* ===== الرجوع =====
+       كل واحد بيرجع مرحلة واحدة للخلف وبيوصّل الحالة القديمة
+       للمصوّر (render-router) عشان يرجّعها لبيانات السيارة. */
+    rememberCarState: rememberCarState,
+    prevStateOf: prevStateOf,
+    revertRenewedToPaid: revertRenewedToPaid,
+    revertPaidToPending: revertPaidToPending,
+    revertPendingToInspection: revertPendingToInspection,
     DONE_NOTE: DONE_NOTE,
     PENDING_KEY: PENDING_KEY,
     PAID_KEY: PAID_KEY
