@@ -339,7 +339,10 @@ function renderPaidInspections(content){
     if(car){
       const before=Object.assign({}, car);
       applyPrevState(car, snapshot, 'paid');
-      if(car.inspectionStatus===undefined || car.inspectionStatus===null || car.inspectionStatus===''){
+      /* سجل قديم من غير لقطة: مينفعش نسيب الحالة «سليم» —
+         الحوار بيقول للمستخدم «حالة الفحص هترجع لـلم يفحص»، ولو
+         الكود عمل غير كده يبقى الحوار بيكدب. فبنرجّع لللي قلناه. */
+      if(!snapshot || !Object.prototype.hasOwnProperty.call(snapshot, 'inspectionStatus')){
         car.inspectionStatus=NOT_INSPECTED;
       }
       const saved=await saveData([car.id]);
