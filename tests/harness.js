@@ -53,11 +53,32 @@ function loadApp() {
     utils: sandbox.YahmaUtils,
     readiness: sandbox.YahmaReadiness,
     prep: sandbox.YahmaPreparationData,
-    sandbox
+    sandbox,
+    /* الـcontext نفسه — loadModule بيشغّل جوّاه. لو عملنا
+       createContext تاني على نفس الـsandbox الهوية بتتكسر
+       والـglobals اللي كُتبت ما بتوصلش. */
+    context
   };
 }
 
 const app = loadApp();
+
+/* ===== تحميل وحدة إضافية في نفس الـsandbox =====
+
+   الـsandbox فوق اتبنى بـutils + readiness + preparation-data بس.
+   loadModule بيزود ملف فوقهم — عشان الوحدة تشوف نفس الـglobals
+   اللي بتشوفها في المتصفح (مثلاً vehicleReadiness اللي readiness.js
+   بيصدّرها في السطر 75). لو الوحدة محتاجة global مش موجودة،
+   رمي ValueError بدل ما تفضل undefined وتiggs التست. */
+function loadModule(rel, extraGlobals) {
+  const file = path.join(ROOT, rel);
+  if (!fs.existsSync(file)) throw new Error('الملف مش موجود: ' + rel);
+  const sandbox = app.sandbox;
+  if (extraGlobals) Object.assign(sandbox, extraGlobals);
+  const code = fs.readFileSync(file, 'utf8');
+  vm.runInContext(code, app.context, { filename: file });
+  return sandbox.YahmaDues || sandbox.YahmaUtils || sandbox;
+}
 
 /* ===== مصانع بيانات للاختبار ===== */
 
@@ -95,6 +116,7 @@ module.exports = {
   readinessStats: app.readiness.stats,
   readinessReasons: app.readiness.reasons,
   prep: app.prep,
+  loadModule,
   iso,
   readyCar,
   ROOT

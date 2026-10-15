@@ -550,7 +550,7 @@ function render(){
      بنلفّ fleet مؤقتاً وقت الرسم ونرجّعها فوراً — فالتعديل والحفظ شغالين عادي. */
   let scopedFleet=null;
   if (typeof fleetForTab==='function' && currentTab
-      && ['dashboard','fleet','branches','reports','audit','preparation'].indexOf(currentTab)<0){
+      && ['dashboard','fleet','branches','reports','audit','preparation','dues'].indexOf(currentTab)<0){
     try{
       __yahmaFullFleet = fleet;
       scopedFleet = fleetForTab(currentTab, fleet);
@@ -585,6 +585,14 @@ if(currentTab === 'dashboard') renderDashboard(content);
     else if(currentTab === 'audit') renderAuditPage(content);
     else if(currentTab === 'branches') renderBranches(content);
     else if(currentTab === 'preparation') renderPreparation(content);
+    else if(currentTab === 'dues' && window.YahmaDues && typeof window.YahmaDues.render==='function'){
+      try{ window.YahmaDues.render(content); }
+      catch(e){
+        window.__lastError=(e&&e.stack)||String(e);
+        content.innerHTML='<div class="panel"><h3>تعذر عرض المستحقات</h3><p class="muted-small">'+escapeHtml(e&&e.message?e.message:'حدث خطأ غير متوقع')+'</p><button type="button" class="btn btn-primary btn-small" id="dues-retry">إعادة المحاولة</button></div>';
+        document.getElementById('dues-retry')?.addEventListener('click',()=>render());
+      }
+    }
   }catch(e){
     window.__lastError=(e&&e.stack)||String(e);
     console.error('render failed for tab '+currentTab,e);

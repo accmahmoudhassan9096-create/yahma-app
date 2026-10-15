@@ -176,11 +176,27 @@
   .prep-final-row input[type=text],.prep-final-row input:not([type]){padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-family:inherit}
   .prep-page-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
   .prep-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-  .prep-kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px}.prep-kpi b{display:block;font-size:25px}.prep-kpi span{color:var(--muted);font-size:12px}
+  .prep-kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px}.prep-kpi b{display:block;font-size:25px}.prep-kpi span{color:var(--muted);font-size:12px}
   .task-table{width:100%;border-collapse:collapse}.task-table th,.task-table td{padding:10px;border-bottom:1px solid var(--line);text-align:right;font-size:12.5px}.task-table th{color:var(--navy);background:#F4F6FC}
   .task-status{padding:4px 9px;border-radius:14px;font-size:11px;font-weight:700}.task-open{background:var(--red-soft);color:var(--red)}.task-progress{background:var(--amber-soft);color:var(--amber)}.task-done{background:var(--green-soft);color:var(--green)}
   .prep-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.prep-filter select,.prep-filter input{padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-family:inherit}
   @media(max-width:900px){.prep-kpis{grid-template-columns:repeat(2,1fr)}.prep-checklist{grid-template-columns:1fr}.prep-final-row{grid-template-columns:1fr}}
+
+  /* ===== المستحقات الشهرية =====
+     نفس أساس تبويب التجهيز بالظبط (.prep-*) بس باسم صادق للتبويب
+     الجديد — تكرار المقصود مش صدفة: زوّدنا اسم بدل ما نكتب
+     القواعد من جديد، فمفيش خطر إن الوضع الليلي يفترق. */
+  .dues-page-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .dues-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .dues-kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px}
+  .dues-kpi b{display:block;font-size:25px}
+  .dues-kpi span{color:var(--muted);font-size:12px}
+  .dues-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .dues-filter select,.dues-filter input{padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-family:inherit}
+  .dues-table td{white-space:nowrap}
+  .dues-amount{font-weight:700;font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
+  .dues-norate{color:var(--muted)}
+  @media(max-width:900px){.dues-kpis{grid-template-columns:repeat(2,1fr)}}
 
   @media (max-width:900px){
     .tiles{grid-template-columns:repeat(2,1fr);}
