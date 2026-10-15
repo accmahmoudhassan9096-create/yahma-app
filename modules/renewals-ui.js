@@ -78,7 +78,7 @@ function renderRenewals(content, mode='inspection'){
       <div class="bulk-bar-info"><span id="ren-bulk-count">0 محددة</span></div>
       <div class="bulk-bar-actions">
         ${insuranceMode?'<button class="btn btn-primary btn-small" id="ren-bulk-ins-ok">🛡️ تعيين «ساري»</button><button class="btn btn-ghost btn-small" id="ren-bulk-ins-no">تعيين «لا يوجد»</button>':''}
-        ${(!licenseMode&&!insuranceMode)?'<button class="btn btn-ghost btn-small" id="ren-insp-from-lic" title="يضبط حالة الفحص من تاريخ الرخصة: منتهية ⇐ لم يفحص، سارية ⇐ تم الفحص">🔄 فحص من الرخص</button><button class="btn btn-primary btn-small" id="ren-bulk-insp-yes">✅ تم الفحص</button><button class="btn btn-ghost btn-small" id="ren-bulk-insp-no">لم يُفحص</button>':''}
+        ${(!licenseMode&&!insuranceMode)?'<button class="btn btn-ghost btn-small" id="ren-insp-from-lic" title="يضبط حالة الفحص من تاريخ الرخصة: منتهية ⇐ لم يفحص، سارية ⇐ تم الفحص">🔄 فحص من الرخص</button><button class="btn btn-primary btn-small" id="ren-bulk-insp-yes" title="يضبط الحالة «تم الفحص» وينقل المحددة لِتبويب «تحت الدفع» — الخطوة التالية في الدورة">✅ تم الفحص ← تحت الدفع</button><button class="btn btn-ghost btn-small" id="ren-bulk-insp-no" title="يضبط الحالة «لم يفحص» بدون نقل — السيارة بتفضل في «الفحص»">لم يُفحص</button>':''}
         ${licenseMode?'<button class="btn btn-primary btn-small" id="ren-bulk-lic-renew">📅 تجديد الرخصة (سنة)</button><button class="btn btn-ghost btn-small" id="ren-bulk-lic-status">ضبط حالة الرخصة</button>':''}
         <button class="btn btn-danger btn-small" id="ren-bulk-delete">🗑 حذف المحددة</button>
         <button class="btn btn-ghost btn-small" id="ren-bulk-clear">إلغاء التحديد</button>
@@ -275,10 +275,93 @@ function renderRenewals(content, mode='inspection'){
     await renBulkApply(withDate, c=>{ c.inspectionStatus = inspectionFromLicense(c); },
       'تم تحديث فحص '+withDate.length+' سيارة من الرخص', 'فحص من الرخص');
   }
-  async function bulkSetInspection(value){
+  /* ===== الانتقال للمرحلة التالية: الفحص ← تحت الدفع =====
+
+     ⚠️ سبب وجود الدالة دي: «تم الفحص» الجماعي كان بيحط حالة الفحص
+     وخلاص، فما كانش بينقل ولا سيارة لِتبويب «تحت الدفع». النتيجة إن
+     1055 سيارة بتتفحص تدخل الحالة الصح وتتصل في الفحص تاني للأبد،
+     والدورة تقف عند أول خطوة. زر السيارة الواحدة («تجديد فحص») كان
+     بينقل صح من أول يوم — فالمسارين كانا متفظلفين.
+
+    خطوة واحدة دلوقتي: الجماعي = المفرد + تكرار.
+
+     الطلب بيتسجّل بـ YahmaPayments.requestPayment — نفس دالة الزر
+     المفرد بالظبط، فالنتيجة في السحابة وفي التبويب متطابقة. */
+
+  /* السيارات اللي هي أصلاً في «تحت الدفع» — بنتجاهلها.
+     مهم: requestPayment بيعمل insert جديد في جدول
+     inspection_payments كل مرة، فبدون الفلترة دي السيارة كانت
+     هتاخد طلبين، واحد قديم والتاني جديد. */
+  function pendingCarIds() {
+    try {
+      if (window.YahmaPayments && typeof window.YahmaPayments.localByStatus === 'function') {
+        return window.YahmaPayments.localByStatus('pending')
+          .map(function (p) { return String(p.carId); });
+      }
+    } catch(e){yahmaErr(e,'renewals-ui.js:pendingCarIds');}
+    return [];
+  }
+
+  async function bulkAdvanceToPayment(cars) {
+    if (!window.YahmaPayments || typeof window.YahmaPayments.requestPayment !== 'function') {
+      alert('تعذّر الانتقال لِتبويب «تحت الدفع» — وحدة الدفع غير محمّلة.');
+      return;
+    }
+    if (typeof window.canAccessYahmaTab === 'function' && !window.canAccessYahmaTab('payments')) {
+      alert('لا تملك صلاحية الوصول إلى قسم «تحت الدفع».');
+      return;
+    }
+
+    /* ❶ حالة الفحص الأول، ونحفظ مرة واحدة لكل المحدد. */
+    cars.forEach(function(c){ c.inspectionStatus = 'تم الفحص'; });
+    let ok = true;
+    try { ok = await saveData(cars.map(function(c){ return c.id; })); }
+    catch(_){ ok = false; }
+    if (ok === false) {
+      alert('تعذر حفظ حالة الفحص على بعض السيارات — تحقق من الاتصال ثم أعد المحاولة.\nلم يتم نقل أي سيارة لِتبويب «تحت الدفع».');
+      return;
+    }
+
+    /* ❷ الطلب على الدفع — سيّارة سيّارة عشان نعرف مين اتنفذ ومين لأ. */
+    const already = pendingCarIds();
+    let moved = 0, skipped = 0;
+    const failed = [];
+    for (const car of cars) {
+      if (already.indexOf(String(car.id)) >= 0) { skipped++; continue; }
+      try {
+        await window.YahmaPayments.requestPayment(car);
+        moved++;
+      } catch(e) {
+        yahmaErr(e,'renewals-ui.js:bulkAdvanceToPayment');
+        failed.push(car.plate || String(car.id));
+      }
+    }
+
+    cars.forEach(function(c){ selectedRenIds.delete(String(c.id)); });
+
+    /* ملخص دقيق — «تم» ومين اتخطّى ومين فشل. رسالة واحدة عامة
+       كانت هتخفي الفشل وتخلّي المستخدم يفكر إن كله تم. */
+    const parts = [];
+    if (moved) parts.push(moved + ' سيارة اتنقلت لِتبويب «تحت الدفع»');
+    if (skipped) parts.push(skipped + ' كانت موجودة بالفعل في «تحت الدفع»');
+    if (failed.length) parts.push('فشل نقل: ' + failed.join('، '));
+    alert(parts.join('\n') || 'مفيش حاجة اتغيّرت.');
+
+    if (typeof log === 'function') {
+      try { log('فحص جماعي', moved + ' انتقال لِتحت الدفع' + (skipped ? ' + ' + skipped + ' موجودة بالفعل' : '')); }
+      catch(e){yahmaErr(e,'renewals-ui.js:bulkAdvanceToPayment:log');}
+    }
+    render();
+  }
+
+  async function bulkSetInspection(value, advanceToPayment){
     const cars=renSelectedCars();
     if(!cars.length) return;
-    if(!confirm('تعيين حالة الفحص «'+value+'» لـ '+cars.length+' سيارة؟\n'+renPlates(cars))) return;
+    const question = advanceToPayment
+      ? 'تعيين حالة الفحص «تم الفحص» ونقل '+cars.length+' سيارة لِتبويب «تحت الدفع»؟'
+      : 'تعيين حالة الفحص «'+value+'» لـ '+cars.length+' سيارة؟';
+    if(!confirm(question+'\n'+renPlates(cars))) return;
+    if(advanceToPayment){ await bulkAdvanceToPayment(cars); return; }
     await renBulkApply(cars, c=>{ c.inspectionStatus=value; }, 'تم تحديث فحص '+cars.length+' سيارة', 'تحديث فحص جماعي');
   }
   async function bulkRenewLicense(){
@@ -516,7 +599,7 @@ function renderRenewals(content, mode='inspection'){
   $('ren-export-pdf')?.addEventListener('click',()=>exportRen('pdf'));
   $('ren-bulk-delete')?.addEventListener('click',()=>deleteRenCars([...selectedRenIds]));
   $('ren-insp-from-lic')?.addEventListener('click',bulkInspectionFromLicenses);
-  $('ren-bulk-insp-yes')?.addEventListener('click',()=>bulkSetInspection('تم الفحص'));
+  $('ren-bulk-insp-yes')?.addEventListener('click',()=>bulkSetInspection('تم الفحص', true));
   $('ren-bulk-insp-no')?.addEventListener('click',()=>bulkSetInspection('لم يفحص'));
   $('ren-bulk-lic-renew')?.addEventListener('click',bulkRenewLicense);
   $('ren-bulk-lic-status')?.addEventListener('click',bulkSetLicenseStatus);
