@@ -1,0 +1,16 @@
+{
+  "name": "yahma-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "منصة يهماء لتأجير السيارات — تطبيق ويب تقدمي",
+  "scripts": {
+    "test": "node --test tests/",
+    "test:watch": "node --test --watch tests/",
+    "check": "node --check sw.js && node scripts/check-shell.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

@@ -16,14 +16,12 @@ const LOCAL_APP_SHELL = [
   './vendor/xlsx.full.min.js',
   './vendor/html2canvas.min.js',
   './vendor/jspdf.umd.min.js',
-  /* style.css فُرّق إلى أربعة ملفات بنفس الترتيب (يجب أن يبقى 04 آخرًا) */
   './css/01-base.css',
   './css/02-components.css',
   './css/03-motion-layout.css',
   './css/04-dark-overrides.css',
   './assets/dashboard-hero.png',
   './app.js',
-  /* app-core.js فُرّغ إلى ملف شاهد — محتواه في core/* بنفس الترتيب */
   './core/permissions.js',
   './core/auth-boot.js',
   './modules/app-lock.js',
@@ -37,7 +35,6 @@ const LOCAL_APP_SHELL = [
   './modules/error-bus.js',
   './modules/error-panel.js',
   './modules/offline-queue.js',
-  /* كتل استُخرجت من app-core.js (نفس ترتيب التنفيذ السابق) */
   './modules/audit-theme.js',
   './modules/notifications.js',
   './modules/preparation-live.js',
@@ -48,7 +45,6 @@ const LOCAL_APP_SHELL = [
   './modules/nav-guard.js',
   './modules/perf-vtable.js',
   './manifest.json',
-  /* modules/auth.js أُزيل: موقوف التحميل (كود ميت) — حتى لا يُثبَّت في الكاش */
   './modules/data.js',
   './modules/payments-store.js',
   './modules/email-schedule.js',
