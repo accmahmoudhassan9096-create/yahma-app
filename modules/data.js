@@ -287,13 +287,40 @@
         context.addCloudVehicleIds(toWrite.map(car => String(car.id)));
         global.syncMessage = 'تم الحفظ على Supabase';
         try { global.localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString()); } catch(_){yahmaErr(_,'data.js:289');}
+        /* الحفظ نجح — أي حاجة كانت مستنية في الطابور لنفس السيارات
+           بقت قديمة. شيلناها عشان ما نبعتشش حالة قديمة فوق الأحدث. */
+        try{
+          if (global.YahmaOffline && typeof global.YahmaOffline.dropSettled === 'function') {
+            global.YahmaOffline.dropSettled(toWrite.map(car => String(car.id)));
+          }
+        } catch(_){yahmaErr(_,'data.js:297');}
       } else if (global.storage && typeof global.storage.set === 'function') {
         await global.storage.set(STORAGE_KEY, value, true);
       }
       return true;
     } catch (error) {
       console.error('تعذر الحفظ على Supabase، تم الحفظ محليًا', error);
-      global.syncMessage = 'محفوظ محليًا';
+      /* ⚠️ قبل الطابور: الحفظ كان بيفشل وخلاص، والداتا بتفضل على
+         الجهاز بس. وأول فتح للتطبيق بيعيد الجلب من السحابة ويمسح
+         المحلي — يعني التعديل كان بيروح فعليًا.
+
+         دلوقتي الصفوف بتتحط في طابور الأوفلاين وبتتبعت أول ما
+         الشبكة ترجع. المفتاح car_id فآخر حالة بتكفي وبتغني عن
+         الباقي. */
+      let queued = 0;
+      try {
+        if (global.YahmaOffline && typeof global.YahmaOffline.enqueue === 'function') {
+          const idSet = Array.isArray(idsToSave) && idsToSave.length ? new Set(idsToSave.map(String)) : null;
+          const affected = idSet ? fleet.filter(car => idSet.has(String(car.id))) : fleet;
+          queued = await global.YahmaOffline.enqueue(
+            affected.map(toVehicleRow).filter(row => row.plate),
+            'save-failed: ' + ((error && error.message) || error)
+          );
+        }
+      } catch (_) { yahmaErr(_, 'data.js:enqueue'); }
+      global.syncMessage = queued
+        ? 'محفوظ على الجهاز — ' + queued + ' تغيير بانتظار الشبكة'
+        : 'محفوظ محليًا';
       return false;
     }
   }

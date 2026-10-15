@@ -198,7 +198,16 @@
         </button>
         <div class="topbar-titles">
           <h1 id="topbar-title">الرئيسية</h1>
-          <p id="topbar-sub">نظرة عامة على حالة الأسطول <span id="sync-status" class="sync-status">جاري الاتصال</span> <span id="last-sync-label" class="sync-status">—</span></p>
+          <p id="topbar-sub">نظرة عامة على حالة الأسطول</p>
+          <!-- شارات الحالة كانت جوّه #topbar-sub، و17 مكان بيكتبوا
+               topbar-sub.textContent — فأي واحد منهم كان بيمسح
+               الشارات من الـDOM عند أول رسم وبيخلّيها اختفى الصامت.
+               siblings دلوقتي عشان مفيش كتابة على نص ممكن تمسحهم. -->
+          <p class="topbar-statuses">
+            <span id="sync-status" class="sync-status">جاري الاتصال</span>
+            <span id="last-sync-label" class="sync-status">—</span>
+            <span id="sync-pending" class="sync-status is-pending" hidden></span>
+          </p>
         </div>
       </div>
 
@@ -443,6 +452,7 @@
 <script>window.yahmaErr = window.yahmaErr || function () {};</script>
 <script src="modules/error-bus.js"></script>
 <script src="modules/error-panel.js"></script>
+<script src="modules/offline-queue.js"></script>
 
 <!-- حارس الإقلاق والتنقّل — لازم أول حاجة عشان يمسك الأخطاء من بدري -->
 <script src="modules/nav-guard.js"></script>

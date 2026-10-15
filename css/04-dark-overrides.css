@@ -911,6 +911,28 @@ body.dark-mode #app-lock-screen .lock-note{color:#7C8A98;}
 }
 .yx-undo-x:hover{background:rgba(248,250,252,.14);}
 
+/* الشارات بقت siblings تحت .topbar-titles عشان الكتابة على
+   topbar-sub.textContent ما تمسحشها. */
+.topbar-statuses{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:5px 0 0;}
+.topbar-statuses .sync-status{margin-right:0;}
+
+/* ===== مؤشر المزامنة / الأوفلاين =====
+   .sync-status موجود من زمان، وبيبقى عليه class حسب الحالة.
+   اللون هو الإشارة — النص بيتنقل معاه. */
+.sync-status.is-pending{
+  color:#A85B00;background:#FFF3D6;border:1px solid #F0D18A;
+  padding:2px 9px;border-radius:999px;font-weight:800;
+  animation:syncPulse 1.8s ease-in-out infinite;
+}
+.sync-status.is-offline{
+  color:#B42318;background:#FFE3E0;border:1px solid #F5B5AE;
+  padding:2px 9px;border-radius:999px;font-weight:800;
+}
+@keyframes syncPulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+body.dark-mode .sync-status.is-pending{color:#F2D49B;background:#3A2A08;border-color:#7A5B1E;}
+body.dark-mode .sync-status.is-offline{color:#FBC9C3;background:#3D1512;border-color:#8A3A31;}
+@media (prefers-reduced-motion: reduce){ .sync-status.is-pending{animation:none;} }
+
 /* ===== سجل الأخطاء =====
    ترتيب الألوان معكوس عن المتوقع عن قصد: المتكرر (أزرق) مش
    خطر، المختلف (أحمر) هو اللي يستاهل وقفة. لو عملنا العكس،

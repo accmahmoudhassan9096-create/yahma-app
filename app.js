@@ -6,7 +6,10 @@
   'use strict';
 
   const DB_NAME = 'yahma-fleet-db';
-  const DB_VERSION = 1;
+  /* v2: جدول طابور الأوفلاين. v1 كان أقف عند 1.
+     الترقية بتضيف جدول جديد وبتسيب جدول vehicles زي ما هو —
+     IndexedDB بيفصل ترقيبات المخطط في store() متعدد. */
+  const DB_VERSION = 2;
   const LEGACY_KEY = 'fleet-data-v2';
   const BRANCHES_KEY = 'fleet-branches-v1';
 
@@ -16,13 +19,64 @@
       return null;
     }
     const db = new Dexie(DB_NAME);
-    db.version(DB_VERSION).stores({
+    db.version(1).stores({
       // id هو المفتاح الأساسي للسيارة
       vehicles: 'id, plate, branch, owner, brand, carStatus, cardExpiry, licenseExpiry',
       meta: 'key',
       branches: 'id, name',
     });
+    /* carId مفتاح أساسي عشان تعديل نفس السيارة 5 مرات وهوفلاين
+       يبقى سطر واحد فيه آخر حالة، مش 5 سطور. الحفظ الطابوري
+       بيضغط نفسه (coalescing) — ده اللي يمنع الطابور من Inflation. */
+    db.version(2).stores({
+      pendingWrites: 'carId, savedAt',
+    });
     return db;
+  }
+
+  /* ===== طابور الأوفلاين =====
+     الحفظ العادي بيكتب: localStorage ← Dexie ← Supabase.
+     لو الخطوة التالتة فشلت (نت مقطوع، السيرفر واقع، جلسة منتهية)
+     الداتا كانت بتفضل على الجهاز بس، وأول ما المستخدم يفتح
+     التطبيق تاني loadData بيمسح المحلي بمحتوى السحابة — فالبيانات
+     بتروح.
+
+     الطابور بيخزّن صف السيارة كما هو بالظبط قبل ما الشبكة ترجع، وبعدين
+     بيحاول يرسله تاني. المفتاح carId عشان آخر تعديل هو اللي بيفضل. */
+  async function queuePending(rows, reason) {
+    if (!db || !Array.isArray(rows) || !rows.length) return 0;
+    try {
+      const now = new Date().toISOString();
+      const existing = new Set((await db.pendingWrites.toCollection().primaryKeys()).map(String));
+      const fresh = [];
+      rows.forEach(function (row) {
+        if (!row || row.car_id === undefined || row.car_id === null) return;
+        if (existing.has(String(row.car_id))) return;   /* الخط القديم أبقى بيفضل */
+        fresh.push({ carId: String(row.car_id), row: row, savedAt: now, reason: String(reason || '') });
+      });
+      if (fresh.length) await db.pendingWrites.bulkPut(fresh);
+      return fresh.length;
+    } catch (e) {
+      console.error('[YahmaDB] queuePending error:', e);
+      return 0;
+    }
+  }
+  async function listPending() {
+    if (!db) return [];
+    try { return await db.pendingWrites.toArray(); }
+    catch (e) { console.error('[YahmaDB] listPending error:', e); return []; }
+  }
+  async function dropPending(carIds) {
+    if (!db || !carIds || !carIds.length) return 0;
+    try {
+      await db.pendingWrites.bulkDelete(carIds.map(String));
+      return carIds.length;
+    } catch (e) { console.error('[YahmaDB] dropPending error:', e); return 0; }
+  }
+  async function pendingCount() {
+    if (!db) return 0;
+    try { return await db.pendingWrites.count(); }
+    catch (_) { return 0; }
   }
 
   const db = createDb();
@@ -158,6 +212,10 @@
     loadBranches: loadBranches,
     migrateFromLocalStorage: migrateFromLocalStorage,
     count: count,
+    queuePending: queuePending,
+    listPending: listPending,
+    dropPending: dropPending,
+    pendingCount: pendingCount,
   };
 
   // بعد تحميل core: اربط saveData ليفضّل IndexedDB
