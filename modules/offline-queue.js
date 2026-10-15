@@ -228,6 +228,7 @@
     var text = '';
     var cls = 'sync-status is-pending';
     var title = '';
+    var clickable = false;
 
     if (s.flushing) {
       text = '↻ جاري الإرسال…';
@@ -235,18 +236,44 @@
     } else if (s.count > 0) {
       text = '↻ ' + s.count + ' حفظ بانتظار الشبكة';
       title = (s.last.error ? ('آخر خطأ: ' + s.last.error + ' — ')
-                             : '') + 'بيتعاد الإرسال تلقائياً أول ما الشبكة ترجع';
+                             : '') + 'اضغط لإعادة الإرسال الآن';
+      clickable = true;
     } else if (!s.online) {
       text = '⚠ لا يوجد اتصال';
       cls = 'sync-status is-offline';
       title = 'التعديلات بتتحفظ على الجهاز وبتتبعت أول ما الشبكة ترجع';
     }
 
-    if (!text) { el.hidden = true; el.textContent = ''; el.title = ''; return; }
+    if (!text) {
+      el.hidden = true;
+      el.textContent = '';
+      el.title = '';
+      el.style.cursor = '';
+      el.removeAttribute('role');
+      el.removeAttribute('tabindex');
+      return;
+    }
     el.hidden = false;
     el.textContent = text;
-    el.className = cls;
+    el.className = cls + (clickable ? ' is-clickable' : '');
     el.title = title;
+    el.style.cursor = clickable ? 'pointer' : '';
+    if (clickable) {
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+    } else {
+      el.removeAttribute('role');
+      el.removeAttribute('tabindex');
+    }
+  }
+
+  function onBadgeActivate(e) {
+    if (e && e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    var s = snapshot();
+    if (s.flushing || s.count <= 0) return;
+    attempts = 0;
+    scheduleFlush(0);
   }
 
   function install() {
@@ -260,13 +287,23 @@
       global.document.addEventListener('visibilitychange', function () {
         if (global.document.visibilityState === 'visible' && online()) scheduleFlush(0);
       });
+
+      /* الشارة قابلة للضغط: إعادة إرسال فورية بدل انتظار الـtimer */
+      var badge = global.document.getElementById('sync-pending');
+      if (badge && !badge._yahmaClickBound) {
+        badge._yahmaClickBound = true;
+        badge.addEventListener('click', onBadgeActivate);
+        badge.addEventListener('keydown', onBadgeActivate);
+      }
     }
     global.setInterval(function () {
       if (online()) flush('interval');
       else { refreshCount().then(function () { paintStatus(); }); }
     }, FLUSH_EVERY_MS);
 
-    var off = YahmaErrors.on(function () { paintStatus(); });
+    if (typeof YahmaErrors !== 'undefined' && YahmaErrors.on) {
+      YahmaErrors.on(function () { paintStatus(); });
+    }
     listeners.push(function () { paintStatus(); });
 
     /* أول تشغيل: فيه حاجة مستنية من جلسة فاتت؟ */
