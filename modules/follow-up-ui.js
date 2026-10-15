@@ -52,8 +52,7 @@ function renderFollowUp(content){
         <button class="btn btn-whatsapp" id="btn-wa-card">واتساب — الكارت</button>
         <button class="btn btn-whatsapp" id="btn-wa-ins">واتساب — التأمين</button>
         <button class="btn btn-ghost" id="btn-copy-card">نسخ قائمة الكارت</button>
-        <button class="btn btn-excel-export" id="fu-export-xlsx" title="تصدير النتائج المفلترة">📊 Excel</button>
-        <button class="btn btn-ghost" id="fu-export-pdf" title="تصدير PDF للنتائج المفلترة">📄 PDF</button>
+        <!-- أزرار التصدير القديمة (fu-export-*) اتشالت — التصدير من شريط yx. -->
         <button class="btn btn-primary btn-small" id="fu-upload-btn" title="رفع شيت الكروت — يحدّث بيانات الكارت فقط">📥 رفع شيت الكروت</button>
         <input type="file" id="file-fu-upload" accept=".xlsx,.xls,.csv" style="display:none">
       </div>

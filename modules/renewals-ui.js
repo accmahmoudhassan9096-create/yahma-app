@@ -40,9 +40,9 @@ function renderRenewals(content, mode='inspection'){
       </div>
       <div class="wa-toolbar-actions">
         <button class="btn btn-whatsapp" id="btn-wa-inspection">إرسال على واتساب</button>
-        <button class="btn btn-ghost" id="btn-copy-inspection">نسخ القائمة</button>
-        <button class="btn btn-excel-export" id="ren-export-xlsx" title="تصدير النتائج المفلترة">📊 Excel</button>
-        <button class="btn btn-ghost" id="ren-export-pdf" title="تصدير PDF للنتائج المفلترة">📄 PDF</button>
+        <button class="btn btn-copy-inspection">نسخ القائمة</button>
+        <!-- أزرار التصدير القديمة (ren-export-*) اتشالت: شريط التصدير
+             الموحّد (yx-bar) بقي هو المسؤول وهو موجود جنب زر الرفع. -->
       </div>
     </div>`}
     <div class="filter-panel">
@@ -510,6 +510,8 @@ function renderRenewals(content, mode='inspection'){
   }
   window._yahmaModuleExport = function(fmt){ exportRen(fmt==='pdf'?'pdf':'xlsx'); };
   window._yahmaGetFilteredCars = getRows;
+  /* أزرار ren-export-* اتشالت من الشاشة (اختفى تكرار التصدير).
+     الربط هنا بيفضل آمن لو رجعت تاني، والتصدير شغال من شريط yx. */
   $('ren-export-xlsx')?.addEventListener('click',()=>exportRen('xlsx'));
   $('ren-export-pdf')?.addEventListener('click',()=>exportRen('pdf'));
   $('ren-bulk-delete')?.addEventListener('click',()=>deleteRenCars([...selectedRenIds]));

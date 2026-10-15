@@ -866,13 +866,19 @@ body.dark-mode #app-lock-screen .lock-note{color:#7C8A98;}
 .content > .yx-bar{animation:none !important;opacity:1 !important;}
 
 /* ===== شريط التصدير (Excel + PDF) — كل التبويبات =====
-   زراير متدرّجة لامعة مع لمعة بتعدّي عند المرور. */
+   زراير متدرّجة لامعة مع لمعة بتعدّي عند المرور.
+   🇬🇧 Pins to the physical LEFT. The app is RTL, so `margin-inline-start`
+   is the right-hand side - we want the opposite, hence the physical
+   left/right properties. */
 .yx-bar{
   position:sticky;
   top:0;
   z-index:60;
   width:fit-content;
-  margin:0 0 10px auto;
+  /* 🇬🇧 Physical LEFT. The app is RTL, so margin-right is the inline-START
+     side - an auto margin there pushes the box toward the inline-END,
+     which is the left. */
+  margin:0 auto 10px 0;
   display:flex;
   align-items:center;
   gap:10px;

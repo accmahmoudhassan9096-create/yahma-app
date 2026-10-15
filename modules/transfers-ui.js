@@ -57,8 +57,7 @@ function renderTransfers(content){
     <div class="tr-toolbar">
       <button class="btn btn-primary btn-small" id="tr-import-btn" title="رفع ملف التنازلات (رقم السيارة/الماركه/النوع/الموديل/الشركه)">📥 رفع ملف التنازلات</button>
       <input type="file" id="file-transfer-import" accept=".xlsx,.xls,.csv" style="display:none">
-      <button class="btn btn-excel-export btn-small" id="tr-export-xlsx" title="تصدير النتائج المفلترة">📊 Excel</button>
-      <button class="btn btn-ghost btn-small" id="tr-export-pdf" title="تصدير PDF للنتائج المفلترة">📄 PDF</button>
+      <!-- أزرار التصدير القديمة (tr-export-*) اتشالت — التصدير من شريط yx. -->
       <span class="muted-small">بيانات التنازل من أعمدة الإكسل أو من ملف التنازلات المخصص.</span>
     </div>
     ${canDelete?`<div class="bulk-bar" id="tr-bulk-bar" style="display:none">

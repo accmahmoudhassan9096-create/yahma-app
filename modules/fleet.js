@@ -148,8 +148,8 @@
         <button type="button" class="active" data-view="table">جدول</button>
         <button type="button" data-view="cards">كروت</button>
       </div>
-      <button class="btn btn-excel-export" id="fleet-export-filtered" title="تصدير النتائج المفلترة Excel">📊 Excel</button>
-      <button class="btn btn-ghost" id="fleet-export-pdf" title="تصدير النتائج المفلترة PDF">📄 PDF</button>
+      <!-- أزرار التصدير القديمة (fleet-export-*) اتشالت — التصدير
+           من شريط yx الموحّد. -->
       <button class="btn btn-ghost" id="fleet-clear-filters" title="إلغاء جميع الفلاتر">↺ مسح الفلاتر</button>
     </div>
     <div class="bulk-bar" id="bulk-bar" style="display:none">
@@ -666,7 +666,9 @@ const q=(search.value||'').trim().toLowerCase();
     exportRows(rows);
   };
   window._yahmaGetFilteredCars = getFilteredRows;
-  $('fleet-export-filtered').addEventListener('click',()=>window._yahmaModuleExport('xlsx'));
+  /* أزرار fleet-export-* اتشالت من الشاشة. الربط هنا كان من غير ?.،
+     فكان بيعمل TypeError ويوقّف رسم تبويب الأسطول كله. */
+  $('fleet-export-filtered')?.addEventListener('click',()=>window._yahmaModuleExport('xlsx'));
   $('fleet-export-pdf')?.addEventListener('click',()=>window._yahmaModuleExport('pdf'));
 
   // Bulk actions

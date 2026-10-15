@@ -584,16 +584,17 @@
     return c;
   };
 
-  // Intercept common export button clicks early
+  /* Prefetch the export libraries as soon as an export control is pressed.
+     yx-excel / yx-pdf are the unified bar. The rest are the buttons that
+     still exist (topbar dropdown, the reports/insurance modals). */
   document.addEventListener('click', function (e) {
-    const t = e.target.closest && e.target.closest('#btn-export, #btn-export-all-fleet, #fleet-export-filtered, #ren-export-xlsx, #fu-export-xlsx, #prep-export-xlsx, #ef-go');
+    const t = e.target.closest && e.target.closest('#yx-excel, #btn-export, #btn-export-all-fleet, #prep-export-tasks, #ef-go');
     if (!t) return;
-    // Ensure XLSX is loading in parallel before other handlers run
     ensureXlsx().catch(function () {});
   }, true);
 
   document.addEventListener('click', function (e) {
-    const t = e.target.closest && e.target.closest('#btn-export-pdf, #fleet-export-pdf, #ren-export-pdf, #fu-export-pdf, #prep-export-pdf, #fr-pdf, #inf-png');
+    const t = e.target.closest && e.target.closest('#yx-pdf, #btn-export-pdf, #prep-export-tasks, #fr-pdf, #inf-png');
     if (!t) return;
     ensurePdfLibs().catch(function () {});
   }, true);
