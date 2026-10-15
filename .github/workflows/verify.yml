@@ -32,7 +32,12 @@ jobs:
           node-version: '20'
 
       - name: Unit tests
-        run: node --test "tests/*.test.js"
+        # بلا علامات تنصيص عمداً: bash لازم يوسّع الـglob بنفسه.
+        # مقصوصة، النص بيوصل حرفياً وNode بيقول "Could not find".
+        run: node --test tests/*.test.js
 
       - name: Shell precache check
         run: node scripts/check-shell.js
+
+      - name: Workflow syntax check
+        run: node scripts/check-workflow.js
