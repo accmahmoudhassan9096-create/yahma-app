@@ -18,10 +18,30 @@
     add('status', 'حالة السيارة', utils.carStatusReady(status));
     const failed = checks.filter(x => !x.ok);
     if (!car.id) return { level: 'grey', label: 'غير محددة', ready: false, checks, failed };
+
+    /* ⛔ وقفة قبل المعيار: السيارة اللي هي مش عندنا.
+       المعيار الأصلي «الجاهزية = الأوراق الأربعة» كان بيرجّع أخضر
+       قبل ما يبصّ على حالة السيارة، فسيارة حالتها «مسروقة» وأوراقها
+       سليمة كانت بتطلع «جاهزة للتأجير» — وده غلط ظاهر للمستخدم،
+       خصوصاً إن الفلتر السريع في الأسطول بيعتبرها «خارج» من زمان.
+
+       بنستخدم carStatusOut من utils بدل نسخة محلية، عشان الجاهزية
+       تتفق مع فلتر الأسطول والتقارير وكل حاجة تانية. هي بتعتبر
+       (مسروق / مفقود / محول / خارج الخدمة) كلهم خارج الأسطول. */
+    if (utils.carStatusOut(carStatus)) {
+      return {
+        level: 'red',
+        label: carStatus.includes('مسروق') ? 'مسروقة'
+             : carStatus.includes('مفقود') ? 'مفقودة'
+             : carStatus.includes('محول') ? 'محولة غير مستلمة'
+             : 'خارج الخدمة',
+        ready: false, checks, failed
+      };
+    }
+
     /* المعيار: الجاهزية = صلاحية الأوراق الأربعة فقط (كارت/رخصة/تأمين/فحص) */
     const docsOk = checks.filter(x => x.key === 'card' || x.key === 'license' || x.key === 'insurance' || x.key === 'inspection').every(x => x.ok);
     if (docsOk) return { level: 'green', label: 'جاهزة للتأجير', ready: true, checks, failed };
-    if (failed.some(x => x.key === 'status' && (status.includes('خارج') || status.includes('مسروق') || status.includes('محول') || status.includes('مفقود')))) return { level: 'red', label: status.includes('مسروق') ? 'مسروقة' : (status.includes('مفقود') ? 'مفقودة' : (status.includes('محول') ? 'محولة غير مستلمة' : 'خارج الخدمة')), ready: false, checks, failed };
     if (failed.some(x => x.key === 'service')) return { level: 'amber', label: 'تحتاج صيانة', ready: false, checks, failed };
     if (failed.some(x => x.key === 'inspection')) return { level: 'amber', label: 'تحتاج فحص', ready: false, checks, failed };
     return { level: 'red', label: 'غير جاهزة', ready: false, checks, failed };
@@ -33,7 +53,11 @@
     list.forEach(car => {
       const result = vehicleReadiness(car);
       if (result.ready) stats.ready++;
-      else if (result.level === 'red' && result.label === 'خارج الخدمة') stats.out++;
+      /* «خارج» بتستخدم نفس دالة الفلتر السريع بدل مطابقة وسم.
+         قبل كده كانت بتعدّ «خارج الخدمة» بس، فسيارة حالتها «مسروقة»
+         كانت بتتحسب «غير جاهزة» وفي نفس الوقت تدخل في فلتر
+         «خارج» — رقمين مختلفين لنفس السيارة. */
+      else if (utils.carStatusOut(car && car.carStatus)) stats.out++;
       else if (result.label === 'تحتاج صيانة') stats.maintenance++;
       else if (result.label === 'تحتاج فحص') stats.inspection++;
       else stats.other++;

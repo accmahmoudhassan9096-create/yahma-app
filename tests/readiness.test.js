@@ -52,61 +52,59 @@ test('input غريب ما bearings عليه', () => {
    (مثلاً عايز الحالة تدخل في المعيار) الاختبارات هتفشل، والتغيير
    هيبقى قرار واعي مش عرضي. */
 
-test('سيارة مؤجرة بأوراق سليمة = جاهزة (الجاهزية بتقيس الأوراق بس)', () => {
+test('سيارة مسروقة بأوراق سليمة = غير جاهزة', () => {
+  /* القاعدة: الجاهزية = الأوراق، لكن السيارة اللي هي مش عندنا
+     وقفة قبل المعيار. فلتر «خارج» في تبويب الأسطول بيعتبرها
+     خارج من زمان، والجاهزية بقت بتتّفق معاه. */
+  const stolen = vehicleReadiness(readyCar({ carStatus: 'مسروقة' }));
+  assert.strictEqual(stolen.ready, false);
+  assert.strictEqual(stolen.level, 'red');
+  assert.strictEqual(stolen.label, 'مسروقة');
+});
+
+test('كل حالات «مش عندنا» بتوقّف الجاهزية حتى بأوراق سليمة', () => {
+  /* نفس تصنيف فلتر الأسطول: carStatusOut في utils.js. */
+  const cases = [
+    ['مسروقة', 'مسروقة'],
+    ['مفقودة', 'مفقودة'],
+    ['محولة', 'محولة غير مستلمة'],
+    ['خارج الخدمة', 'خارج الخدمة']
+  ];
+  for (const [status, label] of cases) {
+    const r = vehicleReadiness(readyCar({ carStatus: status }));
+    assert.strictEqual(r.ready, false, status + ' بأوراق سليمة');
+    assert.strictEqual(r.level, 'red');
+    assert.strictEqual(r.label, label, 'وسم ' + status);
+  }
+});
+
+test('عدّاد «خارج» بيشمل الحالات الأربعة زي الفلتر', () => {
+  /* كان بيعدّ «خارج الخدمة» بس، فالمسروقة كانت بتتحسب «غير جاهزة»
+     وكمان تدخل في فلتر «خارج» — رقمين مختلفين لنفس السيارة. */
+  const fleet = [
+    readyCar({ id: 'a' }),
+    readyCar({ id: 'b', carStatus: 'مسروقة' }),
+    readyCar({ id: 'c', carStatus: 'مفقودة' }),
+    readyCar({ id: 'd', carStatus: 'محولة' }),
+    readyCar({ id: 'e', carStatus: 'خارج الخدمة' }),
+    readyCar({ id: 'f', insuranceStatus: 'منتهية' })
+  ];
+  const stats = readinessStats(fleet);
+  assert.strictEqual(stats.out, 4, 'الأربع حالات بره');
+  assert.strictEqual(stats.ready, 1, 'السليمة بس');
+  assert.strictEqual(stats.other, 1, 'النقص الورقي العادي');
+  assert.strictEqual(stats.total - stats.ready - stats.out, 1, 'اللي محتاج انتباه');
+});
+
+test('سيارة مؤجرة بأوراق سليمة بتفضل جاهزة', () => {
+  /* «مؤجرة» مش من تصنيف «مش عندنا» — السيارة موجودة عندنا، بس
+     مؤجرة دلوقتي. أوراقها سليمة فالجاهزية خضرا. */
   const r = vehicleReadiness(readyCar({ carStatus: 'مؤجرة' }));
   assert.strictEqual(r.ready, true);
   assert.strictEqual(r.level, 'green');
-  /* الحالة لسه فاشلة وبتتعرض للمستخدم — الجاهزية بس هي اللي خضراء */
+  /* الحالة لسه فاشلة في الفحوصات وبتتعرض للمستخدم */
   const status = r.checks.find((c) => c.key === 'status');
   assert.strictEqual(status.ok, false, 'حالة «مؤجرة» لازم تفضل فاشلة في الفحوصات');
-  assert.ok(r.failed.some((f) => f.key === 'status'));
-});
-
-test('تحت الصيانة بأوراق سليمة = جاهزة برضو', () => {
-  const r = vehicleReadiness(readyCar({ carStatus: 'تحت الصيانة' }));
-  assert.strictEqual(r.ready, true);
-  const service = r.checks.find((c) => c.key === 'service');
-  assert.strictEqual(service.ok, false, 'الصيانة لازم تفضل فاشلة في الفحوصات');
-});
-
-test('خارج الخدمة بأوراق سليمة بترجع جاهزة — ده أثر جانبي للمعيار', () => {
-  /* توثيق السلوك الحالي، مش تأييد له.
-
-     القاعدة «الجاهزية = الأوراق الأربعة» بتترجّع قبل فحص الحالة.
-     يعني سيارة مسروقة أو محولة بأوراق سليمة بتطلع خضرا
-     «جاهزة للتأجير» — وده بيبان غلط للمستخدم.
-
-     الاختبار مثبّت السلوك ده عشان يتوثّق. لو اتغيرت القاعدة
-     لازم يتغير الاختبار معاها عن قصد، مش يفضل واقف بالصدفة. */
-  const stolen = vehicleReadiness(readyCar({ carStatus: 'مسروقة' }));
-  assert.strictEqual(stolen.ready, true);
-  assert.strictEqual(stolen.level, 'green');
-  /* الفحوصات نفسها لسه فاشلة ومكتوبة — المعلومة موجودة بس الدرجة خضراء */
-  assert.strictEqual(stolen.checks.find((c) => c.key === 'service').ok, false);
-  assert.strictEqual(stolen.checks.find((c) => c.key === 'status').ok, false);
-
-  const out = vehicleReadiness(readyCar({ carStatus: 'خارج الخدمة' }));
-  assert.strictEqual(out.ready, true, 'نفس المعيار — الأوراق هي الأساس');
-
-  /* بمجرد ما الأوراق تنقص، وسم الحالة الأحمر بيبان */
-  const outBroken = vehicleReadiness(readyCar({ carStatus: 'خارج الخدمة', insuranceStatus: 'منتهية' }));
-  assert.strictEqual(outBroken.ready, false);
-  assert.strictEqual(outBroken.level, 'red');
-  assert.strictEqual(outBroken.label, 'خارج الخدمة');
-});
-
-test('وسوم الحالات التالفة بتظهر بس مع نقص ورقي', () => {
-  /* نفس الملاحظة: الوسم الأحمر للحالة بيظهر بس لما الأوراق ناقصة. */
-  const cases = [['مسروقة', 'مسروقة'], ['مفقودة', 'مفقودة'], ['محولة', 'محولة غير مستلمة']];
-  for (const [status, label] of cases) {
-    const withDocs = vehicleReadiness(readyCar({ carStatus: status }));
-    assert.strictEqual(withDocs.ready, true, status + ' بأوراق سليمة');
-
-    const broken = vehicleReadiness(readyCar({ carStatus: status, insuranceStatus: 'منتهية' }));
-    assert.strictEqual(broken.ready, false, status + ' مع نقص ورقي');
-    assert.strictEqual(broken.level, 'red');
-    assert.strictEqual(broken.label, label, 'وسم ' + status);
-  }
 });
 
 test('أي نقص في الأوراق بيمنع الجاهزية مهما كانت الحالة', () => {
@@ -215,18 +213,18 @@ test('الإحصائيات بتعدّ صح', () => {
   const fleet = [
     readyCar({ id: 'a' }),                                          // جاهزة
     readyCar({ id: 'b', insuranceStatus: 'منتهية' }),                 // نقص ورقي
-    readyCar({ id: 'c', carStatus: 'مسروقة' }),                       // جاهزة بالمعيار (الأوراق سليمة)
+    readyCar({ id: 'c', carStatus: 'مسروقة' }),                       // خارج الأسطول
     readyCar({ id: 'd', insuranceStatus: 'منتهية', carStatus: 'تحت الصيانة' }), // صيانة
     readyCar({ id: 'e', insuranceStatus: 'منتهية', inspectionStatus: 'لم يفحص' }) // فحص
   ];
   const stats = readinessStats(fleet);
   assert.strictEqual(stats.total, 5);
-  /* a و c — المسروقة بأوراق سليمة بتعدّ جاهزة بالمعيار */
-  assert.strictEqual(stats.ready, 2);
+  assert.strictEqual(stats.ready, 1, 'السليمة بس');
+  assert.strictEqual(stats.out, 1, 'المسروقة بره');
   assert.strictEqual(stats.maintenance, 1, 'صيانة مع نقص ورقي');
   assert.strictEqual(stats.inspection, 1, 'فحص مع نقص ورقي');
-  assert.strictEqual(stats.out, 0, 'الـout بيحسب لو الأوراق ناقصة كمان');
-  assert.strictEqual(stats.pct, 40, '2 من 5 = 40%');
+  assert.strictEqual(stats.other, 1, 'النقص الورقي بلا تصنيف');
+  assert.strictEqual(stats.pct, 20, '1 من 5 = 20%');
   assert.ok(Object.keys(stats.reasons).length > 0, 'لازم تسجّل أسباب الجاهزية الناقصة');
 });
 
