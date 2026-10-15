@@ -26,7 +26,7 @@
   }
 
   async function saveSchedule(schedule) {
-    try { global.localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedule)); } catch (_) {}
+    try { global.localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedule)); } catch(_){yahmaErr(_,'email-schedule.js:29');}
     if (!global.supabaseReady || !global.supabaseClient) throw new Error('اتصال Supabase غير متاح');
     const { error } = await global.supabaseClient.from('email_schedule').upsert({
       id: 1,
@@ -48,7 +48,7 @@
       if (typeof global.log === 'function') {
         global.log('إرسال مجدول', name + ' — ' + (kind === 'daily' ? 'تقرير يومي' : 'تنبيه مستندات') + (channel === 'mail' ? ' عبر الإيميل' : ' عبر واتساب'));
       }
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'email-schedule.js:51');}
   }
 
   global.YahmaEmailSchedule = {

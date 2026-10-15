@@ -36,7 +36,7 @@
         if(scope){ branchEl.value=scope; branchEl.setAttribute('readonly','readonly'); branchEl.title='مقيد على فرعك: '+scope; }
         else branchEl.removeAttribute('readonly');
       }
-    }catch(_){}
+    }catch(_){yahmaErr(_,'vehicle-modal.js:39');}
 
     const prep = car ? prepChecklistForCar(car) : { checks: [], final: false, finalNote: '' };
     const prepStatus = car ? prepStatusForCar(car) : { level: 'grey', label: 'غير محددة' };

@@ -50,7 +50,7 @@ function renderDashboard(content, context){
       const b = String(c.branch || '').trim() || 'بدون فرع';
       const cur = byBranch.get(b) || { total: 0, ready: 0 };
       cur.total++;
-      try { if (vehicleReadiness(c).ready) cur.ready++; } catch (_) {}
+      try { if (vehicleReadiness(c).ready) cur.ready++; } catch(_){yahmaErr(_,'dashboard.js:53');}
       byBranch.set(b, cur);
     });
     Array.from(byBranch.entries())
@@ -144,7 +144,7 @@ function renderDashboard(content, context){
   if (!regHist.length || regHist[regHist.length - 1].d !== todayIso) {
     regHist.push({ d: todayIso, west: (regionById.west || { total: 0 }).total, east: (regionById.east || { total: 0 }).total, central: (regionById.central || { total: 0 }).total, branches: branchSnap });
     regHist = regHist.slice(-90);
-    try { localStorage.setItem(REG_HIST_KEY, JSON.stringify(regHist)); } catch(e) {}
+    try { localStorage.setItem(REG_HIST_KEY, JSON.stringify(regHist)); } catch(e){yahmaErr(e,'dashboard.js:147');}
   }
   const histBase = (() => {
     if (regHist.length < 2) return null;
@@ -238,7 +238,7 @@ function renderDashboard(content, context){
         total: fleet.length, ready: ready, pct: pReady
       }));
       regHist = regHist.slice(-90);
-      try { localStorage.setItem(REG_HIST_KEY, JSON.stringify(regHist)); } catch(e) {}
+      try { localStorage.setItem(REG_HIST_KEY, JSON.stringify(regHist)); } catch(e){yahmaErr(e,'dashboard.js:241');}
     }
   }
   const trend = regHist.filter(h => h && typeof h.total === 'number').slice(-30);
@@ -334,7 +334,7 @@ function renderDashboard(content, context){
       detail: a.detail || a.user || '',
       icon: '•'
     }));
-  } catch(e) {}
+  } catch(e){yahmaErr(e,'dashboard.js:337');}
   if (activity.length < 4) {
     try {
       const events = [];
@@ -348,7 +348,7 @@ function renderDashboard(content, context){
       });
       events.sort((a, b) => String(b.time).localeCompare(String(a.time)));
       activity = activity.concat(events.slice(0, 8 - activity.length));
-    } catch(e) {}
+    } catch(e){yahmaErr(e,'dashboard.js:351');}
   }
   if (!activity.length) {
     activity = [
@@ -701,7 +701,7 @@ function renderDashboard(content, context){
   (function initRegionMap(){
     const el = content.querySelector('#region-map');
     if(!el) return;
-    try{ if(window._regionMap){ window._regionMap.remove(); window._regionMap=null; } }catch(_){}
+    try{ if(window._regionMap){ window._regionMap.remove(); window._regionMap=null; } }catch(_){yahmaErr(_,'dashboard.js:704');}
     const drawMap = () => {
       try{
         if(!el.isConnected) return;
@@ -728,21 +728,21 @@ function renderDashboard(content, context){
               '<br><button type="button" class="btn btn-primary btn-small" data-region-branch="' + escapeHtml(b.name) + '" style="margin-top:8px">عرض السيارات ←</button>');
             bounds.push([b.mlat, b.mlng]);
           });
-          if (bounds.length > 1) { try { map.fitBounds(bounds, { padding: [30, 30] }); } catch(e) {} }
+          if (bounds.length > 1) { try { map.fitBounds(bounds, { padding: [30, 30] }); } catch(e){yahmaErr(e,'dashboard.js:731');} }
           map.on('popupopen', e => {
             try {
               const btn = e.popup.getElement().querySelector('[data-region-branch]');
               if (btn && !btn._bound) {
                 btn._bound = true;
                 btn.onclick = () => {
-                  try { map.closePopup(); } catch(_){}
+                  try { map.closePopup(); } catch(_){yahmaErr(_,'dashboard.js:738');}
                   window.pendingFleetBranch = btn.dataset.regionBranch;
                   const nav = document.querySelector('.nav-item[data-tab="fleet"]');
                   if (nav) nav.click();
                   if (typeof render === 'function') render();
                 };
               }
-            } catch(_){}
+            } catch(_){yahmaErr(_,'dashboard.js:745');}
           });
         } else {
         regionStats.forEach(r=>{
@@ -754,7 +754,7 @@ function renderDashboard(content, context){
           c.bindPopup('<b>'+escapeHtml(r.label)+' ('+r.total+')</b><br>'+r.topBranches.map(([b,n])=>escapeHtml(b)+': '+n).join('<br>'));
         });
         }
-        setTimeout(()=>{ try{ map.invalidateSize(); }catch(_){} }, 200);
+        setTimeout(()=>{ try{ map.invalidateSize(); }catch(_){yahmaErr(_,'dashboard.js:757');} }, 200);
         window._regionMap = map;
       }catch(e){
         el.innerHTML = '<div class="empty">تعذر تحميل الخريطة (تحقق من الإنترنت) — الأرقام بجانبها محدثة.</div>';
@@ -771,12 +771,12 @@ function renderDashboard(content, context){
         s.onload=drawMap;
         s.onerror=()=>{ el.innerHTML='<div class="empty">تعذر تحميل الخريطة (تحقق من الإنترنت) — الأرقام بجانبها محدثة.</div>'; };
         document.head.appendChild(s);
-      }catch(e){}
+      }catch(e){yahmaErr(e,'dashboard.js:774');}
     }, 300);
   })();
 
   content.querySelectorAll('.map-mode-btn').forEach(b => b.addEventListener('click', () => {
-    try { localStorage.setItem('yahma-map-mode', b.dataset.mapMode); } catch(e) {}
+    try { localStorage.setItem('yahma-map-mode', b.dataset.mapMode); } catch(e){yahmaErr(e,'dashboard.js:779');}
     if (typeof render === 'function') render();
   }));
 
@@ -794,7 +794,7 @@ function renderDashboard(content, context){
 
   /* ===== قائمة عمل الفروع: واتساب/نسخ/عرض ===== */
   const wqFind = (name) => workQueue.find(w => w.name === name);
-  const wqToast = (msg) => { try { if (typeof toastKbd === 'function') toastKbd(msg); } catch(e) {} };
+  const wqToast = (msg) => { try { if (typeof toastKbd === 'function') toastKbd(msg); } catch(e){yahmaErr(e,'dashboard.js:797');} };
   const wqCopy = (text, okMsg) => {
     const done = () => wqToast(okMsg || 'تم نسخ القائمة');
     try {
@@ -817,7 +817,7 @@ function renderDashboard(content, context){
         const b = getBranchByName(name);
         if (b && b.phone) return b.phone;
       }
-    } catch(e) {}
+    } catch(e){yahmaErr(e,'dashboard.js:820');}
     return '';
   };
   const wqAskPhone = (label) => {
@@ -993,7 +993,7 @@ function renderDashboard(content, context){
       const map = { admin: 'مدير النظام', ops: 'تشغيل', view: 'عرض' };
       roleEl.textContent = map[window.currentRole] || window.currentRole;
     }
-  } catch (e) {}
+  } catch(e){yahmaErr(e,'dashboard.js:996');}
 }
 
 

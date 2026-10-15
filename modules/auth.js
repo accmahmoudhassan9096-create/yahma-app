@@ -11,7 +11,7 @@
 
   function roleCacheKey(uid) { return 'fleet-role-cache:' + uid; }
   function getCachedRole(uid) { try { return localStorage.getItem(roleCacheKey(uid)) || null; } catch (_) { return null; } }
-  function setCachedRole(uid, role) { try { if (role) localStorage.setItem(roleCacheKey(uid), role); } catch (_) {} }
+  function setCachedRole(uid, role) { try { if (role) localStorage.setItem(roleCacheKey(uid), role); } catch(_){yahmaErr(_,'auth.js:14');} }
 
   /** قراءة الدور من جدول profiles في Supabase */
   async function fetchUserRole(uid) {

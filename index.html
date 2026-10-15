@@ -235,6 +235,7 @@
               <button type="button" class="user-menu-item" id="umt-email-pdf" role="menuitem"><span>✉</span> إرسال التقرير PDF بالبريد</button>
               <button type="button" class="user-menu-item" id="umt-backup" role="menuitem"><span>⤓</span> تنزيل نسخة احتياطية</button>
               <button type="button" class="user-menu-item" id="umt-undo" role="menuitem" hidden><span>↩</span> <span id="umt-undo-label">تراجع آخر حذف</span></button>
+              <button type="button" class="user-menu-item" id="umt-errors" role="menuitem" hidden><span>⚠️</span> سجل الأخطاء <span class="yh-errors-badge" id="yh-errors-badge" hidden></span></button>
               <button type="button" class="user-menu-item" id="umt-lock-now" role="menuitem"><span>🔒</span> قفل المنصة دلوقتي</button>
               <button type="button" class="user-menu-item" id="umt-lock-toggle" role="menuitem"><span>⚙️</span> <span id="umt-lock-toggle-label">إيقاف قفل المنصة</span></button>
               <button type="button" class="user-menu-item" id="umt-hard-refresh" role="menuitem"><span>⟳</span> تحديث قسري للتطبيق</button>
@@ -435,6 +436,13 @@
 
 <!-- disabled conflicting yahma-all-header-actions-js -->
 <!-- disabled conflicting yahma-smooth-dropdowns-js -->
+
+<!-- موزّع الأخطاء — لازم قبل أي سكربت فيه catch، و الـstub تحته
+     بيضمن إن الاستدعاء موجود حتى لو الملف اتحمّل متأخر. من غير الـstub
+     كان catch فاضي ممكن يرمي ReferenceError جديد من جوه catch. -->
+<script>window.yahmaErr = window.yahmaErr || function () {};</script>
+<script src="modules/error-bus.js"></script>
+<script src="modules/error-panel.js"></script>
 
 <!-- حارس الإقلاق والتنقّل — لازم أول حاجة عشان يمسك الأخطاء من بدري -->
 <script src="modules/nav-guard.js"></script>

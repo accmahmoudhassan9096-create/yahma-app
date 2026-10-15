@@ -297,7 +297,7 @@ function renderFollowUp(content){
     if(ok===false) alert('تعذر الحفظ على بعض السيارات — تحقق من الاتصال ثم أعد المحاولة.');
     else alert(doneMsg);
     if(logLabel && typeof window.log==='function'){
-      try{ window.log(logLabel, cars.length+' سيارة: '+fuPlates(cars)); }catch(_){}
+      try{ window.log(logLabel, cars.length+' سيارة: '+fuPlates(cars)); }catch(_){yahmaErr(_,'follow-up-ui.js:300');}
     }
     render();
   }
@@ -368,7 +368,7 @@ function renderFollowUp(content){
       const delCol=canDelete?1:0;
       if(window.YahmaVTable && scrollEl){
         if(!window._fuVT || window._fuVT._tb !== tbody){
-          if(window._fuVT && window._fuVT.destroy) try{window._fuVT.destroy()}catch(e){}
+          if(window._fuVT && window._fuVT.destroy) try{window._fuVT.destroy()}catch(e){yahmaErr(e,'follow-up-ui.js:371');}
           window._fuVT = window.YahmaVTable.create({
             scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 16+delCol,
             renderRow: function(c){ return renderFuRow(c); },
@@ -398,7 +398,7 @@ function renderFollowUp(content){
           try{ if(typeof saveData==='function') ok = await saveData([car.id]); }catch(_){ ok=false; }
           inp.classList.remove('saving');
           if(ok===false){ alert('تعذر الحفظ — تحقق من الاتصال.'); }
-          else { try{ if(typeof window.log==='function') window.log('ملاحظة كارت','السيارة '+(car.plate||'')); }catch(_){} }
+          else { try{ if(typeof window.log==='function') window.log('ملاحظة كارت','السيارة '+(car.plate||'')); }catch(_){yahmaErr(_,'follow-up-ui.js:401');} }
         });
       }
       if(!tbody._fuDelegate){

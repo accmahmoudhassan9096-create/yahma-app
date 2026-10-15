@@ -65,11 +65,11 @@ async function handleExcelFile(file){
     if(sheetInfo && sheetInfo.length>1){
       console.info('[yahma] sheets read: ' + JSON.stringify(sheetInfo));
     }
-  }catch(_){}
+  }catch(_){yahmaErr(_,'excel-import.js:68');}
 
   const plan=window.YahmaFleetExcel.parseImportRows(rows,uid);
   if(!plan.active.length&&!plan.sold.length){ alert('لم يتم العثور على صف يحتوي على رقم لوحة صحيح. تأكد من مطابقة أسماء الأعمدة لنموذج الإكسيل.'); return; }
-  try{ stampImportBranch(plan); }catch(_){}
+  try{ stampImportBranch(plan); }catch(_){yahmaErr(_,'excel-import.js:72');}
   /* ورقة تحديثات الكروت (الثانية في ملف كروت التشغيل): تُطبَّق فوق الأساسية */
   try{
     if(wb.SheetNames.length>1 && window.YahmaFleetExcel.parseCardUpdateRows){
@@ -97,7 +97,7 @@ async function handleExcelFile(file){
         if(applied) plan.cardUpdates=applied;
       }
     }
-  }catch(_){}
+  }catch(_){yahmaErr(_,'excel-import.js:100');}
   const existingByPlate=new Map(fleet.map(car=>[normalizePlateKey(car.plate),car]));
   let updateCandidates=0,newCandidates=0;
   plan.active.forEach(record=>{
@@ -212,7 +212,7 @@ async function handleDomainUpdateFile(file, cfg){
     }
   });
   if(affectedIds.length){
-    try{ if(typeof window.log==='function') window.log('تحديث '+title,`محدث: ${updated}، متجاهل: ${misses.length}`); }catch(_){}
+    try{ if(typeof window.log==='function') window.log('تحديث '+title,`محدث: ${updated}، متجاهل: ${misses.length}`); }catch(_){yahmaErr(_,'excel-import.js:215');}
     await saveData(affectedIds);
     render();
   }
@@ -303,7 +303,7 @@ async function exportCurrentTabPDF(){
       // if search/filters exist in DOM, re-apply lightly
       const q=(document.getElementById('fleet-search')?.value||'').trim().toLowerCase();
       if(q) list=list.filter(c=>[c.plate,c.brand,c.model,c.owner,c.branch].join(' ').toLowerCase().includes(q));
-    }catch(_){}
+    }catch(_){yahmaErr(_,'excel-import.js:306');}
     const headers=['رقم اللوحة','الماركة','النوع','الموديل','الفرع','المالك','حالة السيارة','الكارت','الرخصة','الفحص','الجاهزية'];
     const rows=list.map(c=>{
       const rdy=vehicleReadiness(c);
@@ -335,7 +335,7 @@ async function exportCurrentTabPDF(){
         if(lic && dateStatus(c.licenseExpiry).level!==lic) return false;
         return true;
       });
-    }catch(_){}
+    }catch(_){yahmaErr(_,'excel-import.js:338');}
     const headers=['رقم اللوحة','الماركة','المالك','الفرع','حالة السيارة','حالة الفحص','حالة الرخصة','تاريخ انتهاء الرخصة'];
     const rows=list.map(c=>[
       c.plate||'—',c.brand||'—',c.owner||'—',c.branch||'—',c.carStatus||'—',
@@ -365,7 +365,7 @@ async function exportCurrentTabPDF(){
         if(ins && textTag(c.insuranceStatus).level!==ins) return false;
         return true;
       });
-    }catch(_){}
+    }catch(_){yahmaErr(_,'excel-import.js:368');}
     const headers=['رقم اللوحة','الماركة','رقم البطاقة','المالك','الفرع','حالة السيارة','حالة الكارت','تاريخ انتهاء الكارت','التأمين'];
     const rows=list.map(c=>[
       c.plate||'—',c.brand||'—',c.cardNumber||'—',c.owner||'—',c.branch||'—',c.carStatus||'—',
@@ -490,7 +490,7 @@ async function removeSoldVehiclesByPlates(plates,options={}){
      الاختيار غلط يرجع بضغطة. كل الحذف الجماعي في التطبيق (الفرع،
      المتابعة، الفحص، التجديدات، التحويلات، مستورد المباع) يعدّي
      من هنا — فالتغطية كاملة من نقطة واحدة. */
-  try{ if(window.YahmaUndo) window.YahmaUndo.record(matched,{source:'removeSoldVehiclesByPlates'}); }catch(_){}
+  try{ if(window.YahmaUndo) window.YahmaUndo.record(matched,{source:'removeSoldVehiclesByPlates'}); }catch(_){yahmaErr(_,'excel-import.js:493');}
 
   // حذف من Supabase واحدة تلو الأخرى (أو batch)
   if(!window._demoMode && window.supabaseReady && window.supabaseClient){
@@ -512,7 +512,7 @@ async function removeSoldVehiclesByPlates(plates,options={}){
 
   fleet=remaining;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(fleet));
-  try{ if(window.YahmaDB&&window.YahmaDB.saveFleet) await window.YahmaDB.saveFleet(fleet); }catch(_){}
+  try{ if(window.YahmaDB&&window.YahmaDB.saveFleet) await window.YahmaDB.saveFleet(fleet); }catch(_){yahmaErr(_,'excel-import.js:515');}
   pingSync();
   const notFound=plates.length-foundPlates;
   if(!silent){

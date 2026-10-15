@@ -17,7 +17,7 @@
     var short = CURRENT ? CURRENT.replace('yahma-shell-v', 'v') : '—';
     badge.innerHTML = 'الإصدار <b>' + (short || '—') + '</b>';
     badge.title = 'إصدار التطبيق: ' + (CURRENT || 'غير معروف') + ' — اضغط لازمّاك على أحدث نسخة';
-    try { global.__yahmaVersion = CURRENT; } catch (_) {}
+    try { global.__yahmaVersion = CURRENT; } catch(_){yahmaErr(_,'app-version.js:20');}
     try {
       if (!badge.getAttribute('role')) badge.setAttribute('role', 'button');
       badge.setAttribute('tabindex', '0');
@@ -28,28 +28,28 @@
         badge.addEventListener('click', hard);
         badge.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') hard(e); });
       }
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'app-version.js:31');}
   }
 
   /* ===== تحديث قسري =====
      يمسح Service Worker والكاش كله ويعيد تحميل الصفحة من السيرفر.
      ده الضمان الوحيد إن المستخدم يقدر يخرج من نسخة قديمة. */
   async function hardRefresh() {
-    try { window.__yahmaWarnDismissed = false; } catch (_) {}
-    try { var t = document.getElementById('yahma-update-toast'); if (t) t.remove(); } catch (_) {}
+    try { window.__yahmaWarnDismissed = false; } catch(_){yahmaErr(_,'app-version.js:38');}
+    try { var t = document.getElementById('yahma-update-toast'); if (t) t.remove(); } catch(_){yahmaErr(_,'app-version.js:39');}
     try {
       if ('serviceWorker' in navigator) {
         var regs = await navigator.serviceWorker.getRegistrations();
         await Promise.all(regs.map(function (r) { return r.unregister(); }));
       }
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'app-version.js:45');}
     try {
       if (global.caches && caches.keys) {
         var keys = await caches.keys();
         await Promise.all(keys.map(function (k) { return caches.delete(k); }));
       }
-    } catch (_) {}
-    try { location.replace(location.pathname + '?hard=' + Date.now()); } catch (_) {}
+    } catch(_){yahmaErr(_,'app-version.js:51');}
+    try { location.replace(location.pathname + '?hard=' + Date.now()); } catch(_){yahmaErr(_,'app-version.js:52');}
   }
 
   function askHardRefresh() {
@@ -86,8 +86,8 @@
       + '<button type="button" class="btn btn-primary btn-small" id="yut-reload">تحديث الآن</button>';
     document.body.appendChild(toast);
     var go = function () {
-      try { if (reloadTimer) clearTimeout(reloadTimer); } catch (_) {}
-      try { location.reload(); } catch (_) {}
+      try { if (reloadTimer) clearTimeout(reloadTimer); } catch(_){yahmaErr(_,'app-version.js:89');}
+      try { location.reload(); } catch(_){yahmaErr(_,'app-version.js:90');}
     };
     toast.querySelector('#yut-reload').addEventListener('click', go);
     /* تحديث قسري: بيمسح الكاش كله — للمستخدم اللي شايف نسخة قديمة */
@@ -96,12 +96,12 @@
     reloadTimer = setInterval(function () {
       const busy = document.querySelector('.overlay:not(.hidden), .modal, input:focus, select:focus, textarea:focus');
       if (busy) return;
-      try { clearInterval(reloadTimer); } catch (_) {}
+      try { clearInterval(reloadTimer); } catch(_){yahmaErr(_,'app-version.js:99');}
       go();
     }, 6000);
     setTimeout(function () {
       const busy = document.querySelector('.overlay:not(.hidden), .modal, input:focus, select:focus, textarea:focus');
-      if (!busy) { try { clearInterval(reloadTimer); } catch (_) {} go(); }
+      if (!busy) { try { clearInterval(reloadTimer); } catch(_){yahmaErr(_,'app-version.js:104');} go(); }
     }, 12000);
   }
 
@@ -137,7 +137,7 @@
       watch(reg);
       /* فحص التحديثات: عند فتح التطبيق وعند الرجوع من الخلفية */
       const check = function () {
-        try { reg.update(); } catch (_) {}
+        try { reg.update(); } catch(_){yahmaErr(_,'app-version.js:140');}
       };
       check();
       setTimeout(check, 4000);
@@ -164,8 +164,8 @@
       var busy = document.querySelector('.overlay:not(.hidden), .modal, input:focus, select:focus, textarea:focus');
       if (busy) { showUpdateBanner(); return; }
       refreshing = true;
-      try { sessionStorage.setItem(RELOAD_FLAG, window.__yahmaVersion || '1'); } catch (_) {}
-      try { location.reload(); } catch (_) {}
+      try { sessionStorage.setItem(RELOAD_FLAG, window.__yahmaVersion || '1'); } catch(_){yahmaErr(_,'app-version.js:167');}
+      try { location.reload(); } catch(_){yahmaErr(_,'app-version.js:168');}
     });
   }
 

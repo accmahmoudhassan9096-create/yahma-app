@@ -20,7 +20,7 @@ window.yahmaGetTab = function () { return currentTab; };
 window.yahmaSetTab = function (tab) {
   if (typeof tab === 'string' && tab) currentTab = tab;
   /* نزامن الـ window property كمان — لو أي كود قديم لسه بيقرا window.currentTab */
-  try { window.currentTab = currentTab; } catch (_) {}
+  try { window.currentTab = currentTab; } catch(_){yahmaErr(_,'branches-store.js:23');}
   return currentTab;
 };
 /* نفس المشكلة مع fleet/branches — نوفّر قارئات الآمنة أيضًا */
@@ -179,7 +179,7 @@ function forceLocalBoot(){
   if(!window.currentRole || window.currentRole==='view') window.currentRole='admin';
   try{
     let local=[];
-    try{ local=JSON.parse(localStorage.getItem('fleet-data-v2')||'[]'); }catch(e){}
+    try{ local=JSON.parse(localStorage.getItem('fleet-data-v2')||'[]'); }catch(e){yahmaErr(e,'branches-store.js:182');}
     if(!Array.isArray(local) || !local.length){
       if(typeof seedData==='function') local=seedData();
     }
@@ -220,7 +220,7 @@ function loadBranches(){
   }
 }
 function saveBranches(){
-  try{ localStorage.setItem(BRANCHES_KEY, JSON.stringify(branches)); }catch(_){}
+  try{ localStorage.setItem(BRANCHES_KEY, JSON.stringify(branches)); }catch(_){yahmaErr(_,'branches-store.js:223');}
   if(window.YahmaDB && window.YahmaDB.ready && window.YahmaDB.saveBranches){
     window.YahmaDB.ready.then(()=>window.YahmaDB.saveBranches(branches)).catch(()=>{});
   }
@@ -343,8 +343,8 @@ async function migrateInspectionStatus(){
       if(next!==c.inspectionStatus){ c.inspectionStatus=next; ids.push(c.id); }
     });
     localStorage.setItem('yahma-inspection-mig-v1','1');
-    if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){} }
-    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد حالة الفحص (تم الفحص/لم يفحص): '+ids.length); }catch(_){}
+    if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){yahmaErr(_,'branches-store.js:346');} }
+    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد حالة الفحص (تم الفحص/لم يفحص): '+ids.length); }catch(_){yahmaErr(_,'branches-store.js:347');}
     return {migrated:ids.length};
   }catch(e){ return {error:String(e&&e.message||e)}; }
 }
@@ -358,8 +358,8 @@ async function migrateCarStatusValues(){
     const ids=[];
     fleet.forEach(c=>{ const s=String(c.carStatus||'').trim(); if(s==='نشط'||s==='موجودة'){ c.carStatus='متاحة للايجار'; ids.push(c.id); } });
     localStorage.setItem('yahma-status-mig-v2','1');
-    if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){} }
-    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد حالة السيارة (← متاحة للايجار): '+ids.length); }catch(_){}
+    if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){yahmaErr(_,'branches-store.js:361');} }
+    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد حالة السيارة (← متاحة للايجار): '+ids.length); }catch(_){yahmaErr(_,'branches-store.js:362');}
     return {migrated:ids.length};
   }catch(e){ return {error:String(e&&e.message||e)}; }
 }
@@ -374,8 +374,8 @@ async function migrateCarBrands(){
     const ids=[];
     fleet.forEach(c=>{ const b=String(c.brand||''); if(!b.trim()) return; const cb=canonicalBrand(b); if(cb!==b){ c.brand=cb; ids.push(c.id); } });
     localStorage.setItem('yahma-brand-mig-v2','1');
-    if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){} }
-    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد أسماء الماركات: '+ids.length); }catch(_){}
+    if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){yahmaErr(_,'branches-store.js:377');} }
+    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد أسماء الماركات: '+ids.length); }catch(_){yahmaErr(_,'branches-store.js:378');}
     return {migrated:ids.length};
   }catch(e){ return {error:String(e&&e.message||e)}; }
 }
@@ -401,8 +401,8 @@ async function migrateTypeModelConvention(){
       if(changed) ids.push(c.id);
     });
     localStorage.setItem('yahma-typemodel-mig-v1','1');
-    if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){} }
-    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد النوع/الموديل: '+ids.length+' سيارة'); }catch(_){}
+    if(ids.length && typeof saveData==='function'){ try{ await saveData(ids); }catch(_){yahmaErr(_,'branches-store.js:404');} }
+    try{ if(ids.length && typeof window.log==='function') window.log('ترحيل بيانات','توحيد النوع/الموديل: '+ids.length+' سيارة'); }catch(_){yahmaErr(_,'branches-store.js:405');}
     return {migrated:ids.length};
   }catch(e){ return {error:String(e&&e.message||e)}; }
 }

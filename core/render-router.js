@@ -475,7 +475,7 @@ function goTabFromRouter(tab){
   try{
     if(typeof window.yahmaSetTab==='function') window.yahmaSetTab(tab);
     else window.currentTab=tab;
-  }catch(_){}
+  }catch(_){yahmaErr(_,'render-router.js:478');}
   document.querySelectorAll('.nav-item').forEach(function(i){
     i.classList.toggle('active', i.dataset.tab===tab);
   });
@@ -485,7 +485,7 @@ function goTabFromRouter(tab){
     }else if(typeof window.render==='function'){
       window.render();
     }
-  }catch(_){}
+  }catch(_){yahmaErr(_,'render-router.js:488');}
 }
 
 /* نسخة كاملة من الأسطول وقت الرسم.
@@ -501,14 +501,14 @@ function render(){
   try {
     const _d = new Date();
     window.__yahmaRenderDay = _d.getFullYear() + '-' + String(_d.getMonth() + 1).padStart(2, '0') + '-' + String(_d.getDate()).padStart(2, '0');
-  } catch (_) {}
+  } catch(_){yahmaErr(_,'render-router.js:504');}
   /* نقرأ التبويب من الـ API العام (yahmaGetTab) بدل الـ binding المحلي. */
   if(typeof window.yahmaGetTab === 'function'){ currentTab = window.yahmaGetTab(); }
   if(!window.canAccessYahmaTab(currentTab)) { currentTab='dashboard'; if(typeof window.yahmaSetTab==='function') window.yahmaSetTab('dashboard'); }
   document.querySelectorAll('.nav-item').forEach(item=>item.classList.toggle('active',item.dataset.tab===currentTab));
   const emailPdfButton=document.getElementById('btn-email-filtered-pdf');
   if(emailPdfButton) emailPdfButton.style.display=window.currentRole==='admin'?'inline-flex':'none';
-  if(typeof loadBranches==='function'){ try{ if(!branches.length) loadBranches(); }catch(_){ } }
+  if(typeof loadBranches==='function'){ try{ if(!branches.length) loadBranches(); }catch(_){yahmaErr(_,'render-router.js:511');} }
   document.getElementById('count-fleet').textContent = fleet.length;
   // تاب "الفحص والرخصة والتأمين": فحص + رخصة + تأمين
   /* الأرقام دي لازم تُحسب بنفس منطق الفلترة في fleetForTab بالظبط،
@@ -537,7 +537,7 @@ function render(){
     const paymentCount=document.getElementById('count-payments'); if(paymentCount) paymentCount.textContent=pendingPayments;
     const paidCount=document.getElementById('count-paid'); if(paidCount) paidCount.textContent=loadPaidInspections().length;
     const renewedCount=document.getElementById('count-renewed'); if(renewedCount) renewedCount.textContent=loadRenewedInspections().length;
-    try{ if(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function'){ window.YahmaPayments.localByStatus('pending'); window.YahmaPayments.localByStatus('paid'); } }catch(_){}
+    try{ if(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function'){ window.YahmaPayments.localByStatus('pending'); window.YahmaPayments.localByStatus('paid'); } }catch(_){yahmaErr(_,'render-router.js:540');}
   const cb=document.getElementById('count-branches'); if(cb) cb.textContent = branches.length;
   const cp=document.getElementById('count-preparation'); if(cp) cp.textContent = getPrepTasks().filter(t=>t.status!=='done').length;
   const sync=document.getElementById('sync-status');if(sync){sync.textContent=window.syncMessage||'جاري الاتصال';sync.className='sync-status '+(window.supabaseReady?'online':'offline');}
@@ -598,14 +598,14 @@ if(currentTab === 'dashboard') renderDashboard(content);
      ويقول «لم تظهر البيانات» خطأً. الأولوية هنا للأمان. */
   if(__yahmaFullFleet && Array.isArray(__yahmaFullFleet)){ fleet = __yahmaFullFleet; }
   __yahmaFullFleet = null;
-  try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){}
-  try{ showBranchScopeNotice(content); }catch(_){}
-  try{ showDataWarning(content); }catch(_){}
+  try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){yahmaErr(_,'render-router.js:601');}
+  try{ showBranchScopeNotice(content); }catch(_){yahmaErr(_,'render-router.js:602');}
+  try{ showDataWarning(content); }catch(_){yahmaErr(_,'render-router.js:603');}
   /* الصلاحيات حسب التبويب: «تشغيل» يعدّل في الفحص بس، والباقي
      قراءة فقط. طبقة واحدة بتغطي كل أزرار التعديل بدل شرط في كل ملف. */
-  try{ applyTabEditPermission(content); }catch(_){}
+  try{ applyTabEditPermission(content); }catch(_){yahmaErr(_,'render-router.js:606');}
   /* شريط التصدير (Excel + PDF) بيظهر في أي تبويب فيه جدول */
-  try{ if(window.YahmaExportBar&&typeof window.YahmaExportBar.sync==='function') window.YahmaExportBar.sync(); }catch(_){}
+  try{ if(window.YahmaExportBar&&typeof window.YahmaExportBar.sync==='function') window.YahmaExportBar.sync(); }catch(_){yahmaErr(_,'render-router.js:608');}
 }
 
 /* ===== تنبيه صريح عند فشل تحميل البيانات =====
@@ -618,10 +618,10 @@ function showBranchScopeNotice(content){
   if(!content) return;
   const old=document.getElementById('yahma-branch-warn');
   if(old) old.remove();
-  let role=''; try{ role=String(typeof currentRole!=='undefined'?currentRole:''); }catch(_){}
+  let role=''; try{ role=String(typeof currentRole!=='undefined'?currentRole:''); }catch(_){yahmaErr(_,'render-router.js:621');}
   if(!role || role==='admin') return;
-  let branch=''; try{ branch=String((typeof window.currentUserBranch!=='undefined'&&window.currentUserBranch)||'').trim(); }catch(_){}
-  let list=null; try{ list=(typeof fleet!=='undefined'&&Array.isArray(fleet))?fleet:null; }catch(_){}
+  let branch=''; try{ branch=String((typeof window.currentUserBranch!=='undefined'&&window.currentUserBranch)||'').trim(); }catch(_){yahmaErr(_,'render-router.js:623');}
+  let list=null; try{ list=(typeof fleet!=='undefined'&&Array.isArray(fleet))?fleet:null; }catch(_){yahmaErr(_,'render-router.js:624');}
   if(!branch) return;                       /* بدون فرع ⇐ كل الفروع، مفيش سبب للتنبيه */
   if(!list || list.length) return;          /* فيه بيانات → لا شيء */
   let body='<b>لا توجد سيارات مرتبطة بفرعك</b>'
@@ -634,11 +634,11 @@ function showBranchScopeNotice(content){
     +'<button type="button" class="btn btn-ghost btn-small" data-ywarn="relogin">تسجيل خروج ودخول</button></div>';
   const first=content.firstElementChild;
   if(first) content.insertBefore(banner,first); else content.appendChild(banner);
-  banner.querySelector('[data-ywarn="cloud"]').onclick=async()=>{ try{ if(typeof loadData==='function'){ await loadData(true); render(); } }catch(_){} };
+  banner.querySelector('[data-ywarn="cloud"]').onclick=async()=>{ try{ if(typeof loadData==='function'){ await loadData(true); render(); } }catch(_){yahmaErr(_,'render-router.js:637');} };
   banner.querySelector('[data-ywarn="relogin"]').onclick=()=>{
     /* نمرّ عبر yahmaSignOut ليخرج محليًا فورًا حتى لو الشبكة تعطّلت */
     try{ if(typeof window.yahmaSignOut==='function'){ window.yahmaSignOut(); } }
-    catch(_){ try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(__){} }
+    catch(_){ try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(__){yahmaErr(__,'render-router.js:641');} }
     setTimeout(()=>location.reload(),600);
   };
 }
@@ -693,7 +693,7 @@ function showEditHint(content){
     box.textContent = 'حسابك «تشغيل» — مسموح بالتعديل في تبويب «الفحص» بس — باقي الأقسام مشاهدة';
     content.insertBefore(box, content.firstChild);
     __yahmaPermHint = box;
-  }catch(_){}
+  }catch(_){yahmaErr(_,'render-router.js:696');}
 }
 
 function showDataWarning(content){
@@ -702,7 +702,7 @@ function showDataWarning(content){
   if(old) old.remove();
   if(window.__yahmaWarnDismissed) return;   /* المستخدم أقفله — ما نرجعوش له تاني */
   let list=null;
-  try{ list=(typeof fleet!=='undefined'&&Array.isArray(fleet))?fleet:null; }catch(_){}
+  try{ list=(typeof fleet!=='undefined'&&Array.isArray(fleet))?fleet:null; }catch(_){yahmaErr(_,'render-router.js:705');}
   if(!list || list.length) return;                 /* فيه بيانات → لا شيء */
   const msg=String((typeof window.syncMessage!=='undefined'&&window.syncMessage)||'').trim();
   const expired=!!(typeof window.__yahmaSessionExpired!=='undefined'&&window.__yahmaSessionExpired);
@@ -727,13 +727,13 @@ function showDataWarning(content){
   banner.querySelector('[data-ywarn="reload"]').onclick=()=>location.reload();
   banner.querySelector('[data-ywarn="cloud"]')?.addEventListener('click',async()=>{
     try{ if(typeof window.__yahmaSessionExpired!=='undefined') window.__yahmaSessionExpired=false;
-      if(typeof loadData==='function'){ await loadData(true); } }catch(_){}
+      if(typeof loadData==='function'){ await loadData(true); } }catch(_){yahmaErr(_,'render-router.js:730');}
     render();
   });
   const relogin=()=>{
     /* نمرّ عبر yahmaSignOut ليخرج محليًا فورًا حتى لو الشبكة تعطّلت */
     try{ if(typeof window.yahmaSignOut==='function'){ window.yahmaSignOut(); } }
-    catch(_){ try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(__){} }
+    catch(_){ try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(__){yahmaErr(__,'render-router.js:736');} }
     setTimeout(()=>location.reload(),600);
   };
   banner.querySelector('[data-ywarn="relogin"]')?.addEventListener('click',relogin);
@@ -746,7 +746,7 @@ window.hideDataWarning = hideDataWarning;
 window.yahmaRefreshDataWarning = function(){
   hideDataWarning();
   if(window.__yahmaWarnDismissed) return;
-  try{ const c=document.getElementById('content'); if(c) showDataWarning(c); }catch(_){}
+  try{ const c=document.getElementById('content'); if(c) showDataWarning(c); }catch(_){yahmaErr(_,'render-router.js:749');}
 };
 
 /* التغليف ضروري بعد التقسيم: openEmailFilteredPdfModal معرّفة في core/pdf-share.js

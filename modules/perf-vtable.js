@@ -73,7 +73,7 @@
   try{
     var opts={passive:true, capture:true};
     // لا نضيف مستمعين جدد للـ scroll إن أمكن — فقط نتأكد
-  }catch(e){}
+  }catch(e){yahmaErr(e,'perf-vtable.js:76');}
 
   // تقليل عمل الإشعارات عند تبويب مخفي
   document.addEventListener('visibilitychange', function(){
@@ -92,7 +92,7 @@
     if(cores <= 4 || mem <= 4){
       document.documentElement.classList.add('yahma-lite');
     }
-  }catch(e){}
+  }catch(e){yahmaErr(e,'perf-vtable.js:95');}
 
   function boot(){
     wrapRender();
@@ -119,10 +119,10 @@
         if(rows && rows.length){
           // مرّر بنفس بوابات التحميل: نطاق الفرع ثم ترحيل الاصطلاح، حتى لا تُكتب بيانات قديمة فوق حالة أحدث
           let next = rows;
-          try{ if(typeof scopeFleetToUser==='function') next = scopeFleetToUser(rows); }catch(_){}
+          try{ if(typeof scopeFleetToUser==='function') next = scopeFleetToUser(rows); }catch(_){yahmaErr(_,'perf-vtable.js:122');}
           window.fleet = next;
           if(typeof fleet !== 'undefined') fleet = next;
-          try{ if(next && next.length && typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){}
+          try{ if(next && next.length && typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){yahmaErr(_,'perf-vtable.js:125');}
           if(typeof render === 'function') render();
         }
       }

@@ -97,7 +97,7 @@
           var r=await window.supabaseClient.functions.invoke('admin-delete-user',{body:{id:row.dataset.userId}});
           if(r.error){
             var detail=r.error.message||'خطأ غير معروف';
-            try{ if(r.error.context){ var body=await r.error.context.clone().json(); if(body&&body.error) detail=body.error; } }catch(_){ }
+            try{ if(r.error.context){ var body=await r.error.context.clone().json(); if(body&&body.error) detail=body.error; } }catch(_){yahmaErr(_,'topbar-ui.js:100');}
             if(r.data&&r.data.error) detail=r.data.error;
             msg.textContent='تعذر حذف المستخدم: '+detail;
             btn.disabled=false; btn.textContent='حذف';
@@ -125,7 +125,7 @@
             var responseBody=await r.error.context.clone().json();
             if(responseBody&&responseBody.error) detail=responseBody.error;
           }
-        }catch(_){ }
+        }catch(_){yahmaErr(_,'topbar-ui.js:128');}
         if(r.data&&r.data.error) detail=r.data.error;
         msg.textContent='تعذر إنشاء المستخدم: '+detail;
         return;
@@ -202,6 +202,21 @@
         if(typeof window.yahmaAskHardRefresh==='function') window.yahmaAskHardRefresh();
       });
     }
+    /* سجل الأخطاء. إظهار/إخفاء العنصر ملك error-panel.js (بيعرف
+       الأدوار وبيحدّث نفسه عند تغيّرها) — هنا الربط بس. */
+    var errItem=document.getElementById('umt-errors');
+    if(errItem && !errItem._yahmaBound){
+      errItem._yahmaBound=true;
+      errItem.addEventListener('click',function(e){
+        e.preventDefault();
+        closeMenu();
+        if(window.YahmaErrorPanel && typeof window.YahmaErrorPanel.open==='function'){
+          window.YahmaErrorPanel.open();
+        }
+      });
+    }
+    try{ if(window.YahmaErrorPanel && typeof window.YahmaErrorPanel.syncVisibility==='function') window.YahmaErrorPanel.syncVisibility(); }catch(_){yahmaErr(_,'topbar-ui.js:err');}
+
     /* قفل المنصة: اقفل دلوقتي / شغّل ووقّف القفل */
     var lockNow=document.getElementById('umt-lock-now');
     if(lockNow && !lockNow._yahmaBound){
@@ -211,7 +226,7 @@
         closeMenu();
         if(typeof window.YahmaAppLock==='undefined') return;
         if(!window.YahmaAppLock.isEnabled()){
-          try{ window.alert('القفل متوقف دلوقتي — شغّله من «إيقاف قفل المنصة» الأول.'); }catch(_){}
+          try{ window.alert('القفل متوقف دلوقتي — شغّله من «إيقاف قفل المنصة» الأول.'); }catch(_){yahmaErr(_,'topbar-ui.js:214');}
           return;
         }
         window.YahmaAppLock.relock();
@@ -238,7 +253,7 @@
           window.alert(on
             ? 'قفل المنصة شغّال — هطلب كلمة المرور عند كل فتح للتطبيق.'
             : 'قفل المنصة متوقف — التطبيق هيفتح على طول.');
-        }catch(_){}
+        }catch(_){yahmaErr(_,'topbar-ui.js:241');}
       });
     }
     Object.keys(map).forEach(function(id){
@@ -252,7 +267,7 @@
         if(!target){ return; }
         /* نحترم نفس قواعد الصلاحية المطبّقة على الزر الأصلي */
         if(target.disabled){
-          try{ window.alert('هذا الإجراء يحتاج صلاحية مدير أو تشغيل.'); }catch(_){}
+          try{ window.alert('هذا الإجراء يحتاج صلاحية مدير أو تشغيل.'); }catch(_){yahmaErr(_,'topbar-ui.js:255');}
           return;
         }
         setTimeout(function(){ target.click(); }, 80);
@@ -297,7 +312,7 @@
    const list=Array.isArray(window.fleet)?window.fleet:[]; total=list.length;
    if(typeof vehicleReadiness==='function') list.forEach(c=>{if(vehicleReadiness(c).ready)ready++});
    if(typeof collectTasks==='function') openTasks=collectTasks().filter(t=>t.status!=='done').length;
-  }catch(e){}
+  }catch(e){yahmaErr(e,'topbar-ui.js:300');}
   const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=String(value)};
   set('quick-ready',ready); set('quick-review',Math.max(total-ready,0)); set('quick-tasks',openTasks);
  }

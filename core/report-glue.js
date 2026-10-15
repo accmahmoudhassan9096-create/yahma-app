@@ -130,7 +130,7 @@ async function frDownload(){
   try{
     const {pdf,name}=await frMakePdf();
     pdf.save(name);
-    try{ log('تصدير رسمي','تحميل التقرير الرسمي PDF — '+name); }catch(e){}
+    try{ log('تصدير رسمي','تحميل التقرير الرسمي PDF — '+name); }catch(e){yahmaErr(e,'report-glue.js:133');}
   }catch(e){ alert(e&&e.message?e.message:'تعذر إنشاء PDF'); }
 }
 async function frWhatsApp(){
@@ -141,12 +141,12 @@ async function frWhatsApp(){
     const text=frTextSummary();
     if(navigator.canShare && navigator.canShare({files:[file]})){
       await navigator.share({files:[file], title:'تقرير يهماء الرسمي', text:text});
-      try{ markSent('تقرير رسمي','report','wa'); }catch(e){}
+      try{ markSent('تقرير رسمي','report','wa'); }catch(e){yahmaErr(e,'report-glue.js:144');}
     } else {
       pdf.save(name);
       window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
       alert('متصفحك لا يسمح بإرفاق الملف مباشرة في واتساب.\nتم تحميل ملف التقرير ('+name+') — أرفقه يدويًا في المحادثة، والملخص الرسمي جاهز في واتساب.');
-      try{ markSent('تقرير رسمي','report','wa'); }catch(e){}
+      try{ markSent('تقرير رسمي','report','wa'); }catch(e){yahmaErr(e,'report-glue.js:149');}
     }
   }catch(e){ if(e&&e.name!=='AbortError') alert(e&&e.message?e.message:'تعذر تجهيز المشاركة'); }
 }
@@ -183,13 +183,13 @@ async function infDownloadPng(){
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download=infFileName(); document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1500);
-    try{ log('تصدير رسمي','تحميل الإنفوجرافيك PNG — '+a.download); }catch(e){}
-    try{ markSent('إنفوجرافيك','report','dl'); }catch(e){}
+    try{ log('تصدير رسمي','تحميل الإنفوجرافيك PNG — '+a.download); }catch(e){yahmaErr(e,'report-glue.js:186');}
+    try{ markSent('إنفوجرافيك','report','dl'); }catch(e){yahmaErr(e,'report-glue.js:187');}
   }catch(e){ alert(e&&e.message?e.message:'تعذر إنشاء PNG'); }
 }
 function infShareText(){
   const txt=infTextSummary();
   window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
-  try{ markSent('إنفوجرافيك','report','wa'); }catch(e){}
+  try{ markSent('إنفوجرافيك','report','wa'); }catch(e){yahmaErr(e,'report-glue.js:193');}
 }
 

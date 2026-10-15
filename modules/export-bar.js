@@ -18,7 +18,7 @@
   function tab() {
     try {
       if (typeof global.yahmaGetTab === 'function') return global.yahmaGetTab();
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'export-bar.js:21');}
     return '';
   }
 
@@ -35,13 +35,13 @@
       if (global.YahmaExport && typeof global.YahmaExport.currentTabData === 'function') {
         return global.YahmaExport.currentTabData();
       }
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'export-bar.js:38');}
     try {
       if (typeof global._yahmaCurrentPdfData === 'function') {
         var d = global._yahmaCurrentPdfData();
         if (d && Array.isArray(d.headers) && Array.isArray(d.rows)) return d;
       }
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'export-bar.js:44');}
     return null;
   }
 

@@ -93,7 +93,7 @@ function diagnose() {
     catch (_) { return fallback; }
   }
   function writeJSON(key, value) {
-    try { global.localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
+    try { global.localStorage.setItem(key, JSON.stringify(value)); } catch(_){yahmaErr(_,'payments-store.js:96');}
   }
 
   function tableReady() {
@@ -513,8 +513,8 @@ function diagnose() {
           });
           if (touched) writeJSON(PAID_KEY, readJSON(PAID_KEY, []));
         }
-      }).catch(function (_) {});
-    } catch (_) {}
+      }).catch(function(_){yahmaErr(_,'payments-store.js:516');});
+    } catch(_){yahmaErr(_,'payments-store.js:517');}
     return null;
   }
 
@@ -612,7 +612,7 @@ function diagnose() {
     try {
       if (pendingCount) pendingCount.textContent = localByStatus('pending').length;
       if (paidCount) paidCount.textContent = localByStatus('paid').length;
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'payments-store.js:615');}
   }
 
   /* نجرّب المزامنة عند الإقلاع وكل ما يرجع المستخدم للتطبيق */
@@ -625,7 +625,7 @@ function diagnose() {
     try {
       var tab = (typeof global.yahmaGetTab === 'function') ? global.yahmaGetTab() : '';
       if (tab === 'payments' || tab === 'paid') { if (typeof global.render === 'function') global.render(); }
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'payments-store.js:628');}
   }
 
   function boot() {

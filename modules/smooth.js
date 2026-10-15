@@ -46,7 +46,7 @@
           cards.setAttribute('data-skip-build','1');
         }
       }
-    }catch(e){}
+    }catch(e){yahmaErr(e,'smooth.js:49');}
   }
 
   // سكرول الجدول: passive + لا تعيد bind في كل مرة

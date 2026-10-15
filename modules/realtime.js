@@ -77,7 +77,7 @@
         if (context.normalizeFleetDates()) {
           global.localStorage.setItem(STORAGE_KEY, JSON.stringify(context.getFleet()));
         }
-      } catch (_) {}
+      } catch(_){yahmaErr(_,'realtime.js:80');}
       try { context.render(); }
       catch (error) { console.error('realtime render failed', error); }
     } catch (error) {

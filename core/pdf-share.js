@@ -53,7 +53,7 @@ async function generateReportPdfBlob(title, headers, rows, subtitle){
 
   try{
     // لازم الخط يخلص تحميل قبل الرسم، وإلا الـclone بيرسم بخط بديل
-    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){}
+    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){yahmaErr(_,'pdf-share.js:56');}
     // انتظر رسم المتصفح
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     await new Promise(r=>setTimeout(r, 250));
@@ -228,7 +228,7 @@ async function sharePdfOnWhatsApp(opts){
       if(typeof openPrintWindow==='function'){
         openPrintWindow(title, subtitle, headers, rows, 'استخدم حفظ كـ PDF من نافذة الطباعة');
       }
-    }catch(_){}
+    }catch(_){yahmaErr(_,'pdf-share.js:231');}
   }finally{
     loading.remove();
   }
@@ -367,7 +367,7 @@ document.querySelectorAll('.nav-item').forEach(item=>{
   item.addEventListener('click', ()=>{
     if(!window.canAccessYahmaTab(item.dataset.tab)){
       /* بدل ما نتجاهل بصمت: نقول للمستخدم ليه القسم مش متاح */
-      try{ window.alert('هذا القسم غير متاح لحسابك. كلّم المدير لتفعيله.'); }catch(_){}
+      try{ window.alert('هذا القسم غير متاح لحسابك. كلّم المدير لتفعيله.'); }catch(_){yahmaErr(_,'pdf-share.js:370');}
       return;
     }
     document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
@@ -378,12 +378,12 @@ document.querySelectorAll('.nav-item').forEach(item=>{
     catch(e){
       console.error('tab render failed',e);
       renderEmergencyFleet(document.getElementById('content'));
-      try{ window.alert('تعذر فتح القسم: '+(e&&e.message||'خطأ غير متوقع')); }catch(_){}
+      try{ window.alert('تعذر فتح القسم: '+(e&&e.message||'خطأ غير متوقع')); }catch(_){yahmaErr(_,'pdf-share.js:381');}
     }
     /* تأكيد بصري إن التبويب اتغيّر فعلًا — يمنع شك المستخدم في إن الضغط اشتغل */
     setTimeout(function(){
       if(typeof currentTab !== 'undefined' && currentTab !== nextTab){
-        try{ currentTab = nextTab; render(); }catch(_){}
+        try{ currentTab = nextTab; render(); }catch(_){yahmaErr(_,'pdf-share.js:386');}
       }
       document.querySelectorAll('.nav-item').forEach(i=>i.classList.toggle('active',i.dataset.tab===nextTab));
     }, 0);

@@ -14,7 +14,7 @@
   let preview = null;
 
   const readDraft = () => { try { const v = JSON.parse(localStorage.getItem(LS_DRAFT) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } };
-  const writeDraft = (map) => { try { localStorage.setItem(LS_DRAFT, JSON.stringify(map || {})); } catch (e) {} };
+  const writeDraft = (map) => { try { localStorage.setItem(LS_DRAFT, JSON.stringify(map || {})); } catch(e){yahmaErr(e,'branch-email.js:17');} };
 
   async function call(action, extra) {
     if (typeof supabaseReady === 'undefined' || !supabaseReady || !supabaseClient) throw new Error('يلزم تسجيل الدخول');
@@ -26,7 +26,7 @@
       body: JSON.stringify(Object.assign({ action }, extra || {})),
     });
     let data = {};
-    try { data = await res.json(); } catch (e) {}
+    try { data = await res.json(); } catch(e){yahmaErr(e,'branch-email.js:29');}
     if (!res.ok) throw new Error(data.error || `تعذّر الاتصال بالخدمة (${res.status})`);
     return data;
   }

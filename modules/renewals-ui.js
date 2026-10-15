@@ -252,7 +252,7 @@ function renderRenewals(content, mode='inspection'){
     if(ok===false) alert('تعذر الحفظ على بعض السيارات — تحقق من الاتصال ثم أعد المحاولة.');
     else alert(doneMsg);
     if(logLabel && typeof window.log==='function'){
-      try{ window.log(logLabel, cars.length+' سيارة: '+renPlates(cars)); }catch(_){}
+      try{ window.log(logLabel, cars.length+' سيارة: '+renPlates(cars)); }catch(_){yahmaErr(_,'renewals-ui.js:255');}
     }
     render();
   }
@@ -355,7 +355,7 @@ function renderRenewals(content, mode='inspection'){
       const delCol=canDelete?1:0, baseCols=insuranceMode?11:(licenseMode?10:9);
       if(window.YahmaVTable && scrollEl){
         if(!window._renVT || window._renVT._tb !== tbody){
-          if(window._renVT && window._renVT.destroy) try{window._renVT.destroy()}catch(e){}
+          if(window._renVT && window._renVT.destroy) try{window._renVT.destroy()}catch(e){yahmaErr(e,'renewals-ui.js:358');}
           window._renVT = window.YahmaVTable.create({
             scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: baseCols+delCol,
             renderRow: function(c){ return renderRenRow(c); },
@@ -437,7 +437,7 @@ function renderRenewals(content, mode='inspection'){
           try{ if(typeof saveData==='function') ok = await saveData([car.id]); }catch(_){ ok=false; }
           inp.classList.remove('saving');
           if(ok===false){ alert('تعذر الحفظ — تحقق من الاتصال.'); }
-          else { try{ if(typeof window.log==='function') window.log('ملاحظة فحص','السيارة '+(car.plate||'')); }catch(_){} }
+          else { try{ if(typeof window.log==='function') window.log('ملاحظة فحص','السيارة '+(car.plate||'')); }catch(_){yahmaErr(_,'renewals-ui.js:440');} }
         });
       }
     })();

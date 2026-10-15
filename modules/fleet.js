@@ -21,7 +21,7 @@
     list.forEach(function (c) {
       try {
         if (typeof global.vehicleReadiness === 'function' && global.vehicleReadiness(c).ready) ready++;
-      } catch (e) {}
+      } catch(e){yahmaErr(e,'fleet.js:24');}
     });
     const total = list.length;
     return { total: total, ready: ready, pct: total ? Math.round((ready / total) * 100) : 0 };
@@ -536,7 +536,7 @@ const q=(search.value||'').trim().toLowerCase();
       }
       if(window.YahmaVTable && scrollEl && tb){
         if(!window._fleetVT || window._fleetVT._tb !== tb){
-          if(window._fleetVT && window._fleetVT.destroy) try{window._fleetVT.destroy()}catch(e){}
+          if(window._fleetVT && window._fleetVT.destroy) try{window._fleetVT.destroy()}catch(e){yahmaErr(e,'fleet.js:539');}
           window._fleetVT = window.YahmaVTable.create({
             scrollEl: scrollEl,
             tbody: tb,
@@ -653,7 +653,7 @@ const q=(search.value||'').trim().toLowerCase();
     if(fmt==='pdf'){
       const headers=['رقم اللوحة','الماركة','النوع','الموديل','الفرع','المالك','حالة السيارة','الجاهزية','الرخصة','الفحص','الكارت'];
       const data=rows.map(c=>{
-        let rdy='—'; try{rdy=vehicleReadiness(c).label}catch(e){}
+        let rdy='—'; try{rdy=vehicleReadiness(c).label}catch(e){yahmaErr(e,'fleet.js:656');}
         return [c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',rdy,licenseState(c).label,inspectionState(c).label,cardState(c).label];
       });
       const name='نتائج-الأسطول-مفلتر-'+new Date().toISOString().slice(0,10)+'.pdf';
@@ -753,7 +753,7 @@ const q=(search.value||'').trim().toLowerCase();
         global.currentTab = 'fleet';
         document.querySelector('.nav-item[data-tab="fleet"]')?.click();
         if (typeof global.render === 'function') global.render();
-      } catch (e) {}
+      } catch(e){yahmaErr(e,'fleet.js:756');}
     },
   };
 

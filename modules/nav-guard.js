@@ -19,7 +19,7 @@
       extra: extra ? String(extra).slice(0, 160) : '',
       time: new Date().toISOString()
     });
-    try { renderErrorHint(); } catch (_) {}
+    try { renderErrorHint(); } catch(_){yahmaErr(_,'nav-guard.js:22');}
   }
 
   global.addEventListener('error', function (e) {
@@ -79,8 +79,8 @@
   function getTab() {
     try {
       if (typeof global.yahmaGetTab === 'function') return global.yahmaGetTab();
-    } catch (_) {}
-    try { return global.currentTab; } catch (_) {}
+    } catch(_){yahmaErr(_,'nav-guard.js:82');}
+    try { return global.currentTab; } catch(_){yahmaErr(_,'nav-guard.js:83');}
     return '';
   }
 
@@ -99,9 +99,9 @@
         global.render._perfImmediate();
         return;
       }
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'nav-guard.js:102');}
     try { if (typeof global.render === 'function') global.render(); }
-    catch (_) {}
+    catch(_){yahmaErr(_,'nav-guard.js:104');}
     /* ملاحظة: ما نعادش جدولة رسم هنا — كان بيعمل حلقة لا نهائية
        كل 60ms فكان الشاشة "ترتبش" باستمرار. المحاولات محدودة في goTab. */
   }
@@ -111,7 +111,7 @@
     switching = true;
     try {
       if (typeof global.canAccessYahmaTab === 'function' && !global.canAccessYahmaTab(tab)) {
-        try { global.alert('هذا القسم غير متاح لحسابك. كلّم المدير لتفعيله.'); } catch (_) {}
+        try { global.alert('هذا القسم غير متاح لحسابك. كلّم المدير لتفعيله.'); } catch(_){yahmaErr(_,'nav-guard.js:114');}
         return;
       }
       document.querySelectorAll('.nav-item').forEach(function (i) {
@@ -121,7 +121,7 @@
       drawNow();
     } catch (e) {
       push('tab', 'تعذر فتح القسم: ' + (e && e.message), e && e.stack);
-      try { global.alert('تعذر فتح القسم: ' + (e && e.message ? e.message : 'خطأ غير متوقع')); } catch (_) {}
+      try { global.alert('تعذر فتح القسم: ' + (e && e.message ? e.message : 'خطأ غير متوقع')); } catch(_){yahmaErr(_,'nav-guard.js:124');}
     } finally {
       closeMobileSidebar();
       /* ما فيهش إعادة محاولة هنا: الرسم بقى متزامن ومضمون (شِلنا حلقة
@@ -141,10 +141,10 @@
     if (!item || item.getAttribute('aria-disabled') === 'true') return;
     /* نجاوب بسرعة: بعد 400ms لوحنا لسه في نفس التبويب، ننفّذ مباشرة.
        لو المعالج الأصلي شغال، ما هيحصلش تعارض حقيقي. */
-    try { e.stopPropagation(); } catch (_) {}
-    try { e.preventDefault(); } catch (_) {}
+    try { e.stopPropagation(); } catch(_){yahmaErr(_,'nav-guard.js:144');}
+    try { e.preventDefault(); } catch(_){yahmaErr(_,'nav-guard.js:145');}
     var already = false;
-    try { already = (typeof global.currentTab !== 'undefined' && global.currentTab === tab); } catch (_) {}
+    try { already = (typeof global.currentTab !== 'undefined' && global.currentTab === tab); } catch(_){yahmaErr(_,'nav-guard.js:147');}
     goTab(tab);
   }
 
@@ -160,6 +160,6 @@
   }, true);
 
   global.addEventListener('load', function () {
-    try { if (errors.length || failedScripts.length) renderErrorHint(); } catch (_) {}
+    try { if (errors.length || failedScripts.length) renderErrorHint(); } catch(_){yahmaErr(_,'nav-guard.js:163');}
   });
 })(typeof window !== 'undefined' ? window : globalThis);

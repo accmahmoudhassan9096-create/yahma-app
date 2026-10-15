@@ -67,7 +67,7 @@
   function todayStr() {
     try {
       if (typeof global.todayStr === 'function') return global.todayStr();
-    } catch (e) {}
+    } catch(e){yahmaErr(e,'export.js:70');}
     return new Date().toISOString().slice(0, 10);
   }
 
@@ -203,7 +203,7 @@
   const PDF_FONT = "'Cairo','IBM Plex Sans Arabic','Noto Sans Arabic',Tahoma,'Segoe UI',Arial,sans-serif";
 
   async function ensureFontsReady() {
-    try { if (global.document && global.document.fonts && typeof global.document.fonts.ready !== 'undefined') await global.document.fonts.ready; } catch (_) {}
+    try { if (global.document && global.document.fonts && typeof global.document.fonts.ready !== 'undefined') await global.document.fonts.ready; } catch(_){yahmaErr(_,'export.js:206');}
   }
 
   function buildTablePdfHost(o) {
@@ -590,19 +590,19 @@
   document.addEventListener('click', function (e) {
     const t = e.target.closest && e.target.closest('#yx-excel, #btn-export, #btn-export-all-fleet, #prep-export-tasks, #ef-go');
     if (!t) return;
-    ensureXlsx().catch(function () {});
+    ensureXlsx().catch(function(e){yahmaErr(e,'export.js:593');});
   }, true);
 
   document.addEventListener('click', function (e) {
     const t = e.target.closest && e.target.closest('#yx-pdf, #btn-export-pdf, #prep-export-tasks, #fr-pdf, #inf-png');
     if (!t) return;
-    ensurePdfLibs().catch(function () {});
+    ensurePdfLibs().catch(function(e){yahmaErr(e,'export.js:599');});
   }, true);
 
   global.YahmaExport = Object.assign(global.YahmaExport || {}, YahmaExport);
 
   // حمّل المكتبات في الخلفية بعد اكتمال الصفحة عشان تكون جاهزة قبل أول ضغطة تصدير
   window.addEventListener('load', function () {
-    setTimeout(function () { ensureXlsx().catch(function () {}); ensurePdfLibs().catch(function () {}); }, 1500);
+    setTimeout(function () { ensureXlsx().catch(function(e){yahmaErr(e,'export.js:606');}); ensurePdfLibs().catch(function(e){yahmaErr(e,'export.js:606');}); }, 1500);
   });
 })(typeof window !== 'undefined' ? window : this);

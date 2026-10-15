@@ -340,7 +340,7 @@
       if(r.kind==='car'||r.kind==='task'){
         if(typeof openVehicle360==='function') openVehicle360(r.id);
         else if(typeof openModal==='function') openModal(r.id);
-        else if(typeof currentTab!=='undefined'){ try{ currentTab='fleet'; if(typeof render==='function') render(); }catch(e){} }
+        else if(typeof currentTab!=='undefined'){ try{ currentTab='fleet'; if(typeof render==='function') render(); }catch(e){yahmaErr(e,'ops-intel.js:343');} }
       } else if(r.kind==='branch'){
         try{
           if(typeof currentTab!=='undefined') currentTab='fleet';
@@ -349,7 +349,7 @@
             const sel=document.querySelector('#filter-branch, select[data-filter="branch"], #branch-filter');
             if(sel){ sel.value=r.id; sel.dispatchEvent(new Event('change')); }
           }, 100);
-        }catch(e){}
+        }catch(e){yahmaErr(e,'ops-intel.js:352');}
       }
     }
     input.addEventListener('input', ()=>{
@@ -528,7 +528,7 @@
               const sel=document.getElementById('prep-due');
               if(sel){ sel.value=k==='overdue'?'overdue':'today'; sel.dispatchEvent(new Event('change')); }
             }, 80);
-          }catch(e){}
+          }catch(e){yahmaErr(e,'ops-intel.js:531');}
         } else if(k==='exp7'||k==='exp30'){
           openExpiryBoard(k==='exp7'?7:30);
         }
@@ -644,7 +644,7 @@
           });
           if(typeof render==='function') render();
           toastKbd('انتقال: '+map[k]);
-        }catch(err){}
+        }catch(err){yahmaErr(err,'ops-intel.js:647');}
         gotoWait=false;
       }
     }
@@ -666,7 +666,7 @@
           if(def && def.filters){
             setTimeout(()=>applyFilterState(def.filters), 200);
           }
-        }catch(e){}
+        }catch(e){yahmaErr(e,'ops-intel.js:669');}
       }
     }catch(err){ console.warn('ops-ux', err); }
   }
@@ -684,7 +684,7 @@
         let r;
         try{ r=orig.apply(this, arguments); }
         catch(err){ console.error('render error', err); }
-        try{ setTimeout(enhanceAfterRender, 40); }catch(e){}
+        try{ setTimeout(enhanceAfterRender, 40); }catch(e){yahmaErr(e,'ops-intel.js:687');}
         return r;
       });
     }

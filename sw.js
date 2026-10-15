@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v179';
+const CACHE_NAME = 'yahma-shell-v180';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -34,6 +34,8 @@ const LOCAL_APP_SHELL = [
   './core/pdf-share.js',
   './core/excel-import.js',
   './modules/undo.js',
+  './modules/error-bus.js',
+  './modules/error-panel.js',
   /* كتل استُخرجت من app-core.js (نفس ترتيب التنفيذ السابق) */
   './modules/audit-theme.js',
   './modules/notifications.js',
@@ -126,7 +128,7 @@ async function shellMatch(request, cacheName) {
       hit = await cache.match(new URL('./index.html', self.location.href).href);
       if (hit) return hit;
     }
-  } catch (_) {}
+  } catch(_){yahmaErr(_,'sw.js:129');}
   return null;
 }
 

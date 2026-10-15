@@ -148,7 +148,7 @@
             failures[label] = (failures[label] || 0) + 1;
           });
         }
-      } catch (_) {}
+      } catch(_){yahmaErr(_,'reports.js:151');}
       if (isReady) ready++; else notReady++;
       if (String(car.carStatus || '').includes('صيانة')) maintenance++;
       if (String(car.carStatus || '').includes('خارج') || String(car.carStatus || '').includes('مسروق') || String(car.carStatus || '').includes('محول') || String(car.carStatus || '').includes('مفقود')) out++;
@@ -388,7 +388,7 @@ function renderReports(content, context){
       if(issue==='maintenance') return String(c.carStatus||'').includes('صيانة');
       if(issue==='out') return carStatusOut(String(c.carStatus||''));
       if(issue==='notready') return typeof vehicleReadiness==='function' ? !vehicleReadiness(c).ready : false;
-    }catch(e){}
+    }catch(e){yahmaErr(e,'reports.js:391');}
     return true;
   };
 
@@ -400,7 +400,7 @@ function renderReports(content, context){
     (!rf.model || rf.model==='all' || String(c.model||'')===rf.model) &&
     issueMatch(c, rf.issue)
   );
-  window._yahmaCurrentPdfData=()=>({title:'التقرير التحليلي المفلتر',subtitle:'الفترة: '+periodLabel()+' — عدد السيارات: '+list.length,headers:['رقم اللوحة','الماركة','النوع','الموديل','الفرع','المالك','الحالة','الجاهزية','انتهاء الرخصة','انتهاء الكارت'],rows:list.map(c=>{let ready='غير جاهزة';try{ready=vehicleReadiness(c).label}catch(e){}return[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',ready,c.licenseExpiry||'—',c.cardExpiry||'—']})});
+  window._yahmaCurrentPdfData=()=>({title:'التقرير التحليلي المفلتر',subtitle:'الفترة: '+periodLabel()+' — عدد السيارات: '+list.length,headers:['رقم اللوحة','الماركة','النوع','الموديل','الفرع','المالك','الحالة','الجاهزية','انتهاء الرخصة','انتهاء الكارت'],rows:list.map(c=>{let ready='غير جاهزة';try{ready=vehicleReadiness(c).label}catch(e){yahmaErr(e,'reports.js:403');}return[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',ready,c.licenseExpiry||'—',c.cardExpiry||'—']})});
 
   const __reportAggFull = window.YahmaReports.aggregateReport(list, vehicleReadiness);
   window.__reportAggFull = __reportAggFull;
@@ -1046,7 +1046,7 @@ ${d.accLine}
         if(data?.error) throw new Error(data.error);
         if(!data?.sent) throw new Error('لم يُرسل البريد لأي مستخدم');
         status.textContent=`تم قبول الإرسال إلى ${data.sent} مستخدم${data.failed?`، وتعذر ${data.failed}${data.error?' ('+data.error+')':''}`:''}.`;
-        try{log('تعميم بالبريد',subject+' — '+data.sent+' مستلم');}catch(_){}
+        try{log('تعميم بالبريد',subject+' — '+data.sent+' مستلم');}catch(_){yahmaErr(_,'reports.js:1049');}
       }catch(err){status.textContent='تعذر الإرسال: '+(err.message||'تحقق من إعداد خدمة البريد');}
       finally{send.disabled=false;}
     };
@@ -1067,10 +1067,10 @@ ${d.accLine}
       window.__sndScheduleLoaded=true;
       window.supabaseClient.from('email_schedule').select('enabled,daily_time,weekly_day,weekly_time,last_daily_date,last_weekly_date').eq('id',1).maybeSingle().then(({data,error})=>{
         if(data){
-          try{localStorage.setItem(SND_SKEY,JSON.stringify({enabled:!!data.enabled,dailyTime:String(data.daily_time||'07:00').slice(0,5),weeklyDay:Number(data.weekly_day)||0,weeklyTime:String(data.weekly_time||'08:00').slice(0,5),lastDaily:data.last_daily_date||null,lastWeekly:data.last_weekly_date||null}));}catch(_){}
+          try{localStorage.setItem(SND_SKEY,JSON.stringify({enabled:!!data.enabled,dailyTime:String(data.daily_time||'07:00').slice(0,5),weeklyDay:Number(data.weekly_day)||0,weeklyTime:String(data.weekly_time||'08:00').slice(0,5),lastDaily:data.last_daily_date||null,lastWeekly:data.last_weekly_date||null}));}catch(_){yahmaErr(_,'reports.js:1070');}
           sndRenderAll();
         }else if(!error){
-          try{localStorage.setItem(SND_SKEY,JSON.stringify({enabled:false,dailyTime:'07:00',weeklyDay:0,weeklyTime:'08:00'}));}catch(_){}
+          try{localStorage.setItem(SND_SKEY,JSON.stringify({enabled:false,dailyTime:'07:00',weeklyDay:0,weeklyTime:'08:00'}));}catch(_){yahmaErr(_,'reports.js:1073');}
           sndRenderAll();
         }else if(error){
           const status=document.getElementById('snd-schedule-status');
@@ -1186,7 +1186,7 @@ ${d.accLine}
     else rec.push(obj);
     saveRecipients(rec);
     ['snd-name','snd-phone','snd-email','snd-branch'].forEach(x=>{const el=document.getElementById(x); if(el) el.value='';});
-    try{ log('إعداد الإرسال', 'حفظ مستلم: '+name); }catch(e){}
+    try{ log('إعداد الإرسال', 'حفظ مستلم: '+name); }catch(e){yahmaErr(e,'reports.js:1189');}
     sndRenderAll();
   };
   const sndSchedBtn=document.getElementById('snd-save-sched');
@@ -1196,7 +1196,7 @@ ${d.accLine}
     try{ await saveSched(s); }
     catch(e){ alert('تعذر حفظ الجدولة على الخادم: '+(e.message||'تحقق من إعداد قاعدة البيانات')); sndSchedBtn.disabled=false; return; }
     sndSchedBtn.disabled=false;
-    try{ log('إعداد الإرسال', 'تحديث الجدولة — يومي '+s.dailyTime); }catch(e){}
+    try{ log('إعداد الإرسال', 'تحديث الجدولة — يومي '+s.dailyTime); }catch(e){yahmaErr(e,'reports.js:1199');}
     alert(s.enabled?'تم حفظ الجدولة السحابية. سيتم الإرسال تلقائيًا حتى عند إغلاق المنصة.':'تم حفظ الجدولة وهي متوقفة.');
     sndRenderAll();
   };
@@ -1226,7 +1226,7 @@ ${d.accLine}
     }
     const rows = list.map(c => {
       let readyLabel = '—';
-      try{ if(typeof vehicleReadiness==='function'){ const r=vehicleReadiness(c); readyLabel=r.ready?'جاهز':(r.label||'غير جاهز'); } }catch(e){}
+      try{ if(typeof vehicleReadiness==='function'){ const r=vehicleReadiness(c); readyLabel=r.ready?'جاهز':(r.label||'غير جاهز'); } }catch(e){yahmaErr(e,'reports.js:1229');}
       const openTasks = (c.prepTasks||[]).filter(t=>t.status!=='done').length;
       return {
         'اللوحة': c.plate||'',
@@ -1350,7 +1350,7 @@ ${d.accLine}
     }
     const rows = (cars||[]).map(c=>{
       let ready='—';
-      try{ if(typeof vehicleReadiness==='function'){ const r=vehicleReadiness(c); ready=r.ready?'جاهز':(r.label||'غير جاهز'); } }catch(e){}
+      try{ if(typeof vehicleReadiness==='function'){ const r=vehicleReadiness(c); ready=r.ready?'جاهز':(r.label||'غير جاهز'); } }catch(e){yahmaErr(e,'reports.js:1353');}
       const extra = extraCol ? `<td>${esc(extraCol.get(c))}</td>` : '';
       return `<tr data-id="${esc(c.id)}">
         <td class="plate">${esc(c.plate||'—')}</td>
@@ -1601,7 +1601,7 @@ ${d.accLine}
         global.currentTab = 'reports';
         document.querySelector('.nav-item[data-tab="reports"]')?.click();
         if (typeof global.render === 'function') global.render();
-      } catch (e) {}
+      } catch(e){yahmaErr(e,'reports.js:1604');}
     },
     async exportExcel() {
       if (global.YahmaExport && global.YahmaExport.excel) {

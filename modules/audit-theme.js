@@ -9,7 +9,7 @@
  const AUDIT='fleet-audit-v1';
  function log(action,detail){
   const record={at:new Date().toISOString(),displayAt:new Date().toLocaleString('ar-EG'),user:(window.currentUser&&window.currentUser.email)||'مستخدم محلي',role:window.currentRole||'view',action,detail};
-  let a=[];try{a=JSON.parse(localStorage.getItem(AUDIT)||'[]')}catch(e){}
+  let a=[];try{a=JSON.parse(localStorage.getItem(AUDIT)||'[]')}catch(e){yahmaErr(e,'audit-theme.js:12');}
   a.unshift(record);localStorage.setItem(AUDIT,JSON.stringify(a.slice(0,500)));
   if(!window._demoMode&&window.supabaseReady&&window.supabaseClient&&window.currentUser?.id){
     window.supabaseClient.from('audit_logs').insert({user_id:window.currentUser.id,user_email:record.user,role:record.role,action:record.action,detail:record.detail,created_at:record.at}).then(()=>{}).catch(()=>{});

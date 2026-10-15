@@ -27,7 +27,7 @@
   }
 
   function setEnabled(on) {
-    try { global.localStorage.setItem(SETTING, on ? 'on' : 'off'); } catch (_) {}
+    try { global.localStorage.setItem(SETTING, on ? 'on' : 'off'); } catch(_){yahmaErr(_,'app-lock.js:30');}
     if (!on) { global.YahmaAppLock.unlock(); hide(); }
   }
 
@@ -49,11 +49,11 @@
   function unlock() {
     var uid = currentUid();
     if (!uid) return;
-    try { global.sessionStorage.setItem(FLAG, uid); } catch (_) {}
+    try { global.sessionStorage.setItem(FLAG, uid); } catch(_){yahmaErr(_,'app-lock.js:52');}
   }
 
   function relock() {
-    try { global.sessionStorage.removeItem(FLAG); } catch (_) {}
+    try { global.sessionStorage.removeItem(FLAG); } catch(_){yahmaErr(_,'app-lock.js:56');}
   }
 
   /* المستخدم غيّر حسابه على نفس الجهاز → القفل يرجع */
@@ -61,7 +61,7 @@
     var last = currentUid();
     try {
       global.addEventListener('yahma-identity', function () { });
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'app-lock.js:64');}
     return function () {
       var uid = currentUid();
       if (uid && uid !== last) { relock(); last = uid; }
@@ -81,7 +81,7 @@
     var app = el('app-root');
     if (app) app.classList.add('hidden');
     var name = '';
-    try { name = (global.currentUser && global.currentUser.email) || ''; } catch (_) {}
+    try { name = (global.currentUser && global.currentUser.email) || ''; } catch(_){yahmaErr(_,'app-lock.js:84');}
     var line = el('lock-user-line');
     if (line) {
       line.textContent = name
@@ -90,7 +90,7 @@
     }
     setTimeout(function () {
       var p = el('lock-password');
-      if (p) { try { p.value = ''; p.focus(); } catch (_) {} }
+      if (p) { try { p.value = ''; p.focus(); } catch(_){yahmaErr(_,'app-lock.js:93');} }
     }, 60);
   }
 
@@ -111,7 +111,7 @@
       throw new Error('تعذر الاتصال بالإنترنت. القفل يحتاج اتصال عشان يتحقق.');
     }
     var email = '';
-    try { email = (global.currentUser && global.currentUser.email) || ''; } catch (_) {}
+    try { email = (global.currentUser && global.currentUser.email) || ''; } catch(_){yahmaErr(_,'app-lock.js:114');}
     if (!email) throw new Error('مفيش جلسة مفتوحة. سجّل دخول من الأول.');
     var res = await global.supabaseClient.auth.signInWithPassword({
       email: email,
@@ -163,7 +163,7 @@
         flush();
       } catch (err) {
         setError(err && err.message ? err.message : 'كلمة المرور غير صحيحة');
-        if (input) { try { input.value = ''; input.focus(); } catch (_) {} }
+        if (input) { try { input.value = ''; input.focus(); } catch(_){yahmaErr(_,'app-lock.js:166');} }
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'فتح المنصة'; }
       }
@@ -193,7 +193,7 @@
           if (uid && last && uid !== last) { relock(); }
           if (uid) last = uid;
         });
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'app-lock.js:196');}
   }
 
   global.YahmaAppLock = {

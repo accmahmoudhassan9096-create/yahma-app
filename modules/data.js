@@ -137,12 +137,12 @@
             setFleet(context, parsed); fleet = parsed; usedCache = true;
             context.render(); renderedOnce = true;
             if (global.YahmaDB?.saveFleet) {
-              try { await global.YahmaDB.saveFleet(fleet); } catch (_) {}
+              try { await global.YahmaDB.saveFleet(fleet); } catch(_){yahmaErr(_,'data.js:140');}
             }
           }
         }
       }
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'data.js:145');}
 
     if (global._demoMode) {
       if (!usedCache || !fleet.length) {
@@ -157,8 +157,8 @@
           }
         } catch (_) { fleet = []; setFleet(context, fleet); }
         if (!fleet.length) { fleet = context.seedData(); setFleet(context, fleet); }
-        try { global.localStorage.setItem(STORAGE_KEY, JSON.stringify(fleet)); } catch (_) {}
-        if (global.YahmaDB?.saveFleet) try { await global.YahmaDB.saveFleet(fleet); } catch (_) {}
+        try { global.localStorage.setItem(STORAGE_KEY, JSON.stringify(fleet)); } catch(_){yahmaErr(_,'data.js:160');}
+        if (global.YahmaDB?.saveFleet) try { await global.YahmaDB.saveFleet(fleet); } catch(_){yahmaErr(_,'data.js:161');}
       }
       global.syncMessage = 'وضع محلي (تجريبي)';
       context.normalizeFleetDates();
@@ -192,7 +192,7 @@
             let cached=context.getFleet();
             if (!Array.isArray(cached) || !cached.length) cached=[];
             if (!cached.length) {
-              try { cached=JSON.parse(global.localStorage.getItem(STORAGE_KEY)||'[]'); } catch (_) {}
+              try { cached=JSON.parse(global.localStorage.getItem(STORAGE_KEY)||'[]'); } catch(_){yahmaErr(_,'data.js:195');}
             }
             if (Array.isArray(cached) && cached.length) {
               fleet=cached; setFleet(context,fleet);
@@ -204,7 +204,7 @@
               global.syncMessage='متصل بـ Supabase — لا توجد سيارات بعد';
             }
           }
-          if (global.YahmaDB?.saveFleet) try { await global.YahmaDB.saveFleet(fleet); } catch (_) {}
+          if (global.YahmaDB?.saveFleet) try { await global.YahmaDB.saveFleet(fleet); } catch(_){yahmaErr(_,'data.js:207');}
         } else if (!usedCache) {
           let value = global.localStorage.getItem(STORAGE_KEY) || '';
           if (value) { try { fleet = JSON.parse(value); } catch (_) { fleet = []; } }
@@ -244,7 +244,7 @@
       fleet = context.seedData(); setFleet(context, fleet);
       global.localStorage.setItem(STORAGE_KEY, JSON.stringify(fleet));
     }
-    try { context.normalizeFleetDates(); } catch (_) {}
+    try { context.normalizeFleetDates(); } catch(_){yahmaErr(_,'data.js:247');}
     global.localStorage.setItem(STORAGE_KEY, JSON.stringify(context.getFleet()));
     const changed = beforeSnapshot === null || stableString(context.getFleet()) !== beforeSnapshot;
     if (!renderedOnce || changed) {
@@ -256,8 +256,8 @@
     }
     /* بعد أي تحميل ناجح: نشيل تنبيه «لم تظهر البيانات» أو نعيد تقييمه.
        بدون السطر ده كان يفضل معلّق على الشاشة لو البيانات وصلت بعد أول رسم. */
-    try { global.yahmaRefreshDataWarning(); } catch (_) {}
-    try { context.attachRealtimeSync(); } catch (_) {}
+    try { global.yahmaRefreshDataWarning(); } catch(_){yahmaErr(_,'data.js:259');}
+    try { context.attachRealtimeSync(); } catch(_){yahmaErr(_,'data.js:260');}
   }
 
   async function saveData(idsToSave, context) {
@@ -286,7 +286,7 @@
         }
         context.addCloudVehicleIds(toWrite.map(car => String(car.id)));
         global.syncMessage = 'تم الحفظ على Supabase';
-        try { global.localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString()); } catch (_) {}
+        try { global.localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString()); } catch(_){yahmaErr(_,'data.js:289');}
       } else if (global.storage && typeof global.storage.set === 'function') {
         await global.storage.set(STORAGE_KEY, value, true);
       }
@@ -366,7 +366,7 @@
       lastDay = now;
       try {
         if (typeof global.render === 'function') global.render();
-      } catch (_) {}
+      } catch(_){yahmaErr(_,'data.js:369');}
     };
     try {
       global.setInterval(checkDay, 60000);
@@ -374,7 +374,7 @@
       global.document.addEventListener('visibilitychange', function () {
         if (global.document.visibilityState === 'visible') checkDay();
       });
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'data.js:377');}
   }
 
   global.YahmaData = Object.assign(global.YahmaData || {}, {

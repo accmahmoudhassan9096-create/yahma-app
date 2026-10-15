@@ -47,14 +47,14 @@
        سكربت. لو المرجع اختفى نرجع للقائمة اللي السياق بيحتفظ بيها. */
     try {
       if (Array.isArray(typeof fleet !== 'undefined' ? fleet : null)) return fleet;
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'undo.js:50');}
     try {
       var ctx = global.YahmaAppContext;
       if (ctx && typeof ctx.getFleet === 'function') {
         var list = ctx.getFleet();
         if (Array.isArray(list)) return list;
       }
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'undo.js:57');}
     return [];
   }
 
@@ -65,7 +65,7 @@
     try {
       var ctx = global.YahmaAppContext;
       if (ctx && typeof ctx.setFleet === 'function') { ctx.setFleet(list); return; }
-    } catch (_) {}
+    } catch(_){yahmaErr(_,'undo.js:68');}
     fleet = list;
     global.fleet = list;
   }
@@ -101,11 +101,11 @@
   async function undo() {
     if (busy) return false;
     var entry = peek();
-    if (!entry) { try { global.alert('مفيش عملية حذف للتراجع عنها.'); } catch (_) {} return false; }
+    if (!entry) { try { global.alert('مفيش عملية حذف للتراجع عنها.'); } catch(_){yahmaErr(_,'undo.js:104');} return false; }
 
     var perms = global.YahmaPerms;
     if (perms && typeof perms.canManage === 'function' && !perms.canManage()) {
-      try { global.alert(perms.denyMessage('التراجع عن الحذف')); } catch (_) {}
+      try { global.alert(perms.denyMessage('التراجع عن الحذف')); } catch(_){yahmaErr(_,'undo.js:108');}
       return false;
     }
 
@@ -120,7 +120,7 @@
 
       if (!toRestore.length) {
         stack.pop(); syncMenu();
-        try { global.alert('السيارات دي موجودة بالفعل.'); } catch (_) {}
+        try { global.alert('السيارات دي موجودة بالفعل.'); } catch(_){yahmaErr(_,'undo.js:123');}
         return false;
       }
 
@@ -140,7 +140,7 @@
 
       stack.pop();
       syncMenu();
-      try { if (typeof global.render === 'function') global.render(); } catch (_) {}
+      try { if (typeof global.render === 'function') global.render(); } catch(_){yahmaErr(_,'undo.js:143');}
 
       /* صيغة محايدة زي باقي رسائل التطبيق («تم الحفظ»، «سيتم حذف»).
      «رجّعنا» كانت بتخلّي التطبيق يتكلم بصيغة المتكلم خلافًا لباقي
@@ -148,13 +148,13 @@
       var msg = 'تم استرجاع ' + toRestore.length + ' سيارة ورجوعها للأسطول.';
       if (saved === false) {
         msg += '\nتحذير: الاسترجاع تم على الجهاز بس، السحابة مانستش — أعد المحاولة بعد الاتصال.';
-        try { global.alert(msg); } catch (_) {}
+        try { global.alert(msg); } catch(_){yahmaErr(_,'undo.js:151');}
       } else {
-        try { global.alert(msg); } catch (_) {}
+        try { global.alert(msg); } catch(_){yahmaErr(_,'undo.js:153');}
       }
       try {
         if (typeof global.log === 'function') global.log('تراجع', 'استرجاع ' + toRestore.length + ' سيارة');
-      } catch (_) {}
+      } catch(_){yahmaErr(_,'undo.js:157');}
       return true;
     } finally {
       busy = false;
@@ -289,7 +289,7 @@
     if (item) {
       item.addEventListener('click', function (e) {
         e.preventDefault();
-        if (typeof global.closeMenu === 'function') { try { global.closeMenu(); } catch (_) {} }
+        if (typeof global.closeMenu === 'function') { try { global.closeMenu(); } catch(_){yahmaErr(_,'undo.js:292');} }
         undo();
       });
     }

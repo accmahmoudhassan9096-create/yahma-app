@@ -78,6 +78,10 @@ function showAppScreen(){
   document.documentElement.classList.add('yahma-ready');
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app-root').classList.remove('hidden');
+  /* الدور اتأكد هنا لأول مرة، فـ«سجل الأخطاء» بيعرف يحدّث ظهوره
+     فورًا بدل ما يستنى دورته (2.5 ثانية) ويبقى ظاهر لحساب
+     «مشاهدة» بالغلط. */
+  try{ if(window.YahmaErrorPanel && typeof window.YahmaErrorPanel.syncVisibility==='function') window.YahmaErrorPanel.syncVisibility(); }catch(_){yahmaErr(_,'auth-boot.js:82');}
   // ملاحظة: لا نعمل render هنا. الاستدعاء اللي بيحصل فورًا بعد showAppScreen()
   // هو loadData()، وهي المسؤولة عن أول render فعلي بالبيانات. عمل render مبدئي هنا
   // كان بيسبب بربشة (فليكر) لأن الداشبورد كان بيتبني مرتين-تلاتة بنفس البيانات تقريبًا
@@ -96,7 +100,7 @@ function showAppScreen(){
 function yahmaClearLocalSession(){
   var uid = (window.currentUser && window.currentUser.id) || window._bootedUid || '';
   window._bootedUid=null;
-  try{ _sessionBootUid = null; }catch(_){}
+  try{ _sessionBootUid = null; }catch(_){yahmaErr(_,'auth-boot.js:99');}
   window.currentUser=null;
   window.currentUserPermissions=[];
   window.currentRole='view';
@@ -104,8 +108,8 @@ function yahmaClearLocalSession(){
   window.currentUserName='';
   window.__yahmaSessionExpired=false;
   /* مسح كاش الدور والبيانات حتى ما تفتحش بيانات المستخدم ده بعد الدخول التالي */
-  try{ if(uid) localStorage.removeItem(roleCacheKey(uid)); }catch(_){}
-  try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k && k.indexOf('fleet-role-cache:')===0) localStorage.removeItem(k); } }catch(_){}
+  try{ if(uid) localStorage.removeItem(roleCacheKey(uid)); }catch(_){yahmaErr(_,'auth-boot.js:107');}
+  try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k && k.indexOf('fleet-role-cache:')===0) localStorage.removeItem(k); } }catch(_){yahmaErr(_,'auth-boot.js:108');}
 }
 
 window.yahmaSignOut = async function(){
@@ -113,7 +117,7 @@ window.yahmaSignOut = async function(){
   try{
     window._demoMode=false;
     if(window.YahmaAppLock && typeof window.YahmaAppLock.relock==='function') window.YahmaAppLock.relock();
-    try{ var ls=document.getElementById('app-lock-screen'); if(ls) ls.hidden=true; }catch(_){}
+    try{ var ls=document.getElementById('app-lock-screen'); if(ls) ls.hidden=true; }catch(_){yahmaErr(_,'auth-boot.js:116');}
     yahmaClearLocalSession();
     showAuthScreen();
   }catch(error){
@@ -133,7 +137,7 @@ window.yahmaSignOut = async function(){
 
 function roleCacheKey(uid){ return 'fleet-role-cache:'+uid; }
 function getCachedRole(uid){ try{ return localStorage.getItem(roleCacheKey(uid))||null; }catch(_){ return null; } }
-function setCachedRole(uid, role){ try{ if(role) localStorage.setItem(roleCacheKey(uid), role); }catch(_){} }
+function setCachedRole(uid, role){ try{ if(role) localStorage.setItem(roleCacheKey(uid), role); }catch(_){yahmaErr(_,'auth-boot.js:136');} }
 function cachedRoleOrView(uid){ const role=getCachedRole(uid); return ['admin','ops','view'].includes(role)?role:'view'; }
 
 let _sessionBootUid=null;
@@ -158,15 +162,15 @@ function activateAuthenticatedSession(user){
       if(!window.currentUser||window.currentUser.id!==uid) return;
       window.currentRole=role;
       // نطاق الفرع: صفِّ أي بيانات متبقية من جلسة سابقة قبل العرض والتحميل
-      try{ if(typeof scopeFleetToUser==='function' && typeof fleet!=='undefined' && Array.isArray(fleet)) fleet=scopeFleetToUser(fleet); }catch(_){}
+      try{ if(typeof scopeFleetToUser==='function' && typeof fleet!=='undefined' && Array.isArray(fleet)) fleet=scopeFleetToUser(fleet); }catch(_){yahmaErr(_,'auth-boot.js:161');}
       putBoot(async function(){
         if(typeof applyRole==='function') applyRole();
         showAppScreen();
         if(typeof loadData==='function') await loadData(false);
-        try{ if(typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){}
-        try{ if(typeof migrateCarStatusValues==='function') await migrateCarStatusValues(); }catch(_){}
-        try{ if(typeof migrateCarBrands==='function') await migrateCarBrands(); }catch(_){}
-        try{ if(typeof migrateInspectionStatus==='function') await migrateInspectionStatus(); }catch(_){}
+        try{ if(typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){yahmaErr(_,'auth-boot.js:166');}
+        try{ if(typeof migrateCarStatusValues==='function') await migrateCarStatusValues(); }catch(_){yahmaErr(_,'auth-boot.js:167');}
+        try{ if(typeof migrateCarBrands==='function') await migrateCarBrands(); }catch(_){yahmaErr(_,'auth-boot.js:168');}
+        try{ if(typeof migrateInspectionStatus==='function') await migrateInspectionStatus(); }catch(_){yahmaErr(_,'auth-boot.js:169');}
         if(typeof render==='function') render();
       });
     }catch(error){

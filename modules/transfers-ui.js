@@ -218,7 +218,7 @@ function renderTransfers(content){
       const delCol=canDelete?1:0;
       if(window.YahmaVTable && scrollEl){
         if(!window._trVT || window._trVT._tb !== tbody){
-          if(window._trVT && window._trVT.destroy) try{window._trVT.destroy()}catch(e){}
+          if(window._trVT && window._trVT.destroy) try{window._trVT.destroy()}catch(e){yahmaErr(e,'transfers-ui.js:221');}
           window._trVT = window.YahmaVTable.create({
             scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: 11+delCol,
             renderRow: function(c){ return renderTrRow(c); },
@@ -265,7 +265,7 @@ function renderTransfers(content){
           try{ if(typeof saveData==='function') ok = await saveData([car.id]); }catch(_){ ok=false; }
           inp.classList.remove('saving');
           if(ok===false){ alert('تعذر الحفظ — تحقق من الاتصال.'); }
-          else { try{ if(typeof window.log==='function') window.log(label,'السيارة '+(car.plate||'')); }catch(_){} }
+          else { try{ if(typeof window.log==='function') window.log(label,'السيارة '+(car.plate||'')); }catch(_){yahmaErr(_,'transfers-ui.js:268');} }
         });
       }
     })();
@@ -379,7 +379,7 @@ function renderTransfers(content){
       window.YahmaFleetExcel.transferPlateVariants(car.plate).forEach(k=>{ if(!byVariant.has(k)) byVariant.set(k,car); });
     });
     if(affectedIds.length){
-      try{ if(typeof window.log==='function') window.log('استيراد تنازلات',`جديد: ${inserted}، محدث: ${updated}`); }catch(_){}
+      try{ if(typeof window.log==='function') window.log('استيراد تنازلات',`جديد: ${inserted}، محدث: ${updated}`); }catch(_){yahmaErr(_,'transfers-ui.js:382');}
       await saveData(affectedIds);
       render();
     }

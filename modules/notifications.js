@@ -53,7 +53,7 @@
  const oldRender=window.render || (typeof render==='function' ? render : null);
  if(oldRender && !window._notifyRenderHooked){
    window._notifyRenderHooked=true;
-   window.render=function(){oldRender.apply(this,arguments);setTimeout(function(){try{mount();draw()}catch(e){}},0)};
+   window.render=function(){oldRender.apply(this,arguments);setTimeout(function(){try{mount();draw()}catch(e){yahmaErr(e,'notifications.js:56');}},0)};
  }
  // تحديث خفيف كل 20 ثانية فقط — وعدم إعادة الرسم لو القائمة مقفولة
  setInterval(function(){
@@ -65,13 +65,13 @@
      else if(badge){
        // حدّث الرقم فقط بدون إعادة بناء القائمة
        var all=[];
-       try{ all = notificationItems(); }catch(e){}
+       try{ all = notificationItems(); }catch(e){yahmaErr(e,'notifications.js:68');}
        var read=readSet();
        var unread=all.filter(function(n){return !read.has(n.id)}).length;
        badge.textContent=unread>99?'99+':String(unread);
        badge.classList.toggle('zero', unread===0);
      }
-   }catch(e){}
+   }catch(e){yahmaErr(e,'notifications.js:74');}
  }, 20000);
 })();
 

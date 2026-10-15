@@ -33,7 +33,16 @@ function dataContext(){
     // نطاق الفرع: المستخدم المرتبط بفرع تُحفظ في ذاكرته سيارات فرعه فقط،
     // فكل التبويبات والعدادات والتصدير تقرأ النطاق تلقائيًا (والخادم يفرضه عبر RLS)
     setFleet:rows=>{ fleet=(typeof scopeFleetToUser==='function')?scopeFleetToUser(rows):rows; },
-    render,
+    /* ⚠️ `render` معرّف في core/render-router.js، و render-router
+       بيتحمّل بعد sync.js في index.html. لما السطر ده كان مرجع
+       مباشر `render`، كان بيرمي ReferenceError وقت ما
+       dataContext() تتنادى أثناء الإقلاع — والـcatch الفاضي كان
+       بيبلعه. النتيجة إن window.YahmaAppContext مكانش بيتسجّل
+       أصلاً، يعني استرجاع البيانات لما المستخدم يرجع للتطبيق من
+       الخلفية مكانش بيشتغل من غير ما نعرف.
+
+       مرجع كسول: بيتحل وقت النداء مش وقت إنشاء الـobject. */
+    render: function () { if (typeof render === 'function') render(); },
     seedData,
     normalizeFleetDates,
     attachRealtimeSync,
@@ -51,7 +60,7 @@ function dataContext(){
 let _loadDataInFlight = null;
 /* نُعرّف الـ context فور تحميل الملف حتى يجد hook استعادة الجلسة الأسطول
    حتى لو لم يُستدعَ loadData بعد (حالة العميل العائد من الخلفية) */
-try{ window.YahmaAppContext = dataContext(); } catch (_) {}
+try{ window.YahmaAppContext = dataContext(); } catch(_){yahmaErr(_,'sync.js:54');}
 async function loadData(forceCloud=false){
   if(_loadDataInFlight) return _loadDataInFlight;
   _loadDataInFlight = _loadDataImpl(forceCloud);
@@ -61,7 +70,7 @@ async function loadData(forceCloud=false){
 function _loadDataImpl(forceCloud=false){
   const ctx = dataContext();
   /* متاح لغيره (استعادة الجلسة عند رجوع التطبيق) بدون تمرير context يدويًا */
-  try{ if (typeof window !== 'undefined') window.YahmaAppContext = ctx; } catch (_) {}
+  try{ if (typeof window !== 'undefined') window.YahmaAppContext = ctx; } catch(_){yahmaErr(_,'sync.js:64');}
   return dataService.loadData(forceCloud, ctx);
 }
 
