@@ -89,7 +89,7 @@ function iso(daysFromNow) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-/* سيارة سليمة مددودةefully: كل حاجة خضراء. الاختبارات بتبني عليها وبتغيّر
+/* سيارة سليمة مددودة: كل حاجة خضراء. الاختبارات بتبني عليها وبتغيّر
    حقل واحد في كل مرة، عشان كل اختبار يبقى ليه سبب واضح. */
 function readyCar(overrides) {
   return Object.assign({

@@ -1009,6 +1009,12 @@ body.dark-mode .sync-status.is-offline{color:#FBC9C3;background:#3D1512;border-c
 .fleet-table thead th:nth-last-child(3),
 .fleet-table thead th:nth-last-child(4){position:sticky;}
 
+/* محرّر رسالة الترحيب — العرض هنا عشان يبقى آخر ملف ويغلب .modal */
+.welcome-editor-modal{width:min(760px,94vw);max-height:92vh;overflow:auto}
+.welcome-editor-body .fld input,.welcome-editor-body .fld textarea{background:var(--panel);color:var(--ink)}
+.welcome-preview{background:var(--paper);color:var(--ink);border-color:var(--line)}
+.welcome-ph{background:var(--panel);color:var(--ink);border-color:var(--line)}
+
 /* ===== تلميح الصلاحيات (حساب «تشغيل») ===== */
 .yx-perm-hint{
   display:flex;align-items:center;gap:8px;

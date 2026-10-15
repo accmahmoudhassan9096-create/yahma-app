@@ -97,6 +97,80 @@ function mailReady(fromEmail: string, resendKey: string) {
   return !!emailjsConfig() || (!!resendKey && !!fromEmail);
 }
 
+/* ===== قالب رسالة الترحيب =====
+
+   النص كان مكتوب جوه الكود هنا — المدير مكانش يقدر يغيّر كلمة ولا
+   رابط، وأي تعديل كان معناه إعادة نشر للـfunction. دلوقتي النص في
+   جدول welcome_template والـfunction بتقرأه عند كل حساب جديد.
+
+   لو الصف مش موجود أو النص فاضي، بيرجع للافتراضي تحت — عشان الحفظ
+   باظ أو حد مسح الصف ما يوقفتش إرسال الترحيب خالص. */
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'مدير النظام',
+  manager: 'إداري',
+  ops: 'فريق تشغيل',
+  view: 'مشاهدة فقط',
+};
+
+function defaultWelcomeSubject() {
+  return 'تم إنشاء حسابك في منصة يهماء لتأجير السيارات';
+}
+
+function defaultWelcomeBody() {
+  return [
+    'مرحبًا {{name}}،',
+    '',
+    'تم إنشاء حساب لك في منصة يهماء لتأجير السيارات، ودورك: {{role}}{{branch}}.',
+    '',
+    'خطوات الدخول:',
+    '1) افتح: {{login_url}}',
+    '2) سجّل الدخول ببريدك وكلمة المرور من مدير النظام.',
+    '3) غيّر كلمة المرور من أول مرة تدخل.',
+    '',
+    'صلاحياتك محددة سلفًا، فلو محتاج تبويب مش ظاهرلك كلّم مدير النظام يفعّله.',
+    '',
+    'مع تحيات،',
+    'فريق منصة يهماء',
+  ].join('\n');
+}
+
+/* رابط المنصة: متغيّرت بيئة أولًا، وبعدين النطاق الفعلي.
+   الكود القديم كان فيه رابط ثابت على نطاق Netlify — وده كان بيبعت
+   الناس لموقع تاني غير الإنتاج من غير ما حد ياخد باله. */
+function siteUrl() {
+  const configured = Deno.env.get('YAHMA_SITE_URL');
+  if (configured && /^https?:\/\//i.test(configured)) return configured.replace(/\/+$/, '');
+  return 'https://yahma-app.acc-mahmoud-hassan9096.workers.dev';
+}
+
+/* استبدال {{name}} و{{role}} و{{branch}} و{{login_url}}.
+   أي placeholder تاني بيترك زي ما هو — لو المدير كتب {{phone}} ما
+   هنحسبش منين. */
+function renderWelcome(template: string, vars: { name: string; role: string; branch: string }) {
+  const branch = vars.branch ? ` — الفرع: ${vars.branch}` : '';
+  return String(template)
+    .replaceAll('{{name}}', vars.name || 'بك')
+    .replaceAll('{{role}}', vars.role || 'مشاهدة فقط')
+    .replaceAll('{{branch}}', branch)
+    .replaceAll('{{login_url}}', siteUrl());
+}
+
+async function readWelcomeTemplate(adminClient: ReturnType<typeof createClient>) {
+  const { data, error } = await adminClient
+    .from('welcome_template')
+    .select('subject,body,enabled')
+    .eq('id', 1)
+    .maybeSingle();
+  if (error) return { subject: defaultWelcomeSubject(), body: defaultWelcomeBody(), enabled: true, fromDb: false };
+  return {
+    subject: data?.subject?.trim() ? String(data.subject) : defaultWelcomeSubject(),
+    body: data?.body?.trim() ? String(data.body) : defaultWelcomeBody(),
+    enabled: data ? data.enabled !== false : true,
+    fromDb: !!data,
+  };
+}
+
 async function sendViaEmailjs(emails: string[], subject: string, message: string) {
   const cfg = emailjsConfig()!;
   let sent = 0;
@@ -419,6 +493,38 @@ Deno.serve(async (req) => {
       }
       return response({ date, sent: results.reduce((s, r) => s + r.sent, 0), failed: results.reduce((s, r) => s + r.failed, 0), results });
     }
+    if (action === 'get_welcome_template') {
+      if (profile.role !== 'admin') throw new Error('رسالة الترحيب متاحة للمدير فقط');
+      const template = await readWelcomeTemplate(adminClient);
+      /* أمثلة جاهزة عشان المدير يشوف إزاي الـplaceholders بتبان */
+      const sample = { name: 'محمود حسن', role: ROLE_LABELS.admin, branch: 'فرع الشيخ زايد' };
+      return response({
+        subject: template.subject,
+        body: template.body,
+        enabled: template.enabled,
+        fromDb: template.fromDb,
+        loginUrl: siteUrl(),
+        previewSubject: renderWelcome(template.subject, sample),
+        previewBody: renderWelcome(template.body, sample),
+        placeholders: ['{{name}}', '{{role}}', '{{branch}}', '{{login_url}}'],
+        maxSubject: 180,
+        maxBody: 4000,
+      });
+    }
+    if (action === 'save_welcome_template') {
+      if (profile.role !== 'admin') throw new Error('حفظ رسالة الترحيب متاح للمدير فقط');
+      const subject = String(body.subject || '').trim();
+      const text = String(body.body || '');
+      if (!subject || subject.length > 180) throw new Error('عنوان الرسالة مطلوب وبحد أقصى 180 حرفًا');
+      if (!text.trim()) throw new Error('نص رسالة الترحيب مطلوب');
+      if (text.length > 4000) throw new Error('نص رسالة الترحيب يتجاوز 4000 حرف');
+      const enabled = body.enabled !== false;
+      const { data, error: writeError } = await adminClient.from('welcome_template')
+        .upsert({ id: 1, subject, body: text, enabled, updated_by: caller.id, updated_at: new Date().toISOString() })
+        .select('subject,body,enabled').single();
+      if (writeError) throw writeError;
+      return response({ saved: true, subject: data?.subject, enabled: data?.enabled });
+    }
     if (action === 'list_report_recipients') {
       if (profile.role !== 'admin') throw new Error('اختيار مستلمي التقارير متاح للمدير فقط');
       const users: { id: string; email: string; name: string }[] = [];
@@ -502,17 +608,36 @@ Deno.serve(async (req) => {
         if (profile.role !== 'admin') throw new Error('إنشاء الحسابات متاح للمدير فقط');
         const targetUserId = clean(payload.userId, 64);
         if (!targetUserId) throw new Error('لم يتم تحديد الحساب الجديد');
+        /* القالب يُقرأ من الجدول، و«إرسال الترحيب» من الـpayload:
+           لو المدير شال التحديد من نموذج الإضافة، الحساب يتعمل
+           والرسالة ما تتبعتش. */
+        const template = await readWelcomeTemplate(adminClient);
+        if (!template.enabled || payload.sendWelcome === false) {
+          return response({ sent: 0, skipped: true, reason: 'معطّل' });
+        }
+        /* الدور والفرع من قاعدة البيانات مش من المتصفح: المتصفح
+           caller واحد، والـpayload أرقام من أي حد تاني. */
+        let fullName = clean(payload.name, 100);
+        let roleLabel = '';
+        let branchName = '';
+        const { data: targetProfile } = await adminClient.from('profiles')
+          .select('role,branch_name,full_name').eq('id', targetUserId).maybeSingle();
+        if (targetProfile) {
+          roleLabel = ROLE_LABELS[String(targetProfile.role)] || String(targetProfile.role || '');
+          branchName = String(targetProfile.branch_name || '').trim();
+          fullName = String(targetProfile.full_name || '').trim() || fullName;
+        }
         const result = await deliver(
           adminClient,
           fromEmail,
           resendKey,
-          'تم إنشاء حسابك في منصة يهماء',
-          `مرحبًا ${clean(payload.name) || 'بك'}،\nتم إنشاء حسابك في منصة يهماء لتأجير السيارات. اطلب بيانات الدخول من مدير النظام، ثم سجّل الدخول من هنا: https://yahma-cars.netlify.app/`,
+          renderWelcome(template.subject, { name: fullName, role: roleLabel, branch: branchName }),
+          renderWelcome(template.body, { name: fullName, role: roleLabel, branch: branchName }),
           undefined,
           targetUserId,
         );
         if (!result.sent) throw new Error(result.error || 'تعذر العثور على بريد المستخدم الجديد');
-        return response(result);
+        return response({ ...result, templateFromDb: template.fromDb });
       }
       throw new Error('نوع الحدث غير مدعوم');
     }
@@ -524,7 +649,9 @@ Deno.serve(async (req) => {
     const audience = String(body.audience || 'all');
     if (!subject || subject.length > 180) throw new Error('عنوان الرسالة مطلوب وبحد أقصى 180 حرفًا');
     if (!message || message.length > 20000) throw new Error('نص الرسالة مطلوب وبحد أقصى 20000 حرف');
-    if (!['all', 'admin', 'ops', 'view'].includes(audience)) throw new Error('فئة المستلمين غير صالحة');
+    /* «مدير» كان ناقص من القائمة رغم إن الدور موجود(v175): التعميم
+       لإداري بيدي «فئة المستلمين غير صالحة» وإنت مش داري السبب. */
+    if (!['all', 'admin', 'manager', 'ops', 'view'].includes(audience)) throw new Error('فئة المستلمين غير صالحة');
     return response(await deliver(adminClient, fromEmail, resendKey, subject, message, audience));
   } catch (error) {
     return response({ error: error instanceof Error ? error.message : 'تعذر إرسال البريد' }, 400);

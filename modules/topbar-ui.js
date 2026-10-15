@@ -67,10 +67,12 @@
     var selectedPermissions=function(scope){return Array.from(scope.querySelectorAll('input[type="checkbox"]:checked')).map(function(input){return input.value;});};
     var syncPermissions=function(scope,role){var inputs=scope.querySelectorAll('input[type="checkbox"]');inputs.forEach(function(input){input.disabled=role==='admin';if(role==='admin')input.checked=true;});};
     var ov=document.createElement('div'); ov.id='user-admin-overlay'; ov.className='overlay'; ov.style.display='flex';
-    ov.innerHTML='<div class="modal user-admin-modal"><div class="user-admin-head"><div><h2>إدارة المستخدمين</h2><p>أضف المستخدم وحدد دوره والفرع والأقسام التي يستطيع رؤيتها.</p></div><button type="button" class="btn btn-ghost btn-small" id="user-admin-close">إغلاق</button></div><form id="user-admin-form" class="user-admin-form"><input id="ua-name" placeholder="الاسم الكامل" required><input id="ua-email" type="email" dir="ltr" placeholder="البريد الإلكتروني" required><input id="ua-password" type="password" dir="ltr" placeholder="كلمة المرور المؤقتة" minlength="8" required><select id="ua-role"><option value="view">مشاهدة فقط</option><option value="ops">تشغيل (يفحص بس)</option><option value="manager">إداري</option><option value="admin">مدير النظام</option></select><select id="ua-branch">'+branchOptions+'</select><small class="ua-branch-note">«كل الفروع» ⇐ يشوف كل الأسطول. لو اخترت فرع بعينه ⇐ يشوف ذلك الفرع فقط (الاسم لازم يطابق تمامًا).</small><div class="ua-permissions-block"><strong>الأقسام المسموح بها</strong><small>الرئيسية متاحة للجميع. المدير لديه وصول كامل.</small>'+permissionGrid('ua-new-permissions',allPageIds,false)+'</div><button class="btn btn-primary" type="submit">إضافة المستخدم</button></form><div id="user-admin-message" class="user-admin-message"></div><div class="user-admin-list" id="user-admin-list"><div class="empty">جارِ تحميل المستخدمين...</div></div></div>';
+    ov.innerHTML='<div class="modal user-admin-modal"><div class="user-admin-head"><div><h2>إدارة المستخدمين</h2><p>أضف المستخدم وحدد دوره والفرع والأقسام التي يستطيع رؤيتها.</p></div><div class="ua-head-actions"><button type="button" class="btn btn-ghost btn-small" id="ua-welcome-template" title="عدّل نص رسالة الترحيب اللي بتتبعت لكل حساب جديد">✉️ رسالة الترحيب</button><button type="button" class="btn btn-ghost btn-small" id="user-admin-close">إغلاق</button></div></div><form id="user-admin-form" class="user-admin-form"><input id="ua-name" placeholder="الاسم الكامل" required><input id="ua-email" type="email" dir="ltr" placeholder="البريد الإلكتروني" required><input id="ua-password" type="password" dir="ltr" placeholder="كلمة المرور المؤقتة" minlength="8" required><select id="ua-role"><option value="view">مشاهدة فقط</option><option value="ops">تشغيل (يفحص بس)</option><option value="manager">إداري</option><option value="admin">مدير النظام</option></select><select id="ua-branch">'+branchOptions+'</select><label id="ua-send-welcome"><input type="checkbox" id="ua-welcome-check" checked> إرسال رسالة ترحيب على بريده</label><small class="ua-branch-note">«كل الفروع» ⇐ يشوف كل الأسطول. لو اخترت فرع بعينه ⇐ يشوف ذلك الفرع فقط (الاسم لازم يطابق تمامًا).</small><div class="ua-permissions-block"><strong>الأقسام المسموح بها</strong><small>الرئيسية متاحة للجميع. المدير لديه وصول كامل.</small>'+permissionGrid('ua-new-permissions',allPageIds,false)+'</div><button class="btn btn-primary" type="submit">إضافة المستخدم</button></form><div id="user-admin-message" class="user-admin-message"></div><div class="user-admin-list" id="user-admin-list"><div class="empty">جارِ تحميل المستخدمين...</div></div></div>';
     document.body.appendChild(ov);
     var close=function(){ov.remove()}; ov.onclick=function(e){if(e.target===ov) close()}; ov.querySelector('#user-admin-close').onclick=close;
     var msg=ov.querySelector('#user-admin-message'), list=ov.querySelector('#user-admin-list');
+    var welcomeBtn=ov.querySelector('#ua-welcome-template');
+    if(welcomeBtn) welcomeBtn.onclick=function(){ openWelcomeEditor(); };
     var renderUsers=async function(){
       if(!window.supabaseReady||!window.supabaseClient){list.innerHTML='<div class="empty">إدارة المستخدمين تحتاج اتصال Supabase.</div>';return;}
       var result=await window.supabaseClient.from('profiles').select('id,full_name,role,branch_name,allowed_tabs').order('full_name',{ascending:true});
@@ -130,12 +132,189 @@
         msg.textContent='تعذر إنشاء المستخدم: '+detail;
         return;
       }
-      var notice=r.data&&r.data.id?await window.notifyYahmaEvent('account_created',{userId:r.data.id,name:payload.name}):{ok:false,error:'تعذر تحديد الحساب الجديد'};
-      msg.textContent=notice.ok?'تم إنشاء المستخدم وإرسال رسالة ترحيب إلى بريده.':`تم إنشاء المستخدم، لكن تعذر إرسال رسالة الترحيب: ${notice.error||'تحقق من إعداد البريد'}`;
+      var sendWelcome=ov.querySelector('#ua-welcome-check')?ov.querySelector('#ua-welcome-check').checked:true;
+      var notice=r.data&&r.data.id?await window.notifyYahmaEvent('account_created',{userId:r.data.id,name:payload.name,sendWelcome:sendWelcome}):{ok:false,error:'تعذر تحديد الحساب الجديد'};
+      msg.textContent=notice.skipped?'تم إنشاء المستخدم. (ترحيب: '+notice.reason+')'
+        :notice.ok?'تم إنشاء المستخدم وإرسال رسالة ترحيب إلى بريده.'
+        :`تم إنشاء المستخدم، لكن تعذر إرسال رسالة الترحيب: ${notice.error||'تحقق من إعداد البريد'}`;
       e.target.reset(); await renderUsers();
     };
     renderUsers();
   }
+  /* ===== محرّر رسالة الترحيب =====
+   النص كان ثابت جوه الـEdge Function؛ المدير مش كان يقدر يغيّره.
+   دلوقتي بيتقرأ من جدول welcome_template ويتحفظ من هنا.
+
+   المعاينة بتتعمل **في المتصفح** مش على السيرفر: بتتغير مع كل
+   حرف بتكتبه، والمستخدم يشوف النتيجة فورًا من غير انتظار شبكة.
+   ولو السيرفر واقع، المعاينة بتفضل شغالة. */
+
+var WELCOME_PLACEHOLDERS = ['{{name}}', '{{role}}', '{{branch}}', '{{login_url}}'];
+var WELCOME_MAX_SUBJECT = 180;
+var WELCOME_MAX_BODY = 4000;
+var WELCOME_DEFAULT_SUBJECT = 'تم إنشاء حسابك في منصة يهماء لتأجير السيارات';
+var WELCOME_DEFAULT_BODY = [
+  'مرحبًا {{name}}،',
+  '',
+  'تم إنشاء حساب لك في منصة يهماء لتأجير السيارات، ودورك: {{role}}{{branch}}.',
+  '',
+  'خطوات الدخول:',
+  '1) افتح: {{login_url}}',
+  '2) سجّل الدخول ببريدك وكلمة المرور من مدير النظام.',
+  '3) غيّر كلمة المرور من أول مرة تدخل.',
+  '',
+  'صلاحياتك محددة سلفًا، فلو محتاج تبويب مش ظاهرلك كلّم مدير النظام يفعّله.',
+  '',
+  'مع تحيات،',
+  'فريق منصة يهماء'
+].join('\n');
+
+function welcomeRender(template, sample) {
+  var branch = sample.branch ? (' — الفرع: ' + sample.branch) : '';
+  return String(template == null ? '' : template)
+    .split('{{name}}').join(sample.name || 'بك')
+    .split('{{role}}').join(sample.role || 'مشاهدة فقط')
+    .split('{{branch}}').join(branch)
+    .split('{{login_url}}').join(sample.loginUrl || window.location.origin);
+}
+
+/* يقرأ القالب المحفوظ. لو السيرفر مش راد أو الجدول لسه مش
+   موجود، بيرجع للافتراضي — عشان كده المدير يقدر يعدّل النص
+   ويشوف المعاينة من غير ما يستنى أي حاجة. */
+function welcomeLoadTemplate() {
+  if (!window.supabaseClient) return Promise.resolve(null);
+  try {
+    return window.supabaseClient.functions
+      .invoke('send-user-email', { body: { action: 'get_welcome_template' } })
+      .then(function (r) {
+        if (r && !r.error && r.data && !r.data.error) return r.data;
+        return null;
+      });
+  } catch (_) { yahmaErr(_, 'topbar-ui.js:welcomeLoadTemplate'); return Promise.resolve(null); }
+}
+
+function openWelcomeEditor() {
+  var old = document.getElementById('welcome-editor-overlay');
+  if (old) old.remove();
+  var ov = document.createElement('div');
+  ov.id = 'welcome-editor-overlay';
+  ov.className = 'overlay';
+  ov.style.display = 'flex';
+  ov.innerHTML =
+    '<div class="modal welcome-editor-modal" role="dialog" aria-modal="true" aria-labelledby="welcome-editor-title">'
+    + '<div class="user-admin-head"><div><h2 id="welcome-editor-title">رسالة الترحيب</h2>'
+    + '<p>الرسالة اللي بتتبعت لكل حساب جديد أول ما يتحفظ.</p></div>'
+    + '<button type="button" class="btn btn-ghost btn-small" id="welcome-editor-close">إغلاق</button></div>'
+    + '<div class="welcome-editor-body">'
+    + '<label class="fld">عنوان الرسالة<input id="welcome-subject" maxlength="' + WELCOME_MAX_SUBJECT + '"></label>'
+    + '<label class="fld">نص الرسالة<textarea id="welcome-body" rows="12" maxlength="' + WELCOME_MAX_BODY + '"></textarea></label>'
+    + '<div class="welcome-ph-row"><span>الحقول المتاحة (اضغط لإدراجها):</span>'
+    + WELCOME_PLACEHOLDERS.map(function (p) {
+        return '<button type="button" class="welcome-ph" data-ph="' + p + '">' + escapeHtml(p) + '</button>';
+      }).join('')
+    + '</div>'
+    + '<label class="welcome-enabled"><input type="checkbox" id="welcome-enabled" checked> إرسال رسالة الترحيب تلقائيًا</label>'
+    + '<div class="welcome-preview-head"><strong>معاينة</strong>'
+    + '<span class="muted-small">بأسماء تجريبية: محمود حسن — مدير النظام — فرع الشيخ زايد</span></div>'
+    + '<pre class="welcome-preview" id="welcome-preview" dir="rtl"></pre>'
+    + '<div id="welcome-editor-status" role="status" aria-live="polite" class="ua-user-admin-message"></div>'
+    + '<div class="welcome-editor-actions">'
+    + '<button type="button" class="btn btn-ghost btn-small" id="welcome-reset">استعادة النص الافتراضي</button>'
+    + '<button type="button" class="btn btn-primary btn-small" id="welcome-save">حفظ</button>'
+    + '</div></div></div>';
+  document.body.appendChild(ov);
+
+  var close = function () { ov.remove(); };
+  ov.onclick = function (e) { if (e.target === ov) close(); };
+  ov.querySelector('#welcome-editor-close').onclick = close;
+
+  var subjectEl = ov.querySelector('#welcome-subject');
+  var bodyEl = ov.querySelector('#welcome-body');
+  var enabledEl = ov.querySelector('#welcome-enabled');
+  var previewEl = ov.querySelector('#welcome-preview');
+  var statusEl = ov.querySelector('#welcome-editor-status');
+
+  var SAMPLE = { name: 'محمود حسن', role: 'مدير النظام', branch: 'فرع الشيخ زايد', loginUrl: window.location.origin };
+  var drawPreview = function () {
+    var s = welcomeRender(subjectEl.value, SAMPLE);
+    var b = welcomeRender(bodyEl.value, SAMPLE);
+    previewEl.textContent = 'العنوان: ' + s + '\n\n' + b;
+  };
+
+  var status = function (text, isError) {
+    statusEl.textContent = text;
+    statusEl.style.color = isError ? 'var(--red,#CE4B3D)' : '';
+  };
+
+  subjectEl.addEventListener('input', drawPreview);
+  bodyEl.addEventListener('input', drawPreview);
+
+  ov.querySelectorAll('.welcome-ph').forEach(function (btn) {
+    btn.onclick = function () {
+      var target = bodyEl;
+      var start = target.selectionStart != null ? target.selectionStart : target.value.length;
+      var end = target.selectionEnd != null ? target.selectionEnd : target.value.length;
+      var token = btn.dataset.ph;
+      target.value = target.value.slice(0, start) + token + target.value.slice(end);
+      target.focus();
+      try { target.setSelectionRange(start + token.length, start + token.length); }
+      catch (_) { yahmaErr(_, 'topbar-ui.js:welcome-ph'); }
+      drawPreview();
+    };
+  });
+
+  ov.querySelector('#welcome-reset').onclick = function () {
+    if (!confirm('استعادة النص الافتراضي؟ هيتحفظ النص اللي كتبته فوق.')) return;
+    subjectEl.value = WELCOME_DEFAULT_SUBJECT;
+    bodyEl.value = WELCOME_DEFAULT_BODY;
+    drawPreview();
+    status('النص الافتراضي اترجّع — اضغط «حفظ» لتثبيته.');
+  };
+
+  ov.querySelector('#welcome-save').onclick = async function () {
+    var btn = this;
+    var subject = subjectEl.value.trim();
+    var text = bodyEl.value;
+    if (!subject) { status('العنوان مطلوب.', true); subjectEl.focus(); return; }
+    if (!text.trim()) { status('نص الرسالة مطلوب.', true); bodyEl.focus(); return; }
+    btn.disabled = true;
+    status('جارِ الحفظ...');
+    try {
+      var r = await window.supabaseClient.functions.invoke('send-user-email', {
+        body: { action: 'save_welcome_template', subject: subject, body: text, enabled: enabledEl.checked }
+      });
+      if (r && r.error) throw new Error(r.error.message || 'تعذر الحفظ');
+      if (r && r.data && r.data.error) throw new Error(r.data.error);
+      status('تم حفظ رسالة الترحيب.');
+    } catch (e) {
+      yahmaErr(e, 'topbar-ui.js:welcome-save');
+      status('تعذر الحفظ: ' + ((e && e.message) || e), true);
+    }
+    btn.disabled = false;
+  };
+
+  /* تحميل النص المحفوظ — الافتراضي بيظهر فورًا، وبعدين أي نص
+     محفوظ بيحلّ محلّه. مفيش شاشة تحميل ولا انتظار. */
+  subjectEl.value = WELCOME_DEFAULT_SUBJECT;
+  bodyEl.value = WELCOME_DEFAULT_BODY;
+  drawPreview();
+  status('جارِ تحميل النص المحفوظ...');
+  welcomeLoadTemplate().then(function (data) {
+    if (!data) {
+      status('تعذر تحميل النص المحفوظ — بتشتغل على النص الافتراضي. لو ده غلط، تأكد إنك داخل كمدير النظام.');
+      return;
+    }
+    subjectEl.value = String(data.subject || WELCOME_DEFAULT_SUBJECT);
+    bodyEl.value = String(data.body || WELCOME_DEFAULT_BODY);
+    enabledEl.checked = data.enabled !== false;
+    drawPreview();
+    status(data.fromDb ? '' : 'مفيش نص محفوظ لسه — ده النص الافتراضي.');
+  });
+}
+
+/* ينادى من شاشة إدارة المستخدمين */
+window.yahmaOpenWelcomeEditor = openWelcomeEditor;
+
   /* ===== تموضع القائمة داخل حدود الشاشة =====
      القائمة position:absolute والدور RTL، فـ right:0 كان بيخرجها خارج
      الشاشة تمامًا على الموبايل (الزر خارج الإطار → لا يمكن الضغط عليه).

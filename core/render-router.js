@@ -491,7 +491,7 @@ function goTabFromRouter(tab){
 /* نسخة كاملة من الأسطول وقت الرسم.
    لازم تكون متغير مستقل (مش على window.YahmaData) عشان:
    1) لو YahmaData لسه متحمّلش، الرجوع يفضل شغال.
-   2) ما نلحقش بجوز في حالة مرحلية فلتر we نرجّعه بعد ما الـ warning يتقري. */
+   2) ما نلحقش بجوز في حالة مرحلية فلتر إنه نرجّعه بعد ما الـ warning يتقري. */
 let __yahmaFullFleet = null;
 
 function render(){
