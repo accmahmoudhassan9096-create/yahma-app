@@ -763,13 +763,25 @@ function renderDashboard(content, context){
     setTimeout(()=>{
       try{
         if(typeof L!=='undefined' && L.map){ drawMap(); return; }
-        const css='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+        /* Leaflet محلي على نطاقنا. كان بيتحمّل من cdnjs، وده آخر
+           اعتماد على طرف تالث وقت التشغيل في المشروع كله. نفس النمط
+           اللي export.js بيستخدمه: المحلي الأساسي، وCDN fallback
+           لو الملف المحلي تلف. */
+        const local = 'vendor/leaflet';
+        const fail = ()=>{ el.innerHTML='<div class="empty">تعذر تحميل الخريطة (تحقق من الإنترنت) — الأرقام بجانبها محدثة.</div>'; };
         if(!document.querySelector('link[data-leaflet]')){
-          const l=document.createElement('link'); l.rel='stylesheet'; l.href=css; l.setAttribute('data-leaflet','1'); document.head.appendChild(l);
+          const l=document.createElement('link'); l.rel='stylesheet'; l.href=local+'.css'; l.setAttribute('data-leaflet','1'); document.head.appendChild(l);
         }
-        const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; s.async=true;
+        const s=document.createElement('script'); s.src=local+'.js'; s.async=true;
         s.onload=drawMap;
-        s.onerror=()=>{ el.innerHTML='<div class="empty">تعذر تحميل الخريطة (تحقق من الإنترنت) — الأرقام بجانبها محدثة.</div>'; };
+        s.onerror=()=>{
+          try{
+            const f=document.createElement('script');
+            f.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; f.async=true;
+            f.onload=drawMap; f.onerror=fail;
+            document.head.appendChild(f);
+          }catch(_){ yahmaErr(_,'dashboard.js:leaflet-fallback'); }
+        };
         document.head.appendChild(s);
       }catch(e){yahmaErr(e,'dashboard.js:774');}
     }, 300);

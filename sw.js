@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v183';
+const CACHE_NAME = 'yahma-shell-v184';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -71,6 +71,11 @@ const LOCAL_APP_SHELL = [
   './modules/fleet-excel.js',
   './modules/smooth.js',
   './modules/cloud.js',
+  './vendor/leaflet.js',
+  './vendor/leaflet.css',
+  './vendor/images/layers.png',
+  './vendor/images/layers-2x.png',
+  './vendor/images/marker-icon.png',
   './css/fonts.css',
   './fonts/cairo-000000.woff2',
   './fonts/cairo-010002.woff2',

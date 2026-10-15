@@ -42,7 +42,7 @@ function readRequiredList() {
 function walk(dir, out, depth) {
   if (depth > 4) return out;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === 'vendor' || entry.name === '.git' || entry.name === 'node_modules' ||
+    if (entry.name === '.git' || entry.name === 'node_modules' ||
         entry.name === 'tests' || entry.name === 'scripts') continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full, out, depth + 1);
