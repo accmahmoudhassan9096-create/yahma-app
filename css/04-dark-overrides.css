@@ -998,6 +998,14 @@ body.dark-mode .sync-status.is-offline{color:#FBC9C3;background:#3D1512;border-c
 }
 .err-panel-note{margin-top:6px;font-size:10.5px;color:var(--muted);}
 
+/* عمود الجاهزية في جدول الأسطول.
+   الكلاس اسمه readiness-pill كان مستخدَم لشارة «حالة التجهيز» —
+   اسم مضلّل بيخلّي اللي يقرا الكود يفكر إن ده الجاهزية. التجهيز
+   بقى prep-pill فوق نفس الأساس، والعمود الجديد خد الاسم الصح. */
+.readiness-pill.prep-pill{opacity:.92;}
+.fleet-table thead th:nth-last-child(3),
+.fleet-table thead th:nth-last-child(4){position:sticky;}
+
 /* ===== تلميح الصلاحيات (حساب «تشغيل») ===== */
 .yx-perm-hint{
   display:flex;align-items:center;gap:8px;
