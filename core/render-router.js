@@ -479,6 +479,9 @@ if(currentTab === 'dashboard') renderDashboard(content);
   try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){}
   try{ showBranchScopeNotice(content); }catch(_){}
   try{ showDataWarning(content); }catch(_){}
+  /* الصلاحيات حسب التبويب: «تشغيل» يعدّل في الفحص بس، والباقي
+     قراءة فقط. طبقة واحدة بتغطي كل أزرار التعديل بدل شرط في كل ملف. */
+  try{ applyTabEditPermission(content); }catch(_){}
   /* شريط التصدير (Excel + PDF) بيظهر في أي تبويب فيه جدول */
   try{ if(window.YahmaExportBar&&typeof window.YahmaExportBar.sync==='function') window.YahmaExportBar.sync(); }catch(_){}
 }
@@ -516,6 +519,59 @@ function showBranchScopeNotice(content){
     catch(_){ try{ if(typeof supabaseClient!=='undefined'&&supabaseClient) supabaseClient.auth.signOut(); }catch(__){} }
     setTimeout(()=>location.reload(),600);
   };
+}
+
+/* ===== الصلاحيات حسب التبويب =====
+   القاعدة المطلوبة: «تشغيل» يقدر يشتغل في تبويب الفحص بس، وباقي
+   الأقسام عرض فقط له. بدل شرط متكرر في كل ملف، بنمسح أي زر تعديل
+   مرة واحدة بعد كل رسم.
+
+  的话说: الأزرار اللي بتعدّل بيانات (حفظ/حذف/رفع/تعيين/تجديد) بتتعطّل
+   وتاخد تلميح يوضّح للمستخدم إن حسابه محدود. */
+const EDIT_ACTION_RE = /(حذف|رفع|استيراد|تعيين|ضبط|تجديد|إضافة|تعديل|حفظ|تحديث|الإجراء|✏|🗑|📥|✚|➕|🗓|↻)/;
+const EDIT_ID_RE = /(upload|import|delete|del-|drop|bulk|save|add|edit|renew|set-|status|remove|trash)/i;
+
+function applyTabEditPermission(content){
+  if(!content) return;
+  if(typeof window.YahmaPerms!=='object') return;
+  /* الأدوار الأعلى ما يتلمسش */
+  if(window.YahmaPerms.rank() >= 3) return;
+  const allowed = window.YahmaPerms.canEditNow();
+  if(allowed) return;
+
+  const nodes = content.querySelectorAll('button, input[type="checkbox"][data-row-check], .row-check');
+  let blocked = 0;
+  nodes.forEach(function(el){
+    if(el.closest('#yahma-export-bar')) return;       /* التصدير مسموح دايمًا */
+    if(el.disabled) return;
+    const id = el.id || '';
+    const txt = (el.textContent||'').replace(/\s+/g,' ').trim();
+    const isEdit = EDIT_ID_RE.test(id) || (EDIT_ACTION_RE.test(txt) && el.tagName === 'BUTTON');
+    if(!isEdit) return;
+    /* أزرار التصفية/البحث مش تعديل */
+    if(/(بحث|فلتر|مسح الفلاتر|تحديث الصفحة|تبديل|عرض)/.test(txt) && !/رفع|حذف|حفظ/.test(txt)) return;
+    el.disabled = true;
+    el.dataset.permBlocked = '1';
+    el.title = window.YahmaPerms.denyMessage(txt.slice(0,30) || 'هذا الإجراء');
+    blocked++;
+  });
+  if(blocked && window.YahmaPerms.role() === 'ops'){
+    showEditHint(content);
+  }
+}
+
+/* تلميح صغير يوضح ليش الأزرار مقفولة — بدل ما المستخدم يت wondering */
+let __yahmaPermHint = null;
+function showEditHint(content){
+  try{
+    if(__yahmaPermHint && __yahmaPermHint.parentNode) __yahmaPermHint.remove();
+    const box = document.createElement('div');
+    box.id = 'yahma-perm-hint';
+    box.className = 'yx-perm-hint';
+    box.textContent = 'حسابك «تشغيل» — مسموح بالتعديل في تبويب «الفحص» بس — باقي الأقسام مشاهدة';
+    content.insertBefore(box, content.firstChild);
+    __yahmaPermHint = box;
+  }catch(_){}
 }
 
 function showDataWarning(content){

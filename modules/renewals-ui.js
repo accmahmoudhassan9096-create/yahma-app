@@ -2,7 +2,7 @@
   'use strict';
 
 function renderRenewals(content, mode='inspection'){
-  const canDelete=!(typeof currentRole!=='undefined'&&currentRole==='view');
+  const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canEditNow() : !(typeof currentRole!=='undefined'&&currentRole==='view');
   const licenseMode=mode==='license';
   const insuranceMode=mode==='insurance';
   document.getElementById('topbar-title').textContent = insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص';

@@ -16,7 +16,7 @@
   window.fmtCardNumber = fmtCardNumber;
 
 function renderFollowUp(content){
-  const canDelete=!(typeof currentRole!=='undefined'&&currentRole==='view');
+  const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canEditNow() : !(typeof currentRole!=='undefined'&&currentRole==='view');
   document.getElementById('topbar-title').textContent = 'بطاقات التشغيل';
   document.getElementById('topbar-sub').textContent = 'متابعة بطاقات التشغيل (الكارت) ومواعيد التجديد';
   const uniq=(field)=>{

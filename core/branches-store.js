@@ -76,8 +76,8 @@ window.ALL_YAHMA_TABS=(typeof PAGE_PERMISSION_OPTIONS!=='undefined'&&Array.isArr
   : ['dashboard','fleet','branches','renewals','payments','paid','renewed','license-renewals','insurance-renewals','inspections','transfers','reports','audit'];
 window.defaultYahmaTabsForRole=function(role){
   var all=window.ALL_YAHMA_TABS||[];
-  if(role==='admin') return all.slice();
-  /* «view» و«ops» يشوفوا كل الأقسام عدا سجل النشاط (إداري بحت) */
+  if(role==='admin'||role==='manager') return all.slice();
+  /* «ops» و«view» يشوفوا كل الأقسام عدا سجل النشاط (إداري بحت) */
   return all.filter(function(id){ return id!=='audit'; });
 };
 window.resolveYahmaPermissions=function(allowed, role){

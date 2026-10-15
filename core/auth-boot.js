@@ -46,6 +46,7 @@ document.documentElement.classList.add('yahma-booting');
 
 // ---- Authentication gate ----
 window.currentRole = 'view'; // أضيق صلاحية افتراضيًا (fail-closed) لحد ما نتأكد من دور المستخدم
+window.currentRolePermissions = ['view'];
 window.currentUser = null;
 // بتبقى false لحد ما يتحسم مصير الدخول (جلسة/لا جلسة/وضع تجريبي/فشل SDK).
 // شبكات الأمان الزمنية (forceLocalBoot / emergencyUnstick) ممنوعة تعمل أي حاجة قبلها،
@@ -202,7 +203,9 @@ async function fetchUserRole(uid){
         if(attempt<2) await new Promise(resolve=>setTimeout(resolve,400*(attempt+1)));
         continue;
       }
-      if(data && ['admin','ops','view'].includes(data.role)){
+      /* الأدوار المعتمدة: مدير النظام / إداري / تشغيل / مشاهدة.
+         أي قيمة تانية (أو عمود ناقص) = «مشاهدة» — fail-closed. */
+      if(data && ['admin','manager','ops','view'].includes(data.role)){
         /* allowed_tabs فاضي/ null كان بيخفي كل التبويبات — راجع resolveYahmaPermissions */
         window.currentUserPermissions=(typeof window.resolveYahmaPermissions==='function')
           ? window.resolveYahmaPermissions(data.allowed_tabs, data.role)

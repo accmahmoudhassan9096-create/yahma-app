@@ -4,7 +4,7 @@
 /* تبويب التنازلات: سيارات لها تنازل من المالك (انتهاء الأقساط) — تُقرأ من أعمدة الإكسل
    (تنازل/تاريخ التنازل/المالك السابق/حالة التنازل/ملاحظات التنازل) ولا تمس حالة السيارة. */
 function renderTransfers(content){
-  const canDelete=!(typeof currentRole!=='undefined'&&currentRole==='view');
+  const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canEditNow() : !(typeof currentRole!=='undefined'&&currentRole==='view');
   document.getElementById('topbar-title').textContent='التنازلات';
   document.getElementById('topbar-sub').textContent='سيارات انتقلت ملكيتها إلينا بانتهاء الأقساط';
   const isTransfer=c=>String(c.transferDone||'').trim()==='نعم';

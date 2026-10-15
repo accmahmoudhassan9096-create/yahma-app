@@ -116,7 +116,7 @@
   }
 
   function renderFleet(content, cars){
-  const canDelete=!(typeof currentRole!=='undefined'&&currentRole==='view');
+  const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canEditNow() : !(typeof currentRole!=='undefined'&&currentRole==='view');
   const fleet = Array.isArray(cars) ? cars : [];
   document.getElementById('topbar-title').textContent='إدارة الأسطول';
   document.getElementById('topbar-sub').textContent = fleet.length + ' سيارة — إدارة الجاهزية للتأجير';
