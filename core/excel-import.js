@@ -485,6 +485,13 @@ async function removeSoldVehiclesByPlates(plates,options={}){
   const remaining=fleet.filter(c=>!idSet.has(String(c.id)));
   let deletedCloud=0, failedCloud=0;
 
+  /* ===== التراجع عن الحذف =====
+     آخر سطر قبل الحذف الفعلي: نصوّر السجلات كاملة عشان لو
+     الاختيار غلط يرجع بضغطة. كل الحذف الجماعي في التطبيق (الفرع،
+     المتابعة، الفحص، التجديدات، التحويلات، مستورد المباع) يعدّي
+     من هنا — فالتغطية كاملة من نقطة واحدة. */
+  try{ if(window.YahmaUndo) window.YahmaUndo.record(matched,{source:'removeSoldVehiclesByPlates'}); }catch(_){}
+
   // حذف من Supabase واحدة تلو الأخرى (أو batch)
   if(!window._demoMode && window.supabaseReady && window.supabaseClient){
     try{

@@ -28,7 +28,7 @@
 2. **أخبر المشرفين** بفتح الرابط الجديد (المتصفح بيسجّل التطبيق الجديد تلقائيًا؛ لو حد عنده النسخة القديمة مثبّتة على نطاق Netlify هيفضل شغّال القديم).
 3. **بعد أسبوع** من Satisfaction: امسح موقع Netlify.
 
-> لو ربطت GitHub直接从 Cloudflare، مش محتاج تحتاج ملف `.github/workflows/deploy-cloudflare.yml` — امسحه أو اعمله disable عشان ما ينشرش مرتين.
+> لو ربطت GitHubمباشرة من Cloudflare، مش محتاج تحتاج ملف `.github/workflows/deploy-cloudflare.yml` — امسحه أو اعمله disable عشان ما ينشرش مرتين.
 
 ---
 

@@ -865,6 +865,52 @@ body.dark-mode #app-lock-screen .lock-note{color:#7C8A98;}
    ويفضل عالق على opacity:0 ⇒ المستخدم مش بيشوف الزراير أصلاً. */
 .content > .yx-bar{animation:none !important;opacity:1 !important;}
 
+/* ===== شريط التراجع عن الحذف =====
+   z-index 10090: أعلى من شريط «تحديث قسري» (10080) اللي بيقعد في
+   نفس المكان، وأقل بكتير من المودالات (2147483000) عشان ما يغطّيش
+   نافذة تأكيد وقت ما المستخدم يكون بيراجع. */
+.yx-undo-toast{
+  position:fixed;inset-inline:0;
+  bottom:calc(18px + env(safe-area-inset-bottom,0px));
+  margin:0 auto;max-width:min(560px,calc(100vw - 24px));
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:11px 14px;border-radius:14px;
+  background:#1F2937;color:#F8FAFC;
+  border:1px solid #374151;
+  box-shadow:0 14px 40px rgba(2,6,23,.38);
+  font-size:13px;font-weight:700;line-height:1.5;
+  z-index:10090;pointer-events:auto;
+  transition:bottom .2s ease;
+  animation:yxUndoIn .26s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes yxUndoIn{from{opacity:0;transform:translateY(8px) scale(.98);}to{opacity:1;transform:none;}}
+.yx-undo-toast.is-warn{border-color:#B45309;background:#3B1D06;color:#FDE68A;}
+.yx-undo-icon{font-size:15px;opacity:.85;flex:none;}
+.yx-undo-text{flex:1 1 160px;min-width:0;overflow-wrap:anywhere;font-weight:600;}
+.yx-undo-bar{
+  position:absolute;inset-inline:0;bottom:0;height:3px;border-radius:0 0 14px 14px;
+  background:linear-gradient(90deg,#38BDF8,#818CF8);
+  transform-origin:right center;            /* RTL: ينكمش ناحية اليمين */
+  animation:yxUndoDrain var(--yx-undo-ms,20s) linear forwards;
+}
+@keyframes yxUndoDrain{from{transform:scaleX(1);}to{transform:scaleX(0);}}
+.yx-undo-toast.is-warn .yx-undo-bar{animation:none;}
+.yx-undo-btn{
+  flex:none;padding:7px 16px;border-radius:9px;border:0;cursor:pointer;
+  background:linear-gradient(135deg,#0EA5E9,#6366F1);color:#fff;
+  font-family:inherit;font-size:13px;font-weight:800;
+  box-shadow:0 4px 14px rgba(14,165,233,.4);
+}
+.yx-undo-btn:hover{filter:brightness(1.12);}
+.yx-undo-btn:active{transform:translateY(1px);}
+.yx-undo-btn:disabled{opacity:.6;cursor:wait;}
+.yx-undo-x{
+  flex:none;width:26px;height:26px;border-radius:7px;cursor:pointer;
+  background:transparent;border:1px solid rgba(248,250,252,.22);color:#E2E8F0;
+  font-size:15px;line-height:1;padding:0;
+}
+.yx-undo-x:hover{background:rgba(248,250,252,.14);}
+
 /* ===== تلميح الصلاحيات (حساب «تشغيل») ===== */
 .yx-perm-hint{
   display:flex;align-items:center;gap:8px;
@@ -1169,7 +1215,7 @@ body.dark-mode .rd-shell .rd-toolbar{background: #101828;}
 .content.content-table > .filter-panel{
   width: 100%;
 }
-/* المسطرة الأفقية للجدول العريض: واضحة وم走下去 زي الفحص.
+/* المسطرة الأفقية للجدول العريض: واضحة ومماشية معاها زي الفحص.
    الجدول بيتمرر أفقياً جوه .content (مش جوه .table-scroll)،
    عشان كده الـthead اللاصق يفضل شغال مع التمرير الرأسي. */
 .content.content-table > .table-scroll > table{
