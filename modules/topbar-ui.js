@@ -472,7 +472,27 @@ window.yahmaOpenWelcomeEditor = openWelcomeEditor;
     window.addEventListener('resize', reposition);
     window.addEventListener('orientationchange', function(){ setTimeout(reposition, 250); });
     var settings=document.getElementById('btn-account-settings');
-    if(settings){ settings.textContent=window.currentRole==='admin'?'إدارة المستخدمين':'إعدادات الحساب'; settings.addEventListener('click',function(){closeMenu(); openUserAdmin();}); }
+    if(settings){
+      /* نص الزر بيتبع الدور: المدير = إدارة المستخدمين، غيره = إعدادات. */
+      var settingsLabel=document.getElementById('btn-account-settings-label');
+      var isAdmin=window.currentRole==='admin';
+      if(settingsLabel) settingsLabel.textContent=isAdmin?'إدارة المستخدمين':'إعدادات الحساب';
+      else if(!isAdmin) settings.textContent='⚙ إعدادات الحساب';
+      settings.addEventListener('click',function(){closeMenu(); openUserAdmin();});
+    }
+    /* بيانات المستخدم الشخصية — مفتوح لكل الأدوار الأربعة.
+       قبل كده ماكانش فيه شاشة أصلاً لأي حد غير المدير: زر
+       «إعدادات الحساب» كان بينادي openUserAdmin وهي بتقول
+       «للمدير فقط» وتموت. */
+    var mine=document.getElementById('btn-my-account');
+    if(mine && !mine._yahmaBound){
+      mine._yahmaBound=true;
+      mine.addEventListener('click',function(){
+        closeMenu();
+        if(typeof window.yahmaOpenMyAccount==='function') window.yahmaOpenMyAccount();
+        else alert('شاشة البيانات الشخصية غير متاحة. حدّث الصفحة من جديد.');
+      });
+    }
     bindMobileTools();
     syncProfileMenu();
   }

@@ -229,6 +229,27 @@
     background:var(--paper);color:var(--muted);cursor:not-allowed;border-style:dashed}
   .field-locked label::after{content:'🔒';font-size:10px;margin-inline-start:6px;opacity:.6}
 
+  /* ===== شاشة «بياناتي» =====
+     البيانات الثابتة (البريد/الدور/الفرع) بلوك مقروء منفصل عن
+     الحقول القابلة للتعديل، عشان المستخدم يفهم إن مش كل حاجة
+     بيعدّلها بنفسه. */
+  .my-account-modal{width:min(560px,94vw)!important;max-width:min(560px,94vw)!important;max-height:92vh;overflow:auto}
+  .my-account-body{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+  .my-account-fixed{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .my-account-fixed>div{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:9px 11px;min-width:0}
+  .my-account-fixed span{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}
+  .my-account-fixed b{display:block;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .my-account-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .my-account-fields .fld{display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+  .my-account-fields .fld input{padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit}
+  .my-account-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+  .my-account-divider{height:1px;background:var(--line);margin:6px 0}
+  .my-account-body h3{margin:0;font-size:15px}
+  @media(max-width:640px){
+    .my-account-fixed{grid-template-columns:1fr}
+    .my-account-fields{grid-template-columns:1fr}
+  }
+
   @media (max-width:900px){
     .tiles{grid-template-columns:repeat(2,1fr);}
     .panels{grid-template-columns:1fr;}
