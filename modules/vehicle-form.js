@@ -41,18 +41,32 @@
   }
 
   /* قفل الحقول في النموذج. بيتمسح القفل لما يرجع الدور.
-     بنستخدم readOnly مش disabled عشان القيمة بتفضل تُرسَل مع
-     النموذج ويبان للمستخدم. */
+
+     ⚠️ الـselect مالهوش readOnly — تعيين readOnly عليه بيعمل كده وخلاص
+     والحقل يفضل قابل للتغيير. فبنقفله بـdisabled، والـvalue بنقراه
+     بـJS مش بالفورم فمش مشكلة إنه مش هيتسلّم. */
   function applyFieldLocks() {
     const editable = canTouchFields();
     protectedFormIds().forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
-      el.readOnly = !editable;
+      const isSelect = String(el.tagName).toLowerCase() === 'select';
+      if (isSelect) {
+        el.disabled = !editable;
+      } else {
+        el.readOnly = !editable;
+      }
       const field = el.closest('.field');
       if (field) field.classList.toggle('field-locked', !editable);
       el.title = editable ? '' : 'هذا الحقل يعدّله مدير النظام أو الإداري فقط';
     });
+  }
+
+  /* هل الحقل مقفول دلوقتي؟ — بتستخدمه الاختبارات والواجهات. */
+  function isLocked(formId) {
+    const el = document.getElementById(formId);
+    if (!el) return false;
+    return String(el.tagName).toLowerCase() === 'select' ? !!el.disabled : !!el.readOnly;
   }
 
   function collect(context) {
@@ -160,6 +174,7 @@
     collect,
     applyFieldLocks,
     canTouchFields,
+    isLocked,
     PROTECTED,
     protectedFormIds
   };

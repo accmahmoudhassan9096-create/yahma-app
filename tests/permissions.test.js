@@ -129,3 +129,14 @@ test('حقول النموذج المحمية مطابقة لـtrigger في ال�
     assert.ok(fields.indexOf(f) === -1, f + ' مالها عمود — ما تتحمّلهاش كحقل محمي');
   });
 });
+
+/* الباج ده رجع فعلاً: كنا بنقفل بـreadOnly بس، والـselect
+   مالهوش readOnly — فحقول زي «حالة السيارة» و«حالة التأمين»
+   كانت بتفضل قابلة للتغيير. الاختبار بيمنع رجوعه. */
+test('قفل الحقول بيغطي الـselect كمان مش الـinput بس', () => {
+  const form = fs.readFileSync(path.join(ROOT, 'modules', 'vehicle-form.js'), 'utf8');
+  assert.ok(/isSelect\s*\?\s*el\.disabled/.test(form.replace(/\s+/g, ' '))
+    || /el\.disabled\s*=\s*!editable/.test(form),
+  'الـselect بيقفل بـdisabled');
+  assert.ok(/isLocked/.test(form), 'في دالة isLocked للحالة');
+});
