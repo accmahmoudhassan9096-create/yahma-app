@@ -169,11 +169,29 @@ test('التنضيف بيشيل كل حاجة غير الأرقام', () => {
 
   const phone = mk(10);
   phone.value = '+966512345678'; M.digitsOnly(phone);
-  assert.strictEqual(phone.value, '9665123456', 'العلاقة الدولية اتقصّت للطول');
+  /* العلامة بتشال والباقي يفضل زي ما هو — القص الصامت اتشال،
+     فـvalidate هو اللي بيرفض الرقم الطويل. */
+  assert.strictEqual(phone.value, '966512345678', 'العلاقة اتشالت والباقي زي ما هو');
+  assert.ok(M.validate({ phone: phone.value }), 'والتنضيف لوحده ما بيسمحش برقم أطول');
 
   const arabic = mk(10);
   arabic.value = '٠٥١٢٣٤٥٦٧٨'; M.digitsOnly(arabic);
   assert.strictEqual(arabic.value, '0512345678', 'الأرقام العربية اتحولت واتقبلت');
+});
+
+/* ⛔ الباج ده اتلقط بالاختبار على الإنتاج:
+   الكود كان بيقص أي رقم أطول من maxLength. لصق جوال 11 خانة كان
+   بينتهي بـ10 خانات ويتخزّن غلط — والشاشة بتقول «تم الحفظ».
+   الرقم الغلط المتخزّن أسوأ بكتير من رفض اللصق. */
+test('التنضيف ما بيقصّش الطول بصمت — التحقق هو اللي يمنع', () => {
+  const el = { value: '', maxLength: 10, selectionStart: 0,
+               setSelectionRange(a, b) { this.selectionStart = a; this._b = b; } };
+  el.value = '05123456789';        /* 11 خانة */
+  M.digitsOnly(el);
+  assert.strictEqual(el.value.length, 11, 'الرقم الطويل اترك زي ما هو');
+  /* فـvalidate لازم يرفضه — وده اللي بيمنع التخزين */
+  assert.ok(M.validate({ phone: el.value }), 'التحقق يرفض 11 خانة جوال');
+  assert.ok(M.validate({ national_id: '12345678901' }), 'التحقق يرفض 11 خانة هوية');
 });
 
 test('الحد الأدنى لكلمة المرور واحد في كل الشاشات', () => {

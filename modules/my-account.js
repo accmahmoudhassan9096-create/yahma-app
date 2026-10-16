@@ -77,19 +77,45 @@
       return ARABIC_TO_LATIN[ch] || ch;
     });
   }
+  /* ⛔ القص الصامت للطول أكبر من اللازم.
+
+     كان الكود بيقص أي رقم أطول من maxLength. يعني لصق رقم 11
+     خانة كان بينتهي بـ10 خانات ويتخزّن غلط — وده أسوأ من رفض
+     اللصق: المستخدم بيدخل رقم جوّاله، الشاشة بتقول «تم الحفظ»،
+     ورقمه في القاعدة ناقص رقم.
+
+     فبدل القص، نرجّع overflow للمستخدم في validate، ونمنع اللصق
+     أصلاً لو طوّل. */
   function digitsOnly(el) {
     if (!el) return;
     var pos = el.selectionStart;
     var cleaned = toLatinDigits(el.value).replace(/\D+/g, '');
-    /* لو تجاوز الطول، نقص من الآخر عشان المؤشر ما يقفزش */
-    if (cleaned.length > el.maxLength && el.maxLength > 0) {
-      cleaned = cleaned.slice(0, el.maxLength);
-    }
     if (cleaned === el.value) return;
+    /* لو عدّى الطول، نحطه كامل — validate هيتكلم، ون-screen
+       الـmaxLength بيمنع الكتابة بعد الطول يدوياً. */
     el.value = cleaned;
     try {
-      el.setSelectionRange(Math.min(pos, cleaned.length), Math.min(pos, cleaned.length));
+      var at = Math.min(pos, cleaned.length);
+      el.setSelectionRange(at, at);
     } catch (_) { /* الحقل مش يدعم selection */ }
+  }
+
+  /* لصق: لو الرقم أطول من المسموح، نقول السبب بدل ما ينقص بصمت. */
+  function onPaste(el, statusEl, event) {
+    var text = '';
+    try {
+      text = (event && event.clipboardData && event.clipboardData.getData('text')) || '';
+    } catch (_) { text = ''; }
+    if (!text) return;   /* لصق من مصدر مايفتحش clipboardData — نخليه يعدّي */
+    var digits = toLatinDigits(text).replace(/\D+/g, '');
+    if (digits.length > el.maxLength) {
+      var label = el.id === 'ma-phone' ? 'رقم الجوال' : 'رقم الهوية';
+      if (statusEl) {
+        setStatus(statusEl, label + ' لازم يكون ' + el.maxLength + ' أرقام — الرقم اللي لصقته ' + digits.length + '.', true);
+      }
+    }
+    /* مش بنمنع اللصق: التحقق في الحفظ هو اللي بيمنع التخزين الغلط،
+       والقاعدة بترفضه برضه. الرسالة هنا بتوفّر رحلة ذهاب وإياب. */
   }
 
   /* نفس التحقق على كلمة المرور — قبل النداء. */
@@ -186,17 +212,17 @@
     ov.onclick = function (e) { if (e.target === ov) close(ov); };
     doc.getElementById('my-account-close').onclick = function () { close(ov); };
 
+    var status = doc.getElementById('ma-status');
+    var get = function (id) { return doc.getElementById(id); };
+
     /* التنضيف أثناء الكتابة: الهوية والجوال أرقام سعودية بس،
        فأي حرف أو مسافة أو + بتتشال فور الكتابة أو اللصق. */
     ['ma-nid', 'ma-phone'].forEach(function (id) {
       var el = doc.getElementById(id);
       if (!el) return;
       el.addEventListener('input', function () { digitsOnly(el); });
-      el.addEventListener('paste', function () { setTimeout(function () { digitsOnly(el); }, 0); });
+      el.addEventListener('paste', function (e) { onPaste(el, status, e); });
     });
-
-    var status = doc.getElementById('ma-status');
-    var get = function (id) { return doc.getElementById(id); };
 
     /* الحقول تتعبّى من صف المستخدم الحقيقي */
     get('ma-email').textContent = (global.currentUser && global.currentUser.email) || '—';
