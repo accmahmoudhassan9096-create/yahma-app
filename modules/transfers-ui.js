@@ -4,7 +4,10 @@
 /* تبويب التنازلات: سيارات لها تنازل من المالك (انتهاء الأقساط) — تُقرأ من أعمدة الإكسل
    (تنازل/تاريخ التنازل/المالك السابق/حالة التنازل/ملاحظات التنازل) ولا تمس حالة السيارة. */
 function renderTransfers(content){
-  const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canEditNow() : !(typeof currentRole!=='undefined'&&currentRole==='view');
+  /* الشريط نفسه ≠ زر الحذف. كان الاتنين نفس الشرط. */
+  const canBulk=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canBulk() : !(typeof currentRole!=='undefined'&&currentRole==='view');
+  /* الحذف للمدير بس — مطابق لـ yahma_is_admin() في القاعدة. */
+  const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canDelete() : currentRole==='admin';
   document.getElementById('topbar-title').textContent='التنازلات';
   document.getElementById('topbar-sub').textContent='سيارات انتقلت ملكيتها إلينا بانتهاء الأقساط';
   const isTransfer=c=>String(c.transferDone||'').trim()==='نعم';
@@ -60,7 +63,7 @@ function renderTransfers(content){
       <!-- أزرار التصدير القديمة (tr-export-*) اتشالت — التصدير من شريط yx. -->
       <span class="muted-small">بيانات التنازل من أعمدة الإكسل أو من ملف التنازلات المخصص.</span>
     </div>
-    ${canDelete?`<div class="bulk-bar" id="tr-bulk-bar" style="display:none">
+    ${canBulk?`<div class="bulk-bar" id="tr-bulk-bar" style="display:none">
       <div class="bulk-bar-info"><span id="tr-bulk-count">0 محددة</span></div>
       <div class="bulk-bar-actions">
         <button class="btn btn-danger btn-small" id="tr-bulk-delete">🗑 حذف المحددة</button>
@@ -70,7 +73,7 @@ function renderTransfers(content){
     <div class="table-scroll">
       <table class="fleet-table" style="min-width:1600px">
         <thead><tr>
-          ${canDelete?'<th class="th-check"><input type="checkbox" id="tr-head-check" aria-label="تحديد الكل"></th>':''}
+          ${canBulk?'<th class="th-check"><input type="checkbox" id="tr-head-check" aria-label="تحديد الكل"></th>':''}
           <th>رقم اللوحة</th>
           <th>الماركة</th>
           <th>النوع</th>
@@ -192,7 +195,7 @@ function renderTransfers(content){
       const scrollEl = tbody.closest('.table-scroll') || tbody.parentElement;
       function renderTrRow(c){
         return `<tr data-id="${escapeHtml(c.id)}">
-        ${canDelete?`<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td>`:''}
+        ${canBulk?`<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td>`:''}
         <td class="plate">${escapeHtml(c.plate||'—')}</td>
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>

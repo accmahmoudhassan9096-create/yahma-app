@@ -223,6 +223,11 @@
   #ua-send-welcome{display:flex;align-items:center;gap:7px;font-size:12.5px;grid-column:1/-1}
   #ua-send-welcome input{width:auto}
   .ua-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  /* حقل محمي لدور «مشاهدة»: بيفضل ظاهر ومقروء، بس مش قابل للتعديل.
+     التظليل الخفيف بيوضح إنه مش متاح من غير ما نخفي المعلومة. */
+  .field-locked input,.field-locked select,.field-locked textarea{
+    background:var(--paper);color:var(--muted);cursor:not-allowed;border-style:dashed}
+  .field-locked label::after{content:'🔒';font-size:10px;margin-inline-start:6px;opacity:.6}
 
   @media (max-width:900px){
     .tiles{grid-template-columns:repeat(2,1fr);}

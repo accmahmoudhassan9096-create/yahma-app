@@ -18,6 +18,14 @@
 (function (global) {
   'use strict';
 
+  /* التبويبات اللي «مشاهدة» يعدّل فيها.
+
+     ⚠️ ليش في تبويب واحد بس؟
+     تبويب الفحص فيه دورة الدفع (تم الفحص ← تحت الدفع) وده شغل
+     «تشغيل». لو فتحناه لـview هيبقى في دورين بنفس الشغل، والاختيار
+     بين الأدوار بيضيع. وسّعه من هنا لو عايز. */
+  var VIEW_EDIT_TABS = ['fleet'];
+
   var ROLES = {
     admin: { key: 'admin', label: 'مدير النظام', rank: 4 },
     manager: { key: 'manager', label: 'إداري', rank: 3 },
@@ -50,11 +58,11 @@
     return role() === 'admin';
   }
 
-  /* يعدّل البيانات العادية (إستيراد / إضافة / تجديد / حذف) */
+  /* يعدّل البيانات العادية (إستيراد / إضافة / تجديد) */
   function canManage() {
     if (global._demoMode) return true;
     var r = role();
-    return r === 'admin' || r === 'manager' || r === 'ops';
+    return r === 'admin' || r === 'manager' || r === 'ops' || r === 'view';
   }
 
   /* يعدّل داخل تبويب معيّن */
@@ -64,12 +72,33 @@
     var r = role();
     if (r === 'admin' || r === 'manager') return true;
     if (r === 'ops') return OPS_EDIT_TABS.indexOf(t) >= 0;
+    if (r === 'view') return VIEW_EDIT_TABS.indexOf(t) >= 0;
     return false;
   }
 
   /* يعدّل دلوقتي (في التبويب الحالي) — دي اللي بتتحقق منها
      الواجهة قبل ما تعرض أو تفعّل أي زر تعديل. */
   function canEditNow() {
+    return canManage() && inTab(currentTab());
+  }
+
+  /* ===== الحذف — منفصل عن التعديل عمدًا =====
+
+     كان شريط الإجراءات الجماعي كله (ومنه أزرار التعديل غير المؤثرة)
+     مربوط بنفس شرط الحذف. أول ما فتحنا التعديل لـ«مشاهدة» بقى
+     هيتقفل عليها زر «تم الفحص» بتاع التشغيل كمان.
+
+     فبقسمها: canBulk يحدد الشريط، وcanDelete يحدد زر الحذف جوه.
+     الحذف نفسه مسموح للمدير بس — ودoi مطابق لسياسة RLS
+     (vehicles_delete_admin بتستخدم yahma_is_admin). */
+
+  function canDelete() {
+    if (global._demoMode) return true;
+    return role() === 'admin';
+  }
+
+  /* يقدر يحدد صفوف ويستخدم إجراءات جماعية غير مدمّرة */
+  function canBulk() {
     return canManage() && inTab(currentTab());
   }
 
@@ -96,6 +125,7 @@
     ROLES: ROLES,
     ORDER: ORDER,
     OPS_EDIT_TABS: OPS_EDIT_TABS,
+    VIEW_EDIT_TABS: VIEW_EDIT_TABS,
     role: role,
     rank: rank,
     label: label,
@@ -104,6 +134,8 @@
     canManage: canManage,
     inTab: inTab,
     canEditNow: canEditNow,
+    canDelete: canDelete,
+    canBulk: canBulk,
     denyMessage: denyMessage,
     isKnown: function (r) { return !!ROLES[r]; }
   };

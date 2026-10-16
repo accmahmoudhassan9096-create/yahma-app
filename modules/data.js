@@ -58,7 +58,17 @@
       updatedAt: (row.updated_at || '').slice(0, 10)
     };
     const extra = row.data && typeof row.data === 'object' ? row.data : {};
-    const car = Object.assign(base, extra);
+    /* ⚠️ ترتيب الدمج مقصود: العمود هو المرجع، والـjsonb يجيب الباقي.
+       كان Object.assign(base, extra) يعني قيمة data تغلب على العمود
+       الحقيقي. النتيجة أن أي تعديل على عمود يتم على مستوى القاعدة
+       — أو من حساب قيّدنا عليه التعديل — كان بيرجع تاني من النسخة
+       القديمة في jsonb عند أول تحميل.
+
+       الحقول اللي مالها عمود أصلاً (نوع الهيكل، GPS، رقم الشاسيه،
+       سعر الشهر…) لسه بتيجي من data زي ما هي. اتأكدت إن مفيش
+       اختلاف حقيقي بين العمود والنسخة المحفوظة (الفروق كلها
+       null مقابل نص فاضي). */
+    const car = Object.assign({}, extra, base);
     car.id = String(row.car_id || ('cloud-' + row.id));
     return car;
   }

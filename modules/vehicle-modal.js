@@ -28,7 +28,7 @@
     Object.entries(fields).forEach(([fieldId, fieldValue]) => {
       document.getElementById(fieldId).value = fieldValue;
     });
-    // نطاق الفرع: سيارة المستخدم المرتبط بفرع تُقيد على فرعه ولا يقبل تغييره من النموذج
+    /* نطاق الفرع: سيارة المستخدم المرتبط بفرع تُقيد على فرعه ولا يقبل تغييره من النموذج */
     try{
       const scope=(typeof userBranchScope==='function')?userBranchScope():null;
       const branchEl=document.getElementById('f-branch');
@@ -37,6 +37,15 @@
         else branchEl.removeAttribute('readonly');
       }
     }catch(_){yahmaErr(_,'vehicle-modal.js:39');}
+
+    /* قفل الحقول المحمية لدور «مشاهدة». لازم بعد تعبئة الحقول
+       وقفل الفرع، عشان آخر حاجة تبقى هي الحالة النهائية للأزرار.
+       الحقول بتتفضل ظاهرة وبتتفقرأ — بس مش بتتقبل تعديل. */
+    try{
+      if(global.YahmaVehicleForm && typeof global.YahmaVehicleForm.applyFieldLocks==='function'){
+        global.YahmaVehicleForm.applyFieldLocks();
+      }
+    }catch(_){yahmaErr(_,'vehicle-modal.js:47');}
 
     const prep = car ? prepChecklistForCar(car) : { checks: [], final: false, finalNote: '' };
     const prepStatus = car ? prepStatusForCar(car) : { level: 'grey', label: 'غير محددة' };

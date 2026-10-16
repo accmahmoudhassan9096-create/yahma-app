@@ -116,7 +116,10 @@
   }
 
   function renderFleet(content, cars){
-  const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canEditNow() : !(typeof currentRole!=='undefined'&&currentRole==='view');
+  /* الشريط نفسه ≠ زر الحذف. كان الاتنين نفس الشرط. */
+  const canBulk=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canBulk() : !(typeof currentRole!=='undefined'&&currentRole==='view');
+  /* الحذف للمدير بس — مطابق لـ yahma_is_admin() في القاعدة. */
+  const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canDelete() : currentRole==='admin';
   const fleet = Array.isArray(cars) ? cars : [];
   document.getElementById('topbar-title').textContent='إدارة الأسطول';
   document.getElementById('topbar-sub').textContent = fleet.length + ' سيارة — إدارة الجاهزية للتأجير';

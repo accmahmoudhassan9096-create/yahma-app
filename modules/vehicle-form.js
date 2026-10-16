@@ -1,6 +1,60 @@
 (function (global) {
   'use strict';
 
+  /* ===== الحقول المحمية =====
+     نفس قائمة trigger يahma_guard_car_columns في القاعدة بالظبط.
+     المقصود مش إننا نخفي البيانات — بتظهر وبتتفرأ عادي — المقصود إن
+     حساب «مشاهدة» ما يعدّلش الحقول دي.
+
+     formId ← اسم الحقل في كائن السيارة.
+     'f-model' بيلفّ كمان year لأن collect بيعمل year من نفس الحقل. */
+  const PROTECTED = [
+    { field: 'plate', form: ['f-plate'] },
+    { field: 'brand', form: ['f-brand'] },
+    { field: 'type', form: ['f-type'] },
+    { field: 'model', form: ['f-model'] },
+    { field: 'serial', form: ['f-serial'] },
+    { field: 'owner', form: ['f-owner'] },
+    { field: 'ownerNumber', form: ['f-ownernumber'] },
+    { field: 'branch', form: ['f-branch'] },
+    { field: 'carStatus', form: ['f-carstatus'] },
+    { field: 'dailyRate', form: ['f-dailyrate'] },
+    { field: 'rentedDaysMonth', form: ['f-renteddays'] },
+    { field: 'maintenanceCost', form: ['f-maintenancecost'] }
+  ];
+
+  /* «مشاهدة» هي اللي بتتقفل. تشغيل وإداري ومدير يعدّلوا كل حاجة. */
+  function canTouchFields() {
+    try {
+      if (global._demoMode) return true;
+      const perms = global.YahmaPerms;
+      const r = (perms && typeof perms.role === 'function') ? perms.role() : global.currentRole;
+      return r !== 'view';
+    } catch (_) { return false; }
+  }
+
+  function protectedFormIds() {
+    const out = [];
+    PROTECTED.forEach((entry) => { out.push.apply(out, entry.form); });
+    out.push('f-prep-final', 'f-prep-final-note');
+    return out;
+  }
+
+  /* قفل الحقول في النموذج. بيتمسح القفل لما يرجع الدور.
+     بنستخدم readOnly مش disabled عشان القيمة بتفضل تُرسَل مع
+     النموذج ويبان للمستخدم. */
+  function applyFieldLocks() {
+    const editable = canTouchFields();
+    protectedFormIds().forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.readOnly = !editable;
+      const field = el.closest('.field');
+      if (field) field.classList.toggle('field-locked', !editable);
+      el.title = editable ? '' : 'هذا الحقل يعدّله مدير النظام أو الإداري فقط';
+    });
+  }
+
   function collect(context) {
     const { fleet, editingId, todayStr } = context;
     const value = id => document.getElementById(id).value;
@@ -20,7 +74,21 @@
     }
 
     const currentCar = editingId && fleet.find(car => car.id === editingId);
-    const finalReview = !!document.getElementById('f-prep-final').checked;
+
+    /* شبكة أمان: حتى لو الحقل اتفتح بالقوة (استرجاع، لصق، تعديل
+       يدوي من الكونسول)، بنمشي بالقيمة القديمة مش اللي في الشاشة.
+       كده الـtrigger في القاعدة مش هيتفاجأ أبدًا، والحفظ كله
+       مانوش. */
+    const editable = canTouchFields();
+    const old = (field) => (currentCar && currentCar[field] != null) ? String(currentCar[field]) : '';
+    const readField = (field, formId) => {
+      if (editable) return trimmed(formId);
+      return old(field);
+    };
+
+    const finalReview = editable
+      ? !!document.getElementById('f-prep-final').checked
+      : !!(currentCar && currentCar.prepChecklist && currentCar.prepChecklist.finalReview);
     const oldTasks = (currentCar?.prepTasks || []);
     const taskRows = [...document.querySelectorAll('#f-prep-tasks .prep-task-item')];
     taskRows.forEach(row => {
@@ -44,12 +112,14 @@
     return {
       plate,
       data: {
-        plate,
-        brand: (typeof canonicalBrand === 'function' ? canonicalBrand(trimmed('f-brand')) : trimmed('f-brand')),
-        type: trimmed('f-type'),
-        model: trimmed('f-model'),
-        year: trimmed('f-model'),
-        serial,
+        plate: readField('plate', 'f-plate'),
+        brand: editable && typeof canonicalBrand === 'function'
+          ? canonicalBrand(trimmed('f-brand'))
+          : (editable ? trimmed('f-brand') : old('brand')),
+        type: readField('type', 'f-type'),
+        model: readField('model', 'f-model'),
+        year: readField('model', 'f-model'),
+        serial: readField('serial', 'f-serial'),
         cardNumber,
         cardStatus: trimmed('f-cardstatus'),
         cardExpiry: value('f-cardexpiry'),
@@ -59,20 +129,20 @@
         insuranceStatus: trimmed('f-insurance'),
         insuranceCompany: trimmed('f-insurancecompany'),
         insuranceExpiry: value('f-insuranceexpiry'),
-        owner: trimmed('f-owner'),
-        ownerNumber: trimmed('f-ownernumber'),
-        branch: trimmed('f-branch'),
+        owner: readField('owner', 'f-owner'),
+        ownerNumber: readField('ownerNumber', 'f-ownernumber'),
+        branch: readField('branch', 'f-branch'),
         city: trimmed('f-city'),
         color: trimmed('f-color'),
-        carStatus: trimmed('f-carstatus'),
+        carStatus: readField('carStatus', 'f-carstatus'),
         notes: trimmed('f-notes'),
         odometer: trimmed('f-odometer'),
-        dailyRate: trimmed('f-dailyrate'),
-        rentedDaysMonth: trimmed('f-renteddays'),
+        dailyRate: readField('dailyRate', 'f-dailyrate'),
+        rentedDaysMonth: readField('rentedDaysMonth', 'f-renteddays'),
         updatedAt: todayStr(),
         nextService: value('f-nextservice'),
         lastMaintenance: value('f-lastmaintenance'),
-        maintenanceCost: trimmed('f-maintenancecost'),
+        maintenanceCost: readField('maintenanceCost', 'f-maintenancecost'),
         workshop: trimmed('f-workshop'),
         documentUrl: trimmed('f-documenturl'),
         maintenanceNotes: trimmed('f-maintenancenotes'),
@@ -86,5 +156,11 @@
     };
   }
 
-  global.YahmaVehicleForm = { collect };
+  global.YahmaVehicleForm = {
+    collect,
+    applyFieldLocks,
+    canTouchFields,
+    PROTECTED,
+    protectedFormIds
+  };
 })(window);

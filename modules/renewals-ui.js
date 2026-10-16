@@ -2,7 +2,10 @@
   'use strict';
 
 function renderRenewals(content, mode='inspection'){
-  const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canEditNow() : !(typeof currentRole!=='undefined'&&currentRole==='view');
+  /* الشريط نفسه ≠ زر الحذف. كان الاتنين نفس الشرط. */
+  const canBulk=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canBulk() : !(typeof currentRole!=='undefined'&&currentRole==='view');
+  /* الحذف للمدير بس — مطابق لـ yahma_is_admin() في القاعدة. */
+  const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canDelete() : currentRole==='admin';
   const licenseMode=mode==='license';
   const insuranceMode=mode==='insurance';
   document.getElementById('topbar-title').textContent = insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص';
@@ -74,7 +77,7 @@ function renderRenewals(content, mode='inspection'){
         <input type="file" id="file-ren-upload" accept=".xlsx,.xls,.csv" style="display:none">
       </div>
     </div>
-    ${canDelete?`<div class="bulk-bar" id="ren-bulk-bar" style="display:none">
+    ${canBulk?`<div class="bulk-bar" id="ren-bulk-bar" style="display:none">
       <div class="bulk-bar-info"><span id="ren-bulk-count">0 محددة</span></div>
       <div class="bulk-bar-actions">
         ${insuranceMode?'<button class="btn btn-primary btn-small" id="ren-bulk-ins-ok">🛡️ تعيين «ساري»</button><button class="btn btn-ghost btn-small" id="ren-bulk-ins-no">تعيين «لا يوجد»</button>':''}
@@ -87,7 +90,7 @@ function renderRenewals(content, mode='inspection'){
     <div class="table-scroll" style="max-height:calc(100vh - 320px)">
       <table class="fleet-table" style="min-width:1400px">
         <thead><tr>
-          ${canDelete?'<th class="th-check"><input type="checkbox" id="ren-head-check" aria-label="تحديد الكل"></th>':''}
+          ${canBulk?'<th class="th-check"><input type="checkbox" id="ren-head-check" aria-label="تحديد الكل"></th>':''}
           <th>رقم اللوحة</th>
           <th>الماركة</th>
           <th>النوع</th>
@@ -410,9 +413,10 @@ function renderRenewals(content, mode='inspection'){
         const ins=textTag(c.insuranceStatus);
         const carTag=textTag(c.carStatus);
         const noteMode=!insuranceMode;
-        const noteEditable=noteMode&&!(typeof currentRole!=='undefined'&&currentRole==='view');
+        /* الملاحظات بيانات تشغيلية — مفتوحة لكل من يعدّل، مش بس للإداري. */
+const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPerms.canEditNow():!(typeof currentRole!=='undefined'&&currentRole==='view'));
         return `<tr data-id="${escapeHtml(c.id)}">
-        ${canDelete?`<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td>`:''}
+        ${canBulk?`<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td>`:''}
         <td class="plate">${escapeHtml(c.plate||'—')}</td>
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>
