@@ -1021,6 +1021,11 @@ body.dark-mode .sync-status.is-offline{color:#FBC9C3;background:#3D1512;border-c
 .my-account-modal{width:min(560px,94vw)!important;max-width:min(560px,94vw)!important}
 .my-account-fields .fld input{background:var(--panel);color:var(--ink);border-color:var(--line)}
 .ua-personal-edit input{background:var(--panel);color:var(--ink);border-color:var(--line)}
+/* لون صريح تحت body.dark-mode — نفس نمط حقول الملاحظات فوق.
+   الاعتماد على var(--panel) وحده خلّى النتيجة غير محسومة:
+   فيه قاعدة عامة body.dark-mode input قبلها، واقع الأساس في 01 في
+   01، فأي واحد فيهم بيكسب بيتغيّر بترتيب التحميل. */
+body.dark-mode .ua-personal-edit input{background:#263442;border-color:#3A4A5E;color:#E7EEF5}
 
 /* ===== تلميح الصلاحيات (حساب «تشغيل») ===== */
 .yx-perm-hint{
