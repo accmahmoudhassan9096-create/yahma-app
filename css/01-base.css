@@ -223,6 +223,13 @@
   #ua-send-welcome{display:flex;align-items:center;gap:7px;font-size:12.5px;grid-column:1/-1}
   #ua-send-welcome input{width:auto}
   .ua-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  /* البيانات الشخصية في بطاقة المستخدم: سطر مضغوط تحت الاسم،
+     وتحته حقول تعديل. القيم الفاضية بتقول «مش مسجّل» مش فاضية. */
+  .ua-personal{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:3px;color:var(--muted);font-size:11px}
+  .ua-personal i{opacity:.75;font-style:normal}
+  .ua-personal-edit{display:flex;flex-direction:column;gap:6px}
+  .ua-personal-edit label{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+  .ua-personal-edit input{width:130px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);font:inherit;font-size:12px}
   /* حقل محمي لدور «مشاهدة»: بيفضل ظاهر ومقروء، بس مش قابل للتعديل.
      التظليل الخفيف بيوضح إنه مش متاح من غير ما نخفي المعلومة. */
   .field-locked input,.field-locked select,.field-locked textarea{

@@ -1020,6 +1020,7 @@ body.dark-mode .sync-status.is-offline{color:#FBC9C3;background:#3D1512;border-c
 /* شاشة «بياناتي» — العرض والخلفيات في آخر ملف عشان تغلب الأساس */
 .my-account-modal{width:min(560px,94vw)!important;max-width:min(560px,94vw)!important}
 .my-account-fields .fld input{background:var(--panel);color:var(--ink);border-color:var(--line)}
+.ua-personal-edit input{background:var(--panel);color:var(--ink);border-color:var(--line)}
 
 /* ===== تلميح الصلاحيات (حساب «تشغيل») ===== */
 .yx-perm-hint{

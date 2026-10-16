@@ -157,3 +157,29 @@ test('الحد الأدنى لكلمة المرور واحد في كل الشا�
     'شاشة استعادة كلمة المرور بنفس الحد');
   assert.ok(mine.includes("MIN_PASSWORD = " + M.MIN_PASSWORD), 'الشاشة الجديدة بنفس الحد');
 });
+
+/* لوحة المستخدمين بتقرأ صف profile واحد وتعرضه. لو الأعمدة
+   الشخصية مش في الاستعلام مش هتظهر خالص مهما اتكتبت في القاعدة. */
+test('لوحة المستخدمين بتجيب الأعمدة الشخصية وبتعرضها', () => {
+  const topbar = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+  const select = /from\('profiles'\)\.select\(([^)]*)\)/.exec(topbar);
+  assert.ok(select, 'في استعلام profiles');
+  ['national_id', 'birth_date', 'phone'].forEach((col) => {
+    assert.ok(select[1].includes(col), col + ' مش في الاستعلام — مش هيظهر للمدير');
+    assert.ok(topbar.includes('u.' + col), col + ' مش بيتقرأ من الصف');
+  });
+  /* والقيم الفاضية لازم تقول «مش مسجّل» مش تبقى فراغ صامت */
+  assert.ok(topbar.includes('مش مسجّل'), 'فيه نص واضح للقيم الفاضية');
+});
+
+test('المدير يعدّل البيانات الشخصية بنفسه — القاعدة تسمح بيه', () => {
+  /* trigger بيرجّع زي ما هو لو المدير، فمفيش مانع في القاعدة */
+  const sql = fs.readFileSync(path.join(ROOT, 'supabase', 'my-account.sql'), 'utf8');
+  const flat = sql.replace(/\s+/g, ' ');
+  assert.ok(/if v_admin then\s*return new;/.test(flat),
+    'المدير يعدّي من غير قيود — وده اللي يسمحله يعدّل البيانات');
+  /* والواجهة لازم تبعت الأعمدة مع زر الحفظ */
+  const topbar = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+  assert.ok(/payload\.phone\s*=/.test(topbar) && /payload\.national_id\s*=/.test(topbar)
+    && /payload\.birth_date\s*=/.test(topbar), 'زر الحفظ بيبعت الأعمدة الثلاثة');
+});

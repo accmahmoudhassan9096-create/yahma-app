@@ -75,7 +75,7 @@
     if(welcomeBtn) welcomeBtn.onclick=function(){ openWelcomeEditor(); };
     var renderUsers=async function(){
       if(!window.supabaseReady||!window.supabaseClient){list.innerHTML='<div class="empty">إدارة المستخدمين تحتاج اتصال Supabase.</div>';return;}
-      var result=await window.supabaseClient.from('profiles').select('id,full_name,role,branch_name,allowed_tabs').order('full_name',{ascending:true});
+      var result=await window.supabaseClient.from('profiles').select('id,full_name,role,branch_name,allowed_tabs,national_id,birth_date,phone').order('full_name',{ascending:true});
       if(result.error){list.innerHTML='<div class="empty">تعذر تحميل المستخدمين: '+escapeHtml(result.error.message)+'</div>';return;}
       var myId=window.currentUser&&window.currentUser.id;
       list.innerHTML=(result.data||[]).map(function(u){
@@ -86,10 +86,50 @@
           }).join('');
         var deleteBtn=(u.id===myId)?'':'<button type="button" class="btn btn-ghost btn-small ua-delete-user" style="color:var(--red,#CE4B3D)">حذف</button>';
         var allowed=Array.isArray(u.allowed_tabs)?u.allowed_tabs:allPageIds;
-        return '<div class="user-admin-row" data-user-id="'+escapeHtml(u.id)+'"><div class="ua-user-summary"><b>'+escapeHtml(u.full_name||'بدون اسم')+'</b><small>'+escapeHtml((window.YahmaPerms&&window.YahmaPerms.label?window.YahmaPerms.label(u.role):u.role)||'view')+'</small></div><div class="ua-user-fields"><select class="ua-existing-branch">'+options+'</select><select class="ua-existing-role"><option value="view" '+(u.role==='view'?'selected':'')+'>مشاهدة</option><option value="ops" '+(u.role==='ops'?'selected':'')+'>تشغيل</option><option value="manager" '+(u.role==='manager'?'selected':'')+'>إداري</option><option value="admin" '+(u.role==='admin'?'selected':'')+'>مدير النظام</option></select></div><div class="ua-user-permissions"><strong>الأقسام المسموح بها</strong>'+permissionGrid('ua-existing-permissions',allowed,u.role==='admin')+'</div><div class="ua-user-actions"><button type="button" class="btn btn-ghost btn-small ua-save-role">حفظ الصلاحيات</button>'+deleteBtn+'</div></div>';
+        return '<div class="user-admin-row" data-user-id="'+escapeHtml(u.id)+'"><div class="ua-user-summary"><b>'+escapeHtml(u.full_name||'بدون اسم')+'</b><small>'+escapeHtml((window.YahmaPerms&&window.YahmaPerms.label?window.YahmaPerms.label(u.role):u.role)||'view')+'</small>'
+        /* البيانات الشخصية بتظهر للمدير، وتتفتح له التعديل.
+           القيم مش بتظهر «فاضية» كأن ناقصة — بتظهر «مش مسجّل» عشان
+           تفرق بين «سابه فاضي» و«لسه ما اكتبش». */
+        +'<small class="ua-personal">'
+        +'<span>📞 '+(u.phone?escapeHtml(u.phone):'<i>الجوال مش مسجّل</i>')+'</span>'
+        +'<span>🪪 '+(u.national_id?escapeHtml(u.national_id):'<i>الهوية مش مسجّلة</i>')+'</span>'
+        +'<span>🎂 '+(u.birth_date?escapeHtml(fmtDate(u.birth_date)):'<i>الميلاد مش مسجّل</i>')+'</span>'
+        +'</small></div>'
+        +'<div class="ua-personal-edit">'
+        +'<label>الجوال<input class="ua-p-phone" dir="ltr" inputmode="tel" maxlength="20" value="'+escapeHtml(u.phone||'')+'" placeholder="مثال: 01012345678"></label>'
+        +'<label>رقم الهوية<input class="ua-p-nid" dir="ltr" inputmode="numeric" maxlength="14" value="'+escapeHtml(u.national_id||'')+'" placeholder="14 رقم"></label>'
+        +'<label>تاريخ الميلاد<input class="ua-p-birth" type="date" value="'+escapeHtml(u.birth_date||'')+'"></label>'
+        +'</div>'
+        +'<div class="ua-user-fields"><select class="ua-existing-branch">'+options+'</select><select class="ua-existing-role"><option value="view" '+(u.role==='view'?'selected':'')+'>مشاهدة</option><option value="ops" '+(u.role==='ops'?'selected':'')+'>تشغيل</option><option value="manager" '+(u.role==='manager'?'selected':'')+'>إداري</option><option value="admin" '+(u.role==='admin'?'selected':'')+'>مدير النظام</option></select></div><div class="ua-user-permissions"><strong>الأقسام المسموح بها</strong>'+permissionGrid('ua-existing-permissions',allowed,u.role==='admin')+'</div><div class="ua-user-actions"><button type="button" class="btn btn-ghost btn-small ua-save-role">حفظ</button>'+deleteBtn+'</div></div>';
       }).join('')||'<div class="empty">لا يوجد مستخدمون بعد.</div>';
       list.querySelectorAll('.ua-existing-role').forEach(function(select){select.addEventListener('change',function(){syncPermissions(select.closest('.user-admin-row'),select.value);});});
-      list.querySelectorAll('.ua-save-role').forEach(function(btn){btn.onclick=async function(){var row=btn.closest('.user-admin-row'), role=row.querySelector('.ua-existing-role').value, branch=row.querySelector('.ua-existing-branch').value.trim()||null, allowed=role==='admin'?allPageIds:selectedPermissions(row.querySelector('.ua-existing-permissions')); btn.disabled=true; var r=await window.supabaseClient.from('profiles').update({role:role,branch_name:branch,allowed_tabs:allowed}).eq('id',row.dataset.userId); msg.textContent=r.error?'تعذر حفظ بيانات المستخدم: '+r.error.message:'تم حفظ الصلاحيات والفرع'; btn.disabled=false; if(!r.error) await renderUsers();};});
+      list.querySelectorAll('.ua-save-role').forEach(function(btn){btn.onclick=async function(){
+        var row=btn.closest('.user-admin-row'),
+            role=row.querySelector('.ua-existing-role').value,
+            branch=row.querySelector('.ua-existing-branch').value.trim()||null,
+            allowed=role==='admin'?allPageIds:selectedPermissions(row.querySelector('.ua-existing-permissions')),
+            personal={
+              phone:row.querySelector('.ua-p-phone').value.trim(),
+              national_id:row.querySelector('.ua-p-nid').value.trim(),
+              birth_date:row.querySelector('.ua-p-birth').value.trim()
+            };
+        /* نفس التحقق بتاع شاشة «بياناتي» — القيد موجود في القاعدة
+           على أي حال، والفحص هنا بيوفّر رحلة ذهاب وإياب ورسالة في
+           الشاشة بدل رسالة من السيرفر. */
+        if(window.YahmaMyAccount&&typeof window.YahmaMyAccount.validate==='function'){
+          var problem=window.YahmaMyAccount.validate(personal);
+          if(problem){ msg.textContent=problem; return; }
+        }
+        btn.disabled=true;
+        var payload={role:role,branch_name:branch,allowed_tabs:allowed};
+        payload.phone=personal.phone||null;
+        payload.national_id=personal.national_id||null;
+        payload.birth_date=personal.birth_date||null;
+        var r=await window.supabaseClient.from('profiles').update(payload).eq('id',row.dataset.userId);
+        msg.textContent=r.error?'تعذر حفظ بيانات المستخدم: '+r.error.message:'تم حفظ الصلاحيات والفرع والبيانات الشخصية';
+        btn.disabled=false;
+        if(!r.error) await renderUsers();
+      };});
       list.querySelectorAll('.ua-delete-user').forEach(function(btn){btn.onclick=async function(){
         var row=btn.closest('.user-admin-row');
         var uname=row.querySelector('b')?row.querySelector('b').textContent:'هذا المستخدم';
