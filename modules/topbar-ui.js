@@ -96,8 +96,8 @@
         +'<span>🎂 '+(u.birth_date?escapeHtml(fmtDate(u.birth_date)):'<i>الميلاد مش مسجّل</i>')+'</span>'
         +'</small></div>'
         +'<div class="ua-personal-edit">'
-        +'<label>الجوال<input class="ua-p-phone" dir="ltr" inputmode="tel" maxlength="20" value="'+escapeHtml(u.phone||'')+'" placeholder="مثال: 01012345678"></label>'
-        +'<label>رقم الهوية<input class="ua-p-nid" dir="ltr" inputmode="numeric" maxlength="14" value="'+escapeHtml(u.national_id||'')+'" placeholder="14 رقم"></label>'
+        +'<label>الجوال<input class="ua-p-phone" dir="ltr" inputmode="numeric" maxlength="10" value="'+escapeHtml(u.phone||'')+'" placeholder="05XXXXXXXX"></label>'
+        +'<label>رقم الهوية<input class="ua-p-nid" dir="ltr" inputmode="numeric" maxlength="10" value="'+escapeHtml(u.national_id||'')+'" placeholder="10 أرقام"></label>'
         +'<label>تاريخ الميلاد<input class="ua-p-birth" type="date" value="'+escapeHtml(u.birth_date||'')+'"></label>'
         +'</div>'
         +'<div class="ua-user-fields"><select class="ua-existing-branch">'+options+'</select><select class="ua-existing-role"><option value="view" '+(u.role==='view'?'selected':'')+'>مشاهدة</option><option value="ops" '+(u.role==='ops'?'selected':'')+'>تشغيل</option><option value="manager" '+(u.role==='manager'?'selected':'')+'>إداري</option><option value="admin" '+(u.role==='admin'?'selected':'')+'>مدير النظام</option></select></div><div class="ua-user-permissions"><strong>الأقسام المسموح بها</strong>'+permissionGrid('ua-existing-permissions',allowed,u.role==='admin')+'</div><div class="ua-user-actions"><button type="button" class="btn btn-ghost btn-small ua-save-role">حفظ</button>'+deleteBtn+'</div></div>';

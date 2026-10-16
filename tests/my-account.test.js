@@ -24,28 +24,36 @@ function loadModule() {
 
 const M = loadModule();
 
-/* ===== الرقم القومي ===== */
-test('الرقم القومي: 14 رقم بس', () => {
+/* ===== رقم الهوية (السعودية: 10 أرقام) ===== */
+test('رقم الهوية: 10 أرقام', () => {
   assert.strictEqual(M.validate({ national_id: '' }), '', 'فاضي مقبول');
   assert.strictEqual(M.validate({}), '', 'غير موجود مقبول');
-  assert.strictEqual(M.validate({ national_id: '29801011234567' }), '', '14 رقم صح');
-  assert.ok(M.validate({ national_id: '2980101123456' }), '13 رقم مرفوض');
-  assert.ok(M.validate({ national_id: '298010112345678' }), '15 رقم مرفوض');
-  assert.ok(M.validate({ national_id: '٢٩٨٠١٠١١٢٣٤٥٦٧' }), 'أرقام عربية مرفوضة');
-  assert.ok(M.validate({ national_id: '2980101123456a' }), 'حرف مرفوض');
-  assert.ok(M.validate({ national_id: '2980 1011 2345' }), 'مسافات مرفوضة');
+  assert.strictEqual(M.validate({ national_id: '1234567890' }), '', '10 أرقام صح');
+  assert.ok(M.validate({ national_id: '123456789' }), '9 أرقام مرفوض');
+  assert.ok(M.validate({ national_id: '12345678901' }), '11 رقم مرفوض');
+  /* الرقم المصري 14 رقم كان مقبول قبل — لازم يترفض دلوقتي */
+  assert.ok(M.validate({ national_id: '29801011234567' }), '14 رقم مرفوض');
+  assert.ok(M.validate({ national_id: '١٢٣٤٥٦٧٨٩٠' }), 'أرقام عربية مرفوضة');
+  assert.ok(M.validate({ national_id: '12345a7890' }), 'حرف مرفوض');
+  assert.ok(M.validate({ national_id: '1234 567890' }), 'مسافات مرفوضة');
+  assert.ok(M.validate({ national_id: '123-4567890' }), 'شرطة مرفوضة');
 });
 
-/* ===== الجوال ===== */
-test('الجوال: أرقام مع مسموح + أو مسافة أو شرطة في الأول', () => {
+/* ===== الجوال (السعودية: 10 أرقام تبدأ بـ05) ===== */
+test('الجوال: 10 أرقام تبدأ بـ05', () => {
   assert.strictEqual(M.validate({ phone: '' }), '');
-  assert.strictEqual(M.validate({ phone: '01012345678' }), '', '11 رقم');
-  assert.strictEqual(M.validate({ phone: '+201012345678' }), '', 'بعلامة +');
-  assert.strictEqual(M.validate({ phone: '010 123 456 78' }), '', 'بمسافات');
-  assert.strictEqual(M.validate({ phone: '010-1234567' }), '', 'بشرطة');
+  assert.strictEqual(M.validate({ phone: '0512345678' }), '', '05 + 8 أرقام');
+  assert.strictEqual(M.validate({ phone: '0501234567' }), '', '050 مقبول');
+  assert.strictEqual(M.validate({ phone: '0599999999' }), '', '0599 مقبول');
+  assert.ok(M.validate({ phone: '0412345678' }), '04 مرفوض');
+  assert.ok(M.validate({ phone: '0612345678' }), '06 مرفوض');
+  assert.ok(M.validate({ phone: '5012345678' }), 'من غير 0 مرفوض');
+  assert.ok(M.validate({ phone: '051234567' }), '9 أرقام مرفوض');
+  assert.ok(M.validate({ phone: '05123456789' }), '11 رقم مرفوض');
+  /* صيغ كانت مقبولة قبل ولازم ترفض */
+  assert.ok(M.validate({ phone: '+966512345678' }), 'صيغة دولية مرفوضة');
+  assert.ok(M.validate({ phone: '051 234 5678' }), 'مسافات مرفوضة');
   assert.ok(M.validate({ phone: 'abc' }), 'حروف مرفوضة');
-  assert.ok(M.validate({ phone: '+' }), 'علامة + لوحدها مرفوضة');
-  assert.ok(M.validate({ phone: '12345' }), 'قصير أوي مرفوض');
 });
 
 /* ===== تاريخ الميلاد ===== */
@@ -88,9 +96,9 @@ function sqlPatternOf(label) {
 }
 
 const SAMPLES = [
-  '01012345678', '+201012345678', '010 123 456 78', '010-1234567',
-  '1234567', '123456', '12345', '+', 'abc', '010abc45678', '',
-  '  01012345678  ', '+20 10 12345678', '010-123-456-78'
+  '0512345678', '0501234567', '0412345678', '0612345678', '5012345678',
+  '051234567', '05123456789', '+966512345678', '051 234 5678', '051-2345678',
+  '0512a45678', '0599999999', '0000000000', '0021234567'
 ];
 
 test('قاعدة الجوال في JS بتقبل نفس العينة اللي بتقبلها القاعدة', () => {
@@ -109,11 +117,11 @@ test('قاعدة الجوال في JS بتقبل نفس العينة اللي ب
 });
 
 const NID_SAMPLES = [
-  '29801011234567', '2980101123456', '298010112345678', '٢٩٨٠١٠١١٢٣٤٥٦٧',
-  '2980101123456a', '2980 1011 2345', '12345678901234', '00000000000000'
+  '1234567890', '123456789', '12345678901', '29801011234567',
+  '١٢٣٤٥٦٧٨٩٠', '12345a7890', '1234 567890', '0000000000', '1010101010'
 ];
 
-test('قاعدة الرقم القومي في JS بتقبل نفس العينة', () => {
+test('قاعدة رقم الهوية في JS بتقبل نفس العينة', () => {
   const sqlRe = sqlPatternOf('national_id');
   const jsRe = new RegExp(M.NATIONAL_ID_RE.source);
   let compared = 0;
@@ -144,6 +152,28 @@ test('حارس الأعمدة بيقفل الدور والفرع والأقسا�
     assert.ok(flat.indexOf('new.' + col + ' is distinct') === -1,
       col + ' مفتوح للمستخدم — ما يتقفلش');
   });
+});
+
+/* التنضيف أثناء الكتابة: الحقل بيقبل لصق نص فيه مسافات وشرطات
+   والحروف، فيشيلها فورًا. الشاشة لو سابتها للمستخدم كان هيكتب
+   «051-234 5678» والقاعدة هترفضه برسالة بعد ما يضغط حفظ. */
+test('التنضيف بيشيل كل حاجة غير الأرقام', () => {
+  const mk = (max) => {
+    const el = { value: '', maxLength: max, selectionStart: 0,
+                 setSelectionRange(a, b) { this.selectionStart = a; this._b = b; } };
+    return el;
+  };
+  const nid = mk(10);
+  nid.value = '101-010 1010'; M.digitsOnly(nid);
+  assert.strictEqual(nid.value, '1010101010', 'شرطة ومسافات شِيلت');
+
+  const phone = mk(10);
+  phone.value = '+966512345678'; M.digitsOnly(phone);
+  assert.strictEqual(phone.value, '9665123456', 'العلاقة الدولية اتقصّت للطول');
+
+  const arabic = mk(10);
+  arabic.value = '٠٥١٢٣٤٥٦٧٨'; M.digitsOnly(arabic);
+  assert.strictEqual(arabic.value, '0512345678', 'الأرقام العربية اتحولت واتقبلت');
 });
 
 test('الحد الأدنى لكلمة المرور واحد في كل الشاشات', () => {

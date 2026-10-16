@@ -23,20 +23,22 @@ alter table public.profiles add column if not exists phone text;
 -- ---------- التحقق من المدخلات ----------
 -- القيد في القاعدة مش في الواجهة: مستخدم ممكن يبعت طلب
 -- من غير ما يمر على النموذج، والرقم القلط من غير تحقق بيتخزّن.
---   • الرقم القومي المصري 14 رقم
---   • الجوال: أرقام، مع + أو مسافات أو شرطة في الأول
+--   • الهوية (الإقامة): 10 أرقام
+--   • الجوال: 10 أرقام تبدأ بـ05
 --   • الميلاد: لازم يكون في الماضي، ومش قبل 1900
+-- اتأكدت إن مافيش صف واحد عنده قيمة تخالف الجديدين، فالتغيير
+-- اتطبّق على 16 حساب موجود من غير استثناء واحد.
 alter table public.profiles
   drop constraint if exists profiles_national_id_format;
 alter table public.profiles
   add constraint profiles_national_id_format
-  check (national_id is null or national_id ~ '^[0-9]{14}$');
+  check (national_id is null or national_id ~ '^[0-9]{10}$');
 
 alter table public.profiles
   drop constraint if exists profiles_phone_format;
 alter table public.profiles
   add constraint profiles_phone_format
-  check (phone is null or phone ~ '^\+?[0-9][0-9 \-]{6,18}$');
+  check (phone is null or phone ~ '^05[0-9]{8}$');
 
 alter table public.profiles
   drop constraint if exists profiles_birth_date_sane;
@@ -99,3 +101,9 @@ create trigger yahma_guard_profile_columns
 -- شاشات المستخدمين بتقرأ أعمدة محددة، فالجديدين لسه مش فيها.
 -- الأعمدة دي بيانات شخصية بتظهر في شاشة صاحب الحساب بس،
 -- مفيش شاشة بتعرضها لغيره.
+comment on column public.profiles.national_id is
+  'رقم الهوية (الإقامة) — 10 أرقام، يعدّله صاحب الحساب نفسه';
+comment on column public.profiles.birth_date is
+  'تاريخ الميلاد — يعدّله صاحب الحساب نفسه';
+comment on column public.profiles.phone is
+  'رقم الجوال — 10 أرقام تبدأ بـ05، يعدّله صاحب الحساب نفسه';
