@@ -1,0 +1,16 @@
+{
+  "fleet": "ok",
+  "branches": "ok",
+  "renewals": "ok",
+  "payments": "ok",
+  "paid": "ok",
+  "renewed": "ok",
+  "license-renewals": "ok",
+  "insurance-renewals": "ok",
+  "inspections": "ok",
+  "transfers": "ok",
+  "rentals": "ok",
+  "reports": "ok",
+  "dues": "ok",
+  "audit": "ok"
+}

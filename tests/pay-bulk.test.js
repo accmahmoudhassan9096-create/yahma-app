@@ -17,14 +17,20 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 /* بنشيل الكومنتات قبل أي عدّ — غير كده نداءات مذكورة في شرح
    بتتحسب كأنها نداءات حقيقية (ده اللي حصل مع rememberCarState). */
 const noComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '').replace(/^\s*\/\/.*$/gm, '');
-const ROUTER = () => noComments(read('core/render-router.js'));
+/* ⚠️ كود دورة الفحص/الدفع/التجديد اتنقل من core/render-router.js
+   لـcore/router-payments.js وقت تقسيم الملفات الكبيرة. الاختبارات
+   دي كلها بتخصّ النطاق ده، فبتقرأ الملفين مع بعض — والـassertions
+   بتضل زي ما هي. */
+const ROUTER = () => noComments(read('core/router-payments.js'))
+                 + '\n' + noComments(read('core/render-router.js'));
 
 const TABS = ['payments', 'paid', 'renewed'];
 /* الملفات اللي ممكن يتسرّب فيها مسار تاني للمنطق.
    ⚠️ لازم تكون كاملة — ملف ناقص هنا = مسار تاني مالوش
    اختبار، وده عكس الغرض من الثابت أصلاً. */
-const SCANNED = ['core/render-router.js', 'modules/renewals-ui.js', 'modules/fleet.js',
-  'modules/fleet-excel.js', 'modules/data.js', 'modules/payments-store.js', 'modules/follow-up-ui.js'];
+const SCANNED = ['core/router-payments.js', 'core/render-router.js', 'modules/renewals-ui.js',
+  'modules/fleet.js', 'modules/fleet-excel.js', 'modules/data.js', 'modules/payments-store.js',
+  'modules/follow-up-ui.js'];
 
 /* ⭐ مصدر واحد للمنطق — أهم حماية في الملف.
 
@@ -312,7 +318,7 @@ test('العملية الجماعية بترجع قيمة كل دالة — عش
 
 test('الـprompt مش بيظهر في النسخة الجماعية — 20 نافذة مش عملية', () => {
   const code = ROUTER();
-  /* تجديد الرخصة المفرد فيه prompt لل��اريخ. لو النسخة الجماعية
+  /* تجديد الرخصة المفرد فيه prompt للتاريخ. لو النسخة الجماعية
      نادته بنفس الشكل، المستخدم هيقابل نافذة input لكل سيارة. */
   const renewFn = /async renew\(item, car, quiet\) \{([\s\S]*?)\n  \},/.exec(code);
   assert.ok(renewFn, 'مالقتش الإجراء renew');

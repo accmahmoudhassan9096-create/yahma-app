@@ -245,12 +245,18 @@ test('الأعمدة خلايا عرض مش inputs — في التبويبين',
   assert.ok(!/noteEditable/.test(cells[2]),
     'القفل بالصلاحية بقى بلا معنى مع خلايا عرض');
 
-  const rr = noComments(read('core/render-router.js'));
+  const rr = PAYCODE();
   const pcells = /function payCellsHtml\(([^)]*)\)\s*\{([\s\S]*?)\n\}/.exec(rr);
   assert.ok(pcells, 'مالقتش payCellsHtml');
   assert.ok(!/<input/.test(pcells[2]),
     'خلايا «تحت الدفع» فيها input تاني — القرار: عرض بس');
 });
+
+/* ⚠️ كود خلايا العرض في دورة الدفع اتنقل من core/render-router.js
+   لـcore/router-payments.js وقت تقسيم الملفات الكبيرة. الاختبارات
+   دي بتقرا كودcycle، فبتقرأ الملفين مع بعض. */
+const PAYCODE = () => noComments(read('core/router-payments.js'))
+                  + '\n' + noComments(read('core/render-router.js'));
 
 test('مفيش أي input أو تفويض حفظ للأعمدة دي في التبويبين', () => {
   /* غير inputs: مفيش حاجة للحفظ. لو رجع listener فهيكم واجهة
@@ -258,7 +264,7 @@ test('مفيش أي input أو تفويض حفظ للأعمدة دي في الت
   const ren = noComments(read('modules/renewals-ui.js'));
   assert.ok(!/data-ren-field/.test(ren), 'لسه في data-ren-field');
   assert.ok(!/renDataCells\([^)]*,/.test(ren), 'renDataCells لسه بياخد باراميتر تاني');
-  const rr = noComments(read('core/render-router.js'));
+  const rr = PAYCODE();
   assert.ok(!/data-car-field/.test(rr), 'لسه في data-car-field');
   assert.ok(!/bindPaymentsCellEdit/.test(rr), 'لسه في تفويض حفظ في «تحت الدفع»');
   assert.ok(!/payCellsEditable/.test(rr), 'لسه في فحص صلاحية الكتابة');
@@ -285,7 +291,7 @@ test('الأعمدة متطابقة في التبويبين — نفس التر�
     assert.ok(m, 'مالقتش ' + name);
     return [...m[1].matchAll(/field:\s*'([^']+)'/g)].map((x) => x[1]);
   };
-  const pay = pick(read('core/render-router.js'), 'PAY_CELL_FIELDS');
+  const pay = pick(PAYCODE(), 'PAY_CELL_FIELDS');
   const ren = pick(read('modules/renewals-ui.js'), 'REN_DATA_FIELDS');
   /* «الفحص» مفيهاش ملاحظات — دي خانة أداة منفصلة بتتعرض لوحدها.
      فلازم تطلع أول الأعمدة في نفس الترتيب بالظبط. */
@@ -298,7 +304,7 @@ test('الأعمدة متطابقة في التبويبين — نفس التر�
 test('الأعمدة بتتقرا من كائن السيارة لا من الطلب', () => {
   /* عشان تنتقل مع السيارة: القراءة لازم تكون car[...]. لو بقت
      item[...] من الطلب، بتنتهي مع الطلب وبتضيع. */
-  [['core/render-router.js', 'PAY_CELL_FIELDS'], ['modules/renewals-ui.js', 'REN_DATA_FIELDS']]
+  [['core/router-payments.js', 'PAY_CELL_FIELDS'], ['modules/renewals-ui.js', 'REN_DATA_FIELDS']]
     .forEach(([rel, name]) => {
       const src = noComments(read(rel));
       const start = src.indexOf('const ' + name);
@@ -313,7 +319,7 @@ test('الأعمدة بتتقرا من كائن السيارة لا من الط�
 /* ===== التصدير في التبويبين ===== */
 
 test('«تحت الدفع» بيصدّر الأعمدة الأربعة', () => {
-  const router = read('core/render-router.js');
+  const router = PAYCODE();
   const start = router.indexOf('function renderInspectionPayments');
   assert.ok(start > -1, 'مالقتش renderInspectionPayments');
   const body = router.slice(start, router.indexOf('\nfunction ', start + 10) > -1
@@ -347,7 +353,7 @@ test('الـcolspan بيتحسب من الترويسات مش رقم ثابت', 
      expressión زي (7+PAY_CELL_FIELDS.length) كانت مقبولة قبل
      كده، بس هي بتفشل أول ما يتضاف عمود جوّه CORE_PAY_HEADERS
      من غير ما حد يعدّ — والعدّ من الترويسة مش بيتكسر. */
-  const rr = read('core/render-router.js');
+  const rr = PAYCODE();
   assert.ok(!/colspan="[^"]*PAY_CELL_FIELDS\.length/.test(rr),
     'colspan «تحت الدفع» لسه محسوب بتعبير — عرض الترويسة أدق');
   assert.ok(/function fixPaySpans\(content\)/.test(rr), 'مفيش fixPaySpans');
