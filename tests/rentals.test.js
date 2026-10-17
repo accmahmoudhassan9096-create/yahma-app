@@ -358,11 +358,14 @@ test('كل الأدوار تقدر تفتح التبويب، و«مشاهدة» 
 /* ====================================== */
 /* ===== ⭐ التقارير بتقرأ السجل مش العمود القديم ===== */
 
-/* ⚠️ كود التقارير اتقسم على 3 ملفات وقت تقسيم الملفات الكبيرة:
-   core (الحساب) + templates (القوالب) + reports (الرسم).
-   الاختبارات دي بتفحص النطاق كله، فبتقرأ التلاتة مع بعض. */
+/* ⚠️ كود التقارير اتقسم على 5 ملفات وقت تقسيم الملفات الكبيرة:
+   core (الحساب) + templates (القوالب) + view (العرض) +
+   schedule (الجدولة والتصدير) + reports (التنسيق).
+   الاختبارات دي بتفحص النطاق كله، فبتقرأ الخمسة مع بعض. */
 const REPORTS = () => [
-  'modules/reports-core.js', 'modules/reports-templates.js', 'modules/reports.js'
+  'modules/reports-core.js', 'modules/reports-templates.js',
+  'modules/reports-view.js', 'modules/reports-schedule.js',
+  'modules/reports.js'
 ].map((f) => noComments(read(f))).join('\n');
 
 /* ده سبب الشغل كله. لازم يُقفل بإحكام: أي رجوع للعمود

@@ -242,6 +242,47 @@ test('الدوال اللي اتقسمت مازالت متاحة بنفس الأ
   assert.strictEqual(typeof R.render, 'function', 'YahmaReports.render مش موجودة');
 });
 
+/* ⭐ تقسيم واجهة اللوحة ما_addedش حاجة للواجهة العامة.
+
+   واجهة التقReports اتقسمت لـ view و schedule. الدوال الجديدة دي
+   داخلية (بتاخد ctx من renderReports) — المفروض ما تظهرش على
+   window غير كـnamespace، وما تاخدش مفتاح جديد في YahmaReports. */
+test('تقسيم الواجهة ما ضفش مفتاح جديد للـAPI العام', () => {
+  const { ctx } = loadApp();
+  const R = ctx.YahmaReports;
+  assert.strictEqual(Object.keys(R).length, 26,
+    'YahmaReports بقى ' + Object.keys(R).length + ' مفتاح بدل 26: ' + Object.keys(R).join(', '));
+
+  /* الأسماء اللي اتنقلت لازم تكون موجودة في ملفاتها الجديدة */
+  assert.deepStrictEqual(Object.keys(ctx.YahmaReportsView).sort(),
+    ['bindOwnerRows', 'bindReportControls', 'bindReportRows', 'openDrill', 'reportsTemplate']);
+  assert.deepStrictEqual(Object.keys(ctx.YahmaReportsSchedule).sort(),
+    ['bindExcelExport', 'bindPdfButtons', 'bindScheduleUI']);
+
+  /* وrenderReports لازم تفضل هي اللي بتتعرض — المنفذ الوحيد للتقارير.
+     (دي مش نفس كائن window.renderReports: دي غلاف الـrouter، والمنفذ
+      جوه الـIIFE. الاتنين موجودين قبل وبعد التقسيم.) */
+  assert.strictEqual(typeof R.render, 'function', 'YahmaReports.render لازم تفضل دالة');
+  assert.strictEqual(typeof ctx.renderReports, 'function', 'renderReports العالمية ناقصة');
+});
+
+/* ⭐ كل دالة منقولة لازم تاخد ctx — عشان ما تفتحش نطاق جديد
+   بالصدفة وتقرأ متغير عام بالغلط. */
+test('الدوال المنقولة للعرض بتاخد ctx صريح', () => {
+  const { ctx } = loadApp();
+  [['YahmaReportsView', 'reportsTemplate'], ['YahmaReportsView', 'bindReportControls'],
+    ['YahmaReportsView', 'bindReportRows'], ['YahmaReportsView', 'bindOwnerRows'],
+    ['YahmaReportsSchedule', 'bindScheduleUI'], ['YahmaReportsSchedule', 'bindExcelExport'],
+    ['YahmaReportsSchedule', 'bindPdfButtons']].forEach(([ns, fn]) => {
+    const f = ctx[ns][fn];
+    assert.strictEqual(typeof f, 'function', ns + '.' + fn + ' ناقصة');
+    assert.strictEqual(f.length, 1, ns + '.' + fn + ' المفروض تاخد ctx واحد');
+  });
+  /* openDrill بتاخد ctx + عنوان + سيارات */
+  assert.strictEqual(ctx.YahmaReportsView.openDrill.length, 4,
+    'openDrill المفروض (ctx, title, cars, extraCol)');
+});
+
 /* ⭐ مفيش اسم عمومي معرّف في ملفين.
 
    الطريقة: بيحمّل كل ملف لوحده في رمل فاضي وبيشوف إيه الأسماء
