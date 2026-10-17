@@ -358,17 +358,24 @@ test('كل الأدوار تقدر تفتح التبويب، و«مشاهدة» 
 /* ====================================== */
 /* ===== ⭐ التقارير بتقرأ السجل مش العمود القديم ===== */
 
+/* ⚠️ كود التقارير اتقسم على 3 ملفات وقت تقسيم الملفات الكبيرة:
+   core (الحساب) + templates (القوالب) + reports (الرسم).
+   الاختبارات دي بتفحص النطاق كله، فبتقرأ التلاتة مع بعض. */
+const REPORTS = () => [
+  'modules/reports-core.js', 'modules/reports-templates.js', 'modules/reports.js'
+].map((f) => noComments(read(f))).join('\n');
+
 /* ده سبب الشغل كله. لازم يُقفل بإحكام: أي رجوع للعمود
    رجّع التقرير يقول 0% على أسطول فيه 200 استئجار. */
 test('التقارير ما بتقراش rentedDaysMonth تاني', () => {
-  const src = noComments(read('modules/reports.js'));
+  const src = REPORTS();
   const hits = [...src.matchAll(/\brentedDaysMonth\b/g)];
   assert.strictEqual(hits.length, 0,
     'التقرير لسه بيقرا العمود القديم ' + hits.length + ' مرة — الأرقام هتكون غلط');
 });
 
 test('التقرير بيحسب الاستغلال بأيام الفترة — مش 30 ثابتة', () => {
-  const src = read('modules/reports.js');
+  const src = REPORTS();
   assert.ok(/const periodDays=Math\.max\(1,/.test(src),
     'مفيش حساب أيام الفترة');
   assert.ok(/activeCars\.length\*periodDays/.test(src),
@@ -376,7 +383,7 @@ test('التقرير بيحسب الاستغلال بأيام الفترة — �
 });
 
 test('مفيش استئجارات ← الرسالة صريحة، مش 0%', () => {
-  const src = read('modules/reports.js');
+  const src = REPORTS();
   /* ⭐ ده اللي كان بيخلّي صفر الـ3,984 يفضل شهور والحدش
      ياخد باله. 0% بتقول «مفيش تأجير»، والحقيقة «مفيش بيانات». */
   assert.ok(/function noRentalsNotice/.test(src), 'مفيش رسالة «لسه محدّدش»');
@@ -388,7 +395,7 @@ test('مفيش استئجارات ← الرسالة صريحة، مش 0%', () =
 });
 
 test('مصدر واحد للأيام في التقرير — مش محسوب في كذا مكان', () => {
-  const src = read('modules/reports.js');
+  const src = REPORTS();
   /* كل حساب أيام لازم يمر على rentalsPeriod أو perCar بتاعها.
      أي `overlapDays` مباشرة جوه الصفحة = نسخة ثانية من
      المنطق وهتختلف عن الأولى. */
@@ -465,7 +472,7 @@ test('ملف التحقق آمن — بيعمل rollback (مش بيسيب بيا
 });
 
 test('مفيش استعلام متبقٍ في التقرير على rentedDaysMonth — حتى في التصدير', () => {
-  const src = noComments(read('modules/reports.js'));
+  const src = REPORTS();
   /* التصدير كمان كان بيقرأ العمود القديم — لازم هو كمان */
   const exportBlock = /'أيام التأجير':(.*)/.exec(src);
   assert.ok(exportBlock, 'مفيش سطر أيام التأجير في التصدير');

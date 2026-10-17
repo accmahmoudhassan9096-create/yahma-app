@@ -343,6 +343,37 @@
     "reportTextSummary",
     "storageRead"
   ],
+  "YahmaReportsCore": [
+    "FILTERS_KEY",
+    "PERIOD_PRESETS",
+    "PRESETS_KEY",
+    "accountingIndicators",
+    "aggregateReport",
+    "allRentalsForCar",
+    "getPresets",
+    "inPeriod",
+    "isoLocal",
+    "noRentalsNotice",
+    "periodBounds",
+    "periodDate",
+    "periodLabel",
+    "persistState",
+    "rentalsPeriod",
+    "rentedDaysFor",
+    "storageRead"
+  ],
+  "YahmaReportsTemplates": [
+    "escapeHtml",
+    "formalReportHtml",
+    "formatCurrency",
+    "infographicDonut",
+    "infographicDonutLegend",
+    "infographicFileName",
+    "infographicHtml",
+    "infographicTextSummary",
+    "reportFileName",
+    "reportTextSummary"
+  ],
   "YahmaTransfers": [
     "render"
   ],
