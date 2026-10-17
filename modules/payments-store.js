@@ -117,7 +117,8 @@ function diagnose() {
         branch: item.branch || '',
         status: 'pending',
         requestedAt: item.requestedAt || new Date().toISOString(),
-        paidAt: null
+        paidAt: null,
+        userName: item.userName || ''
       });
     });
     writeJSON(PENDING_KEY, pending);
@@ -149,6 +150,7 @@ function diagnose() {
         .limit(2000);
       if (res.error) return null;
       var rows = (res.data || []).map(function (r) {
+        var uName = (r.prev_state && r.prev_state.userName) || '';
         return {
           id: r.id,
           carId: String(r.car_id),
@@ -158,7 +160,8 @@ function diagnose() {
           requestedAt: r.requested_at,
           paidAt: r.paid_at || null,
           note: r.note || '',
-          prevState: r.prev_state || null
+          prevState: r.prev_state || null,
+          userName: uName
         };
       });
       return rows;
@@ -170,6 +173,16 @@ function diagnose() {
     migrateLegacy();
     var remote = await fetchRemote();
     if (!remote) return localAll();
+    var localMap = new Map();
+    localAll().forEach(function (p) {
+      if (p.userName) localMap.set(String(p.id), p.userName);
+      if (p.carId && p.userName) localMap.set('car-' + String(p.carId), p.userName);
+    });
+    remote.forEach(function (r) {
+      if (!r.userName) {
+        r.userName = localMap.get(String(r.id)) || localMap.get('car-' + String(r.carId)) || '';
+      }
+    });
     var pending = remote.filter(function (p) { return p.status === 'pending'; });
     var paid = remote.filter(function (p) { return p.status === 'paid'; });
     writeJSON(PENDING_KEY, pending);
@@ -177,9 +190,22 @@ function diagnose() {
     return remote;
   }
 
+  function getCurrentActorName() {
+    try {
+      if (typeof window !== 'undefined') {
+        if (window.currentUserName) return String(window.currentUserName).trim();
+        if (window.currentUser && window.currentUser.email) return String(window.currentUser.email).trim();
+        var el = document.getElementById('topbar-user-name');
+        if (el && el.textContent) return el.textContent.trim();
+      }
+    } catch (_) {}
+    return '';
+  }
+
   /* تسجيل طلب جديد (من زر «طلب دفع» في تبويب الفحص) */
   async function requestPayment(car) {
     if (!car) return { ok: false, error: 'السيارة غير موجودة' };
+    var activeUser = getCurrentActorName();
     var entry = {
       id: 'req-' + String(car.id) + '-' + Date.now(),
       carId: String(car.id),
@@ -187,7 +213,8 @@ function diagnose() {
       branch: car.branch || '',
       status: 'pending',
       requestedAt: new Date().toISOString(),
-      paidAt: null
+      paidAt: null,
+      userName: activeUser
     };
     /* محلي أولاً عشانً يشتغل حتى لو الشبكة ضعيفة */
     var pending = readJSON(PENDING_KEY, []);
@@ -202,7 +229,8 @@ function diagnose() {
         plate: entry.plate,
         branch: entry.branch,
         status: 'pending',
-        requested_at: entry.requestedAt
+        requested_at: entry.requestedAt,
+        prev_state: { userName: activeUser }
       };
       /* نطلب الرجوع بالسجل نفسه عشان ناخد الـ UUID الحقيقي.
          بدون .select() الـ insert بيقبل بس مش بيرجّع id،
