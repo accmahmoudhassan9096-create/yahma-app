@@ -1,0 +1,57 @@
+# ==============================================================================
+# Cloudflare Pages Custom HTTP Response Headers
+# ==============================================================================
+
+# HTML and Navigation Documents: Always check for updates, no aggressive cache
+/*.html
+  Cache-Control: public, no-cache, must-revalidate
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=()
+
+/
+  Cache-Control: public, no-cache, must-revalidate
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=()
+
+# Service Worker: NEVER cache permanently, must revalidate immediately
+/sw.js
+  Cache-Control: public, no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+
+# Web App Manifest
+/manifest.json
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+  Content-Type: application/manifest+json; charset=utf-8
+
+# Static Assets with stable names (Fonts)
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+# Vendor and Icons
+/vendor/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+/icon-*.png
+  Cache-Control: public, max-age=2592000
+
+# CSS and JS (revalidated quickly or served via SW cache)
+/css/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+  X-Content-Type-Options: nosniff
+
+/modules/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+  X-Content-Type-Options: nosniff
+
+/core/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+  X-Content-Type-Options: nosniff
+
+/app.js
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+  X-Content-Type-Options: nosniff
