@@ -193,10 +193,23 @@ function diagnose() {
   function getCurrentActorName() {
     try {
       if (typeof window !== 'undefined') {
-        if (window.currentUserName) return String(window.currentUserName).trim();
-        if (window.currentUser && window.currentUser.email) return String(window.currentUser.email).trim();
+        if (window.currentUserName && String(window.currentUserName).trim()) {
+          return String(window.currentUserName).trim();
+        }
+        var uid = (window.currentUser && window.currentUser.id) || window._bootedUid;
+        if (uid) {
+          var byUid = localStorage.getItem('fleet-user-name:' + uid);
+          if (byUid && byUid.trim()) return byUid.trim();
+        }
+        var lastUser = localStorage.getItem('yahma_last_user_name');
+        if (lastUser && lastUser.trim()) return lastUser.trim();
+        var metaName = window.currentUser && window.currentUser.user_metadata && (window.currentUser.user_metadata.full_name || window.currentUser.user_metadata.name);
+        if (metaName && String(metaName).trim()) return String(metaName).trim();
         var el = document.getElementById('topbar-user-name');
-        if (el && el.textContent) return el.textContent.trim();
+        if (el && el.textContent && el.textContent.trim() && el.textContent.trim() !== 'أحمد محمد') {
+          return el.textContent.trim();
+        }
+        if (window.currentUser && window.currentUser.email) return String(window.currentUser.email).trim();
       }
     } catch (_) {}
     return '';
@@ -630,7 +643,8 @@ function diagnose() {
     revertPendingToInspection: revertPendingToInspection,
     DONE_NOTE: DONE_NOTE,
     PENDING_KEY: PENDING_KEY,
-    PAID_KEY: PAID_KEY
+    PAID_KEY: PAID_KEY,
+    getCurrentActorName: getCurrentActorName
   };
 
   /* مزامنة أولية: نحدّث العدادات بعد ما تتحدّث البيانات */

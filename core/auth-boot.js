@@ -317,6 +317,10 @@ function activateAuthenticatedSession(user){
   window._demoMode=false;
   window.currentUser=user;
   window.currentUserPermissions=[];
+  try {
+    var cachedFullName = localStorage.getItem('fleet-user-name:' + uid) || localStorage.getItem('yahma_last_user_name') || (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || '';
+    if (cachedFullName) window.currentUserName = cachedFullName;
+  } catch(_){}
   setTimeout(async function(){
     /* 🔒 كل تحميل البيانات معلّق لحد ما القفل يتفتح.
        putBoot(fn) بينفّذ fn فورًا لو مفتوح، أو بعد كلمة المرور. */
@@ -384,8 +388,12 @@ async function fetchUserRole(uid){
           : (Array.isArray(data.allowed_tabs)?data.allowed_tabs:[]);
         if(data.branch_name) window.currentUserBranch = data.branch_name;
         else window.currentUserBranch = '';
-        if(data.full_name) window.currentUserName = data.full_name;
         if(data.full_name){
+          window.currentUserName = data.full_name;
+          try {
+            localStorage.setItem('fleet-user-name:' + uid, data.full_name);
+            localStorage.setItem('yahma_last_user_name', data.full_name);
+          } catch(_){}
           const userNameEl=document.getElementById('topbar-user-name');
           if(userNameEl) userNameEl.textContent=data.full_name;
         }

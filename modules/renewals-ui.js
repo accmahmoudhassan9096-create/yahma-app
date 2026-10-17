@@ -530,7 +530,7 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
              const paymentQueue=readPaymentQueue();
              if(paymentQueue.some(item=>String(item.carId)===String(car.id))){alert('السيارة موجودة بالفعل في قائمة الدفع.');return;}
              if(!confirm('نقل السيارة '+car.plate+' إلى قائمة الدفع لتجديد الفحص؟')) return;
-             const uName = (typeof window !== 'undefined' && (window.currentUserName || (window.currentUser && window.currentUser.email))) || '';
+             const uName = (typeof window !== 'undefined' && ((window.YahmaPayments && typeof window.YahmaPayments.getCurrentActorName === 'function' && window.YahmaPayments.getCurrentActorName()) || window.currentUserName || (window.currentUser && window.currentUser.email))) || '';
              paymentQueue.unshift({id:'ip-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),carId:car.id,plate:car.plate||'',branch:car.branch||'',requestedAt:new Date().toISOString(),status:'pending',userName:uName});
              localStorage.setItem('yahma-inspection-payments-v1',JSON.stringify(paymentQueue));
              if(typeof window.log==='function') window.log('طلب دفع فحص','السيارة '+(car.plate||''));
