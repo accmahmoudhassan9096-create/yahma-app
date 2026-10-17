@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     /* لازم تطابق PAGE_PERMISSION_OPTIONS في core/branches-store.js.
        ناقص كان paid و renewed و dues — أي حد يختارهم في اللوحة
        كان بضيّعهم من غير رسالة. في اختبار بيمنع انفصال القائمتين. */
-    const allowedTabs = ['fleet', 'branches', 'renewals', 'payments', 'paid', 'renewed', 'license-renewals', 'insurance-renewals', 'inspections', 'transfers', 'reports', 'dues', 'audit'];
+    const allowedTabs = ['fleet', 'branches', 'renewals', 'payments', 'paid', 'renewed', 'license-renewals', 'insurance-renewals', 'inspections', 'transfers', 'rentals', 'reports', 'dues', 'audit'];
     const requestedTabs = Array.isArray(body.allowed_tabs)
       ? [...new Set(body.allowed_tabs.filter((tab: unknown): tab is string => typeof tab === 'string' && allowedTabs.includes(tab)))]
       : [];

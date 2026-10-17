@@ -47,7 +47,12 @@ function _legacyInPeriod(rec){
   if(!d) return true; // سجلات بلا تاريخ تُحتسب ضمن أي فترة (سلوك متوافق مع النسخ السابقة)
   return d >= b.from && d <= b.to;
 }
-/* ===== v9: المؤشرات المحاسبية — تُحتسب من حقول الإيراد الاختيارية فقط، بلا أرقام مفبركة ===== */
+/* ===== v9: المؤشرات المحاسبية — تُحتسب من حقول الإيراد الاختيارية فقط، بلا أرقام مفبركة =====
+   ⚠️ الدالة دي ميتة ومفيش حاجة بتناديها (المسار الحي هو
+   `accountingIndicators` فوق → `YahmaReports.accountingIndicators`).
+   ومبقتش بتقرأ `rentedDaysMonth` — لو حد نقلها ورجّعها للحياة
+   هيخلّي التقرير يقول 0% تاني. لو محتاج تجيبها، خد المصدر من
+   سجل الاستئجارات مش من العمود. */
 function _legacyAccountingIndicators(list){
   const b = periodBounds();
   let days = Math.round((new Date(b.to) - new Date(b.from))/86400000) + 1;
