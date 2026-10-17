@@ -12,40 +12,119 @@
      بوابة Supabase الرد بيبقى إنجليزي والسبب بيضيع.
 
      هنا بنجمّع كل المتاح: body لو JSON، ورمز الحالة، ونص الرد
-     الخام. الهدف إن أي رسالة على الشاشة تبقى سبب حقيقي. */
+     الخام. الهدف إن أي رسالة على الشاشة تبقى سبب حقيقي.
+
+     ⚠️ async لأن قراءة body محتاجة await. أول نسخة اتنادى من غير
+     await، والنتيجة إن textContent وصله Promise وظهر للمستخدم
+     «[object Promise]» بدل السبب. لو الدالة دي بقت sync بعدين،
+     مدّ الـasync وكل الـawait في نداءاتها، واعمل showResult بدل
+     الـassignment المباشر. */
   async function describeInvokeError(result, prefix){
-    var err=result&&result.error;
-    if(!err) return prefix+'خطأ غير معروف';
-    var message='', raw='', code='', status='';
+    /* ⚠️ كل القراءة جوّه try — والوصول لـ result.error نفسه كمان.
+       لو حصل استثناء في أي خطوة، لازم يوصل للمستخدم نص مفهوم؛
+       throw هنا هيرجّع «تعذر إنشاء المستخدم» العام تاني وده عكس
+       اللي الدالة دي اتعملت عشانه. */
+    var err=null;
+    try{
+      err=result&&result.error;
+      if(!err) return prefix+'خطأ غير معروف';
+      var message='', raw='', code='', status='';
 
-    /* ❶ body — فيه رسالة الدالة */
-    var bodies=[];
-    if(err.context&&typeof err.context.clone==='function') bodies.push(err.context);
-    if(result.data&&typeof result.data==='object') bodies.push(null);
-    for(var i=0;i<bodies.length;i++){
-      var parsed=null;
-      try{ parsed=bodies[i]?(typeof bodies[i].json==='function'?bodies[i].json():bodies[i].clone().json()):result.data; }
-      catch(_){yahmaErr(_,'topbar-ui.js:describeInvokeError');}
-      if(!parsed) continue;
-      if(typeof parsed==='string'){ if(!raw) raw=parsed.slice(0,300); continue; }
-      if(parsed.error&&!message) message=String(parsed.error).slice(0,300);
-      if(parsed.message&&!raw) raw=String(parsed.message).slice(0,300);
-      if(parsed.code&&!code) code=String(parsed.code);
+      /* ❶ body — فيه رسالة الدالة
+
+         ⚠️ فيه خطأين اتلخبطوا هنا:
+
+         الأول، الـawait. Response.json() بترجع Promise، ولو نسينا
+         الـawait بقى parsed Promise — truthy فالcondition اتعدّى،
+         ثم parsed.error رجعت undefined والرسالة العربية ضاعت.
+
+         التاني، الترتيب. بعد ما .json() يتقرا الـbody مابيلوش
+         معاه clone — بيترمي «Body has already been consumed».
+         فالنسخة الأولى كانت بتعمل .json() وبعدين فيFallback
+         .clone().text()، وFallback ده معشيش يتفعّل أبداً: الردود
+         اللي مش JSON أصلاً (صفحة 502 من Cloudflare، نص صريح)
+         كانت بتضيع زي ما هي.
+
+         الحل: نقرا clone().text() الأول — سيب الـbody الأصلي
+         مقروء بعد كده — ونعمل JSON.parse بنفسنا جوّه try. قراءة
+         واحدة، وتحليل آمن، وبتشتغل مع JSON ومع النص. */
+      var bodies=[];
+      if(err.context && typeof err.context.text==='function') bodies.push(err.context);
+      if(result.data && typeof result.data==='object' && !(result.data instanceof Array)) bodies.push(null);
+      for(var i=0;i<bodies.length;i++){
+        var parsed=null;
+        if(!bodies[i]){
+          parsed=result.data;
+        }else{
+          var textBody=null;
+          try{
+            /* الـclone الأول: قراءة واحدة بس، واللي قبلها بيفضل
+               متاح لو احنا غلطان في التحليل. */
+            var reader=bodies[i].clone?bodies[i].clone():bodies[i];
+            textBody=await reader.text();
+          }catch(_){ textBody=null; }
+          if(textBody){
+            var trimmed=String(textBody).trim();
+            if(!trimmed) continue;
+            try{
+              /* catch هنا مقصود — الرد مش JSON مش خطأ، هو نص
+                 عادي (Cloudflare بيرد بصفحة HTML مثلاً). */
+              parsed=JSON.parse(trimmed);
+            }catch(__){ parsed=trimmed; }
+          }
+        }
+        if(!parsed) continue;
+        if(typeof parsed==='string'){ if(!raw) raw=parsed.slice(0,300); continue; }
+        if(parsed.error&&!message) message=String(parsed.error).slice(0,300);
+        if(parsed.message&&!raw) raw=String(parsed.message).slice(0,300);
+        if(parsed.code&&!code) code=String(parsed.code);
+      }
+
+      /* ❷ رمز الحالة */
+      var ctx=err.context;
+      status=String((ctx&&(ctx.status||(ctx.response&&ctx.response.status)))||err.status||'').trim();
+
+      if(!message) message=(raw&&raw!=='{}')?raw:(typeof err.message==='string'?err.message.slice(0,300):'');
+
+      var bits=[];
+      if(status) bits.push('كود '+status);
+      if(code) bits.push(code);
+      if(!message) message='ما وصلش سبب — غالبًا الجلسة منتهية. سجّل خروج وادخل تاني وحاول.';
+
+      return prefix+message+(bits.length?' ['+bits.join(' · ')+']':'');
+    }catch(e){
+      yahmaErr(e,'topbar-ui.js:describeInvokeError:fail');
+      var fallbackMsg='';
+      try{
+        if(err && typeof err.message==='string'&&err.message) fallbackMsg=err.message.slice(0,300);
+      }catch(__){ fallbackMsg=''; }
+      return prefix+(fallbackMsg||'ما قدرتش أقرأ سبب الخطأ.');
     }
-
-    /* ❷ رمز الحالة */
-    var ctx=err.context;
-    status=String((ctx&&(ctx.status||(ctx.response&&ctx.response.status)))||err.status||'').trim();
-
-    if(!message) message=(raw&&raw!=='{}')?raw:(typeof err.message==='string'?err.message.slice(0,300):'');
-
-    var bits=[];
-    if(status) bits.push('كود '+status);
-    if(code) bits.push(code);
-    if(!message) message='ما وصلش سبب — غالبًا الجلسة منتهية. سجّل خروج وادخل تاني وحاول.';
-
-    return prefix+message+(bits.length?' ['+bits.join(' · ')+']':'');
   }
+
+  /* حاجز إضافي: لو دالة بترجّع Promise اتنادت من غير await،
+     الـtextContent بياخد Promise ويطلع للمستخدم «[object Promise]»
+     بدل السبب. ده حصل فعلاً في v200. الحاجز ده بيمنع تكرارها
+     لو اتضاف استدعاء جديد ومتساش منه الـawait. */
+  function showResult(el, value, fallback){
+    try{
+      if(value&&typeof value.then==='function'){
+        value.then(function(v){ el.textContent=String(v==null?fallback:v); },
+                   function(){ el.textContent=fallback; });
+        return;
+      }
+      el.textContent=String(value==null?fallback:value);
+    }catch(e){
+      el.textContent=fallback;
+    }
+  }
+
+  /* نصدّرها للاختبار: بتتحقق منها على خطأ حقيقي من دالة
+     منشورة، مش على شكل مرسوم في الكتاب. */
+
+  window.yahmaDescribeInvokeError = describeInvokeError;
+
+  window.yahmaShowResultInto = showResult;
 
   function syncProfileMenu(){
     var name=document.getElementById('topbar-user-name'), role=document.getElementById('topbar-user-role'), email=document.getElementById('user-dropdown-email');
@@ -180,7 +259,7 @@
         try{
           var r=await window.supabaseClient.functions.invoke('admin-delete-user',{body:{id:row.dataset.userId}});
           if(r.error){
-            msg.textContent=await describeInvokeError(r,'تعذر حذف المستخدم: ');
+            showResult(msg, await describeInvokeError(r,'تعذر حذف المستخدم: '), 'تعذر حذف المستخدم.');
             btn.disabled=false; btn.textContent='حذف';
             return;
           }
@@ -200,7 +279,7 @@
       var payload={name:ov.querySelector('#ua-name').value.trim(),email:ov.querySelector('#ua-email').value.trim(),password:ov.querySelector('#ua-password').value,role:role,branch_name:ov.querySelector('#ua-branch').value.trim(),allowed_tabs:role==='admin'?allPageIds:selectedPermissions(ov.querySelector('.ua-new-permissions'))};
       var r=await window.supabaseClient.functions.invoke('admin-create-user',{body:payload});
       if(r.error){
-        msg.textContent=describeInvokeError(r,'تعذر إنشاء المستخدم: ');
+        showResult(msg, await describeInvokeError(r,'تعذر إنشاء المستخدم: '), 'تعذر إنشاء المستخدم.');
         return;
       }
       /* ⚠️ لازم نتأكد إن الحساب اتعمل فعلاً قبل ما نقول «تم».

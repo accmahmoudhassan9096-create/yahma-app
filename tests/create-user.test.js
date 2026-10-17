@@ -146,7 +146,35 @@ test('الواجهة بتتأكد إن الحساب اتعمل قبل ما تق�
   assert.ok(/confirmRead/.test(top), 'مفيش تحقق بالقراءة بعد الإنشاء');
   assert.ok(/!r\.data\.id/.test(top), 'مفيش فحص إن الدالة رجعت رقم حساب');
   assert.ok(/describeInvokeError/.test(top), 'مفيش دالة لقراءة السبب الحقيقي');
-  /* ما ينفعش تقول تم بلا تحقق */
   assert.ok(!/msg\.textContent='تم إنشاء المستخدم[^']*';\s*$/.test(top),
     'لسه في رسالة «تم» مباشرة من غير تحقق');
+});
+
+/* ⛔ [object Promise] ظهر للمستخدم فعلاً في v200.
+
+   describeInvokeError بقت async عشان بتقرا body الدالة، وnderaya
+   اتنادى من غير await في مسار الإنشاء — فـtextContent وصله Promise
+   وطلع للمستخدم سطر ميتا بدل السبب الحقيقي، وده أخسى من الكود
+   القديم: كان بيقول «خطأ غير معروف» وكلمة مفهومة، بقى حروف إنجليزية
+   غامضة.
+
+   الاختبار ده بيمنع: (أ) نداء من غير await، (ب) حجر شغل. */
+test('مفيش استدعاء لـdescribeInvokeError من غير await', () => {
+  const top = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+  const calls = [...top.matchAll(/([^\n]*describeInvokeError\([^\n]*)/g)].map((m) => m[1]);
+  const real = calls.filter((line) => !/function\s+describeInvokeError/.test(line) && !/topbar-ui\.js:describeInvokeError/.test(line));
+  assert.ok(real.length >= 2, 'فيه استدعاءين على الأقل');
+  real.forEach((line) => {
+    assert.ok(/await\s+describeInvokeError/.test(line),
+      'استدعاء من غير await: ' + line.trim());
+    assert.ok(/showResult\(/.test(line),
+      'الاستدعاء لازم يمر على showResult (حاجز ضد Promise): ' + line.trim());
+  });
+});
+
+test('showResult موجودة وبتتعامل مع Promise', () => {
+  const top = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+  assert.ok(/function showResult\(/.test(top), 'في showResult');
+  assert.ok(/typeof value\.then\s*===\s*'function'/.test(top), 'بتتعرف على Promise');
+  assert.ok(/String\(value/.test(top), 'بتتحول لنص');
 });
