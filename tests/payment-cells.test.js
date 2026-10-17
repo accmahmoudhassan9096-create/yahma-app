@@ -343,9 +343,18 @@ test('الـcolspan بيتحسب من الترويسات مش رقم ثابت', 
   assert.ok(/const colCount=headCells\.length/.test(code), 'الـcolspan مش محسوب');
   assert.ok(!/baseCols\s*=\s*insuranceMode/.test(code), 'لسه في الرقم القديم');
   assert.ok(!/delCol/.test(code), 'لسه في delCol — مفيش عمدة حذف منفصلة');
+  /* التلات تبويبات في render-router بتعدّ خلايا الترويسة نفسها.
+     expressión زي (7+PAY_CELL_FIELDS.length) كانت مقبولة قبل
+     كده، بس هي بتفشل أول ما يتضاف عمود جوّه CORE_PAY_HEADERS
+     من غير ما حد يعدّ — والعدّ من الترويسة مش بيتكسر. */
   const rr = read('core/render-router.js');
-  assert.ok(/colspan="[^"]*PAY_CELL_FIELDS\.length/.test(rr),
-    'colspan «تحت الدفع» ثابت ومكتوب بإيد');
+  assert.ok(!/colspan="[^"]*PAY_CELL_FIELDS\.length/.test(rr),
+    'colspan «تحت الدفع» لسه محسوب بتعبير — عرض الترويسة أدق');
+  assert.ok(/function fixPaySpans\(content\)/.test(rr), 'مفيش fixPaySpans');
+  ['payments', 'paid', 'renewed'].forEach((tab) => {
+    assert.ok(rr.includes("bindPaySelection(content,'" + tab + "');\n  fixPaySpans(content);"),
+      tab + ' مفيش fixPaySpans بعد الرسم');
+  });
 });
 
 /* ===== التنسيق: خلية عرض مش input ===== */

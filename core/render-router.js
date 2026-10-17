@@ -248,19 +248,475 @@ function resolveItemUserName(item) {
   return name || '—';
 }
 
+/* ===== المنطق المفرد — مصدر واحد للمفرد والجماعي =====
+
+   الأزرار المفردة كان منطقها جوّه querySelectorAll.addEventListener
+   جوّه كل دالة رسم. النسخة الجماعية محتاجة تنادي نفس المنطق ده،
+   فلو اتكتب تاني من الأول هيبقى فيه مسارين للحقيقة — وأي إصلاح
+   في واحد مش هيوصل للتاني. فالدوال دي اتقلعت لفوق، والعُرضيّن
+   (زرار الصف) بينادوا عليها.
+
+   quiet = النسخة الجماعية: متعملش render، لأن الرسم بيحصل مرة
+   واحدة في الآخر بعد كل السيارات.
+
+   القيمة المرجعة بتتقرا من runPayBulk:
+     'done'     اتنفذ
+     'skipped'  المستخدم رفض التأكيد
+     'failed'   اتحفظت محليًا بس الكتابة على السحابة فشل —
+                الدالة بترجّع الحالة القديمة قبل ما ترجع */
+const PAY_ITEM_ACTION = {
+  /* «تحت الدفع» ⇐ «الفحص»: الطلب يتشال والسيارة ترجع بحالة لم يفحص */
+  async cancel(item, car, quiet) {
+    const plate = (car && car.plate) || item.plate || '—';
+    if (!payConfirm(quiet, 'إلغاء طلب الدفع للسيارة «' + plate + '»؟\n\n'
+      + '• الطلب هيتشال من «تحت الدفع»\n'
+      + '• السيارة هترجع لِتبويب «الفحص» بحالة «' + NOT_INSPECTED + '»')) return 'skipped';
+    if (car) {
+      const before = car.inspectionStatus;
+      car.inspectionStatus = NOT_INSPECTED;
+      const saved = await saveData([car.id]);
+      if (saved === false) {
+        car.inspectionStatus = before;
+        await saveData([car.id]);
+        alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
+        return 'failed';
+      }
+    }
+    await window.YahmaPayments.revertPendingToInspection(item.id, item.carId);
+    if (typeof window.log === 'function') window.log('إلغاء طلب دفع فحص', 'السيارة ' + plate + ' — رجعت لِالفحص');
+    if (!quiet) render();
+    return 'done';
+  },
+
+  /* «تحت الدفع» → «تم الدفع»: بنحفظ القيمة القديمة الأول عشان
+     «رجوع لِتحت الدفع» يقدر يرجّعها بالظبط. */
+  async paid(item, car, quiet) {
+    if (!car) { alert('لم تعد السيارة موجودة في الأسطول.'); return 'skipped'; }
+    if (!payConfirm(quiet, 'تأكيد تسجيل دفع تجديد الفحص للسيارة ' + car.plate + '؟')) return 'skipped';
+    const previous = car.inspectionStatus;
+    await window.YahmaPayments.rememberCarState(item.id, item.carId, { inspectionStatus: previous });
+    car.inspectionStatus = 'سليم';
+    const saved = await saveData([car.id]);
+    if (saved === false) {
+      car.inspectionStatus = previous;
+      await saveData([car.id]);
+      alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
+      return 'failed';
+    }
+    await window.YahmaPayments.markPaid(item.id, item.carId);
+    if (typeof window.log === 'function') window.log('تسجيل دفع وتجديد فحص', 'السيارة ' + car.plate);
+    if (!quiet) { goTabFromRouter('paid'); return 'done'; }
+    render();
+    return 'done';
+  },
+
+  /* «تم الدفع» ⇐ «تحت الدفع»: يرجّع حالة الفحص للقيمة اللي كانت،
+     وبيشيل تاريخ الدفع. */
+  async back(item, car, quiet) {
+    const plate = (car && car.plate) || item.plate || '—';
+    const snapshot = window.YahmaPayments.prevStateOf(item.id, item.carId);
+    if (!payConfirm(quiet, 'رجوع السيارة «' + plate + '» لِقائمة «تحت الدفع»؟\n\n'
+      + prevRestoreLines(car, snapshot, 'paid') + '\n'
+      + '• تاريخ الدفع هيتشال من الطلب\n'
+      + '• الطلب هيفضل في «تحت الدفع» مستني الدفع تاني')) return 'skipped';
+    if (car) {
+      const before = Object.assign({}, car);
+      applyPrevState(car, snapshot, 'paid');
+      /* سجل قديم من غير لقطة: مينفعش نسيب الحالة «سليم» — الحوار
+         بيقول للمستخدم إن حالة الفحص هترجع لـ«لم يفحص»، ولو الكود
+         عمل غير كده يبقى الحوار بيكدب. فبنرجّع لللي قلناه. */
+      if (!snapshot || !Object.prototype.hasOwnProperty.call(snapshot, 'inspectionStatus')) {
+        car.inspectionStatus = NOT_INSPECTED;
+      }
+      const saved = await saveData([car.id]);
+      if (saved === false) {
+        Object.keys(before).forEach(function (k) { car[k] = before[k]; });
+        await saveData([car.id]);
+        alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
+        return 'failed';
+      }
+    }
+    await window.YahmaPayments.revertPaidToPending(item.id, item.carId);
+    if (typeof window.log === 'function') window.log('رجوع طلب دفع لِتحت الدفع', 'السيارة ' + plate);
+    if (!quiet) render();
+    return 'done';
+  },
+
+  /* «تم الدفع» → «تم التجديد»: 3 سنين. silentDate في النسخة
+     الجماعية — الـprompt لكل سيارة مش عملي في حلقة. */
+  async renew(item, car, quiet) {
+    const content = document.getElementById('content');
+    return renewLicenseFromPaid(item, car, content, { silentDate: !!quiet, quiet: !!quiet });
+  },
+
+  /* «تم التجديد» ⇐ «تم الدفع»: سجل «تم التجديد» يتشال وتاريخ
+     الرخصة يرجع للقديم. */
+  async back2(item, car, quiet) {
+    const plate = (car && car.plate) || item.plate || '—';
+    const snapshot = window.YahmaPayments.prevStateOf(item.id, item.carId);
+    if (!payConfirm(quiet, 'رجوع السيارة «' + plate + '» لِتبويب «تم الدفع»؟\n\n'
+      + prevRestoreLines(car, snapshot, 'renewed') + '\n'
+      + '• سجل «تم التجديد» هيتشال\n'
+      + '• الطلب هيفضل في «تم الدفع»')) return 'skipped';
+    if (car) {
+      const before = Object.assign({}, car);
+      applyPrevState(car, snapshot, 'renewed');
+      const saved = await saveData([car.id]);
+      if (saved === false) {
+        Object.keys(before).forEach(function (k) { car[k] = before[k]; });
+        await saveData([car.id]);
+        alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
+        return 'failed';
+      }
+    }
+    await window.YahmaPayments.revertRenewedToPaid(item.id, item.carId);
+    if (typeof window.log === 'function') window.log('رجوع تجديد لِتم الدفع', 'السيارة ' + plate);
+    if (!quiet) render();
+    return 'done';
+  }
+};
+
+/* ===== التحديد الجماعي في دورة الفحص/الدفع/التجديد =====
+
+   الطلب: في كل التبويبات أقدر أعلّم على السيارات وآخد قرار
+   جماعي — إرجاعها للتبويب اللي قبله أو نقلها للي بعده.
+
+   كل الإجراءات دي موجودة أصلاً صف-بصف في نفس التبويبات. فاللي
+   اتعمل هنا مش تنفيذ جديد، بل **نسخ جماعي على نفس الدوال** — لأن
+   لو اتعمل مسار تاني للنسخة الجماعية، أي إصلاح في المنطق المفرد
+   ما هيوصلش للجماعي، وده بالظبط اللي بيحصل في الكود المتشابه
+   يدوي.
+
+   cycle = الفحص ← تحت الدفع ← تم الدفع ← تم التجديد
+
+   التحديد بيتشال بين كل رسم — الاختيار حالة مؤقتة مش قرار
+   دائم، لو فضل محفوظ كان التحديد هيعلق على أسطر مش موجودة بعد
+   ما الفلتر يتغير.
+
+   canBulk يتحكم في الشريط كله. لكن الرجوع والإلغاء **إجراءات
+   بتشيل بيانات**، فمقفولة بحد أعلى: canDelete() يعني المدير بس.
+   ده نفس الفصل الموجود في «الفحص» — الشريط موجود، وزر الحذف
+   جوه مقفول. التقديم والتأجيل بياخدوا canBulk. */
+
+const PAY_CYCLE = ['renewals', 'payments', 'paid', 'renewed'];
+const PAY_TAB_LABELS = { renewals:'الفحص', payments:'تحت الدفع', paid:'تم الدفع', renewed:'تم التجديد' };
+
+/* الإجراءات المتاحة في كل تبويب. next/prev بالترتيب مش بالنص —
+   لو ترتيب التبويبات اتغيّر، الرابط بينشغل لوحده. */
+const PAY_TAB_ACTIONS = {
+  payments: [
+    { dir:'prev', act:'cancel', label:'↩ رجوع لِالفحص',
+      kind:'destructive',
+      title:'يشيل الطلب ويرجّع المحددة لِتبويب «الفحص» بحالة «لم يفحص»' },
+    { dir:'next', act:'paid', label:'تسجيل الدفع ⇢ تم الدفع',
+      kind:'advance',
+      title:'يسجّل دفع الفحص للمحددة وينقلها لِتبويب «تم الدفع»' }
+  ],
+  paid: [
+    { dir:'prev', act:'back', label:'↩ رجوع لِتحت الدفع',
+      kind:'destructive',
+      title:'بيشيل تاريخ الدفع ويرجّع حالة الفحص للمحددة، ويخليها في «تحت الدفع»' },
+    { dir:'next', act:'renew', label:'📅 تجديد الرخصة ⇢ تم التجديد',
+      kind:'advance',
+      title:'يجدّد رخصة المحددة 3 سنين و ينقلها لِتبويب «تم التجديد»' }
+  ],
+  renewed: [
+    { dir:'prev', act:'back2', label:'↩ رجوع لِتم الدفع',
+      kind:'destructive',
+      title:'بيشيل سجل «تم التجديد» ويرجّع تاريخ الرخصة القديم، والمحددة تفضل في «تم الدفع»' }
+  ]
+};
+
+const PAY_SELECTIONS = Object.create(null);
+
+/* ينادي الإجراءwhatever لو مفعّل، ويقفل لو المرفوض.
+   بيرجّع false من غير تغيير لو المستخدم رفض التأكيد. */
+function canBulkPayAction(action, kind) {
+  const need = (kind === 'destructive')
+    ? (window.YahmaPerms && typeof window.YahmaPerms.canDelete === 'function' ? window.YahmaPerms.canDelete() : window.currentRole === 'admin')
+    : canRunPayments(action);
+  if (!need) {
+    alert((window.YahmaPerms && typeof window.YahmaPerms.denyMessage === 'function'
+      ? window.YahmaPerms.denyMessage(action)
+      : 'ليس لديك صلاحية ' + action + '.'));
+    return false;
+  }
+  return true;
+}
+
+function selectedPayRows(tab) {
+  const ids = PAY_SELECTIONS[tab];
+  if (!ids || !ids.size) return [];
+  const out = [];
+  ids.forEach(function (id) {
+    const item = currentPayRowFor(tab, id);
+    if (item) out.push(item);
+  });
+  return out;
+}
+
+/* خريطة السطر الحالي: id الطلب → {item, car}. كل تبويب بيعرف
+   يجمّع صفوفه بنفس الطريقة، فالمحدد بيتشال صح بعد أي رسم. */
+let PAY_ROW_INDEX = Object.create(null);
+function currentPayRowFor(tab, itemId) {
+  const entry = PAY_ROW_INDEX[tab] && PAY_ROW_INDEX[tab][itemId];
+  return entry || null;
+}
+
+/* ⭐ التقرير بعد أي نسخة جماعية — **متشرك** بين كل الإجراءات.
+   أول مرة كانت الرسالة «تم» أو سطر من الفشل بس. المستخدم كان
+   بيقرأ «تم» ويقول في حال فيه فشل، ودي نفس المشكلة اللي بتتحل
+   دايماً: النجاح بيبان والإخفاء بيبان.
+   الشكل: X اتنفذت · Y اتخطّت · Z فشل [باللوحات].
+   والعدد المحدد من الأول بيتبقّى في النص عشان يبقى واضح إن اتخطّت
+   وفشل مش ناسيهم. */
+function payBulkReport(sel, moved, skipped, failed) {
+  const parts = [];
+  if (moved) parts.push(moved + ' اتنفذت');
+  if (skipped) parts.push(skipped + ' اتخطّت');
+  if (failed.length) parts.push(failed.length + ' فشلت: ' + failed.slice(0, 6).join('، ') + (failed.length > 6 ? ' (+' + (failed.length - 6) + ')' : ''));
+  const head = 'من ' + sel + ' محددة: ';
+  return parts.length ? head + parts.join(' · ') : head + 'مفيش حاجة اتغيّرت.';
+}
+
+/* ===== خلية التحديد والشريط =====
+
+   مصدر واحد للثلاث تبويبات: عمود الترويسة، خلية السطر، والشريط.
+   لو كل تبويب كان له نسخة، أول تعديل على واحد هيفصل التلاتة. */
+
+/* عمود التحديد بيتطابق مع الشريط: لو مالوش شريط، مالوش
+   checkbox. «مشاهدة» كانت هتشوف مربعات تحديد تضغط عليها
+   ومفيش حاجة تحصل — أحسن ما نخفيها خالص. */
+function payCheckHeader(tab, allIds) {
+  if (!canBulkHere()) return '';
+  const n = selectedPayRows(tab).length;
+  const all = allIds.length > 0 && n === allIds.length;
+  return '<th class="th-check"><input type="checkbox" id="pay-head-' + tab + '"'
+    + ' data-pay-head="' + tab + '"' + (all ? ' checked' : '')
+    + ' aria-label="تحديد كل السيارات"></th>';
+}
+
+function payCheckCell(tab, itemId, plate) {
+  if (!canBulkHere()) return '';
+  const on = selectedPayRows(tab).some(function (r) { return String(r.item.id) === String(itemId); });
+  return '<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-pay-check="'
+    + escapeHtml(String(itemId)) + '" data-pay-tab="' + tab + '"'
+    + (on ? ' checked' : '')
+    + ' aria-label="تحديد السيارة ' + escapeHtml(plate || '—') + '"></td>';
+}
+
+/* ⭐ الشريط بياخد نفس التركيب بالظبط لشريط «الفحص»:
+   .bulk-bar > (.bulk-bar-info + .bulk-bar-actions).
+
+   مش رفاهية — التنسيق بييجي من 04-dark-overrides.css، وزوايا
+   bulk-bar-actions هي اللي بتلوّن الأزرار أبيض على التدرّج
+   الغامق. لو حطيت الأزرار مباشرة جوه bulk-bar، النص هيطلع
+   غامق على غامق: الشريط يبان موجود والزراير مقروءة لأحد. */
+function payBulkBarFor(tab) {
+  const actions = PAY_TAB_ACTIONS[tab] || [];
+  /* bar بيظهر بـcanBulk بس. Ehrenutzer «مشاهدة» مالوش شريط
+     خالص —Checks ميتsummatش من غير حاجة تعمل بيها. */
+  if (!actions.length || !canBulkHere()) return '';
+  const btns = actions.map(function (a) {
+    /* canBulk بيحدد وجود الشريط. الإجراء المدمر (رجوع/إلغاء)
+       بياخد canDelete = المدير بس. */
+    const granted = a.kind !== 'destructive' || canDeleteHere();
+    if (!granted) return '';
+    const cls = a.kind === 'destructive' ? 'btn-ghost' : 'btn-primary';
+    return '<button type="button" class="btn ' + cls + ' btn-small" data-pay-act="' + escapeHtml(a.act)
+      + '" data-pay-tab="' + tab + '" title="' + escapeHtml(a.title || a.label) + '">'
+      + escapeHtml(a.label) + '</button>';
+  }).join('');
+  /* display:none من الأول زي شريط «الفحص» — الشريط يظهر مع أول
+     تحديد، مش مع أول رسم. */
+  return '<div class="bulk-bar" id="pay-bulk-bar-' + tab + '" style="display:none">'
+    + '<div class="bulk-bar-info"><span id="pay-bulk-count-' + tab + '">0 محددة</span></div>'
+    + '<div class="bulk-bar-actions">' + btns
+    + '<button type="button" class="btn btn-ghost btn-small" data-pay-clear="' + tab + '">إلغاء التحديد</button>'
+    + '</div></div>';
+}
+
+/* ⭐ سطر «لا توجد نتائج» بيتحسب بعدد الأعمدة في الترويسة.
+   رقم ثابت هيتكسر أول ما نضيف عمود، والحاجة بتظهر كسطر قصير
+   في نص الجدول — أوضح الكلام اللي المستخدم بيشوفه. نفس الفكرة
+   اللي اتعملت في «الفحص» (colCount من #ren-table thead). */
+function fixPaySpans(content) {
+  const head = content.querySelector('.fleet-table thead tr');
+  if (!head) return;
+  const n = head.cells.length;
+  content.querySelectorAll('.fleet-table .empty').forEach(function (cell) {
+    cell.parentElement.colSpan = n;
+  });
+}
+
+/* تحديث حالة الشريط بعد أي تغيير في التحديد. */
+function payBulkBarHtml(tab) {
+  const bar = document.getElementById('pay-bulk-bar-' + tab);
+  if (!bar) return;
+  const items = selectedPayRows(tab);
+  bar.style.display = items.length ? '' : 'none';
+  const cnt = document.getElementById('pay-bulk-count-' + tab);
+  if (cnt) {
+    cnt.textContent = items.length + ' محددة'
+      + ' من ' + Object.keys(PAY_ROW_INDEX[tab] || {}).length;
+  }
+}
+
+function canBulkHere() {
+  try {
+    if (typeof window.YahmaPerms === 'object' && typeof window.YahmaPerms.canBulk === 'function') {
+      return !!window.YahmaPerms.canBulk();
+    }
+    return !(typeof currentRole !== 'undefined' && currentRole === 'view');
+  } catch (_) { return false; }
+}
+
+function canDeleteHere() {
+  try {
+    if (typeof window.YahmaPerms === 'object' && typeof window.YahmaPerms.canDelete === 'function') {
+      return !!window.YahmaPerms.canDelete();
+    }
+    return currentRole === 'admin';
+  } catch (_) { return false; }
+}
+
+/* يربط التحديد والشريط. تفويض واحد على الـtbody مش listener لكل
+   صف — الجدول بيعاد بناؤه مع كل رسم. */
+function bindPaySelection(content, tab) {
+  const tbody = content.querySelector('.fleet-table tbody');
+  if (!tbody) return;
+  payBulkBarHtml(tab);
+
+  if (!tbody._paySelectDelegate) {
+    tbody._paySelectDelegate = true;
+    tbody.addEventListener('change', function (e) {
+      const box = e.target.closest ? e.target.closest('input[data-pay-check]') : null;
+      if (!box) return;
+      const t = box.dataset.payTab;
+      const id = box.dataset.payCheck;
+      const set = PAY_SELECTIONS[t] || (PAY_SELECTIONS[t] = new Set());
+      if (box.checked) set.add(id); else set.delete(id);
+      payBulkBarHtml(t);
+    });
+  }
+
+  const head = content.querySelector('input[data-pay-head="' + tab + '"]');
+  if (head) {
+    head.onclick = null;
+    head.onchange = function () {
+      const all = Object.keys(PAY_ROW_INDEX[tab] || {});
+      PAY_SELECTIONS[tab] = head.checked ? new Set(all) : new Set();
+      /* مينفعش نغيّر الـchecked بتاع كل الـcheckboxes ونعمل
+         ر��در مع كل رسم — الأسطر بتتحدّث من الرسم فمفيش
+         مشكلة. بنحدّث بس الشريط. */
+      payBulkBarHtml(tab);
+    };
+  }
+
+  const clear = content.querySelector('[data-pay-clear="' + tab + '"]');
+  if (clear) clear.onclick = function () {
+    PAY_SELECTIONS[tab] = new Set();
+    payBulkBarHtml(tab);
+  };
+
+  content.querySelectorAll('[data-pay-act]').forEach(function (b) {
+    if (b._payBound) return;
+    b._payBound = true;
+    b.onclick = function () { runPayBulk(b.dataset.payTab, b.dataset.payAct); };
+  });
+}
+
+/* ينفّذ الإجراء على المحدَّد واحد واحد — عشان نعرف مين اتنفذ
+   ومين لأ، ولعلاش. ما فيش Promise.all هنا: ترتيب العمليات مقصود
+   (حفظ حالة الفحص قبل الطلب)، وفشل واحدة لازم ما يوقفش الباقي. */
+/* ينفّذ الإجراء على المحدَّد واحد واحد — عشان نعرف مين اتنفذ
+   ومين لأ، ولعلاش. ما فيش Promise.all هنا: ترتيب العمليات مقصود
+   (حفظ حالة الفحص قبل الطلب)، وفشل واحدة لازم ما يوقفش الباقي.
+
+   ⚠️ مفيش معامل items — التحديد بيتقرا هنا وقت الضغط.
+   أول نسخة كتبتها (tab, action, items) و<b>الزراير نادتها
+   بمعاملين</b>، فـitems كان undefined والضربة بتعمل
+   TypeError على items.length — يعني الشريط الجماعي كله كان
+   ميّتشتغلش، صامت ومن غير أي رسالة للمستخدم. التحديد جواها
+   بالظبط عشان يتقرا من الخريطة وقت الضغط، بعد أي رسم. */
+async function runPayBulk(tab, action) {
+  const items = selectedPayRows(tab);
+  if (!items.length) { alert('لم تحدّد أي سيارة. علّم على سيارة واحدة على الأقل.'); return; }
+  if (!canBulkPayAction(action, PAY_TAB_ACTIONS[tab].find(function(a){ return a.act === action; }).kind)) return;
+
+  const plates = items.map(function (r) { return r.car.plate || r.item.plate || '—'; });
+  /* ⭐ رسالة التأكيد بتقول إيه اللي هيحصل. الإجراء المدمر
+     (رجوع/إلغاء) بيرجّع حالة الفحص أو الرخصة للقيمة المسجّلة
+     لكل سيارة، والتفاصيل دي كانت بتظهر في نافذة كل سيارة —
+     والنسخة الجماعية بتكتمها (20 نافذة = تجربة معطّلة).
+     فلازم التفاصيل تطلع هنا جوه النافذة الواحدة، وإلا بقى
+     المستخدم بيضغط على عملية بتغيّر بيانات من غير ما يعرف. */
+  const meta = action === 'renew'
+    ? '\n\nتاريخ انتهاء الرخصة الجديد: ' + paySuggestedLicenseDate()
+      + '\n(التاريخ المقترح هيتطبّق على كل المحددة — غيّره بعدين من «الفحص» لو عايز غير كده)'
+    : (action === 'cancel'
+      ? '\n\n• الطلب هيتشال من «تحت الدفع»\n• كل سيارة هترجع لِتبويب «الفحص» بحالة «'
+        + NOT_INSPECTED + '»'
+      : (action === 'back'
+        ? '\n\n• تاريخ الدفع هيتشال\n• حالة الفحص هترجع للقيمة اللي كانت مسجّلة وقت الدفع'
+        : (action === 'back2'
+          ? '\n\n• سجل «تم التجديد» هيتشال\n• تاريخ الرخصة هيرجع القديم'
+          : '')));
+  if (!confirm('هيتطبّق على ' + items.length + ' سيارة:\n' + plates.join('، ') + meta + '\n\nمتابعة؟')) return;
+
+  let moved = 0, skipped = 0;
+  const failed = [];
+  for (const row of items) {
+    const plate = row.car.plate || row.item.plate || String(row.item.id);
+    try {
+      /* ملاحظة: الدوال المفردة بترسم لوحدها عند النجاح (الرجوع
+         بيقفل بـrender عشان يحدّث التبويب)، فالنسخة الجماعية
+         بترسم مرة واحدة في الآخر. */
+      const res = await PAY_ITEM_ACTION[action](row.item, row.car, true);
+      /* ⭐ التلات حالات منفصلة، وخصوصاً «فشل» ما بتتحسبش
+         «اتنفذت». أول نسخة كانت:
+             if (res === 'skipped') skipped++; else moved++;
+         فـ«فشل» كان بيدخل في moved. النتيجة على 20 سيارة:
+         «19 اتنفذت · 1 اتخطّت · 2 فشلت» — جمعها 22.
+         المستخدم بيقرأ «19 اتنفذت» وهي 17، وبياخد قرار غلط
+         على أساس إن الحفظ خلص.
+         والعدّ لازم يساوي العدد المحدد بالظبط — التقرير بيقول
+         كده للمستخدم فلازم يبقى صح. */
+      if (res === 'done') moved++;
+      else if (res === 'failed') failed.push(plate);
+      else skipped++;
+    } catch (e) {
+      yahmaErr(e, 'render-router.js:runPayBulk:' + action);
+      failed.push(plate);
+    }
+  }
+  PAY_SELECTIONS[tab] = new Set();
+  alert(payBulkReport(items.length, moved, skipped, failed));
+  if (typeof log === 'function') {
+    try { log('إجراء جماعي — ' + (PAY_TAB_LABELS[tab] || tab), action + ': ' + moved + ' اتنفذت' + (failed.length ? ' · ' + failed.length + ' فشلت' : '')); }
+    catch (e) { yahmaErr(e, 'render-router.js:runPayBulk:log'); }
+  }
+  render();
+}
+
 function renderInspectionPayments(content){
   document.getElementById('topbar-title').textContent='تحت الدفع';
   document.getElementById('topbar-sub').textContent='طلبات دفع تجديد فحص السيارات';
   const pending=loadInspectionPayments();
   const byId=new Map(fleet.map(car=>[String(car.id),car]));
   const rows=pending.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
+  PAY_ROW_INDEX.payments=Object.create(null);
+  rows.forEach(function(r){ PAY_ROW_INDEX.payments[String(r.item.id)]=r; });
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip"><div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>طلبات تحت الدفع</small></span></div></div>
   <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تجديد الفحص بانتظار الدفع</strong><span>بعد تسجيل الدفع تنتقل الطلب إلى تبويب «تم الدفع»</span></div></div>
   ${paymentsSyncWarningHtml()}
-  <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th>${CORE_PAY_HEADERS}<th>تاريخ الطلب</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody>
-  ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td>${corePayCellsHtml(car)}<td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td><td class="pay-cell">${escapeHtml(car.notes||'—')}</td><td>${escapeHtml(resolveItemUserName(item))}</td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td colspan="'+(6+PAY_CELL_FIELDS.length)+'"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
+  ${payBulkBarFor('payments')}
+  <div class="table-scroll"><table class="fleet-table"><thead><tr>${payCheckHeader('payments',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th>${CORE_PAY_HEADERS}<th>تاريخ الطلب</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody>
+  ${rows.length?rows.map(({item,car})=>`<tr>${payCheckCell('payments',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td>${corePayCellsHtml(car)}<td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td><td class="pay-cell">${escapeHtml(car.notes||'—')}</td><td>${escapeHtml(resolveItemUserName(item))}</td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td class="empty-span"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
+  bindPaySelection(content,'payments');
+  fixPaySpans(content);
   window._yahmaCurrentPdfData=()=>({
     title:'طلبات فحص تحت الدفع',
     subtitle:'عدد الطلبات: '+rows.length,
@@ -270,54 +726,26 @@ function renderInspectionPayments(content){
         .concat(PAY_CELL_FIELDS.map(d=>car[d.field]||'—'))
         .concat([formatArabicDate(item.requestedAt), 'تحت الدفع', resolveItemUserName(item)]))
   });
-  content.querySelectorAll('[data-payment-done],[data-payment-cancel]').forEach(button=>button.addEventListener('click',async()=>{
-    if(!canRunPayments('إدارة طلبات الدفع')) return;
-    const id=button.dataset.paymentDone||button.dataset.paymentCancel;
-    if(!id)return;
-    const item=loadInspectionPayments().find(p=>String(p.id)===String(id));
-    if(!item)return;
-    const car=byId.get(String(item.carId));
-    if(button.dataset.paymentCancel){
-      /* إلغاء الطلب = رجوع مرحلة: الطلب يتشال والسيارة ترجع
-         «لم يفحص» فيتبويب الفحص، زي ما كانت قبل ما تطلب. */
-      const plate=(car?.plate||item.plate||'—');
-      if(!confirm('إلغاء طلب الدفع للسيارة «'+plate+'»؟\n\n'
-        +'• الطلب هيتشال من «تحت الدفع»\n'
-        +'• السيارة هترجع لِتبويب «الفحص» بحالة «'+NOT_INSPECTED+'»'))return;
-      if(car){
-        const before=car.inspectionStatus;
-        car.inspectionStatus=NOT_INSPECTED;
-        const saved=await saveData([car.id]);
-        if(saved===false){
-          car.inspectionStatus=before;
-          await saveData([car.id]);
-          alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
-          return;
-        }
-      }
-      await window.YahmaPayments.revertPendingToInspection(id, item.carId);
-      if(typeof window.log==='function') window.log('إلغاء طلب دفع فحص','السيارة '+plate+' — رجعت لِالفحص');
-      render();return;
-    }
-    if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return;}
-    if(!confirm('تأكيد تسجيل دفع تجديد الفحص للسيارة '+car.plate+'؟'))return;
-    const previousInspectionStatus=car.inspectionStatus;
-    /* نحفظ القيمة القديمة في prev_state قبل ما نكتب الجديدة،
-       عشان «رجوع لِتحت الدفع» يقدر يرجّعها بالظبط. */
-    await window.YahmaPayments.rememberCarState(id, item.carId, { inspectionStatus: previousInspectionStatus });
-    car.inspectionStatus='سليم';
-    const saved=await saveData([car.id]);
-    if(saved===false){
-      car.inspectionStatus=previousInspectionStatus;
-      await saveData([car.id]);
-      alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
-      return;
-    }
-    await window.YahmaPayments.markPaid(id, item.carId);
-    if(typeof window.log==='function') window.log('تسجيل دفع وتجديد فحص','السيارة '+car.plate);
-    /* ⇐ السلسلة المطلوبة: تحت الدفع ← تم الدفع ← تجديد الرخص */
-    goTabFromRouter('paid');
-  }));
+  /* العُرضيّن بينادوا نفس الدوال بتاعة النسخة الجماعية — مسار
+     واحد للمنطق. طلب التأكيد هنا كان جوّه الكود دلوقتي مرتين. */
+  content.querySelectorAll('[data-payment-done]').forEach(function(button){
+    button.addEventListener('click', async function(){
+      if(!canRunPayments('إدارة طلبات الدفع')) return;
+      const id=button.dataset.paymentDone;
+      const item=loadInspectionPayments().find(p=>String(p.id)===String(id));
+      if(!item) return;
+      await PAY_ITEM_ACTION.paid(item, byId.get(String(item.carId)), false);
+    });
+  });
+  content.querySelectorAll('[data-payment-cancel]').forEach(function(button){
+    button.addEventListener('click', async function(){
+      if(!canRunPayments('إدارة طلبات الدفع')) return;
+      const id=button.dataset.paymentCancel;
+      const item=loadInspectionPayments().find(p=>String(p.id)===String(id));
+      if(!item) return;
+      await PAY_ITEM_ACTION.cancel(item, byId.get(String(item.carId)), false);
+    });
+  });
 }
 
 /* ===== تبويب «تم الدفع» =====
@@ -333,6 +761,8 @@ function renderPaidInspections(content){
   const doneCount=allPaid.filter(function(p){ return String(p.note||'')===doneNote; }).length;
   const byId=new Map(fleet.map(car=>[String(car.id),car]));
   const rows=paid.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
+  PAY_ROW_INDEX.paid=Object.create(null);
+  rows.forEach(function(r){ PAY_ROW_INDEX.paid[String(r.item.id)]=r; });
   const today=new Date(); today.setHours(0,0,0,0);
   const todayCount=rows.filter(({item})=>item.paidAt&&new Date(item.paidAt)>=today).length;
   /* هل الرخصة اتجدّدت فعلاً؟ لو التاريخ لسه قادم/منتهي يبقى الخطوة الجاية */
@@ -349,15 +779,18 @@ function renderPaidInspections(content){
   </div>
   <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تم الدفع</strong><span>الخطوة التالية: تجديد الرخصة — اضغط «تجديد الآن» لتسجيل الرخصة مباشرة من هنا</span></div></div>
   ${paymentsSyncWarningHtml()}
-  <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody>
+  ${payBulkBarFor('paid')}
+  <div class="table-scroll"><table class="fleet-table"><thead><tr>${payCheckHeader('paid',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody>
   ${rows.length?rows.map(({item,car})=>{
       const needs=needsLicense({car});
-      return `<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td class="pay-cell">${escapeHtml(car.notes||'—')}</td><td>${escapeHtml(resolveItemUserName(item))}</td><td><div class="row-actions">${needs
+      return `<tr>${payCheckCell('paid',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td class="pay-cell">${escapeHtml(car.notes||'—')}</td><td>${escapeHtml(resolveItemUserName(item))}</td><td><div class="row-actions">${needs
         ? `<button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(item.id)}">تجديد الرخصة</button>`
         : `<span class="tag green">الرخصة سارية</span>`}<button type="button" class="btn btn-ghost btn-small row-del" data-stepback-payment="${escapeHtml(item.id)}" title="رجوع السيارة لقائمة «تحت الدفع»">↩ رجوع لِتحت الدفع</button></div></td></tr>`;
-    }).join(''):'<tr><td colspan="8"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
+    }).join(''):'<tr><td class="empty-span"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
+  bindPaySelection(content,'paid');
+  fixPaySpans(content);
   window._yahmaCurrentPdfData=()=>({
     title:'طلبات تم الدفع',
     subtitle:'عدد الطلبات: '+rows.length,
@@ -367,48 +800,27 @@ function renderPaidInspections(content){
       formatArabicDate(item.requestedAt), formatArabicDate(item.paidAt),
       'تم الدفع', car.notes||'—', resolveItemUserName(item)])
   });
-  /* الضغطة بتجدد الرخصة على طول (3 سنين) وبتشيل السطر من القائمة */
-  content.querySelectorAll('[data-renew-license]').forEach(button=>button.addEventListener('click',()=>{
-    const item=loadPaidInspections().find(p=>String(p.id)===String(button.dataset.renewLicense));
-    if(!item){renderPaidInspections(content);return;}
-    const car=fleet.find(c=>String(c.id)===String(item.carId));
-    renewLicenseFromPaid(item, car, content);
-  }));
-/* الرجوع: «تم الدفع» ⇌ «تحت الدفع» — الطلب يرجع طورًاً،
-   وحالة الفحص ترجع للقيمة اللي كانت قبل تسجيل الدفع. */
-  content.querySelectorAll('[data-stepback-payment]').forEach(button=>button.addEventListener('click',async()=>{
-    if(!canRunPayments('إدارة طلبات الدفع')) return;
-    const id=button.dataset.stepbackPayment;
-    const item=loadPaidInspections().find(p=>String(p.id)===String(id));
-    if(!item)return;
-    const car=fleet.find(c=>String(c.id)===String(item.carId));
-    const plate=(car?.plate||item.plate||'—');
-    const snapshot=window.YahmaPayments.prevStateOf(item.id, item.carId);
-    if(!confirm('رجوع السيارة «'+plate+'» لِقائمة «تحت الدفع»؟\n\n'
-      +prevRestoreLines(car, snapshot, 'paid')+'\n'
-      +'• تاريخ الدفع هيتشال من الطلب\n'
-      +'• الطلب هيفضل في «تحت الدفع» مستني الدفع تاني'))return;
-    if(car){
-      const before=Object.assign({}, car);
-      applyPrevState(car, snapshot, 'paid');
-      /* سجل قديم من غير لقطة: مينفعش نسيب الحالة «سليم» —
-         الحوار بيقول للمستخدم «حالة الفحص هترجع لـلم يفحص»، ولو
-         الكود عمل غير كده يبقى الحوار بيكدب. فبنرجّع لللي قلناه. */
-      if(!snapshot || !Object.prototype.hasOwnProperty.call(snapshot, 'inspectionStatus')){
-        car.inspectionStatus=NOT_INSPECTED;
-      }
-      const saved=await saveData([car.id]);
-      if(saved===false){
-        Object.keys(before).forEach(function(k){ car[k]=before[k]; });
-        await saveData([car.id]);
-        alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
-        return;
-      }
-    }
-    await window.YahmaPayments.revertPaidToPending(item.id, item.carId);
-    if(typeof window.log==='function') window.log('رجوع طلب دفع لِتحت الدفع','السيارة '+plate);
-    render();
-  }));
+  /* الضغطة بتجدد الرخصة على طول (3 سنين) وبتشيل السطر من القائمة.
+     بتنادي نفس PAY_ITEM_ACTION.renew اللي بتستدعيه النسخة
+     الجماعية — quiet=false فبيفتح نافذة التاريخ زي الأول. */
+  content.querySelectorAll('[data-renew-license]').forEach(function(button){
+    button.addEventListener('click', async function(){
+      if(!canRunPayments('إدارة طلبات الدفع')) return;
+      const item=loadPaidInspections().find(p=>String(p.id)===String(button.dataset.renewLicense));
+      if(!item){renderPaidInspections(content);return;}
+      const car=fleet.find(c=>String(c.id)===String(item.carId));
+      await PAY_ITEM_ACTION.renew(item, car, false);
+    });
+  });
+  /* نفس الدالة المستخرجة — المفرد والجماعي نفس المسار. */
+  content.querySelectorAll('[data-stepback-payment]').forEach(function(button){
+    button.addEventListener('click', async function(){
+      if(!canRunPayments('إدارة طلبات الدفع')) return;
+      const item=loadPaidInspections().find(p=>String(p.id)===String(button.dataset.stepbackPayment));
+      if(!item) return;
+      await PAY_ITEM_ACTION.back(item, fleet.find(c=>String(c.id)===String(item.carId)), false);
+    });
+  });
 }
 
 /* ===== تبويب «تم التجديد» =====
@@ -420,6 +832,8 @@ function renderRenewedInspections(content){
   const list=loadRenewedInspections();
   const byId=new Map(fleet.map(car=>[String(car.id),car]));
   const rows=list.map(item=>({item,car:byId.get(String(item.carId))})).filter(r=>r.car);
+  PAY_ROW_INDEX.renewed=Object.create(null);
+  rows.forEach(function(r){ PAY_ROW_INDEX.renewed[String(r.item.id)]=r; });
   const today=new Date(); today.setHours(0,0,0,0);
   const stampOf=(p)=>(window.YahmaPayments&&typeof window.YahmaPayments.doneStamp==='function')
     ? window.YahmaPayments.doneStamp(p) : p.licenseRenewedAt || null;
@@ -430,12 +844,13 @@ function renderRenewedInspections(content){
   </div>
   <div class="filter-panel"><div class="filter-panel-title"><strong>تم تجديد الرخصة</strong><span>هذه السيارات اتجدّدت رخصها بالفعل وهي مسجّلة في الأسطول</span></div></div>
   ${paymentsSyncWarningHtml()}
+  ${payBulkBarFor('renewed')}
   <div class="table-scroll"><table class="fleet-table"><thead><tr>
-    <th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>تاريخ التجديد</th><th>الرخصة الجديدة</th><th>الحالة</th><th>ملاحظات</th><th>المستخدم</th><th>إجراء</th>
+    ${payCheckHeader('renewed',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>تاريخ التجديد</th><th>الرخصة الجديدة</th><th>الحالة</th><th>ملاحظات</th><th>المستخدم</th><th>إجراء</th>
   </tr></thead><tbody>
   ${rows.length?rows.map(({item,car})=>{
       const stamp=stampOf(item);
-      return `<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td>
+      return `<tr>${payCheckCell('renewed',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td>
         <td>${escapeHtml(car.branch||item.branch||'—')}</td>
         <td>${escapeHtml(formatArabicDate(item.requestedAt))}</td>
         <td>${escapeHtml(formatArabicDate(item.paidAt))}</td>
@@ -445,9 +860,11 @@ function renderRenewedInspections(content){
         <td class="pay-cell">${escapeHtml(car.notes||'—')}</td>
         <td>${escapeHtml(resolveItemUserName(item))}</td>
         <td><button type="button" class="btn btn-ghost btn-small" data-stepback-renewed="${escapeHtml(item.id)}" title="رجوع السيارة لِتبويب «تم الدفع»">↩ رجوع لِتم الدفع</button></td></tr>`;
-    }).join(''):'<tr><td colspan="10"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>'}
+    }).join(''):'<tr><td class="empty-span"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
+  bindPaySelection(content,'renewed');
+  fixPaySpans(content);
   window._yahmaCurrentPdfData=()=>({
     title:'سجل تجديد الرخص',
     subtitle:'عدد العمليات: '+rows.length,
@@ -459,45 +876,66 @@ function renderRenewedInspections(content){
   });
   /* الرجوع: «تم التجديد» ⇐ «تم الدفع» — السطر يخرج من «تم التجديد»
      (مفيش note تجديد)، وتاريخ الرخصة يرجع للي كان قبل التجديد. */
-  content.querySelectorAll('[data-stepback-renewed]').forEach(button=>button.addEventListener('click',async()=>{
-    if(!canRunPayments('إدارة طلبات الدفع')) return;
-    const id=button.dataset.stepbackRenewed;
-    const item=loadRenewedInspections().find(p=>String(p.id)===String(id));
-    if(!item)return;
-    const car=fleet.find(c=>String(c.id)===String(item.carId));
-    const plate=(car?.plate||item.plate||'—');
-    const snapshot=window.YahmaPayments.prevStateOf(item.id, item.carId);
-    if(!confirm('رجوع السيارة «'+plate+'» لِتبويب «تم الدفع»؟\n\n'
-      +prevRestoreLines(car, snapshot, 'renewed')+'\n'
-      +'• سجل «تم التجديد» هيتشال\n'
-      +'• الطلب هيفضل في «تم الدفع»'))return;
-    if(car){
-      const before=Object.assign({}, car);
-      applyPrevState(car, snapshot, 'renewed');
-      const saved=await saveData([car.id]);
-      if(saved===false){
-        Object.keys(before).forEach(function(k){ car[k]=before[k]; });
-        await saveData([car.id]);
-        alert('تعذر حفظ التغيير على Supabase. تم إرجاع الحالة محليًا؛ تحقق من الاتصال ثم أعد المحاولة.');
-        return;
-      }
+  content.querySelectorAll('[data-stepback-renewed]').forEach(function(button){
+    button.addEventListener('click', async function(){
+      if(!canRunPayments('إدارة طلبات الدفع')) return;
+      const item=loadRenewedInspections().find(p=>String(p.id)===String(button.dataset.stepbackRenewed));
+      if(!item) return;
+      await PAY_ITEM_ACTION.back2(item, fleet.find(c=>String(c.id)===String(item.carId)), false);
+    });
+  });
+}
+
+/* ⭐ تأكيد الإجراء — مرّة واحدة في الجماعي، وكل سيارة لوحدها في المفرد.
+
+   quiet (النسخة الجماعية) بتكتم التأكيد الخاص بكل سيارة: نافذة
+   الجماعية أصلاً سألت «متابعة؟» وذكرت كل اللوحات، فسؤال تاني
+   لكل سيارة = 20 نافذة فوق 20 نافذة = 40 نافذة على عملية واحدة.
+   ده نفس السبب اللي خلّى silentDate في التجديد.
+
+   ⚠️ التفاصيل المهمة (حالة الفحص هترجع لـ…) بتروح مع الكتم، فبترجع
+   مكانها في رسالة التأكيد الجماعية (رسالةBulkHint) — مش بتضيع. */
+function payConfirm(quiet, message) {
+  if (quiet) return true;
+  return confirm(message);
+}
+
+/* التاريخ المقترح لتجديد الرخصة — 3 سنين (المدة الفعلية).
+   مصدر واحد: بتستعمله النسخة المفردة كقيمة للـprompt والنسخة
+   الجماعية في رسالة التأكيد. لو اتحسب في مكانين، ممكن يختلفوا
+   ويبقى التأكيد بيعرض تاريخ غير اللي بيتكتب. */
+function paySuggestedLicenseDate(){
+  if (typeof window.defaultLicenseExpiry === 'function') {
+    try { return window.defaultLicenseExpiry(); } catch (e) {
+      yahmaErr(e, 'render-router.js:paySuggestedLicenseDate');
     }
-    await window.YahmaPayments.revertRenewedToPaid(item.id, item.carId);
-    if(typeof window.log==='function') window.log('رجوع تجديد لِتم الدفع','السيارة '+plate);
-    render();
-  }));
+  }
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 3);
+  return d.toISOString().slice(0, 10);
 }
 
 /* ===== تجديد الرخصة من «تم الدفع» =====
-   بتحدّد الرخصة (3 سنين افتراضيًا) وبتتحوّل للخطوة «تم التجديد». */
-async function renewLicenseFromPaid(item, car, content){
-  if(!canRunPayments('تجديد الرخص')) return;
-  if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return;}
-  const suggested=(typeof window.defaultLicenseExpiry==='function')
-    ? window.defaultLicenseExpiry()
-    : (function(){ const d=new Date(); d.setFullYear(d.getFullYear()+3); return d.toISOString().slice(0,10); })();
-  const raw=prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):', suggested);
-  if(!raw) return;
+   بتحدّد الرخصة (3 سنين افتراضيًا) وبتتحوّل للخطوة «تم التجديد».
+
+   opts.silentDate: النسخة الجماعية. الـprompt جوّه حلقة على
+   20 سيارة = 20 نافذة تتقفل واحد واحد، وده بيخلّي العملية
+   الجماعية غير عملية خالص. فبناكل التاريخ المقترح من غير ما
+   نسأل، ورسالة التأكيد بتقول للمستخدم إن التاريخ المقترح
+   هيتطبّق على الكل — فمش بيهدم Choices ولا بيخفى عنه.
+   opts.quiet: النسخة الجماعية — متعملش render (الرسم مرة واحدة). */
+async function renewLicenseFromPaid(item, car, content, opts){
+  opts = opts || {};
+  if(!canRunPayments('تجديد الرخص')) return 'skipped';
+  if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return 'skipped';}
+  const suggested=paySuggestedLicenseDate();
+  let raw;
+  if(opts.silentDate){
+    raw = suggested;
+  }else{
+    raw = prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):', suggested);
+    if(!raw) return 'skipped';
+  }
   const normalized=(typeof window.normalizeDateValue==='function') ? window.normalizeDateValue(raw) : raw;
   const previous=car.licenseExpiry;
   const previousStatus=car.licenseStatus;
@@ -514,14 +952,16 @@ async function renewLicenseFromPaid(item, car, content){
     car.licenseExpiry=previous;
     await saveData([car.id]);
     alert('تعذر حفظ التغيير على Supabase. تحقق من الاتصال ثم أعد المحاولة.');
-    return;
+    return 'failed';
   }
   /* تاريخ التنفيذ لحظة التجديد */
   const doneAt=new Date().toISOString();
   await window.YahmaPayments.markLicenseRenewed(item.id, item.carId, doneAt);
   if(typeof window.log==='function') window.log('تجديد رخصة بعد دفع فحص','السيارة '+car.plate);
+  if(opts.quiet){ render(); return 'done'; }
   /* الخطوة الجاية في الدورة: تم التجديد */
   goTabFromRouter('renewed');
+  return 'done';
 }
 
 /* انتقال آمن للتبويب: نغيّر التبويب عبر السابط العامة ثم نرسم مرة واحدة. */
