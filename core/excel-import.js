@@ -192,10 +192,12 @@ async function handleDomainUpdateFile(file, cfg){
     insuranceExpiry:'انتهاء التأمين', licenseExpiry:'انتهاء الرخصة',
     licenseStatus:'حالة الرخصة', inspectionStatus:'حالة الفحص',
     color:'اللون', city:'المدينة', serial:'الرقم التسلسلي',
-    /* من غير السطرين دول، لو حد مرّر الحقلين هنا في message التأكيد
-       بتظهر أسماء خام `accountNo` / `companyName` للمستخدم — وهي
-       أسماء إنجليزية مش بتوصله حاجة. */
-    accountNo:'رقم الحاسب الآلي', companyName:'اسم الشركة',
+    /* ⚠️ كل حقل بيتمرّر لازم يكون هنا. الحقل الناقص بيظهر للمستخدم
+       باسمه الخام (`notes`) وسط أسماء عربية، فبيحس إنه شيت تاني
+       مشyli الإعدادات. أول مرة صلّحت accountNo/companyName وبسيت
+       notes — والاختبار اللي سطرته كان بيفحص التسميات العربية بس،
+       مش إن كل حقل ليه تسمية. دلوقتي فيه اختبار بيعمل الاتنين. */
+    accountNo:'رقم الحاسب الآلي', companyName:'اسم الشركة', notes:'ملاحظات',
     owner:'المالك', branch:'الفرع', carStatus:'حالة السيارة'
   };
   const shouldContinue = confirm(

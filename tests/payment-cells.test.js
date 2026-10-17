@@ -456,22 +456,72 @@ test('ترويسة الملف الرسمي بتتعرف', () => {
   });
 });
 
-test('رسالة التأكيد بتعرض أسماء عربية — مفيش أسماء خام للمستخدم', () => {
-  /* من غير التسميات دي، لو الحقلين مرّروا في مسار التحديث المحدّد
-     بتظهر للمستخدم `accountNo` و`companyName` — إنجليزي مش بيفهمه
-     حاجة، وهو بيك confirmer على عملية ما فهمهاش. */
-  const code = noComments(read('core/excel-import.js'));
-  const m = /const FIELD_LABELS = \{([\s\S]*?)\n  \};/.exec(code);
-  assert.ok(m, 'مالقتش FIELD_LABELS');
-  NEW_FIELDS.forEach((f) => {
-    assert.ok(m[1].includes(f.field + ":'" + f.label + "'"),
-      f.field + ' مافيش له تسمية عربية في رسالة التأكيد');
+/* ⭐ رسالة التأكيد: كل حقل بيتمرّر لازم يطلع باسمه العربي.
+
+   الحقل الناقص بيظهر للمستخدم باسمه الخام وسط أسماء عربية، فيحس
+   إنه شيت تاني مش من الإعدادات دي. أول مرة صلّحت accountNo و
+   companyName وبسيت notes — والاختبار الأول كان بيفحص إن
+   التسميات عربية، مش إن كل حقل ليه تسمية، فعدّى والغلطة فلت.
+
+   فالتشخيص: أي حقل في UPLOAD_FIELDS (الثلاث قوائم) لازم يكون
+   في FIELD_LABELS. */
+/* ⭐ زرار «رفع شيت الفحص» نفسه — مش بس الكود اللي وراه.
+
+   الحقول كانت في UPLOAD_FIELDS من أول يوم، والزرار موجود. بس
+   `#file-ren-upload` بيتعمل dynamic جوّه الـtemplate — فلو الـid
+   اتغيّر في الـtemplate، الـlistener هيتربط على لا حاجة بـ
+   optional chaining من غير ما حد ياخد باله، والزر يبقى ميّت بصمت.
+
+   الاختبار بيقرا الـtemplate جوّه الدالة نفسها وبيتأكد إن الـid
+   المستخدم في الربط هو نفسه اللي بيتعمل. */
+test('زرار «رفع شيت الفحص» مربوط فعلاً — مفيش id غلط', () => {
+  const code = noComments(read('modules/renewals-ui.js'));
+  const m = /id="file-ren-upload"/.exec(code);
+  assert.ok(m, 'مفيش input للملف في الـtemplate — الزرار هيبقى ميّت بصمت');
+  /* والربط بيشاور على نفس الـid */
+  assert.ok(/\$?\('file-ren-upload'\)\?\.addEventListener\('change'/.test(code),
+    'الزرار مربوط بمعرّف مختلف');
+  assert.ok(/\$?\('ren-upload-btn'\)\?\.addEventListener\('click'/.test(code),
+    'الزرار مالهوش click handler');
+  /* والـaccept لازم يسمح بملفات الإكسيل والـCSV زي الباقي */
+  assert.ok(/id="file-ren-upload"[^>]*accept="\.xlsx,\.xls,\.csv"/.test(code),
+    'input الملف مابيقبلش الإكسيل');
+});
+
+test('كل حقل بيتمرّر للرفع ليه تسمية عربية في رسالة التأكيد', () => {
+  const imp = noComments(read('core/excel-import.js'));
+  const labels = /const FIELD_LABELS = \{([\s\S]*?)\n  \};/.exec(imp);
+  assert.ok(labels, 'مالقتش FIELD_LABELS');
+  const names = [...labels[1].matchAll(/(\w+):\s*'([^']*)'/g)]
+    .reduce((acc, kv) => { acc[kv[1]] = kv[2]; return acc; }, {});
+
+  const ren = noComments(read('modules/renewals-ui.js'));
+  const up = /const UPLOAD_FIELDS = \{([\s\S]*?)\n  \};/.exec(ren);
+  assert.ok(up, 'مالقتش UPLOAD_FIELDS');
+
+  const missing = [];
+  [...up[1].matchAll(/\[([^\]]*)\]/g)].forEach((list) => {
+    [...list[1].matchAll(/'([^']+)'/g)].forEach((f) => {
+      if (!names[f[1]]) missing.push(f[1]);
+    });
   });
-  /* وكل مفتاح في الخريطة لازم التسمية بتاعته عربية */
-  [...m[1].matchAll(/(\w+):\s*'([^']*)'/g)].forEach((kv) => {
-    assert.ok(/[\u0600-\u06FF]/.test(kv[2]),
-      kv[1] + ' تيبته «' + kv[2] + '» مش عربي');
+
+  assert.deepStrictEqual(missing, [],
+    'حقول بتطلع للمستخدم باسمها الخام في رسالة التأكيد:\n  ' + missing.join('\n  '));
+
+  /* وكل تسمية عربية فعلاً — مش حقل فاضي ولا إنجليزي */
+  Object.keys(names).forEach((k) => {
+    assert.ok(/[\u0600-\u06FF]/.test(names[k]),
+      'تسمية ' + k + ' هي «' + names[k] + '» مش عربي');
   });
+});
+
+test('الرسالة بتستخدم الخريطة نفسها — مفيش fallback ناقص', () => {
+  /* لو الرسالة غيّرت لـFIELD_LABELS[f]||f فالتراجع بيفتح الباب
+     تاني. لازم الخريطة هي المصدر الوحيد. */
+  const imp = noComments(read('core/excel-import.js'));
+  assert.ok(/fields\.map\(f=>'  • '\+\(FIELD_LABELS\[f\]\|\|f\)\)/.test(imp),
+    'رسالة التأكيد مش بتستخدم FIELD_LABELS');
 });
 
 test('ملف التحقق على القاعدة آمن — بيعمل rollback', () => {
