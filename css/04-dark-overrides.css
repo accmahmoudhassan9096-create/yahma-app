@@ -1419,6 +1419,16 @@ body.dark-mode .yahma-data-warn{background:#3A2C12;border-color:#7A5B1E;border-i
 body.dark-mode .yahma-data-warn .ywarn-body b{color:#F2D49B}
 body.dark-mode .yahma-data-warn .ywarn-body span{color:#C9AE83}
 
+/* زر «تسجيل دخول» جوّه رسالة انتهاء الجلسة (core/auth-boot.js).
+   بياخد ألوان بنر التحذير فوق عشان يبان إنّه مخرج للمستخدم،
+   مش مجرد نص. margin-top عشان يفصل عن سطر الرسالة. */
+.yahma-session-gate{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.yahma-session-gate .btn-primary{background:#D98A1B;border-color:#D98A1B;color:#fff}
+.yahma-session-gate .btn-primary:hover:not(:disabled){background:#B87316;border-color:#B87316}
+.yahma-session-gate .btn-primary:disabled{opacity:.65;cursor:default}
+body.dark-mode .yahma-session-gate .btn-primary{background:#8A5A12;border-color:#E3B24E;color:#FFF0D0}
+body.dark-mode .yahma-session-gate .btn-primary:hover:not(:disabled){background:#A06D18}
+
 /* فلتر اللوحات الوارد من قائمة عمل الفروع */
 .fleet-plate-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding:7px 10px;border:1px dashed var(--line);border-radius:8px;font-size:12px;color:var(--ink);background:rgba(11,170,134,.06)}
 

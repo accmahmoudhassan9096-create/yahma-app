@@ -119,12 +119,50 @@
     }
   }
 
+  /* ===== استدعاء دالة بعد التأكد من الجلسة =====
+
+     الاستدعاء المباشر كان بيسيب المستخدم عند رسالة «جلسة الدخول
+     غير صالحة» من غير مخرج — الزر ميت والسبب معروف بس مافيش طريق
+     غير إنه يدور على زر الخروج في الرأس.
+
+     البوابة (auth-boot) بتعمل اتنين:
+       استباقي: تجديد التوكن لو شارف على الانتهاء، قبل ما نبعته.
+       تفاعلي: لو الرد قال إن الجلسة مش صالحة، تعرض زر «تسجيل
+                دخول» جوّه نفس الرسالة.
+
+     بترجّع {skipped:'session'} عشان المتصل يعدّي على مسار الخطأ
+     العادي — يعني مفيش رسالتين فوق بعض. */
+  async function invokeYahmaFunction(name, body, msgEl){
+    if(typeof window.yahmaEnsureFreshSession === 'function'){
+      var gate = await window.yahmaEnsureFreshSession();
+      if(!gate.ok){
+        if(typeof window.yahmaSessionGate === 'function') window.yahmaSessionGate(msgEl, gate.message);
+        else if(msgEl) msgEl.textContent = gate.message || 'انتهت جلسة الدخول.';
+        return { skipped:'session', reason:gate.reason };
+      }
+    }
+    var r = await window.supabaseClient.functions.invoke(name, {body:body});
+    if(r && r.error){
+      var status = (r.error.context && r.error.context.status) || r.error.status || '';
+      var detail = await describeInvokeError(r, '');
+      if(typeof window.yahmaIsSessionError === 'function' && window.yahmaIsSessionError(status, detail)){
+        if(typeof window.yahmaSessionGate === 'function'){
+          window.yahmaSessionGate(msgEl, 'انتهت جلسة الدخول على هذا الجهاز — سجّل دخول تاني عشان تكمل.');
+        }
+        return { skipped:'session', reason:'server-rejected', result:r };
+      }
+    }
+    return { result:r };
+  }
+
   /* نصدّرها للاختبار: بتتحقق منها على خطأ حقيقي من دالة
      منشورة، مش على شكل مرسوم في الكتاب. */
 
   window.yahmaDescribeInvokeError = describeInvokeError;
 
   window.yahmaShowResultInto = showResult;
+
+  window.yahmaInvokeFunction = invokeYahmaFunction;
 
   function syncProfileMenu(){
     var name=document.getElementById('topbar-user-name'), role=document.getElementById('topbar-user-role'), email=document.getElementById('user-dropdown-email');
@@ -257,7 +295,9 @@
         if(!confirm('متأكد إنك عايز تحذف "'+uname+'"؟ الإجراء ده لا يمكن التراجع عنه.')) return;
         btn.disabled=true; btn.textContent='جارِ الحذف...';
         try{
-          var r=await window.supabaseClient.functions.invoke('admin-delete-user',{body:{id:row.dataset.userId}});
+          var call=await invokeYahmaFunction('admin-delete-user',{id:row.dataset.userId},msg);
+          if(call.skipped){ btn.disabled=false; btn.textContent='حذف'; return; }
+          var r=call.result;
           if(r.error){
             showResult(msg, await describeInvokeError(r,'تعذر حذف المستخدم: '), 'تعذر حذف المستخدم.');
             btn.disabled=false; btn.textContent='حذف';
@@ -277,7 +317,9 @@
       if(!window.supabaseReady||!window.supabaseClient){msg.textContent='اتصال Supabase غير متاح.';return;}
       var role=ov.querySelector('#ua-role').value;
       var payload={name:ov.querySelector('#ua-name').value.trim(),email:ov.querySelector('#ua-email').value.trim(),password:ov.querySelector('#ua-password').value,role:role,branch_name:ov.querySelector('#ua-branch').value.trim(),allowed_tabs:role==='admin'?allPageIds:selectedPermissions(ov.querySelector('.ua-new-permissions'))};
-      var r=await window.supabaseClient.functions.invoke('admin-create-user',{body:payload});
+      var call=await invokeYahmaFunction('admin-create-user',payload,msg);
+      if(call.skipped) return;
+      var r=call.result;
       if(r.error){
         showResult(msg, await describeInvokeError(r,'تعذر إنشاء المستخدم: '), 'تعذر إنشاء المستخدم.');
         return;
@@ -450,9 +492,11 @@ function openWelcomeEditor() {
     btn.disabled = true;
     status('جارِ الحفظ...');
     try {
-      var r = await window.supabaseClient.functions.invoke('send-user-email', {
-        body: { action: 'save_welcome_template', subject: subject, body: text, enabled: enabledEl.checked }
-      });
+      var call = await invokeYahmaFunction('send-user-email', {
+        action: 'save_welcome_template', subject: subject, body: text, enabled: enabledEl.checked
+      }, statusEl);
+      if (call.skipped) { btn.disabled = false; return; }
+      var r = call.result;
       if (r && r.error) throw new Error(r.error.message || 'تعذر الحفظ');
       if (r && r.data && r.data.error) throw new Error(r.data.error);
       status('تم حفظ رسالة الترحيب.');

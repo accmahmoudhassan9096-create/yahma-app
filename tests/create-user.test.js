@@ -152,13 +152,18 @@ test('الواجهة بتتأكد إن الحساب اتعمل قبل ما تق�
 
 /* ⛔ [object Promise] ظهر للمستخدم فعلاً في v200.
 
-   describeInvokeError بقت async عشان بتقرا body الدالة، وnderaya
-   اتنادى من غير await في مسار الإنشاء — فـtextContent وصله Promise
+   describeInvokeError بقت async عشان بتقرا body الدالة، ونداء
+   مسار الإنشاء اتنادى من غير await — فـtextContent وصله Promise
    وطلع للمستخدم سطر ميتا بدل السبب الحقيقي، وده أخسى من الكود
    القديم: كان بيقول «خطأ غير معروف» وكلمة مفهومة، بقى حروف إنجليزية
    غامضة.
 
-   الاختبار ده بيمنع: (أ) نداء من غير await، (ب) حجر شغل. */
+   الاختبار ده بيمنع: (أ) نداء من غير await، (ب) حجر شغل.
+
+   ⚠️ حاجز showResult مطلوب بس لما النتيجة بتوصل textContent. جوّه
+   invokeYahmaFunction في نداء بيقرا النص عشان يفحصه (الجلسة
+   منتهية ولا لأ) والنتيجة بتروح لمتغيّر محلي مش للشاشة — فده
+   محتاج await بس، مش showResult. */
 test('مفيش استدعاء لـdescribeInvokeError من غير await', () => {
   const top = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
   const calls = [...top.matchAll(/([^\n]*describeInvokeError\([^\n]*)/g)].map((m) => m[1]);
@@ -167,9 +172,23 @@ test('مفيش استدعاء لـdescribeInvokeError من غير await', () => 
   real.forEach((line) => {
     assert.ok(/await\s+describeInvokeError/.test(line),
       'استدعاء من غير await: ' + line.trim());
-    assert.ok(/showResult\(/.test(line),
-      'الاستدعاء لازم يمر على showResult (حاجز ضد Promise): ' + line.trim());
+    /* اللي بتوصل الشاشة لازم يمر على الحاجز */
+    if (/textContent|showResult\(/.test(line)) {
+      assert.ok(/showResult\(/.test(line),
+        'نتيجة بتوصل textContent من غير الحاجز: ' + line.trim());
+    }
   });
+});
+
+/* النتيجة اللي بتقرأ الشاشة من غير الحاجز هي اللي طلعت
+   «[object Promise]» — نتأكد إن مفيش استدعاء ماسك بالنتيجة
+   وماسكش غيره. */
+test('كل نتيجة بتوصل textContent من describeInvokeError محميّة', () => {
+  const top = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+  const assigns = [...top.matchAll(/([^\n]*(?:msg|statusEl|El|el)\.textContent\s*=[^\n]*)/g)].map((m) => m[1]);
+  const risky = assigns.filter((l) => /describeInvokeError/.test(l) && !/showResult\(/.test(l));
+  assert.deepStrictEqual(risky, [],
+    'تعيين مباشرة من غير الحاجز: ' + risky.join(' | '));
 });
 
 test('showResult موجودة وبتتعامل مع Promise', () => {

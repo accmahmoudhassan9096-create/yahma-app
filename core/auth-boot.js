@@ -135,6 +135,174 @@ window.yahmaSignOut = async function(){
   return true;
 };
 
+/* ===== بوابة الجلسة قبل نداء الدوال =====
+
+   المشكلة اللي اتحلّت في v201: الدالة ردّت «جلسة الدخول غير صالحة»
+   والواجهة وقّفت عند الرسالة. المستخدم قاعد قدام زر ميت وما عندهوش
+   طريق للخروج غير إنه يعرف السبب، وزر «تسجيل الدخول» بعيد في
+   الرأس.
+
+   الإصلاح هنا من جزأين، واحد استباقي والتاني تفاعلي:
+
+   ❶ استباقي — قبل النداء بنتأكد إن التوكن لسه صالح. توكن شارف
+      على الانتهاء بنحدّثه من عندنا بدل ما نبعته والدالة ترفضه.
+      الـSDK بيحدّث تلقائيًا، بس التحديث بيحصل في الخلفية، يعني
+      التوكن اللي في الإيد وقت النداء ممكن يكون منتهي.
+
+   ❷ تفاعلي — لو الرد نفسه قال إن الجلسة مش صالحة، بنعلّم الحالة
+      وبنعرض زر «تسجيل دخول» جوّه نفس الرسالة، فالمستخدم يوصله من
+      مكان الخطأ نفسه.
+
+   ملاحظة: markSessionExpired في data.js متاحة كـ
+   window.YahmaData.markSessionExpired، والحالة بتتفرق في مكانين:
+   بانر جدول السيارات (render-router) والرسالة اللي هنا. */
+/* هامش أمان قبل ما نبعث التوكن. 60 ثانية فرق كبير: توكن بيوصل
+   للدالة ويرفضها أطول ما الشبكة بتطوّل. */
+const YAHMA_TOKEN_GUARD_MS = 60000;
+
+window.yahmaEnsureFreshSession = async function(){
+  if(!window.supabaseReady || !window.supabaseClient){
+    return { ok:false, reason:'no-client', message:'اتصال Supabase غير متاح. اعمل «تحديث قسري للتطبيق» من القائمة.' };
+  }
+  try{
+    var got = await window.supabaseClient.auth.getSession();
+    var session = got && got.data && got.data.session;
+    if(!session || !session.user){
+      return { ok:false, reason:'no-session', message:'مفيش جلسة دخول على هذا الجهاز. سجّل دخول تاني.' };
+    }
+    var expiresAt = Number(session.expires_at) * 1000;
+    if(expiresAt && (expiresAt - Date.now()) > YAHMA_TOKEN_GUARD_MS){
+      return { ok:true, session:session, refreshed:false };
+    }
+    /* شارف على الانتهاء — نحدّثه قبل ما نبعته */
+    var refreshed = await window.supabaseClient.auth.refreshSession();
+    if(refreshed && refreshed.error){
+      return { ok:false, reason:'refresh-failed', message:'انتهت صلاحية الجلسة على هذا الجهاز. سجّل دخول تاني.' };
+    }
+    var fresh = refreshed && refreshed.data && refreshed.data.session;
+    if(!fresh || !fresh.user){
+      return { ok:false, reason:'refresh-empty', message:'انتهت صلاحية الجلسة على هذا الجهاز. سجّل دخول تاني.' };
+    }
+    return { ok:true, session:fresh, refreshed:true };
+  }catch(e){
+    yahmaErr(e,'auth-boot.js:ensureFreshSession');
+    /* الشبكة تعطّلت مثلاً — مش دليل إن الجلسة ميتة.
+       نخلّي النداء يجرّب، والرد لو رفض هو اللي يحسم. */
+    return { ok:true, session:null, refreshed:false, unknown:true };
+  }
+};
+
+/* هل الرد بيقول إن الجلسة مش صالحة؟
+
+   ⚠️ تلات أخطاء طلعت هنا من الاختبارات، كل واحدة كانت هتفوّت
+   رسالة حقيقية:
+
+   ❶ «ال?جلسة» — قصدت «ال» اختيارية ككلمة، بس JS بيقرأها «ا»
+      وبعدها «ل» اختيارية. النتيجة إن «الجلسة غير صالحة» كانت
+      بتتطابق و«جلسة الدخول غير صالحة» — وده نص الدالة نفسها —
+      كانت مرفوضة. الصيغة الصح: «(?:ال)?جلسة».
+
+   ❷ «انتهت جلسة» — الكاشف الأول كان بيلف على «جلسة» وبعدها
+      الصيغة مباشرة، بس كلمة «انتهت» جاية *قبل*. و«الجلسة»
+      فيها «ال». الاتنين كانوش بيتعرفوا.
+
+   ❸ الشدّة: «سجّل» في الكود من غير U+0651، والرسالة اللي
+      بتوصل من الـSDK فيها. نفس الجملة، حرف واحد مختلف، ومفيش
+      تطابق. عشان كده بنطبّع التشكيل (شدّة/فتحة/كسرة/…) قبل
+      المقارنة، والـregexes كلها من غير تشكيل.
+
+   ❹ «ال» بتتغيّر: رسايلنا نفسها مكتوبة «سجّل دخول» من غير «ال»
+      («تسجيل الدخول» بـال بس). والـregex كان طالب «الدخول»
+      بـال دايماً، فكان مرفوض على نص بنسلّمه بنسنا. العربي
+      بيكتب «الجلسة/جلسة» و«الدخول/دخول» في نفس السياق، فـ«ال»
+      بتاعتنا دايماً اختيارية.
+
+   ⚠️ القواعد مكتوبة من غير تشكيل عمداً: الـnormalize فوق بيشيل
+   التشكيل من النص الواصل، فما ينفعش نكتب الحروف بشكلها ونبقى
+   غير مطابقين لنص برّنا. */
+const YAHMA_ARABIC_DIACRITICS = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g;
+
+window.yahmaIsSessionError = function(status, bodyText){
+  var code = Number(status) || 0;
+  if(code === 401 || code === 403) return true;
+  var text = String(bodyText || '').replace(YAHMA_ARABIC_DIACRITICS, '');
+  /* كلمة انتهاء جنب كلمة جلسة. */
+  if(/(?:انتهت|منتهية|غير\s*صالحة)\s*(?:(?:ال)?جلسة|صلاحية)/.test(text)) return true;
+  /* «جلسة الدخول غير صالحة» و«الجلسة غير صالحة» */
+  if(/(?:ال)?جلسة\s*(?:ال)?(?:دخول\s*)?(?:غير\s*صالحة|منتهية|انتهت)/.test(text)) return true;
+  /* «سجّل دخول» و«سجّل تسجيل الدخول» — الاتنين بتوعنا.
+
+     ⚠️ «تسجيل» كلمة تانية عن «سجل» (ت-س-ج-ي-ل مقابل س-ج-ل)،
+     فقاعدة بتدور على «سجل» لوحدها بتفوّت «تسجيل الدخول» — وهو
+     نص «يجب تسجيل الدخول أولًا» بالظبط، أول رد للدالة. */
+  if(/سجل\s*(?:ال)?(?:تسجيل\s*)?(?:ال)?(?:دخول|خروج)/.test(text)) return true;
+  if(/تسجيل\s*(?:ال)?(?:دخول|خروج)/.test(text)) return true;
+  if(/(?:ال)?(?:دخول|خروج)\s+(?:من\s*جديد|تاني)/.test(text)) return true;
+  /* إنجليزي: من البوابة ومن الـSDK.
+
+     ⚠️ الترتيب بيتغيّر في الكلام: «JWT expired» و«invalid JWT»
+     و«token has expired» و«JWT has expired» — كلها نفس المشكلة.
+     فماشي بالاتنين: الكلمة قبل الصفة أو بعدها، وبأي فاصل
+     («is» / «has» / «was» / مسافة). آخر واحدة كانت مرفوضة.
+
+     «missing» و«revoked» كمان: Supabase بترد كده لما مفيش جلسة
+     أصلاً أو اتلغت — وده كمان محتاج المستخدم يسجّل دخول.
+
+     ⚠️ \b مهمة: من غيرها «Tokenization» بتتطابق مع «token» والنتيجة
+     إن أي خطأ فيه الكلمة دي يبقى «سجّل دخول». */
+  return /(?:invalid|expired)[\s_-]*(?:jwt|session|token)|\b(?:jwt|session|token)\b[^.]{0,24}?(?:expired|invalid|missing|revoked)|UNAUTHORIZED_NO_AUTH_HEADER|INVALID_JWT/i.test(text);
+};
+
+/* يعرض الرسالة + زر «تسجيل دخول» جوّه نفس العنصر.
+
+   الزر بيتضاف جوه العنصر نفسه مش جوه أبوه: العنصر ده سطر رسالة
+   مخصوص (لاElements تانية جنبه)، فلو climbedنا للأب كنا هنمسح
+   عناصر تانية من الشاشة من غير ما نعرف.
+
+   span مش div عشان يبقى صح جوّه span أو أي عنصر inline.
+
+   لو اتنادى مرتين على نفس العنصر بنحدّث الزر الموجود بدل ما
+   نضيف اتنين. */
+window.yahmaSessionGate = function(el, message){
+  if(!el) return;
+  try{
+    if(window.YahmaData && typeof window.YahmaData.markSessionExpired==='function'){
+      window.YahmaData.markSessionExpired(message || 'انتهت جلسة الدخول');
+    }else{
+      window.__yahmaSessionExpired = true;
+      window.__yahmaSessionExpiredMsg = message || 'انتهت جلسة الدخول';
+    }
+  }catch(_){ yahmaErr(_,'auth-boot.js:sessionGate:flag'); }
+
+  var text = message || 'انتهت جلسة الدخول';
+  /* النص الأول، وده بيمسح أي زر من نداء سابق — عشان نضيف واحد
+     جديد نظيف تحته. */
+  try{ el.textContent = text; }catch(_){ yahmaErr(_,'auth-boot.js:sessionGate:text'); }
+
+  var bar;
+  try{ bar = document.createElement('span'); }catch(_){ bar = null; }
+  if(!bar || typeof el.appendChild!=='function') return;
+  bar.className = 'yahma-session-gate';
+  var btn;
+  try{ btn = document.createElement('button'); }catch(_){ return; }
+  btn.type = 'button';
+  btn.className = 'btn btn-primary btn-small';
+  btn.textContent = 'تسجيل دخول';
+  btn.onclick = function(){
+    btn.disabled = true;
+    btn.textContent = 'جارِ التحويل...';
+    /* الخروج المحلي فوري حتى لو الشبكة تعطّلت — نفس مسار
+       بانر جدول السيارات. بعد reload يبقى فيه جلسة نظيفة. */
+    try{
+      if(typeof window.yahmaSignOut === 'function') window.yahmaSignOut();
+      else if(window.supabaseClient) window.supabaseClient.auth.signOut();
+    }catch(_){ /* بنكمل — أسوأ حاجة إنه فضل قاعد */ }
+    setTimeout(function(){ location.reload(); }, 600);
+  };
+  bar.appendChild(btn);
+  try{ el.appendChild(bar); }catch(_){ yahmaErr(_,'auth-boot.js:sessionGate:append'); }
+};
+
 function roleCacheKey(uid){ return 'fleet-role-cache:'+uid; }
 function getCachedRole(uid){ try{ return localStorage.getItem(roleCacheKey(uid))||null; }catch(_){ return null; } }
 function setCachedRole(uid, role){ try{ if(role) localStorage.setItem(roleCacheKey(uid), role); }catch(_){yahmaErr(_,'auth-boot.js:136');} }
