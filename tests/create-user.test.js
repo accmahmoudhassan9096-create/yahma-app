@@ -108,3 +108,45 @@ test('مفيش console.log أو كود تجريبي داخل الدالة', () =
   assert.ok(!/console\.(log|debug)\(/.test(FN), 'في console.log داخل دالة إنتاج');
   assert.ok(!/\bdebugger\b/.test(FN), 'في debugger');
 });
+
+/* ===== البوابة كانت بترفض قبل الدالة =====
+
+   verify_jwt = true خلّى Supabase gateway يرد 401
+   {"code":"UNAUTHORIZED_NO_AUTH_HEADER"} قبل ما الدالة تشغّل.
+   الدالة مش شايفة إن فيه session أصلاً فما بتعرفش تقول السبب،
+   والمستخدم بيشوف رسالة إنجليزية غامضة. والدالة فوق بتعمل فحص
+   الأدارية بنفسها بالكامل، فالفحص المزدوج مش حماية. */
+test('verify_jwt = false في كل الدوال — الفحص جوّه الدالة', () => {
+  const toml = fs.readFileSync(path.join(ROOT, 'supabase', 'config.toml'), 'utf8');
+  const blocks = [...toml.matchAll(/\[functions\.([\w-]+)\]\s*\nverify_jwt\s*=\s*(\w+)/g)];
+  assert.ok(blocks.length >= 3, 'الملف بيعرف الدوال');
+  blocks.forEach((b) => {
+    assert.strictEqual(b[2], 'false',
+      'دالة ' + b[1] + ' لسه عليها verify_jwt=' + b[2] + ' — هترد برسالة البوابة الغامضة');
+  });
+});
+
+/* كل دالة بتعمل فحصها بنفسها — الـverify_jwt=false مينفعش من غير ده */
+test('كل دالة بتتحقق من المتصل قبل ما تشتغل', () => {
+  ['admin-create-user', 'admin-delete-user', 'send-user-email'].forEach((name) => {
+    const src = fs.readFileSync(
+      path.join(ROOT, 'supabase', 'functions', name, 'index.ts'), 'utf8');
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.ok(/auth\.getUser\(\)/.test(code), name + ': مفيش getUser');
+    assert.ok(/yahma_is_admin\(\)|role\s*!==\s*'admin'|includes\('admin'\)/.test(code),
+      name + ': مفيش فحص أدارية');
+  });
+});
+
+/* الواجهة كانت بتقول «تم إنشاء المستخدم» والعملية تفشل — وده أسوأ
+   من رسالة خطأ، لأن المستخدم بيعيد المحاولة على أساس إن الحساب
+   اتعمل وهو مش موجود. */
+test('الواجهة بتتأكد إن الحساب اتعمل قبل ما تقول «تم»', () => {
+  const top = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+  assert.ok(/confirmRead/.test(top), 'مفيش تحقق بالقراءة بعد الإنشاء');
+  assert.ok(/!r\.data\.id/.test(top), 'مفيش فحص إن الدالة رجعت رقم حساب');
+  assert.ok(/describeInvokeError/.test(top), 'مفيش دالة لقراءة السبب الحقيقي');
+  /* ما ينفعش تقول تم بلا تحقق */
+  assert.ok(!/msg\.textContent='تم إنشاء المستخدم[^']*';\s*$/.test(top),
+    'لسه في رسالة «تم» مباشرة من غير تحقق');
+});

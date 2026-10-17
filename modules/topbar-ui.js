@@ -5,6 +5,48 @@
 /* ===== yahma-topbar-interactions ===== */
 
 (function(){
+  /* ===== قراءة سبب خطأ حقيقي من نداء دالة =====
+
+     الكود كان بيعتمد على r.error.message، ومكانش بيوصل للرسالة
+     العربية اللي الدالة بترجعها غير لو الرد JSON فعلاً. ومع 401 من
+     بوابة Supabase الرد بيبقى إنجليزي والسبب بيضيع.
+
+     هنا بنجمّع كل المتاح: body لو JSON، ورمز الحالة، ونص الرد
+     الخام. الهدف إن أي رسالة على الشاشة تبقى سبب حقيقي. */
+  async function describeInvokeError(result, prefix){
+    var err=result&&result.error;
+    if(!err) return prefix+'خطأ غير معروف';
+    var message='', raw='', code='', status='';
+
+    /* ❶ body — فيه رسالة الدالة */
+    var bodies=[];
+    if(err.context&&typeof err.context.clone==='function') bodies.push(err.context);
+    if(result.data&&typeof result.data==='object') bodies.push(null);
+    for(var i=0;i<bodies.length;i++){
+      var parsed=null;
+      try{ parsed=bodies[i]?(typeof bodies[i].json==='function'?bodies[i].json():bodies[i].clone().json()):result.data; }
+      catch(_){yahmaErr(_,'topbar-ui.js:describeInvokeError');}
+      if(!parsed) continue;
+      if(typeof parsed==='string'){ if(!raw) raw=parsed.slice(0,300); continue; }
+      if(parsed.error&&!message) message=String(parsed.error).slice(0,300);
+      if(parsed.message&&!raw) raw=String(parsed.message).slice(0,300);
+      if(parsed.code&&!code) code=String(parsed.code);
+    }
+
+    /* ❷ رمز الحالة */
+    var ctx=err.context;
+    status=String((ctx&&(ctx.status||(ctx.response&&ctx.response.status)))||err.status||'').trim();
+
+    if(!message) message=(raw&&raw!=='{}')?raw:(typeof err.message==='string'?err.message.slice(0,300):'');
+
+    var bits=[];
+    if(status) bits.push('كود '+status);
+    if(code) bits.push(code);
+    if(!message) message='ما وصلش سبب — غالبًا الجلسة منتهية. سجّل خروج وادخل تاني وحاول.';
+
+    return prefix+message+(bits.length?' ['+bits.join(' · ')+']':'');
+  }
+
   function syncProfileMenu(){
     var name=document.getElementById('topbar-user-name'), role=document.getElementById('topbar-user-role'), email=document.getElementById('user-dropdown-email');
     var dn=document.getElementById('user-dropdown-name'), dr=document.getElementById('user-dropdown-role'), av=document.getElementById('topbar-user-avatar'), dav=document.getElementById('user-dropdown-avatar');
@@ -138,10 +180,7 @@
         try{
           var r=await window.supabaseClient.functions.invoke('admin-delete-user',{body:{id:row.dataset.userId}});
           if(r.error){
-            var detail=r.error.message||'خطأ غير معروف';
-            try{ if(r.error.context){ var body=await r.error.context.clone().json(); if(body&&body.error) detail=body.error; } }catch(_){yahmaErr(_,'topbar-ui.js:100');}
-            if(r.data&&r.data.error) detail=r.data.error;
-            msg.textContent='تعذر حذف المستخدم: '+detail;
+            msg.textContent=await describeInvokeError(r,'تعذر حذف المستخدم: ');
             btn.disabled=false; btn.textContent='حذف';
             return;
           }
@@ -161,22 +200,34 @@
       var payload={name:ov.querySelector('#ua-name').value.trim(),email:ov.querySelector('#ua-email').value.trim(),password:ov.querySelector('#ua-password').value,role:role,branch_name:ov.querySelector('#ua-branch').value.trim(),allowed_tabs:role==='admin'?allPageIds:selectedPermissions(ov.querySelector('.ua-new-permissions'))};
       var r=await window.supabaseClient.functions.invoke('admin-create-user',{body:payload});
       if(r.error){
-        var detail=r.error.message||'خطأ غير معروف';
-        try{
-          if(r.error.context){
-            var responseBody=await r.error.context.clone().json();
-            if(responseBody&&responseBody.error) detail=responseBody.error;
-          }
-        }catch(_){yahmaErr(_,'topbar-ui.js:128');}
-        if(r.data&&r.data.error) detail=r.data.error;
-        msg.textContent='تعذر إنشاء المستخدم: '+detail;
+        msg.textContent=describeInvokeError(r,'تعذر إنشاء المستخدم: ');
+        return;
+      }
+      /* ⚠️ لازم نتأكد إن الحساب اتعمل فعلاً قبل ما نقول «تم».
+         الرد كان ممكن يوصل بنجاح والعملية تفشل جوّه — وقتها
+         الرسالة كانت بتقول «تم إنشاء المستخدم» وحاجة مااتعملتش.
+         الرجوع للقراءة بعد الكتابة رخيص مقارنة برسالة كاذبة. */
+      if(!r.data||!r.data.id){
+        msg.textContent='رد الدالة مش متوقع — مفيش رقم حساب. اتأكد إن الجلسة لسه صالحة وكمل من جديد.';
+        return;
+      }
+      var confirmRead=await window.supabaseClient.from('profiles')
+        .select('id,role').eq('id',r.data.id).maybeSingle();
+      if(confirmRead.error||!confirmRead.data){
+        msg.textContent='الدالة رجعت رقم حساب بس الحساب مش ظاهر في القاعدة — ابعتله التفاصيل (رقم '
+          +r.data.id+') ونتابع.';
+        return;
+      }
+      if(confirmRead.data.role!==role){
+        msg.textContent='اتعمل الحساب، بس الدور اتخزّن «'+confirmRead.data.role+'» بدل «'+role+'». عيّنه من القائمة.';
+        await renderUsers();
         return;
       }
       var sendWelcome=ov.querySelector('#ua-welcome-check')?ov.querySelector('#ua-welcome-check').checked:true;
-      var notice=r.data&&r.data.id?await window.notifyYahmaEvent('account_created',{userId:r.data.id,name:payload.name,sendWelcome:sendWelcome}):{ok:false,error:'تعذر تحديد الحساب الجديد'};
-      msg.textContent=notice.skipped?'تم إنشاء المستخدم. (ترحيب: '+notice.reason+')'
+      var notice=r.data.id?await window.notifyYahmaEvent('account_created',{userId:r.data.id,name:payload.name,sendWelcome:sendWelcome}):{ok:false,error:'تعذر تحديد الحساب الجديد'};
+      msg.textContent=notice.skipped?'تم إنشاء المستخدم. ترحيب: '+(notice.reason||'مش محسوب')
         :notice.ok?'تم إنشاء المستخدم وإرسال رسالة ترحيب إلى بريده.'
-        :`تم إنشاء المستخدم، لكن تعذر إرسال رسالة الترحيب: ${notice.error||'تحقق من إعداد البريد'}`;
+        :'تم إنشاء المستخدم، لكن تعذر إرسال رسالة الترحيب: '+(notice.error||'تحقق من إعداد البريد');
       e.target.reset(); await renderUsers();
     };
     renderUsers();

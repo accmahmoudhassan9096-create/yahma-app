@@ -1,10 +1,27 @@
 project_id = "dzildqysxdlnfsmjttjg"
 
+# ⚠️ verify_jwt = false مقصود لكل الدوال، مش إهمال.
+#
+# البوابة (gateway) بترفض أي طلب ما فيه توكن صالح برسالة إنجليزية
+# غامضة زي "Missing authorization header" أو "invalid JWT" — ودي
+# بترجع **قبل ما الدالة تشغّل**. الدالة مش بتعرف إن ليك session أصلاً،
+# فما بتقدرش تقول السبب.
+#
+# وكل دالة من دول بتعمل فحصها بنفسها وبأكمل:
+#   • بتقرا Authorization header
+#   • بتعمل auth.getUser()
+#   • بتقرأ دور المتصل من profiles وبترفض أي حاجة غير admin
+# فالفحص-security الحقيقي **جوّه** الدالة، والبوابة مش بتضيف حاجة.
+# send-user-email كان من الأصل على false وبيشتغل كويس.
+#
+# الفايدة العملية: أي جلسة منتهية بتبقى رسالة عربية واضحة بدل 401
+# إنجليزي مبهم، والسبب بيبان في الشاشة.
+
 [functions.admin-create-user]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-delete-user]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-user-email]
 verify_jwt = false
