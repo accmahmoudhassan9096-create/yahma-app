@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
 
-  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','الطراز','سنة الصنع','اللون','الرقم التسلسلي','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','المدينة','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات','تنازل','تاريخ التنازل','المالك السابق','حالة التنازل','ملاحظات التنازل'];
+  const EXCEL_HEADERS = ['رقم اللوحة','الماركة','الطراز','سنة الصنع','اللون','الرقم التسلسلي','رقم الحاسب الآلي','اسم الشركة','رقم البطاقة','حالة البطاقة','تاريخ نهاية البطاقة','حالة الرخصة','تاريخ نهاية الرخصة','حالة الفحص','حالة التامين','شركة التأمين','تاريخ انتهاء التأمين','المالك','رقم المالك','الفرع','المدينة','حالة السيارة','العداد','موعد الصيانة القادمة','آخر صيانة','تكلفة الصيانة','الورشة','رابط المستند','ملاحظات الصيانة','ملاحظات','تنازل','تاريخ التنازل','المالك السابق','حالة التنازل','ملاحظات التنازل'];
   const FIELD_ALIASES = {
     plate: ['رقم اللوحة','اللوحة','رقم السيارة','plate'],
     code: ['الكود','كود السيارة','رقم الكود','الرقم','code'],
@@ -10,6 +10,22 @@
     type: ['النوع','نوع السيارة','نوع المركبة','نوع العربية','الفئة','فئة السيارة','الشكل','type','vehicle type'],
     model: ['الموديل','موديل السيارة','سنة الصنع','سنة الموديل','السنة','model'],
     serial: ['الرقم التسلسلي','رقم الشاسيه','serial','serial number','chassis'],
+    /* رقم الحاسب الآلي واسم الشركة: بيتقرؤوا من الملف المرفوع، مش
+       كتابة يدوية. الأعمدة دي ظاهرة في «الفحص» و«تحت الدفع» بس
+       للعرض — القيم ثابتة على السيارة من الملف.
+       «رقم الحاسب» عندي aliases كتير عشان الورق بيجي بأشكال
+       مختلفة، و«الشركة» محتاجة تمييز عن «شركة التأمين» (دي
+       insuranceCompany واسمها alias تاني). */
+    accountNo: ['رقم الحاسب الآلي','رقم الحاسب','الحاسب الآلي','الحاسب','رقم حساب السيارة','حساب السيارة','account no','account number','accountno','computer number'],
+    /* ⚠️ «الشركة» مش هنا عن قصد: brand بياخدها من زمان
+       (brand aliases فيها «الشركة» و«company») وهي بتتطابق
+       الأول. فلو حطيناها هنا، ورق فيه عمود اسمه «الشركة» هيروح
+       للماركة وcompanyName هيفضل فاضي بصمت. ده اللي حصل فعلاً في
+       أول نسخة — الاختبار عدّى لأنInspection كان بيقرا الأسماء
+       في الكود مش السلوك، فلازم يتقفل بـfindField نفسه.
+
+       اللي هنا واضح ومايلوش معنى تاني: «اسم الشركة» و«شركة التأجير». */
+    companyName: ['اسم الشركة','اسم شركة التأجير','شركة التأجير','company name','companyname','rental company'],
     cardNumber: ['رقم البطاقة','رقم الكارت','card number'],
     cardStatus: ['حالة الكارت','حالة البطاقة','card status'],
     cardExpiry: ['تاريخ انتهاء الكارت','انتهاء الكارت','تاريخ نهاية الكارت','نهاية الكارت','تاريخ نهاية البطاقة','نهاية البطاقة','انتهاء البطاقة','card expiry'],
@@ -142,7 +158,8 @@
   }
 
   const IMPORT_FIELDS = [
-    'plate','code','gps','brand','type','model','color','serial','chassisNo','vehicleCondition','registrationType','bodyType',
+    'plate','code','gps','brand','type','model','color','serial','accountNo','companyName',
+    'chassisNo','vehicleCondition','registrationType','bodyType',
     'cardNumber','cardStatus','cardExpiry',
     'licenseStatus','licenseExpiry','inspectionStatus','insuranceStatus','insuranceCompany','insuranceExpiry','owner','ownerNumber',
     'odometer','dailyRate','minDailyRate','monthlyRate','minMonthlyRate','lastMovementDate','daysSinceMovement','rentedDaysMonth',
@@ -325,7 +342,7 @@
       context.alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.');
       return;
     }
-    const example = ['ر ن س 6724','هيونداي','سونت','2026','فضي','82433120','14-00719121','نشط','24/10/2026','نشط','24/10/2027','تم الفحص','ساري','التعاونية','24/10/2027','أحمد سعيد','10001','الفرع الرئيسي','الرياض','متاحة للايجار','','','','','','','','','','','','',''];
+    const example = ['ر ن س 6724','هيونداي','سونت','2026','فضي','82433120','1024','شركة الأمثل','14-00719121','نشط','24/10/2026','نشط','24/10/2027','تم الفحص','ساري','التعاونية','24/10/2027','أحمد سعيد','10001','الفرع الرئيسي','الرياض','متاحة للايجار','','','','','','','','','','','','',''];
     const worksheet = global.XLSX.utils.aoa_to_sheet([EXCEL_HEADERS, example]);
     worksheet['!cols'] = EXCEL_HEADERS.map(() => ({ wch: 20 }));
     const workbook = global.XLSX.utils.book_new();
@@ -343,7 +360,8 @@
       return;
     }
     const rows = context.fleet.map(car => [
-      car.plate, car.brand, car.type, car.model, car.color, car.serial, car.cardNumber, car.cardStatus, car.cardExpiry,
+      car.plate, car.brand, car.type, car.model, car.color, car.serial, car.accountNo, car.companyName,
+      car.cardNumber, car.cardStatus, car.cardExpiry,
       car.licenseStatus, car.licenseExpiry, car.inspectionStatus, car.insuranceStatus, car.insuranceCompany, car.insuranceExpiry, car.owner,
       car.ownerNumber, car.branch, car.city, car.carStatus, car.odometer, car.nextService, car.lastMaintenance,
       car.maintenanceCost, car.workshop, car.documentUrl, car.maintenanceNotes, car.notes,

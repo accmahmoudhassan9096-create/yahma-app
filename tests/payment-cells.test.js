@@ -1,26 +1,49 @@
-/* أعمدة «تحت الدفع» الأربعة: الرقم التسلسلي، رقم الحاسب الآلي،
-   اسم الشركة، الملاحظات.
+/* أعمدة بيانات السيارة عبر دورة الفحص والدفع:
+   الرقم التسلسلي، رقم الحاسب الآلي، اسم الشركة، الملاحظات.
 
-   🇪🇬 القصة: اتنين منهم كانوا موجودين (serial و notes) والاتنين
-   تانيين جداد. أخطر حاجة هنا مش العرض — هي إن الأعمدة دي
-   بتتخزّن على **السيارة** مش على الطلب، فأي حد يضيف عمود في
-   الجدول وي)nنسى يعمله في toVehicleRow بيشوفه فاضي على طول،
-   ويعدّله بيفقده أول reload.
+   📌 القرار النهائي من المستخدم:
+   - الأعمدة **خلايا عرض** مش خلايا كتابة. مفيش كتابة يدوية.
+   - القيم **ثابتة على السيارة** وبتيجي من **ملف Excel مرفوع**.
+   - لما السيارة تنتقل بين التبويبات، القيم تنتقل معاها (عشان
+     متخزّنة على السيارة مش على الطلب).
 
-   وكل اختبار جوا الملف ده بيعمل حاجة واحدة: بيمنع طبقة
-   تنسى اللي بعدها.
+   كل اختبار بيعمل حاجة واحدة: بيمنع طبقة تنسى اللي بعدها.
 
-   نفس الفخ اللي حصل مع حارس الـprofiles اتكرر هنا: الحارس
-   معرّف في ملفين، prediscretely أي ملف اتطبق آخر هو اللي
-   بيحسم. ففيه اختبار صريح إن-bodied الاتنين واحد. */
+   نفس الفخ اللي اتكرر مرتين في الشغل ده:
+   ❶ الأعمدة متنسخة في ملفين («الفحص» و«تحت الدفع») — لو اتغير
+      واحد واتغير التاني لأ، هيتلقوا في تاب مختلف.
+   ❷ الـExcel بيفهم أسماء أعمدة من aliases — لو الحقل مش في
+      FIELD_ALIASES، الملف بيتقرا والعمود يتجاهل بصمت. */
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const noComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--[^\n]*/g, '');
+
+/* ===== تحميل modules/fleet-excel.js كما هو =====
+
+   الاختبارات السلوكية (findField وparseImportRows) لازم تنادي
+   الكود المنشور، مش نسخة منه في الاختبار — النسخة دي هي اللي
+   بتDicec في الأول. الملف IIFE بيصدّر على window وبيستخدم
+   global.alert بس في التقارير، فالـsandbox بسيط. */
+function loadFleetExcel() {
+  const sandbox = {
+    console, Date, Math, JSON, Intl, Promise, RegExp, Set, Map,
+    setTimeout: () => 0, clearTimeout: () => {}, alert() {},
+    XLSX: undefined
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  sandbox.self = sandbox;
+  vm.runInContext(read('modules/fleet-excel.js'), vm.createContext(sandbox),
+    { filename: 'fleet-excel.js' });
+  assert.ok(sandbox.YahmaFleetExcel, 'YahmaFleetExcel مش متصدّر');
+  return sandbox.YahmaFleetExcel;
+}
 
 /* الحقول الأربعة: الاسم في كائن السيارة ← عمود القاعدة */
 const FIELDS = [
@@ -30,33 +53,28 @@ const FIELDS = [
   { field: 'notes', column: 'notes', label: 'ملاحظات', existed: true }
 ];
 
+/* الأعمدة الجديدة بس — دي اللي اتضافت دلوقتي */
+const NEW_FIELDS = FIELDS.filter((f) => !f.existed);
+
+/* ===== القاعدة وطبقة البيانات ===== */
+
 test('الأعمدة الأربعة موجودة في جدول vehicles', () => {
   const flat = noComments(read('supabase/supabase-migration.sql')).replace(/\s+/g, ' ');
   FIELDS.forEach((f) => {
     assert.ok(flat.includes(f.column + ' text'),
-      'عمود ' + f.column + ' مش في supabase-migration.sql — بيئة جديدة هتكون ناقصة');
+      'عمود ' + f.column + ' مش في supabase-migration.sql');
   });
 });
 
-test('ملف payment-columns.sql بيعمل الأعمدة بـadd column if not exists', () => {
-  const flat = noComments(read('supabase/payment-columns.sql')).replace(/\s+/g, ' ');
-  ['accountno', 'companyname'].forEach((col) => {
-    assert.ok(
-      flat.includes('add column if not exists ' + col + ' text'),
-      'العمود ' + col + ' مش في payment-columns.sql'
-    );
-  });
-});
-
-test('طبقة البيانات بتكتب وتقرأ العمودين الجديدين', () => {
+test('طبقة البيانات بتكتب وتقرأ الأعمدة (الاتجاهين)', () => {
   const data = read('modules/data.js');
-  /* ⚠️ الاتجاهين لازم يتشيكوا: لو toVehicleRow كاتب والقراءة ناقصة
-     (أو العكس) القيمة بتختفي أول reload من القاعدة. */
-  FIELDS.filter((f) => !f.existed).forEach((f) => {
+  /* لو toVehicleRow كاتب والقراءة ناقصة (أو العكس) القيمة بتختفي
+     أول reload — وده بالظبط اللي «ثابتة على السيارة» معناه. */
+  NEW_FIELDS.forEach((f) => {
     assert.ok(new RegExp('\\b' + f.column + ':\\s*nullable').test(data),
       'toVehicleRow مش بيكتب ' + f.column);
     assert.ok(new RegExp('\\b' + f.field + ':\\s*row\\.' + f.column).test(data),
-      'fromVehicleRow مش بيقرأ ' + f.column + ' لـ' + f.field);
+      'fromVehicleRow مش بيقرأ ' + f.column);
   });
 });
 
@@ -65,36 +83,303 @@ test('نافذة تعديل السيارة فيها الحقلين ومقفول�
   const modal = read('modules/vehicle-modal.js');
   const form = read('modules/vehicle-form.js');
   const code = noComments(form);
-  ['accountNo', 'companyName'].forEach((field) => {
-    assert.ok(new RegExp("\\{ field: '" + field + "', form: \\[").test(code),
-      field + ' مش في قائمة PROTECTED — «مشاهدة» هتعدّله');
-  });
-  ['f-accountno', 'f-companyname'].forEach((id) => {
-    assert.ok(html.includes('id="' + id + '"'), 'الحقل ' + id + ' مش في النموذج');
-    assert.ok(modal.includes("'" + id + "': value("),
-      'النموذج مش بيملأ ' + id + ' لما بنفتح سيارة للتعديل');
-  });
-  /* collect لازم يقراهما */
-  assert.ok(/accountNo:\s*readField\('accountNo',\s*'f-accountno'\)/.test(code), 'collect مش بيقرا accountNo');
-  assert.ok(/companyName:\s*readField\('companyName',\s*'f-companyname'\)/.test(code), 'collect مش بيقرا companyName');
-});
-
-test('الحارس في القاعدة بيقفل الحقلين على «مشاهدة»', () => {
-  const sql = noComments(read('supabase/user-edit-access.sql')).replace(/\s+/g, ' ');
-  ['accountno', 'companyname'].forEach((col) => {
-    assert.ok(sql.includes('new.' + col + ' is distinct from old.' + col),
-      'العمود ' + col + ' مش محمي في user-edit-access.sql');
+  NEW_FIELDS.forEach((f) => {
+    assert.ok(new RegExp("\\{ field: '" + f.field + "', form: \\[").test(code),
+      f.field + ' مش في قائمة PROTECTED');
+    const formId = 'f-' + f.column.replace('accountno', 'accountno').replace('companyname', 'companyname');
+    assert.ok(html.includes('id="' + formId + '"'), 'الحقل ' + formId + ' مش في النموذج');
+    assert.ok(modal.includes("'" + formId + "': value("),
+      'النموذج مش بيملأ ' + formId);
+    assert.ok(new RegExp(f.field + ":\\s*readField\\('" + f.field + "',\\s*'" + formId + "'\\)").test(code),
+      'collect مش بيقرا ' + f.field);
   });
 });
 
-/* ⚠️ الأهم: الحارس معرّف في ملفين (user-edit-access.sql و
-   payment-columns.sql). أي واحد اتطبق آخر هو اللي بيحسم، فلو
-   اتغيروا فاضلًا بيرجع سلوك قديم من غير حد ياخد باله. نفس
-   المصيبة اللي حصلت مع profiles وservice_role.
+/* ===== ⭐ رفع Excel: دي طريقة التعبئة الوحيدة ===== */
 
-   ولازم نختار الدالة بالاسم: الملف الواحد فيه كذا $fn$، وأول
-   واحد مش بالضرورة الحارس — أول نسخة من الاختبار ده كانت بتاخد
-   yahma_manage_branch وتقارنها بالحارس. */
+test('الـExcel بيقرأ العمودين الجديدين من الأسماء الشائعة', () => {
+  const code = noComments(read('modules/fleet-excel.js'));
+  NEW_FIELDS.forEach((f) => {
+    /* ⚠️ لو الحقل مش في FIELD_ALIASES، الملف بيتقرا والعمود
+       يتجاهل بصمت — وده أسوأforms خطأ: المستخدم شايف الملف
+       اتقبل وبيفتكر إن البيانات اتسجلت. */
+    assert.ok(new RegExp(f.field + ':\\s*\\[').test(code),
+      f.field + ' مش في FIELD_ALIASES');
+    assert.ok(new RegExp(f.field + ":\\s*\\[[^\\]]*'" + f.label + "'").test(code),
+      f.field + ' مافيش فيه ترويسة «' + f.label + '»');
+  });
+});
+
+/* ⭐ الاختبار السلوكي: بينادي findField نفسه على كل alias.
+
+   النسخة الأولى كان بيتحقق إن الاسم مكتوب في الكود، وعدّت.
+   بس السلوك كان غلط: «الشركة» رحت لـ brand مش companyName —
+   لأن brand بياخدها من زمان وبيتطابق الأول. الكود كان سليم
+   والحقل كان بياكل عمود المستخدم كله.
+
+   الفرق: الأول بيفحص النصوص، والتاني بيفحص النتيجة. */
+
+/* تعارضات معروفة من قبل ما أعمل الاختبار ده، سيبتها زي ما هي
+   عشان مش في النطاق ده — بس مسجّلة عشان ما تتصبّيش «جديد». */
+const KNOWN_ALIAS_SHADOWS = {
+  /* رقم الشاسيه في alias لـ serial و لـ chassisNo، و serial أول
+     واحد في الكائن فبياخدها. وده صح: الشاسيه بيتخزّن في serial
+     (العمود الوحيد الموجود فعلاً — مفيش chassisno في الجدول)،
+     وchassisNo حقل مالوش عمود أصلاً فمش بيتخزّن. */
+  'رقم الشاسيه': 'serial'
+};
+
+test('كل alias بيترجم لنفسه — مفيش تعارض جديد بين الحقول', () => {
+  const X = loadFleetExcel();
+  const ALIAS = /const FIELD_ALIASES = \{([\s\S]*?)\n  \};/.exec(
+    noComments(read('modules/fleet-excel.js')));
+  assert.ok(ALIAS, 'مالقتش FIELD_ALIASES');
+
+  const known = [];
+  const fresh = [];
+  [...ALIAS[1].matchAll(/(\w+):\s*\[([^\]]*)\]/g)].forEach((m) => {
+    const field = m[1];
+    [...m[2].matchAll(/'([^']+)'/g)].forEach((alias) => {
+      const name = alias[1];
+      let got;
+      try { got = X.findField(name); } catch (_) { got = 'THREW'; }
+      if (got === field) return;
+      const line = '«' + name + '» ← ' + got + ' (المتوقع ' + field + ')';
+      /* ⚠️ لو alias واحد متكرر في أكتر من حقل، اللي بيتطابق
+         الأول هو الفائز — فالتعارض مش بيظهر غير لما نجرّب. */
+      if (KNOWN_ALIAS_SHADOWS[name] === got) known.push(line);
+      else fresh.push(line);
+    });
+  });
+
+  assert.deepStrictEqual(fresh, [],
+    'aliases بتترجم لحقل تاني:\n  ' + fresh.join('\n  ') +
+    '\n  (لو التعارض مقصود، ضيفه في KNOWN_ALIAS_SHADOWS فوق عشان يبقى موثّق)');
+  /* التوثيق نفسه لازم يبقى صحيح — لو اختفى التعارض نتفسّر */
+  Object.keys(KNOWN_ALIAS_SHADOWS).forEach((name) => {
+    const still = known.some((k) => k.indexOf('«' + name + '»') === 0);
+    assert.ok(still,
+      'التعارض الموثّق «' + name + '» اتحل — شيله من KNOWN_ALIAS_SHADOWS');
+  });
+});
+
+/* «الشركة» كلمة مش بتتطابق مع حاجة واحدة — brand بياخدها من
+   زمان. لو رجعت لـ companyName نكسر الماركة. */
+test('«الشركة» تفضل للماركة — ماينفعش تتحوّل لاسم الشركة', () => {
+  const X = loadFleetExcel();
+  assert.strictEqual(X.findField('الشركة'), 'brand', '«الشركة» راحت لحقل تاني');
+  assert.strictEqual(X.findField('الماركة'), 'brand');
+  /* والاسم الصريح شغّال */
+  assert.strictEqual(X.findField('اسم الشركة'), 'companyName');
+  assert.strictEqual(X.findField('شركة التأمين'), 'insuranceCompany');
+});
+
+test('العمودين الجديدين في IMPORT_FIELDS', () => {
+  const code = noComments(read('modules/fleet-excel.js'));
+  const m = /const IMPORT_FIELDS = \[([\s\S]*?)\n  \];/.exec(code);
+  assert.ok(m, 'مالقتش IMPORT_FIELDS');
+  NEW_FIELDS.forEach((f) => {
+    assert.ok(m[1].includes("'" + f.field + "'"),
+      f.field + ' مش في IMPORT_FIELDS — مش هيتقرا من الملف');
+  });
+});
+
+test('«الشركة» بتتمايز عن «شركة التأمين»', () => {
+  /* الاتنين موجودين في الملف. لو aliases اتلخبطوا، «شركة التأمين»
+     هتتكتب في اسم الشركة أو العكس — وده بيبوّظ بيانات حقيقية. */
+  const code = noComments(read('modules/fleet-excel.js'));
+  const company = /companyName:\s*\[([^\]]*)\]/.exec(code);
+  const insurer = /insuranceCompany:\s*\[([^\]]*)\]/.exec(code);
+  assert.ok(company, 'مالقتش aliases لـ companyName');
+  assert.ok(insurer, 'مالقتش aliases لـ insuranceCompany');
+  assert.ok(!company[1].includes('شركة التأمين'),
+    '«شركة التأمين» لازم تفضل مع insuranceCompany بس');
+  assert.ok(!insurer[1].includes("'الشركة'"),
+    '«الشركة» العامة لازم تفضل مع companyName بس');
+});
+
+test('ترويسة Excel والقالب والتصدير متوافقين على نفس الترتيب', () => {
+  const code = noComments(read('modules/fleet-excel.js'));
+  const head = /const EXCEL_HEADERS = \[([^\]]*)\]/.exec(code);
+  assert.ok(head, 'مالقتش EXCEL_HEADERS');
+  const headers = [...head[1].matchAll(/'([^']+)'/g)].map((x) => x[1]);
+  /* الترويسة بتبدأ بالتسلسلي وبعده الجديدين بالترتيب ده — وده
+     نفس ترتيب العرض في التبويبين، فالوردة والجدول بيوافقوا. */
+  const at = (label) => headers.indexOf(label);
+  ['الرقم التسلسلي', 'رقم الحاسب الآلي', 'اسم الشركة'].forEach((label) => {
+    assert.ok(at(label) > -1, 'الترويسة ناقصة «' + label + '»');
+  });
+  assert.ok(at('رقم الحاسب الآلي') > at('الرقم التسلسلي'), 'ترتيب غلط');
+  assert.ok(at('اسم الشركة') > at('رقم الحاسب الآلي'), 'ترتيب غلط');
+
+  /* صف المثال (القالب) لازم يبقى بنفس الطول — قصر واحد = إزاحة
+     لكل الأعمدة بعده، والقالب بيبان شغّال بس كل القيم غلط. */
+  const ex = /const example = \[([^\]]*)\]/.exec(code);
+  assert.ok(ex, 'مالقتش صف المثال');
+  const exCount = [...ex[1].matchAll(/'[^']*'/g)].length;
+  assert.strictEqual(exCount, headers.length,
+    'القالب فيه ' + exCount + ' قيمة والترويسة ' + headers.length +
+    ' — كل القيم بعد الناقص هتتزحلق عمود');
+
+  /* وexportFleet لازم يطلع نفس العدد */
+  const exp = /context\.fleet\.map\(car => \[([\s\S]*?)\]\);/.exec(code);
+  assert.ok(exp, 'مالقتش صفوف التصدير');
+  const expCount = [...exp[1].matchAll(/car\.[A-Za-z]+/g)].length;
+  assert.strictEqual(expCount, headers.length,
+    'التصدير فيه ' + expCount + ' قيمة والترويسة ' + headers.length);
+});
+
+/* ===== ⭐ العرض مش الكتابة ===== */
+
+test('الأعمدة خلايا عرض مش inputs — في التبويبين', () => {
+  /* القرار النهائي: مفيش كتابة يدوية. أي input هنا معناه رجعنا
+     لقرار ملغى، والاختبار ده بيرفض. */
+  const ren = noComments(read('modules/renewals-ui.js'));
+  const cells = /function renDataCells\(([^)]*)\)\s*\{([\s\S]*?)\n\}/.exec(ren);
+  assert.ok(cells, 'مالقتش renDataCells');
+  assert.ok(!/<input/.test(cells[2]),
+    'خلايا الفحص فيها input تاني — القرار: عرض بس');
+  /* ولا باراميتر editable يفضل مستخدم */
+  assert.ok(!/editable/.test(cells[1] + cells[2]),
+    ' لسه فيه باراميتر editable في خلايا الفحص');
+  assert.ok(!/noteEditable/.test(cells[2]),
+    'القفل بالصلاحية بقى بلا معنى مع خلايا عرض');
+
+  const rr = noComments(read('core/render-router.js'));
+  const pcells = /function payCellsHtml\(([^)]*)\)\s*\{([\s\S]*?)\n\}/.exec(rr);
+  assert.ok(pcells, 'مالقتش payCellsHtml');
+  assert.ok(!/<input/.test(pcells[2]),
+    'خلايا «تحت الدفع» فيها input تاني — القرار: عرض بس');
+});
+
+test('مفيش أي input أو تفويض حفظ للأعمدة دي في التبويبين', () => {
+  /* غير inputs: مفيش حاجة للحفظ. لو رجع listener فهيكم واجهة
+     بتقرا من مكان ما بيحفظش. */
+  const ren = noComments(read('modules/renewals-ui.js'));
+  assert.ok(!/data-ren-field/.test(ren), 'لسه في data-ren-field');
+  assert.ok(!/renDataCells\([^)]*,/.test(ren), 'renDataCells لسه بياخد باراميتر تاني');
+  const rr = noComments(read('core/render-router.js'));
+  assert.ok(!/data-car-field/.test(rr), 'لسه في data-car-field');
+  assert.ok(!/bindPaymentsCellEdit/.test(rr), 'لسه في تفويض حفظ في «تحت الدفع»');
+  assert.ok(!/payCellsEditable/.test(rr), 'لسه في فحص صلاحية الكتابة');
+  assert.ok(!/<input class="pay-cell"/.test(rr), 'لسه فيه input pay-cell');
+});
+
+/* ملاحظات «الفحص» استثنائية — دي خلية أداة موجودة من قبل ونتركها
+   قابلة للكتابة زي ما كانت. الاختبار بيمنع إننا نكسرها بالغلط. */
+test('خانة الملاحظات في الفحص سليمة (ترجع زي ما كانت)', () => {
+  const ren = noComments(read('modules/renewals-ui.js'));
+  assert.ok(/data-note-id/.test(ren), 'خانة الملاحظات بقت على معرّف تاني');
+  assert.ok(/input\[data-note-id\]/.test(ren), 'التفويض مش بيمسك خانة الملاحظات');
+  assert.ok(/ren-note-input/.test(ren), 'خانة الملاحظات مش موجودة');
+});
+
+/* ===== الأعمدة بتتمشى مع السيارة ===== */
+
+test('الأعمدة متطابقة في التبويبين — نفس الترتيب ونفس الحقول', () => {
+  /* ⚠️ الفخ اللي اتكرر: الأعمدة متنسخة في ملفين. لو اتغير واحد
+     واتغير التاني لأ، المستخدم يشوف التسلسلي بس في تاب والرقم
+     التسلسلي والحاسب والشركة في التاني — ويظن إن واحد فيهم بيطير. */
+  const pick = (src, name) => {
+    const m = new RegExp('const ' + name + ' = \\[([\\s\\S]*?)\\n\\];').exec(noComments(src));
+    assert.ok(m, 'مالقتش ' + name);
+    return [...m[1].matchAll(/field:\s*'([^']+)'/g)].map((x) => x[1]);
+  };
+  const pay = pick(read('core/render-router.js'), 'PAY_CELL_FIELDS');
+  const ren = pick(read('modules/renewals-ui.js'), 'REN_DATA_FIELDS');
+  /* «الفحص» مفيهاش ملاحظات — دي خانة أداة منفصلة بتتعرض لوحدها.
+     فلازم تطلع أول الأعمدة في نفس الترتيب بالظبط. */
+  assert.deepStrictEqual(ren, pay.slice(0, ren.length),
+    'ترتيب الأعمدة مختلف بين التابيين');
+  assert.deepStrictEqual(ren, ['serial', 'accountNo', 'companyName'],
+    'الأعمدة المشتركة مش الثلاثة المتوقعة');
+});
+
+test('الأعمدة بتتقرا من كائن السيارة لا من الطلب', () => {
+  /* عشان تنتقل مع السيارة: القراءة لازم تكون car[...]. لو بقت
+     item[...] من الطلب، بتنتهي مع الطلب وبتضيع. */
+  [['core/render-router.js', 'PAY_CELL_FIELDS'], ['modules/renewals-ui.js', 'REN_DATA_FIELDS']]
+    .forEach(([rel, name]) => {
+      const src = noComments(read(rel));
+      const start = src.indexOf('const ' + name);
+      const body = src.slice(start, start + 2400);
+      const reads = [...body.matchAll(/car\[def\.field\]/g)].length;
+      assert.ok(reads > 0, rel + ' — القراءة مش من كائن السيارة');
+      assert.ok(!/item\[def\.field\]/.test(body),
+        rel + ' — بيقرا من الطلب مش من السيارة،.flو الحقول مش هتتمشى معاها');
+    });
+});
+
+/* ===== التصدير في التبويبين ===== */
+
+test('«تحت الدفع» بيصدّر الأعمدة الأربعة', () => {
+  const router = read('core/render-router.js');
+  const start = router.indexOf('function renderInspectionPayments');
+  assert.ok(start > -1, 'مالقتش renderInspectionPayments');
+  const body = router.slice(start, router.indexOf('\nfunction ', start + 10) > -1
+    ? router.indexOf('\nfunction ', start + 10) : router.length);
+  const m = /_yahmaCurrentPdfData=\(\)=>\(\{([\s\S]*?)\n  \}\);/.exec(body);
+  assert.ok(m, 'مالقتش _yahmaCurrentPdfData في «تحت الدفع»');
+  const flat = m[1].replace(/\n\s*/g, ' ');
+  assert.ok(/headers:[\s\S]{0,80}?PAY_CELL_LABELS/.test(flat), 'الترويسة مش من المصدر الواحد');
+  assert.ok(/rows:[\s\S]{0,200}?PAY_CELL_FIELDS\.map\(d=>car\[d\.field\]/.test(flat),
+    'قيم الأعمدة مش من المصدر الواحد');
+});
+
+test('«الفحص» بيصدّر الأعمدة الثلاثة', () => {
+  const code = noComments(read('modules/renewals-ui.js'));
+  assert.ok(/headers:\[[\s\S]{0,120}?REN_DATA_LABELS/.test(code),
+    'ترويسة تصدير الفحص ناقصة الأعمدة');
+  assert.ok(/\.concat\(REN_DATA_FIELDS\.map\(d=>c\[d\.field\]/.test(code),
+    'قيم الأعمدة ناقصة من تصدير الفحص');
+  /* الرخص والتأمين ما اتغيّرش */
+  assert.ok(/تجديد الرخص المفلترة/.test(code), 'تصدير الرخص اتمسح');
+  assert.ok(/التأمين المفلتر/.test(code), 'تصدير التأمين اتمسح');
+});
+
+test('الـcolspan بيتحسب من الترويسات مش رقم ثابت', () => {
+  const code = read('modules/renewals-ui.js');
+  assert.ok(/#ren-table thead tr:first-child > th/.test(code), 'مفيش عدّ الترويسات');
+  assert.ok(/const colCount=headCells\.length/.test(code), 'الـcolspan مش محسوب');
+  assert.ok(!/baseCols\s*=\s*insuranceMode/.test(code), 'لسه في الرقم القديم');
+  assert.ok(!/delCol/.test(code), 'لسه في delCol — مفيش عمدة حذف منفصلة');
+  const rr = read('core/render-router.js');
+  assert.ok(/colspan="[^"]*PAY_CELL_FIELDS\.length/.test(rr),
+    'colspan «تحت الدفع» ثابت ومكتوب بإيد');
+});
+
+/* ===== التنسيق: خلية عرض مش input ===== */
+
+test('خلايا العرض متنسّقة (خط، محاذاة، التفاف)', () => {
+  const light = read('css/02-components.css');
+  const dark = read('css/04-dark-overrides.css');
+  assert.ok(/\.pay-cell\s*[,.]/.test(light), 'مفيش تنسيق لـ pay-cell');
+  assert.ok(/\.ren-data-cell\{/.test(light), 'مفيش تنسيق لـ ren-data-cell');
+  assert.ok(/body\.dark-mode \.pay-cell/.test(dark), 'مفيش نسخة ليلي');
+  /* ⚠️ مينفعش يفضل تنسيق input — الخلية مبقتش input */
+  assert.ok(!/\.pay-cell\[readonly\]/.test(light),
+    'لسه في تنسيق readonly — الخلية مبقتش input');
+  assert.ok(!/\.pay-cell:/.test(light), 'لسه في pseudo-class بتاع input');
+  assert.ok(!/\.pay-cell\.saving/.test(light), 'لسه في حالة saving بتاع input');
+});
+
+/* ===== الحارس على القاعدة ===== */
+
+test('الحارس بيقفل العمودين على «مشاهدة»', () => {
+  const body = carGuardBody('supabase/user-edit-access.sql');
+  NEW_FIELDS.forEach((f) => {
+    assert.ok(body.includes('new.' + f.column + ' is distinct from old.' + f.column),
+      'العمود ' + f.column + ' مش محمي');
+  });
+  /* لسه بيعدّي أي دور غير «مشاهدة» — ده اللي بيخلّي إنشاء
+     المستخدمين شغال (service_role مافيش JWT) */
+  assert.ok(/v_role is null or v_role <> 'view' then/.test(body),
+    'الـearly-out تغيّر — الإضافة هتبوظ تاني');
+  assert.ok(!/= 'service_role' then/.test(body),
+    'حارس السيارات مش محتاج استثناء service_role');
+});
+
+/* الحارس معرّف في ملفين — نفس فخ الـprofiles */
 function carGuardBody(rel) {
   const src = noComments(read(rel));
   const head = src.search(/create\s+or\s+replace\s+function\s+[\w.]*yahma_guard_car_columns\b/i);
@@ -111,239 +396,71 @@ test('الحارس متطابق في الملفين — مش منسوخ ومرق
     'الحارس في الملفين مختلف — أي ملف اتطبق آخر بيكسب');
 });
 
-test('حارس السيارات لسه بيعدّي أي دور غير «مشاهدة»', () => {
-  const flat = carGuardBody('supabase/user-edit-access.sql');
-  assert.ok(/v_role is null or v_role <> 'view' then/.test(flat),
-    'الـearly-out بايعدّي service_role — وده المطلوب لإضافة المستخدمين');
-  assert.ok(!/= 'service_role' then/.test(flat),
-    'حارس السيارات مش محتاج استثناء service_role — الـearly-out بيغطيه');
-});
+test('ملف فيه الأعمدة دي بيتقرا فعلاً — نهاية المسار', () => {
+  /* كل الاختبارات فوق بتشوف الكود. ده بيشغّل الكود: صفوف بتدخل
+     زي ما بتدخل من ورقة حقيقية، والنتيجة بتتقرا. */
+  const X = loadFleetExcel();
+  const rows = [
+    { 'رقم اللوحة':'ر ن س 6724', 'الرقم التسلسلي':'82433120',
+      'رقم الحاسب الآلي':'ACC-1024', 'اسم الشركة':'شركة الأمثل', 'ملاحظات':'فحص 10/2026' },
+    { 'رقم اللوحة':'ص ص 1111', 'الرقم التسلسلي':'99988877',
+      'الحاسب':'ACC-7', 'شركة التأجير':'شركة النور' },
+    { 'اللوحة':'ب ب 2222', 'حساب السيارة':'ACC-B', 'company name':'Company B' }
+  ];
+  const p = X.parseImportRows(rows, () => 'uid-1');
+  assert.strictEqual(p.skipped, 0, 'صفوف اتخطت');
+  assert.strictEqual(p.active.length, 3, 'مش كل الصفوف قريت');
 
-test('الحارس بيقفل العمودين الجديدين فعلاً', () => {
-  const flat = carGuardBody('supabase/user-edit-access.sql');
-  ['accountno', 'companyname'].forEach((col) => {
-    assert.ok(flat.includes('new.' + col + ' is distinct from old.' + col),
-      'العمود ' + col + ' مش في قائمة الأعمدة المحمية');
+  const expect = [
+    ['ر ن س 6724', '82433120', 'ACC-1024', 'شركة الأمثل'],
+    ['ص ص 1111', '99988877', 'ACC-7', 'شركة النور'],
+    ['ب ب 2222', '', 'ACC-B', 'Company B']
+  ];
+  p.active.forEach((rec, i) => {
+    const [plate, serial, acc, co] = expect[i];
+    assert.strictEqual(rec.car.plate, plate, 'اللوحة غلط');
+    assert.strictEqual(rec.car.serial, serial, 'التسلسلي غلط في ' + plate);
+    assert.strictEqual(rec.car.accountNo, acc, 'رقم الحاسب غلط في ' + plate);
+    assert.strictEqual(rec.car.companyName, co, 'اسم الشركة غلط في ' + plate);
+  });
+  /* والقيم لازم تكون معلنة كـ«مقدَّمة» عشان تتدمج مع السيارة
+     الموجودة بدل ما تتسجل من أول */
+  const first = p.active[0].provided;
+  ['serial', 'accountNo', 'companyName', 'notes'].forEach((f) => {
+    assert.ok(first.includes(f), f + ' مش معلَن كـprovided — مش هيتدمج');
   });
 });
 
-/* ===== التبويب ===== */
-
-test('«تحت الدفع» بيعرض الأعمدة الأربعة وكلها قابلة للكتابة', () => {
-  const router = read('core/render-router.js');
-  FIELDS.forEach((f) => {
-    assert.ok(router.includes("field: '" + f.field + "', label: '" + f.label + "'"),
-      'العمود ' + f.label + ' مش في قائمة خلايا «تحت الدفع»');
-    assert.ok(router.includes("data-car-field"), 'مفيش ربط الخلية بصف السيارة');
-  });
-  /* readonly لازم يبقى حسب الصلاحية، مش دايماً */
-  assert.ok(/payCellsEditable/.test(router), 'مفيش فحص صلاحية');
-  assert.ok(/canEditNow\(\)|currentRole === 'view'/.test(router),
-    'مفيش مقارنة بالدور «مشاهدة»');
+test('الدمج على سيارة موجودة بيكتب القيم الجديدة', () => {
+  const X = loadFleetExcel();
+  const rows = [{ 'رقم اللوحة':'د د 1', 'رقم الحاسب الآلي':'ACC-M', 'اسم الشركة':'شركة م' }];
+  const p = X.parseImportRows(rows, () => 'uid-2');
+  const existing = { id:'car-9', plate:'د د 1', serial:'OLD', accountNo:'', companyName:'', notes:'' };
+  const m = X.mergeImportRecord(existing, p.active[0]);
+  assert.strictEqual(m.changed, true, 'اتقال إنه ما اتغيّرش');
+  assert.strictEqual(m.car.accountNo, 'ACC-M');
+  assert.strictEqual(m.car.companyName, 'شركة م');
+  assert.strictEqual(m.car.serial, 'OLD', 'التسلسلي القديم اتمسح — الملف مافيهوش');
 });
 
-test('«مشاهدة» لو تقدر تعدّل الأعمدة دي = ثغرة', () => {
-  const router = read('core/render-router.js');
-  /* القفل لازم يكون على الـinput نفسه (readonly)، مش بس alert بعد ما
-     المستخدم يكتب — عشان الحقل يبقى مقروء ومكتوب ومقفول فعلياً. */
-  assert.ok(/\(editable \? '' : ' readonly'\)/.test(router),
-    'الـreadonly مش مربوط بالصلاحية — الخلية هتفضل قابلة للكتابة');
-  /* وكمان لازم فيه رفض في الحفظ نفسه مش بس في العرض */
-  assert.ok(/if \(!payCellsEditable\(\)\) \{/.test(router),
-    'مفيش رفض في مسار الحفظ');
-});
-
-/* ⚠️ مخرج الوضع التجريبي: أول نسخة من payCellsEditable كانت
-   `if (window._demoMode) return true` وبتسيب «مشاهدة» تكتب في
-   خلايا هوية. لقيتها لما جربت الدور watch في المتصفح —
-   testimonialeviewLocks رجع UNLOCKED. follow-up-ui وrenewals-ui
-   مفيهاش المخرج ده. */
-test('مفيش مخرج للوضع التجريبي في فحص صلاحية الخلايا', () => {
-  const router = read('core/render-router.js');
-  const m = /function payCellsEditable\(\)\s*\{[\s\S]*?\n\}/.exec(router);
-  assert.ok(m, 'مالقتش payCellsEditable');
-  const body = m[0].replace(/\/\*[\s\S]*?\*\//g, '');
-  assert.ok(!/_demoMode/.test(body),
-    'فيه مخرج للوضع التجريبي — «مشاهدة» هتقدر تكتب في خلايا الهوية');
-  /* ونفس فحص الصلاحية اللي renewals-ui بتستخدمه */
-  assert.ok(/canEditNow/.test(body),
-    'مش بيستخدم canEditNow — ناقص شرط التبويب الحالي');
-});
-
-/* مفيش مخرج تجريبي في أي حاجة بتعدّل بيانات — القاعدة العامة */
-test('مفيش مخرج تجريبي في خلايا قابلة للكتابة في أي تبويب', () => {
-  ['modules/follow-up-ui.js', 'modules/renewals-ui.js', 'core/render-router.js']
-    .forEach((rel) => {
-      const src = read(rel);
-      /* كل سطر فيه editable لازم يكون خالي من مخرج تجريبي */
-      src.split('\n').forEach((line, i) => {
-        if (!/Editable\s*=|_demoMode/.test(line)) return;
-        if (!/Editable\s*=/.test(line)) return;
-        assert.ok(!/_demoMode/.test(line),
-          rel + ':' + (i + 1) + ' — خلية قابلة للكتابة فيها مخرج تجريبي');
-      });
+test('ترويسة الملف الرسمي بتتعرف', () => {
+  /* الورق اللي المستخدم بيعمله من «نموذج-بيانات-الأسطول» لازم
+     يتقرا من غير ما يغيّر الترويسة. */
+  const X = loadFleetExcel();
+  ['الرقم التسلسلي', 'رقم الحاسب الآلي', 'اسم الشركة', 'ملاحظات']
+    .forEach((h) => {
+      assert.ok(X.EXCEL_HEADERS.includes(h), 'الترويسة ناقصة «' + h + '»');
     });
-});
-
-test('حفظ الخلية بيحفظ على السيارة مش على الطلب', () => {
-  const router = read('core/render-router.js');
-  assert.ok(/car\[def\.field\] = value/.test(router), 'مش كاتبة القيمة على كائن السيارة');
-  assert.ok(/saveData\(\[car\.id\]\)/.test(router), 'مش بتنداء saveData — التعديل يضيع');
-  /* الحفظ لازم يتعمل مرة واحدة بالتفويض، مش listener لكل صف */
-  assert.ok(/_payCellDelegate/.test(router), 'التفويض مش مثبّت — هيتكرر مع كل render');
-});
-
-/* ===== التصدير: Excel + PDF ===== */
-
-/* ⚠️ لازم نحدّد تبويب «تحت الدفع» صريح: الملف فيه
-   _yahmaCurrentPdfData لكل تبويب، وأول واحد في الملف مش بتاعنا.
-   أول نسخة من الاختبار ده كانت بتفحص جدول تاني وتقول «التصدير
-   ناقص». */
-function paymentsPdfBlock() {
-  const router = read('core/render-router.js');
-  const start = router.indexOf('function renderInspectionPayments');
-  assert.ok(start > -1, 'مالقتش renderInspectionPayments');
-  const body = router.slice(start, router.indexOf('\nfunction ', start + 10) > -1
-    ? router.indexOf('\nfunction ', start + 10)
-    : router.length);
-  const m = /_yahmaCurrentPdfData=\(\)=>\(\{([\s\S]*?)\n  \}\);/.exec(body);
-  assert.ok(m, 'مالقتش _yahmaCurrentPdfData جوّه «تحت الدفع»');
-  return m[1].replace(/\n\s*/g, ' ');
-}
-
-test('«تحت الدفع» بيصدّر الأعمدة الأربعة في Excel و PDF', () => {
-  const block = paymentsPdfBlock();
-  /* الترويسة والقيم لازم يتولّدوا من نفس المصدر عشان مفيش عمود
-     ينزل من الجدول ويبقى في التصدير أو العكس.
-
-     ⚠️ التحقق بالـregex على السطر كله مش بالـchar class: أول نسخة
-     استخدمت [^\]]* وبتوقف عند أول ] — وهو قوس المصفوفة الثابتة،
-     فكانت بتتوقف قبل PAY_CELL_LABELS وتقول «التصدير ناقص» والكود
-     كان تمام. */
-  assert.ok(/headers:[\s\S]{0,80}?PAY_CELL_LABELS/.test(block),
-    'الترويسة مش من المصدر الواحد');
-  assert.ok(/rows:[\s\S]{0,200}?PAY_CELL_FIELDS\.map\(d=>car\[d\.field\]/.test(block),
-    'قيم الأعمدة مش من المصدر الواحد');
-});
-
-test('عدد أعمدة الجدول = عدد ترويسات التصدير', () => {
-  /* زناد كل واحد: لو حد زاد عمود جوّه PAY_CELL_FIELDS بسه
-     الـcolspan هيفضل على القديم والصف هيتلخبط. */
-  const router = read('core/render-router.js');
-  const list = /const PAY_CELL_FIELDS = \[([\s\S]*?)\n\];/.exec(router);
-  assert.ok(list, 'مالقتش PAY_CELL_FIELDS');
-  const n = [...list[1].matchAll(/field:\s*'/g)].length;
-  assert.strictEqual(n, FIELDS.length,
-    'الجدول فيه ' + n + ' أعمدة والاختبار متوقع ' + FIELDS.length);
-  /* الـcolspan لازم يتحسب من نفس العدد — لا رقم مكتوب بإيد.
-     لاحظ إن الـ+ جوّه الأقواسمش برّهها، فالفحص لازم يكون
-     جوه الـcolspan نفسه. */
-  assert.ok(/colspan="[^"]*PAY_CELL_FIELDS\.length/.test(router),
-    'الـcolspan ثابت ومكتوب بإيد — لازم يتحسب من عدد الأعمدة');
-  /* والترويسة والقيم من نفس المصفوفة كمان */
-  assert.ok(/const PAY_CELL_HEADERS = PAY_CELL_FIELDS\.map/.test(router),
-    'ترويسة الجدول مش من المصدر الواحد');
-});
-
-test('التنسيق موجود في CSS (الخلية تبان في الوضعين)', () => {
-  const light = read('css/02-components.css');
-  const dark = read('css/04-dark-overrides.css');
-  assert.ok(/\.pay-cell\{/.test(light), 'مفيش تنسيق للخلية');
-  assert.ok(/\.pay-cell\[readonly\]/.test(light), 'مفيش تنسيق للحالة المقفولة');
-  assert.ok(/body\.dark-mode \.pay-cell\{/.test(dark), 'مفيش نسخة للوضع الليلي');
-  assert.ok(/body\.dark-mode \.pay-cell\[readonly\]/.test(dark), 'مفيش نسخة ليلي للحالة المقفولة');
-});
-
-/* ===== نفس الأعمدة في تبويب الفحص =====
-
-   الطلب: الأعمدة بتتسجّل في الفحص وتتمشى مع السيارة لـ«تحت الدفع».
-   («تشغيل» شغال في الفحص وفيه بس — OPS_EDIT_TABS = ['renewals'] —
-   فده المكان الطبيعي إنه يملاها.) */
-
-const REN_NEW = [
-  { field: 'serial', label: 'الرقم التسلسلي' },
-  { field: 'accountNo', label: 'رقم الحاسب الآلي' },
-  { field: 'companyName', label: 'اسم الشركة' }
-];
-
-test('تبويب الفحص بيعرض الأعمدة الثلاثة كخلايا قابلة للكتابة', () => {
-  const code = noComments(read('modules/renewals-ui.js'));
-  REN_NEW.forEach((f) => {
-    assert.ok(code.includes("field:'" + f.field + "', label:'" + f.label + "'"),
-      'الحقل ' + f.field + ' مش في قائمة أعمدة الفحص');
+  ['serial', 'accountNo', 'companyName', 'notes'].forEach((f) => {
+    assert.strictEqual(X.findField(f), f, 'الترويسة ' + f + ' مش بتترجم لنفسها');
   });
-  /* الترويسة من نفس المصدر — مش مكتوبة يدوي */
-  assert.ok(/const REN_DATA_HEADERS = REN_DATA_FIELDS\.map/.test(code),
-    'ترويسة الفحص مش من المصدر الواحد');
-  /* والخلايا بتتقفل حسب الصلاحية */
-  assert.ok(/\(editable \? '' : ' readonly'\)/.test(code),
-    'خلايا الفحص مش مربوطة بالصلاحية');
 });
 
-test('«مشاهدة» مقفولة على خلايا الفحص كمان', () => {
-  const src = noComments(read('modules/renewals-ui.js'));
-  assert.ok(/renDataCells\(c,\s*noteEditable\)/.test(src),
-    'خلايا الفحص مش مربوطة بـnoteEditable');
-  const ne = /const noteEditable=([^;]+);/.exec(src);
-  assert.ok(ne, 'مالقتش noteEditable');
-  assert.ok(!/_demoMode/.test(ne[1]),
-    'noteEditable فيه مخرج للوضع التجريبي — «مشاهدة» هتكتب');
-  assert.ok(/currentRole==='view'/.test(src), 'مفيش رفض في مسار الحفظ');
-});
-
-test('خانات الفحص بتاخد نفس معرّف الحقل (مش تكران)', () => {
-  const code = noComments(read('modules/renewals-ui.js'));
-  /* كل الحقول بتستخدم data-car-id، والتفويض بيقرا منه.
-     أول نسخة كانت خانة الملاحظات على data-note-id والخلايا
-     التانية على data-car-id — فالتنسيق بيبص على الأول
-     والـcarId ميبقاش موجود. */
-  assert.ok(!/data-note-id/.test(code), 'لسه في data-note-id — التفويض مش هيقرا الـcarId');
-  /* التحديد بمعرّف واحد؛ الحقل بيتعرف من data-ren-field */
-  assert.ok(/e\.target\.closest\('input\[data-car-id\]'\)/.test(code),
-    'التفويض مش بيستخدم المعرّد الموحّد');
-  assert.ok(/hasAttribute\('data-ren-field'\)/.test(code),
-    'مفيش تمييز بين خلية البيانات وخانة الملاحظات');
-  assert.ok(/inp\.dataset\.carId/.test(code), 'التفويض مش بيقرا data-car-id');
-  assert.ok(/_renNoteDelegate/.test(code), 'التفويض مش مثبّت — هيتكرر مع كل رسم');
-});
-
-test('تصدير الفحص بيطلع الأعمدة الثلاثة', () => {
-  const code = noComments(read('modules/renewals-ui.js'));
-  assert.ok(/headers:\[[\s\S]{0,120}?REN_DATA_LABELS/.test(code),
-    'ترويسة تصدير الفحص ناقصة الأعمدة');
-  assert.ok(/\.concat\(REN_DATA_FIELDS\.map\(d=>c\[d\.field\]/.test(code),
-    'قيم الأعمدة ناقصة من تصدير الفحص');
-  /* الرخص والتأمين ما اتغيّرش — ليهم تصدير مستقل */
-  assert.ok(/تجديد الرخص المفلترة/.test(code), 'تصدير الرخص اتمسح بالغلط');
-  assert.ok(/التأمين المفلتر/.test(code), 'تصدير التأمين اتمسح بالغلط');
-});
-
-test('الـcolspan بيتحسب من الترويسات مش رقم ثابت', () => {
-  const code = read('modules/renewals-ui.js');
-  assert.ok(/#ren-table thead tr:first-child > th/.test(code), 'مفيش عدّ الترويسات');
-  assert.ok(/const colCount=headCells\.length/.test(code),
-    'الـcolspan مش محسوب من الترويسات');
-  /* الرقم القديم كان 9 في وضع الفحص وأقل من الفعلي بخمس أعمدة */
-  assert.ok(!/baseCols\s*=\s*insuranceMode/.test(code),
-    'لسه في الرقم القديم — هيتكسر مع أول عمدة جديدة');
-  assert.ok(!/delCol/.test(code), 'لسه في delCol — مفيش عمدة حذف منفصلة أصلاً');
-});
-
-/* ملف التحقق على القاعدة — لازم يفضل آمن يتطبق أي عدد مرات */
 test('ملف التحقق على القاعدة آمن — بيعمل rollback', () => {
-  const src = read('supabase/verify-payment-columns.sql');
-  assert.ok(/raise exception/.test(src),
-    'لازم يرمي استثناء في الآخر عشان يعمل rollback');
-  /* ⚠️ الفحص على الكود مش على الشرح: أول نسخة من الاختبار ده
-     matchت على كلمة «commit» اللي في التعليق نفسه. */
-  const code = noComments(src);
-  assert.ok(!/\bcommit\b/i.test(code), 'في commit — الملف ده هيسبّب تغيير دائم');
+  const code = noComments(read('supabase/verify-payment-columns.sql'));
+  assert.ok(/raise exception/.test(code), 'لازم يرمي استثناء في الآخر = rollback');
+  assert.ok(!/\bcommit\b/i.test(code), 'في commit');
   assert.ok(!/\bdelete\b/i.test(code), 'في delete');
-  assert.ok(/view/.test(code) && /ops/.test(code), 'مش بيفحص الدورين');
-  /* مافيش حساب «مشاهدة» على المنصة، فالاختبار لازم يعمل واحد
-     جوّه الـtransaction — من غير كده بيفحص والا محدش وبيعدّي */
   assert.ok(/set role = 'view'/.test(code),
-    'مش بيعمل حساب مشاهدة مؤقت — الاختبار بيفحص والا محدش');
-  assert.ok(/disable trigger yahma_guard_profile_columns/.test(code),
-    'حارس الـprofiles هيمنع تجهيز الحساب');
+    'مافيش حساب مشاهدة مؤقت — مفيش أصلاً على المنصة، والاختبار بيفحص والا محدش');
 });

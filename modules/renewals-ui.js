@@ -3,35 +3,28 @@
 
 /* ===== أعمدة بيانات بتتمشى مع السيارة عبر دورة الفحص =====
 
-   الطلب: الأعمدة بتتسجّل في تبويب «الفحص» وتوصل مع السيارة
-   لـ«تحت الدفع» ← «تم الدفع» ← «تم التجديد».
+   الطلب: الأعمدة في «الفحص» وتوصل مع السيارة لـ«تحت الدفع» ←
+   «تم الدفع» ← «تم التجديد»، والقيم **ثابتة على السيارة من ملف
+   Excel مرفوع** — مش كتابة يدوية.
 
-   ليه في الفحص تحديداً: «تشغيل» شغال في التبويب ده وفيه بس
-   (OPS_EDIT_TABS = ['renewals'])، فده المكان الطبيعي إنه يملاها.
-   في «تحت الدفع» نفس الأعمدة موجودة للمدير والإداري.
+   علشان كده دي خلايا عرض مش inputs: أي حد يعدّلها من هنا بيكسر
+   المعادلة، والقيمة الصح مكانها ورقة Excel أو نافذة تعديل السيارة.
 
-   الحقول دي على السيارة مش على الطلب — عشان كده بتظهر في
-   التبويبات التانية من غير ما تتحمل معرّفة تانية.
-
-   نفس نمط render-router.js بالظبط: مصدر واحد للترويسة والصف
-   والتصدير، عشان مفيش عمود ينزل من الجدول ويبقى في التصدير. */
+   نفس الترتيب والتصدير في «تحت الدفع» (render-router.js) عشان
+   مفيش عمود ينزل من الجدول ويبقى في التصدير — أو العكس. */
 const REN_DATA_FIELDS = [
-  { field:'serial', label:'الرقم التسلسلي', hint:'مثال: 1HGCM82633A004352' },
-  { field:'accountNo', label:'رقم الحاسب الآلي', hint:'مثال: 1024' },
-  { field:'companyName', label:'اسم الشركة', hint:'مثال: شركة الأمثل' }
+  { field:'serial', label:'الرقم التسلسلي' },
+  { field:'accountNo', label:'رقم الحاسب الآلي' },
+  { field:'companyName', label:'اسم الشركة' }
 ];
 const REN_DATA_HEADERS = REN_DATA_FIELDS.map(d => '<th>' + d.label + '</th>').join('');
 const REN_DATA_LABELS = REN_DATA_FIELDS.map(d => d.label);
 
-function renDataCells(car, editable){
+/* ⚠️ لو رجعت cell فيها input من غير سبب، الأعمدة بتبقى قابلة
+   للكتابة تاني والاختبار بيرفض. */
+function renDataCells(car){
   return REN_DATA_FIELDS.map(function(def){
-    const aria = def.label + ' للسيارة ' + (car.plate || '—');
-    return '<td><input class="pay-cell ren-data-cell" data-ren-field="' + def.field +
-      '" data-car-id="' + escapeHtml(String(car.id)) +
-      '" value="' + escapeHtml(car[def.field] || '') +
-      '" placeholder="' + escapeHtml(def.hint) +
-      '" aria-label="' + escapeHtml(aria) + '"' +
-      (editable ? '' : ' readonly') + '></td>';
+    return '<td class="ren-data-cell">' + escapeHtml(car[def.field] || '—') + '</td>';
   }).join('');
 }
 
@@ -466,7 +459,7 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
         <td>${escapeHtml(String(c.odometer??'').trim()||'—')}</td>
         <td>${escapeHtml(c.color||'—')}</td>
         <td>${escapeHtml(c.city||'—')}</td>
-        ${(!licenseMode&&!insuranceMode)?renDataCells(c,noteEditable):`<td>${escapeHtml(c.serial||'—')}</td>`}
+        ${(!licenseMode&&!insuranceMode)?renDataCells(c):`<td>${escapeHtml(c.serial||'—')}</td>`}
         ${(!licenseMode&&!insuranceMode)?`<td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>`:''}
         ${licenseMode?`<td>${fmtDate(c.licenseExpiry)}</td>
         <td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td>`:''}
@@ -479,7 +472,7 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
           ${insuranceMode?`<button class="btn btn-ghost btn-small" data-renew-ins="${escapeHtml(c.id)}">تجديد تأمين</button>`:''}
           ${canDelete?`<button class="btn btn-danger btn-small" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة">🗑</button>`:''}
         </td>
-        ${noteMode?`<td><input class="ren-note-input" data-car-id="${escapeHtml(c.id)}" value="${escapeHtml(c.notes||'')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(c.plate||'—')}"${noteEditable?'':' readonly'}></td>`:''}
+        ${noteMode?`<td><input class="ren-note-input" data-note-id="${escapeHtml(c.id)}" value="${escapeHtml(c.notes||'')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(c.plate||'—')}"${noteEditable?'':' readonly'}></td>`:''}
       </tr>`;
       }
       /* ⚠️ الـcolspan بيتبني من عدد الترويسات الحقيقي مش رقم ثابت.
@@ -556,30 +549,27 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
           }
         });
       }
-      // تفويض حفظ خلايا البيانات مرة واحدة (وضع الفحص فقط — متوافق مع Virtualization)
-      // الحقول دي بتتمشى مع السيارة لـ«تحت الدفع» بعد كده، فلازم تتحفظ فورًا
+      // تفويض حفظ الملاحظات مرة واحدة (وضع الفحص فقط — متوافق مع Virtualization)
+      // ⚠️ أعمدة الأرقام (تسلسلي/حاسب/شركة) خلايا عرض مش inputs —
+      //    القيم بتتحط بملف Excel. لو رجعت inputs، المفروض يرجع
+      //    لها تفويض هنا، وما ينفعش تشوف input مش متعالَج.
       if(!tbody._renNoteDelegate){
         tbody._renNoteDelegate = true;
         tbody.addEventListener('change', async function(e){
-          /* ⚠️ كل الخلايا بتستخدم data-car-id واحد. أول نسخة كانت
-             الملاحظات على data-note-id والخلايا التانية على
-             data-car-id، والتفويض بيختار بـclosest فكان بيمسك
-             التانية ويسيب الملاحظات مش ماشية. */
-          const inp = e.target.closest ? e.target.closest('input[data-car-id]') : null;
+          const inp = e.target.closest ? e.target.closest('input[data-note-id]') : null;
           if(!inp || inp.hasAttribute('readonly')) return;
-          const field = inp.hasAttribute('data-ren-field') ? inp.dataset.renField : 'notes';
-          const car = fleet.find(c=>String(c.id)===inp.dataset.carId);
+          const car = fleet.find(c=>String(c.id)===inp.dataset.noteId);
           if(!car) return;
-          if(typeof currentRole!=='undefined'&&currentRole==='view'){ alert('ليس لديك صلاحية التعديل.'); inp.value=car[field]||''; return; }
+          if(typeof currentRole!=='undefined'&&currentRole==='view'){ alert('ليس لديك صلاحية التعديل.'); inp.value=car.notes||''; return; }
           const v = inp.value.trim();
-          if(String(car[field]||'')===v) return;
-          car[field]=v;
+          if(String(car.notes||'')===v) return;
+          car.notes=v;
           inp.classList.add('saving');
           let ok=true;
           try{ if(typeof saveData==='function') ok = await saveData([car.id]); }catch(_){ ok=false; }
           inp.classList.remove('saving');
           if(ok===false){ alert('تعذر الحفظ — تحقق من الاتصال.'); }
-          else { try{ if(typeof window.log==='function') window.log(field==='notes'?'ملاحظة فحص':'بيانات فحص',(car.plate||'')+' — '+field); }catch(_){yahmaErr(_,'renewals-ui.js:440');} }
+          else { try{ if(typeof window.log==='function') window.log('ملاحظة فحص','السيارة '+(car.plate||'')); }catch(_){yahmaErr(_,'renewals-ui.js:440');} }
         });
       }
     })();

@@ -1580,11 +1580,9 @@ body.dark-mode .branch-scope-chip{background:#193B43;color:#7FD1CC}
 /* حقل الملاحظات — الوضع الليلي */
 body.dark-mode .ren-note-input,body.dark-mode .fu-note-input,body.dark-mode .tr-note-input{background:#263442;border-color:#3A4A5E;color:#E7EEF5}
 body.dark-mode .ren-note-input[readonly],body.dark-mode .fu-note-input[readonly],body.dark-mode .tr-note-input[readonly]{background:transparent;border-color:transparent}
-/* خلايا «تحت الدفع» — الوضع الليلي. الحقل الفاضي في الوضع الفاتح
-   شفاف، فلو ظل placeholder باين في الليلي الجدول بيتلخبط. */
-body.dark-mode .pay-cell{background:#263442;border-color:#3A4A5C;color:#E6EDF5}
-body.dark-mode .pay-cell:focus{background:#2E3E4E}
-body.dark-mode .pay-cell[readonly]{background:transparent;border-color:transparent;color:inherit}
+/* خلايا بيانات السيارة — الوضع الليلي. خلايا عرض فمافيش خلفية
+   ولا حدود؛ inherited من خلية الجدول. */
+body.dark-mode .pay-cell,body.dark-mode .ren-data-cell{color:inherit}
 body.dark-mode .tr-status-sel,body.dark-mode .tr-date-input{background:#263442;border-color:#3A4A5E;color:#E7EEF5}
 /* المتاح مقابل المؤجر — الوضع الليلي */
 body.dark-mode .home-avail{background:#1E2A38;border-color:#2E3D4F}

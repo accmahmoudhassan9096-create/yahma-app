@@ -901,14 +901,17 @@ body.dark-mode .br-name-btn{color:#7FD1CC}
 .ren-note-input:focus,.fu-note-input:focus,.tr-note-input:focus{outline:2px solid #168A81;outline-offset:0;border-color:#168A81}
 .ren-note-input[readonly],.fu-note-input[readonly],.tr-note-input[readonly]{background:transparent;border-color:transparent;cursor:default}
 .ren-note-input.saving,.fu-note-input.saving,.tr-note-input.saving{opacity:.55}
-/* خلايا «تحت الدفع» — نفسHandling بتاع خانات الملاحظات بالتبويبات
-   التانية: شفافة للمكتوب، ومكتوبة بوضوح الحقل الفاضي. */
-.pay-cell{width:100%;min-width:130px;font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--line,#E4EAF1);border-radius:7px;background:#fff;color:inherit}
-.pay-cell:focus{outline:2px solid #168A81;outline-offset:0;border-color:#168A81}
-.pay-cell::placeholder{color:#9AA6B2}
-.pay-cell[readonly]{background:transparent;border-color:transparent;cursor:default}
-.pay-cell[readonly]::placeholder{color:transparent}
-.pay-cell.saving{opacity:.55}
+/* خلايا بيانات السيارة عبر دورة الفحص والدفع — عرض بس.
+  Values come from the uploaded Excel sheet or the edit dialog, never
+   typed into the table, so these are plain cells: a shared class so
+   number-ish columns line up and long values wrap instead of blowing
+   the column out. No :focus, no [readonly], no .saving — those were
+   for the input version and would be dead rules now. */
+.pay-cell,.ren-data-cell{
+  font-size:12.5px;font-variant-numeric:tabular-nums;
+  color:inherit;white-space:normal;word-break:break-word;min-width:110px;
+}
+.ren-data-cell{font-family:inherit}
 .tr-status-sel,.tr-date-input{font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--line,#E4EAF1);border-radius:7px;background:#fff;color:inherit;margin-inline-end:6px}
 .tr-status-sel:disabled,.tr-date-input:disabled{background:transparent;border-color:transparent;cursor:default}
 /* المتاح مقابل المؤجر في الرئيسية */
