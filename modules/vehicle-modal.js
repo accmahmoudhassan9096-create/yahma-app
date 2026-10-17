@@ -9,6 +9,7 @@
     const fields = {
       'f-plate': value('plate'), 'f-brand': value('brand'), 'f-type': value('type'),
       'f-model': value('model'), 'f-color': value('color'), 'f-serial': value('serial'),
+      'f-accountno': value('accountNo'), 'f-companyname': value('companyName'),
       'f-cardnumber': value('cardNumber'), 'f-cardstatus': value('cardStatus'),
       'f-cardexpiry': car ? normalizeDateValue(car.cardExpiry) : '',
       'f-licensestatus': value('licenseStatus'),

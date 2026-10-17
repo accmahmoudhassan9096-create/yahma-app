@@ -1,6 +1,40 @@
 (function(global){
   'use strict';
 
+/* ===== أعمدة بيانات بتتمشى مع السيارة عبر دورة الفحص =====
+
+   الطلب: الأعمدة بتتسجّل في تبويب «الفحص» وتوصل مع السيارة
+   لـ«تحت الدفع» ← «تم الدفع» ← «تم التجديد».
+
+   ليه في الفحص تحديداً: «تشغيل» شغال في التبويب ده وفيه بس
+   (OPS_EDIT_TABS = ['renewals'])، فده المكان الطبيعي إنه يملاها.
+   في «تحت الدفع» نفس الأعمدة موجودة للمدير والإداري.
+
+   الحقول دي على السيارة مش على الطلب — عشان كده بتظهر في
+   التبويبات التانية من غير ما تتحمل معرّفة تانية.
+
+   نفس نمط render-router.js بالظبط: مصدر واحد للترويسة والصف
+   والتصدير، عشان مفيش عمود ينزل من الجدول ويبقى في التصدير. */
+const REN_DATA_FIELDS = [
+  { field:'serial', label:'الرقم التسلسلي', hint:'مثال: 1HGCM82633A004352' },
+  { field:'accountNo', label:'رقم الحاسب الآلي', hint:'مثال: 1024' },
+  { field:'companyName', label:'اسم الشركة', hint:'مثال: شركة الأمثل' }
+];
+const REN_DATA_HEADERS = REN_DATA_FIELDS.map(d => '<th>' + d.label + '</th>').join('');
+const REN_DATA_LABELS = REN_DATA_FIELDS.map(d => d.label);
+
+function renDataCells(car, editable){
+  return REN_DATA_FIELDS.map(function(def){
+    const aria = def.label + ' للسيارة ' + (car.plate || '—');
+    return '<td><input class="pay-cell ren-data-cell" data-ren-field="' + def.field +
+      '" data-car-id="' + escapeHtml(String(car.id)) +
+      '" value="' + escapeHtml(car[def.field] || '') +
+      '" placeholder="' + escapeHtml(def.hint) +
+      '" aria-label="' + escapeHtml(aria) + '"' +
+      (editable ? '' : ' readonly') + '></td>';
+  }).join('');
+}
+
 function renderRenewals(content, mode='inspection'){
   /* الشريط نفسه ≠ زر الحذف. كان الاتنين نفس الشرط. */
   const canBulk=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canBulk() : !(typeof currentRole!=='undefined'&&currentRole==='view');
@@ -88,7 +122,7 @@ function renderRenewals(content, mode='inspection'){
       </div>
     </div>`:''}
     <div class="table-scroll" style="max-height:calc(100vh - 320px)">
-      <table class="fleet-table" style="min-width:1400px">
+      <table class="fleet-table" id="ren-table" style="min-width:1400px">
         <thead><tr>
           ${canBulk?'<th class="th-check"><input type="checkbox" id="ren-head-check" aria-label="تحديد الكل"></th>':''}
           <th>رقم اللوحة</th>
@@ -98,7 +132,7 @@ function renderRenewals(content, mode='inspection'){
           <th>كم الحالي</th>
           <th>اللون</th>
           <th>المدينة</th>
-          <th>الرقم التسلسلي</th>
+          ${(!licenseMode&&!insuranceMode)?REN_DATA_HEADERS:'<th>الرقم التسلسلي</th>'}
           ${(!licenseMode&&!insuranceMode)?'<th>انتهاء الرخصة</th><th>حالة الفحص</th>':''}
           ${licenseMode?'<th>تاريخ انتهاء الرخصة</th><th>حالة الرخصة</th>':''}
           ${insuranceMode?'<th>حالة التأمين</th><th>تاريخ الانتهاء</th><th>شركة التأمين</th><th>المالك</th>':''}
@@ -200,7 +234,15 @@ function renderRenewals(content, mode='inspection'){
   }
   window._yahmaCurrentPdfData=()=>{
     if(insuranceMode) return {title:'التأمين المفلتر',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','حالة التأمين','انتهاء التأمين','شركة التأمين','المالك','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',textTag(c.insuranceStatus).label,c.insuranceExpiry||'—',c.insuranceCompany||'—',c.owner||'—',c.branch||'—',c.carStatus||'—'])};
-    return {title:licenseMode?'تجديد الرخص المفلترة':'الفحص المفلتر',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','انتهاء الرخصة','حالة الفحص','حالة الرخصة','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.licenseExpiry||'—',inspectionDisplayStatus(c.inspectionStatus).label,dateStatus(c.licenseExpiry).label,c.branch||'—',c.carStatus||'—'])};
+    if(licenseMode) return {title:'تجديد الرخص المفلترة',subtitle:'عدد السيارات: '+getRows().length,headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','الرقم التسلسلي','انتهاء الرخصة','حالة الرخصة','الفرع','حالة السيارة'],rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.serial||'—',c.licenseExpiry||'—',dateStatus(c.licenseExpiry).label,c.branch||'—',c.carStatus||'—'])};
+    /* وضع الفحص: الأعمدة بتتمشى مع السيارة لـ«تحت الدفع»، فلازم
+       تطلع في التصدير كمان — وإلا اللي بيبعت الملف للفوترة ناقصه. */
+    return {title:'الفحص المفلتر',subtitle:'عدد السيارات: '+getRows().length,
+      headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة']
+        .concat(REN_DATA_LABELS,['انتهاء الرخصة','حالة الفحص','حالة الرخصة','الفرع','حالة السيارة','ملاحظات']),
+      rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—']
+        .concat(REN_DATA_FIELDS.map(d=>c[d.field]||'—'))
+        .concat([c.licenseExpiry||'—',inspectionDisplayStatus(c.inspectionStatus).label,dateStatus(c.licenseExpiry).label,c.branch||'—',c.carStatus||'—',c.notes||'—']))};
   };
 
   /* تحديد جماعي + حذف (إداريون فقط) */
@@ -423,7 +465,8 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
         <td>${escapeHtml(c.model||'—')}</td>
         <td>${escapeHtml(String(c.odometer??'').trim()||'—')}</td>
         <td>${escapeHtml(c.color||'—')}</td>
-        <td>${escapeHtml(c.city||'—')}</td><td>${escapeHtml(c.serial||'—')}</td>
+        <td>${escapeHtml(c.city||'—')}</td>
+        ${(!licenseMode&&!insuranceMode)?renDataCells(c,noteEditable):`<td>${escapeHtml(c.serial||'—')}</td>`}
         ${(!licenseMode&&!insuranceMode)?`<td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>`:''}
         ${licenseMode?`<td>${fmtDate(c.licenseExpiry)}</td>
         <td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td>`:''}
@@ -436,24 +479,30 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
           ${insuranceMode?`<button class="btn btn-ghost btn-small" data-renew-ins="${escapeHtml(c.id)}">تجديد تأمين</button>`:''}
           ${canDelete?`<button class="btn btn-danger btn-small" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة">🗑</button>`:''}
         </td>
-        ${noteMode?`<td><input class="ren-note-input" data-note-id="${escapeHtml(c.id)}" value="${escapeHtml(c.notes||'')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(c.plate||'—')}"${noteEditable?'':' readonly'}></td>`:''}
+        ${noteMode?`<td><input class="ren-note-input" data-car-id="${escapeHtml(c.id)}" value="${escapeHtml(c.notes||'')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(c.plate||'—')}"${noteEditable?'':' readonly'}></td>`:''}
       </tr>`;
       }
-      const delCol=canDelete?1:0, baseCols=insuranceMode?11:(licenseMode?10:9);
+      /* ⚠️ الـcolspan بيتبني من عدد الترويسات الحقيقي مش رقم ثابت.
+         الرقم القديم (9 في وضع الفحص) كان أقل من العدد الفعلي
+         بخمس أعمدة، فسطر «لا توجد نتائج» مكانش بياخد عرض الجدول.
+         وكان لازم يتعدّل يدوي مع كل عمدة جديدة — مصدر أخطاء
+         متكرر. دلوقتي بيتحسب لوحده. */
+      const headCells=document.querySelectorAll('#ren-table thead tr:first-child > th');
+      const colCount=headCells.length || 1;
       if(window.YahmaVTable && scrollEl){
         if(!window._renVT || window._renVT._tb !== tbody){
           if(window._renVT && window._renVT.destroy) try{window._renVT.destroy()}catch(e){yahmaErr(e,'renewals-ui.js:358');}
           window._renVT = window.YahmaVTable.create({
-            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: baseCols+delCol,
+            scrollEl: scrollEl, tbody: tbody, rowHeight: 52, overscan: 10, threshold: 30, colCount: colCount,
             renderRow: function(c){ return renderRenRow(c); },
             afterRender: function(){},
-            emptyHtml: `<tr><td colspan="${baseCols+delCol}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`
+            emptyHtml: `<tr><td colspan="${colCount}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`
           });
           window._renVT._tb = tbody;
         }
         window._renVT.setItems(rows, true);
       } else {
-        tbody.innerHTML=rows.length?rows.map(renderRenRow).join(''):`<tr><td colspan="${baseCols+delCol}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`;
+        tbody.innerHTML=rows.length?rows.map(renderRenRow).join(''):`<tr><td colspan="${colCount}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`;
       }
       wireRenChecks();
       // تفويض أحداث الأزرار مرة واحدة (متوافق مع Virtualization)
@@ -507,24 +556,30 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
           }
         });
       }
-      // تفويض حفظ الملاحظات مرة واحدة (وضع الفحص فقط — متوافق مع Virtualization)
+      // تفويض حفظ خلايا البيانات مرة واحدة (وضع الفحص فقط — متوافق مع Virtualization)
+      // الحقول دي بتتمشى مع السيارة لـ«تحت الدفع» بعد كده، فلازم تتحفظ فورًا
       if(!tbody._renNoteDelegate){
         tbody._renNoteDelegate = true;
         tbody.addEventListener('change', async function(e){
-          const inp = e.target.closest ? e.target.closest('input[data-note-id]') : null;
+          /* ⚠️ كل الخلايا بتستخدم data-car-id واحد. أول نسخة كانت
+             الملاحظات على data-note-id والخلايا التانية على
+             data-car-id، والتفويض بيختار بـclosest فكان بيمسك
+             التانية ويسيب الملاحظات مش ماشية. */
+          const inp = e.target.closest ? e.target.closest('input[data-car-id]') : null;
           if(!inp || inp.hasAttribute('readonly')) return;
-          const car = fleet.find(c=>String(c.id)===inp.dataset.noteId);
+          const field = inp.hasAttribute('data-ren-field') ? inp.dataset.renField : 'notes';
+          const car = fleet.find(c=>String(c.id)===inp.dataset.carId);
           if(!car) return;
-          if(typeof currentRole!=='undefined'&&currentRole==='view'){ alert('ليس لديك صلاحية التعديل.'); inp.value=car.notes||''; return; }
+          if(typeof currentRole!=='undefined'&&currentRole==='view'){ alert('ليس لديك صلاحية التعديل.'); inp.value=car[field]||''; return; }
           const v = inp.value.trim();
-          if(String(car.notes||'')===v) return;
-          car.notes=v;
+          if(String(car[field]||'')===v) return;
+          car[field]=v;
           inp.classList.add('saving');
           let ok=true;
           try{ if(typeof saveData==='function') ok = await saveData([car.id]); }catch(_){ ok=false; }
           inp.classList.remove('saving');
           if(ok===false){ alert('تعذر الحفظ — تحقق من الاتصال.'); }
-          else { try{ if(typeof window.log==='function') window.log('ملاحظة فحص','السيارة '+(car.plate||'')); }catch(_){yahmaErr(_,'renewals-ui.js:440');} }
+          else { try{ if(typeof window.log==='function') window.log(field==='notes'?'ملاحظة فحص':'بيانات فحص',(car.plate||'')+' — '+field); }catch(_){yahmaErr(_,'renewals-ui.js:440');} }
         });
       }
     })();

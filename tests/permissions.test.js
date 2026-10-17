@@ -115,6 +115,7 @@ test('حقول النموذج المحمية مطابقة لـtrigger في ال�
      فاصل. فاستخدمنا الخريطة الصريحة من ترحيل القاعدة نفسه. */
   const COLUMN = {
     plate: 'plate', brand: 'brand', type: 'type', model: 'model', serial: 'serial',
+    accountNo: 'accountno', companyName: 'companyname',
     owner: 'owner', ownerNumber: 'ownernumber', branch: 'branch', carStatus: 'carstatus',
     dailyRate: 'dailyrate', rentedDaysMonth: 'renteddays', maintenanceCost: 'maintenancecost'
   };

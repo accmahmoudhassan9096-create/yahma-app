@@ -198,26 +198,122 @@ function canRunPayments(action){
 }
 const NOT_INSPECTED = 'لم يفحص';
 
+/* ===== خلايا قابلة للكتابة في «تحت الدفع» =====
+
+   الأعمدة دي بتتخزّن على السيارة (مش على الطلب) عشان تفضل
+   متاحة في كل التبويبات. سبببت إعادة الكتابة في فترات مختلفة:
+   تاب «الفحص» و«المتابعة» عندهم خانة ملاحظات، و«الأسطول» و
+   «المستحقات» مش — فـ«تحت الدفع» بقى المكان الوحيد اللي
+   الدفعة بتبحث فيه عن رقم الحاسب واسم الشركة، وبقوا بتتففع هنا.
+
+   «مشاهدة» مقفولة: الحقول دي هوية (زي الرقم التسلسلي والمالك)،
+   والحارس في القاعدة بيمنعها هي كمان — فلازم الواجهة تمنع قبل
+   ما الدالة ترفض.
+
+   الحفظ بتفويض واحد على الـtbody (مش listener لكل صف) عشان
+   الجدول بيتبنى من الصفر مع كل render. */
+
+const PAY_CELL_FIELDS = [
+  { field: 'serial', label: 'الرقم التسلسلي', hint: 'مثال: 1HGCM82633A004352' },
+  { field: 'accountNo', label: 'رقم الحاسب الآلي', hint: 'مثال: 1024' },
+  { field: 'companyName', label: 'اسم الشركة', hint: 'مثال: شركة الأمثل' },
+  { field: 'notes', label: 'ملاحظات', hint: 'اكتب ملاحظة…' }
+];
+const PAY_CELL_HEADERS = PAY_CELL_FIELDS.map(d => '<th>' + d.label + '</th>').join('');
+const PAY_CELL_LABELS = PAY_CELL_FIELDS.map(d => d.label);
+
+/* «مشاهدة» مقفولة: الحقول دي هوية (زي الرقم التسلسلي والمالك)،
+   والحارس في القاعدة بيمنعها هي كمان — فلازم الواجهة تمنع قبل
+   ما الدالة ترفض.
+
+   ⚠️ مفيش مخرج للوضع التجريبي هنا عن قصد. أول نسخة كانت فيه
+   `if (window._demoMode) return true`، وده كان بيسيب «مشاهدة»
+   تقدر تكتب في خلايا هوية. precedents التانية (follow-up-ui و
+   renewals-ui) مفيهاش المخرج ده، والقاعدة هنا إن أي حاجة بتعدّل
+   بيانات ما بتاخدش مخرج للوضع التجريبي.
+
+   فحص الصلاحية نفسه هو canEditNow زي ما renewals-ui بتعمل —
+   بياخد في الحسبان الدور *و* التبويب الحالي. */
+function payCellsEditable() {
+  try {
+    const perms = window.YahmaPerms;
+    if (perms && typeof perms.canEditNow === 'function') return !!perms.canEditNow();
+    return !(typeof window.currentRole !== 'undefined' && window.currentRole === 'view');
+  } catch (_) { return false; }
+}
+
+/* الأربع خلايا في صف واحد. الـreadonly مش styling — ده اللي
+   بيمنع الكتابة فعلاً، والـclass للون بس. */
+function payCellsHtml(car, editable) {
+  return PAY_CELL_FIELDS.map(function (def) {
+    const aria = def.label + ' للسيارة ' + (car.plate || '—');
+    return '<td><input class="pay-cell" data-car-field="' + def.field +
+      '" data-car-id="' + escapeHtml(String(car.id)) +
+      '" value="' + escapeHtml(car[def.field] || '') +
+      '" placeholder="' + escapeHtml(def.hint) +
+      '" aria-label="' + escapeHtml(aria) + '"' +
+      (editable ? '' : ' readonly') + '></td>';
+  }).join('');
+}
+
+function bindPaymentsCellEdit(content) {
+  const tbody = content.querySelector('.fleet-table tbody');
+  if (!tbody || tbody._payCellDelegate) return;
+  tbody._payCellDelegate = true;
+  tbody.addEventListener('change', async function (e) {
+    const input = e.target.closest ? e.target.closest('input.pay-cell') : null;
+    if (!input || input.hasAttribute('readonly')) return;
+    const def = PAY_CELL_FIELDS.find(d => d.field === input.dataset.carField);
+    if (!def) return;
+    const car = fleet.find(c => String(c.id) === input.dataset.carId);
+    if (!car) return;
+    if (!payCellsEditable()) {
+      alert('ليس لديك صلاحية التعديل.');
+      input.value = car[def.field] || '';
+      return;
+    }
+    const value = input.value.trim();
+    if (String(car[def.field] || '') === value) return;
+    car[def.field] = value;
+    input.classList.add('saving');
+    let ok = true;
+    try { if (typeof saveData === 'function') ok = await saveData([car.id]); }
+    catch (_) { ok = false; }
+    input.classList.remove('saving');
+    if (ok === false) {
+      alert('تعذر الحفظ — تحقق من الاتصال.');
+      render();
+      return;
+    }
+    try {
+      if (typeof window.log === 'function') window.log('تحت الدفع', def.label + ' — ' + (car.plate || ''));
+    } catch (_) { yahmaErr(_, 'render-router.js:payCell'); }
+  });
+}
+
 function renderInspectionPayments(content){
   document.getElementById('topbar-title').textContent='تحت الدفع';
   document.getElementById('topbar-sub').textContent='طلبات دفع تجديد فحص السيارات';
   const pending=loadInspectionPayments();
   const byId=new Map(fleet.map(car=>[String(car.id),car]));
   const rows=pending.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
+  const payEditable=payCellsEditable();
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip"><div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>طلبات تحت الدفع</small></span></div></div>
   <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تجديد الفحص بانتظار الدفع</strong><span>بعد تسجيل الدفع تنتقل الطلب إلى تبويب «تم الدفع»</span></div></div>
   ${paymentsSyncWarningHtml()}
-  <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>حالة الدفع</th><th>الإجراء</th></tr></thead><tbody>
-  ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td colspan="5"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
+  <div class="table-scroll"><table class="fleet-table"><thead><tr><th>رقم اللوحة</th><th>الفرع</th>${PAY_CELL_HEADERS}<th>تاريخ الطلب</th><th>حالة الدفع</th><th>الإجراء</th></tr></thead><tbody>
+  ${rows.length?rows.map(({item,car})=>`<tr><td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td>${payCellsHtml(car,payEditable)}<td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td colspan="'+(5+PAY_CELL_FIELDS.length)+'"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
+  bindPaymentsCellEdit(content);
   window._yahmaCurrentPdfData=()=>({
     title:'طلبات فحص تحت الدفع',
     subtitle:'عدد الطلبات: '+rows.length,
-    headers:['رقم اللوحة','الفرع','تاريخ الطلب','حالة الدفع'],
+    headers:['رقم اللوحة','الفرع'].concat(PAY_CELL_LABELS,['تاريخ الطلب','حالة الدفع']),
     rows:rows.map(({item,car})=>[
-      car.plate||item.plate||'—', car.branch||item.branch||'—',
-      formatArabicDate(item.requestedAt), 'تحت الدفع'])
+      car.plate||item.plate||'—', car.branch||item.branch||'—']
+        .concat(PAY_CELL_FIELDS.map(d=>car[d.field]||'—'))
+        .concat([formatArabicDate(item.requestedAt), 'تحت الدفع']))
   });
   content.querySelectorAll('[data-payment-done],[data-payment-cancel]').forEach(button=>button.addEventListener('click',async()=>{
     if(!canRunPayments('إدارة طلبات الدفع')) return;

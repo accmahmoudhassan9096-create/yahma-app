@@ -32,6 +32,8 @@ create table if not exists public.vehicles (
   model text,
   year numeric,
   serial text,
+  accountno text,      -- رقم الحاسب الآلي (دفتر الدفتر الداخلي) — أضيف مع «تحت الدفع»
+  companyname text,    -- اسم الشركة، مستقل عن owner
   cardnumber text,
   cardstatus text,
   cardexpiry date,

@@ -23,6 +23,7 @@
       plate: String(car.plate || '').trim(),
       brand: nullable(car.brand), type: nullable(car.type), model: nullable(car.model),
       year: numberOrNull(car.year), serial: nullable(car.serial), cardnumber: nullable(car.cardNumber),
+      accountno: nullable(car.accountNo), companyname: nullable(car.companyName),
       cardstatus: nullable(car.cardStatus), cardexpiry: dateOrNull(car.cardExpiry),
       licensestatus: nullable(car.licenseStatus), licenseexpiry: dateOrNull(car.licenseExpiry),
       inspection: nullable(car.inspectionStatus), insurance: nullable(car.insuranceStatus),
@@ -43,6 +44,7 @@
     const base = {
       plate: row.plate || '', brand: row.brand || '', type: row.type || '', model: row.model || '', year: row.year || '',
       serial: row.serial || '', cardNumber: row.cardnumber || '',
+      accountNo: row.accountno || '', companyName: row.companyname || '',
       cardStatus: row.cardstatus || '', cardExpiry: row.cardexpiry || '',
       licenseStatus: row.licensestatus || '', licenseExpiry: row.licenseexpiry || '',
       inspectionStatus: row.inspection || '', insuranceStatus: row.insurance || '',

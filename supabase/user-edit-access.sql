@@ -84,6 +84,8 @@ begin
   if new.model           is distinct from old.model           then v_bad := 'الموديل';       end if;
   if new.year            is distinct from old.year            then v_bad := 'سنة الصنع';     end if;
   if new.serial          is distinct from old.serial          then v_bad := 'الرقم التسلسلي'; end if;
+  if new.accountno       is distinct from old.accountno       then v_bad := 'رقم الحاسب الآلي'; end if;
+  if new.companyname     is distinct from old.companyname     then v_bad := 'اسم الشركة';   end if;
   if new.ownernumber     is distinct from old.ownernumber     then v_bad := 'رقم المالك';     end if;
   if new.owner           is distinct from old.owner           then v_bad := 'المالك';         end if;
   if new.branch          is distinct from old.branch          then v_bad := 'الفرع';          end if;
