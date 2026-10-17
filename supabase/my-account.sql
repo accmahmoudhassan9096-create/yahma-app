@@ -14,6 +14,14 @@
 --   1) أعمدة بيانات شخصية: رقم الهوية، تاريخ الميلاد، رقم الجوال.
 --   2) trigger يسمح للمستخدم بتعديل صفه هو بس، وفي الأعمدة
 --      الشخصية بس. الأدوار والفرع والأقسام مقفولة عليه.
+--
+-- تحديث (إصلاح إنشاء المستخدم):
+--   الـ Edge Function admin-create-user بتستخدم Service Role
+--   عشان تعمل upsert على profiles بعد إنشاء الحساب في Auth.
+--   الـ trigger on_auth_user_created بيحط دور view أولاً، فـupsert
+--   بيتحول لـ UPDATE، والـ guard كان بيرفض تغيير الدور لأن
+--   auth.uid() فاضي مع Service Role. الحل: نسمح بأي تعديل لما
+--   مفيش auth.uid() (عمليات الـ backend فقط).
 -- =====================================================================
 
 alter table public.profiles add column if not exists national_id text;
@@ -67,6 +75,12 @@ as $fn$
 declare
   v_admin boolean := false;
 begin
+  -- استدعاءات الـ Edge Functions (Service Role) ما عندهاش auth.uid()
+  -- دي العمليات اللي بنعمل منها إنشاء/تعديل المستخدمين، فنسمح لها
+  if auth.uid() is null then
+    return new;
+  end if;
+
   -- المدير يعدّل أي صف بأي عمود، زي ما كان
   select yahma_is_admin() into v_admin;
   if v_admin then
