@@ -74,10 +74,30 @@ set search_path to 'public'
 as $fn$
 declare
   v_admin boolean := false;
+  v_role  text;
 begin
-  -- استدعاءات الـ Edge Functions (Service Role) ما عندهاش auth.uid()
-  -- دي العمليات اللي بنعمل منها إنشاء/تعديل المستخدمين، فنسمح لها
-  if auth.uid() is null then
+  /* استدعاءات الـ Edge Functions (Service Role) ما عندهاش auth.uid()
+     دي العمليات اللي بنعمل منها إنشاء/تعديل المستخدمين، فنسمح لها.
+
+     ⚠️ كان ممكن نعملها «if auth.uid() is null then return new» وده
+     أبسط — بس أضيق إننا نفحص **الدور** نفسه مش غياب المستخدم:
+
+       · service_role هو اللي بنريده بالظبط، فبنمنحه بالظبط.
+       · «مافيش auth.uid()» كمان بيصحّ على أي سياق تاني مافيش JWT،
+         فحماية الدور هتتسرّب أول ما حد يضيف سياسة anon لـ RLS.
+         حالياً RLS مفعّل وستّ سياسات كلها لـ authenticated والـ
+         anon صفر، فالمتصفح مابيقدرش يوصل هنا — بس الحماية مش
+         معتمدة على إن ده يفضل كده.
+
+     التريجر ده بيحمي أعمدة الصلاحيات (الدور، الفرع، الأقسام) من
+     أي حد مش مدير. أربع حسابات اشتغلت قبل ما التريجر يتعمل،
+     وبعده الإضافة بقت ميتة وبترجع «Database error saving new
+     user» لأن is_admin() بترجع false مع service_role.
+
+     auth.role() بيرجّع دور الـJWT، وcurrent_user شبعة لو الطلب
+     وصل من اتصال مباشر مش من PostgREST. */
+  v_role := coalesce(auth.role(), current_user);
+  if v_role = 'service_role' then
     return new;
   end if;
 
