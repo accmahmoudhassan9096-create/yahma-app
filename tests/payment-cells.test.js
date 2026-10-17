@@ -456,6 +456,24 @@ test('ترويسة الملف الرسمي بتتعرف', () => {
   });
 });
 
+test('رسالة التأكيد بتعرض أسماء عربية — مفيش أسماء خام للمستخدم', () => {
+  /* من غير التسميات دي، لو الحقلين مرّروا في مسار التحديث المحدّد
+     بتظهر للمستخدم `accountNo` و`companyName` — إنجليزي مش بيفهمه
+     حاجة، وهو بيك confirmer على عملية ما فهمهاش. */
+  const code = noComments(read('core/excel-import.js'));
+  const m = /const FIELD_LABELS = \{([\s\S]*?)\n  \};/.exec(code);
+  assert.ok(m, 'مالقتش FIELD_LABELS');
+  NEW_FIELDS.forEach((f) => {
+    assert.ok(m[1].includes(f.field + ":'" + f.label + "'"),
+      f.field + ' مافيش له تسمية عربية في رسالة التأكيد');
+  });
+  /* وكل مفتاح في الخريطة لازم التسمية بتاعته عربية */
+  [...m[1].matchAll(/(\w+):\s*'([^']*)'/g)].forEach((kv) => {
+    assert.ok(/[\u0600-\u06FF]/.test(kv[2]),
+      kv[1] + ' تيبته «' + kv[2] + '» مش عربي');
+  });
+});
+
 test('ملف التحقق على القاعدة آمن — بيعمل rollback', () => {
   const code = noComments(read('supabase/verify-payment-columns.sql'));
   assert.ok(/raise exception/.test(code), 'لازم يرمي استثناء في الآخر = rollback');

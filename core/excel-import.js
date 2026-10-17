@@ -192,6 +192,10 @@ async function handleDomainUpdateFile(file, cfg){
     insuranceExpiry:'انتهاء التأمين', licenseExpiry:'انتهاء الرخصة',
     licenseStatus:'حالة الرخصة', inspectionStatus:'حالة الفحص',
     color:'اللون', city:'المدينة', serial:'الرقم التسلسلي',
+    /* من غير السطرين دول، لو حد مرّر الحقلين هنا في message التأكيد
+       بتظهر أسماء خام `accountNo` / `companyName` للمستخدم — وهي
+       أسماء إنجليزية مش بتوصله حاجة. */
+    accountNo:'رقم الحاسب الآلي', companyName:'اسم الشركة',
     owner:'المالك', branch:'الفرع', carStatus:'حالة السيارة'
   };
   const shouldContinue = confirm(
