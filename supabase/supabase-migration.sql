@@ -4,6 +4,12 @@
 -- NOTE: this file used to assume `public.profiles` and `public.vehicles` already
 -- existed. It now creates them if missing (all statements are idempotent), so a
 -- brand new Supabase project can run this single file top to bottom.
+--
+-- الأدوار المدعومة:
+--   admin   → مدير النظام  : كل حاجة
+--   manager → إداري        : كل حاجة غير إعدادات النظام (المستخدمين/السجل)
+--   ops     → تشغيل        : يعدّل في تبويب الفحص فقط
+--   view    → مشاهدة       : عرض فقط (مع استثناءات محدودة في الأسطول)
 
 -- ============================================================
 -- 0) Base tables (created only if they don't already exist)
@@ -100,7 +106,7 @@ after insert on auth.users
 for each row execute function public.yahma_handle_new_user();
 
 -- ============================================================
--- 1) Roles, RLS policies (existing logic, unchanged)
+-- 1) Roles, RLS policies
 -- ============================================================
 alter table public.profiles
   add column if not exists role text not null default 'view',
@@ -109,20 +115,26 @@ alter table public.profiles
   add column if not exists full_name text;
 
 update public.profiles
-set allowed_tabs = array['fleet','branches','renewals','payments','license-renewals','insurance-renewals','inspections','transfers','reports','audit']::text[]
+set allowed_tabs = array[
+  'fleet','branches','renewals','payments','paid','renewed',
+  'license-renewals','insurance-renewals','inspections',
+  'transfers','reports','dues','audit'
+]::text[]
 where allowed_tabs is null;
 
 alter table public.profiles
   alter column allowed_tabs set default array[]::text[],
   alter column allowed_tabs set not null;
 
+-- قيد الدور: admin | manager | ops | view
 alter table public.profiles
   drop constraint if exists profiles_role_check;
 
 alter table public.profiles
   add constraint profiles_role_check
-  check (role in ('admin', 'ops', 'view'));
+  check (role in ('admin', 'manager', 'ops', 'view'));
 
+-- مدير النظام فقط
 create or replace function public.yahma_is_admin()
 returns boolean
 language sql
@@ -132,11 +144,12 @@ stable
 as $$
   select exists (
     select 1
-    from public.profiles
-    where id = auth.uid() and role = 'admin'
+    from public.profiles p
+    where p.id = auth.uid() and p.role = 'admin'
   );
 $$;
 
+-- مدير / إداري / تشغيل — الكتابة على البيانات
 create or replace function public.yahma_is_ops_or_admin()
 returns boolean
 language sql
@@ -146,9 +159,75 @@ stable
 as $$
   select exists (
     select 1
-    from public.profiles
-    where id = auth.uid() and role in ('admin', 'ops')
+    from public.profiles p
+    where p.id = auth.uid() and p.role in ('admin', 'manager', 'ops')
   );
+$$;
+
+-- المدير والإداري يشوفوا كل الفروع؛ غيرهم حسب فرعهم
+create or replace function public.yahma_sees_all_branches()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and (
+        p.role in ('admin', 'manager')
+        or (p.role in ('ops', 'view') and nullif(btrim(p.branch_name), '') is null)
+      )
+  );
+$$;
+
+-- المدير والإداري يديروا كل الفروع
+create or replace function public.yahma_manages_all_branches()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and (
+        p.role in ('admin', 'manager')
+        or (p.role = 'ops' and nullif(btrim(p.branch_name), '') is null)
+      )
+  );
+$$;
+
+-- فرع الإدارة (ops / manager المرتبطين بفرع)
+create or replace function public.yahma_manage_branch()
+returns text
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select nullif(btrim(p.branch_name), '')
+  from public.profiles p
+  where p.id = auth.uid()
+    and p.role in ('ops', 'manager', 'view')
+$$;
+
+-- فرع القراءة
+create or replace function public.yahma_read_branch()
+returns text
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select nullif(btrim(p.branch_name), '')
+  from public.profiles p
+  where p.id = auth.uid()
+    and p.role in ('ops', 'view', 'manager')
 $$;
 
 create or replace function public.yahma_can_access_branch(vehicle_branch text)
@@ -159,10 +238,11 @@ set search_path = public
 stable
 as $$
   select public.yahma_is_admin()
+    or public.yahma_sees_all_branches()
     or exists (
       select 1 from public.profiles
       where id = auth.uid()
-        and role in ('ops', 'view')
+        and role in ('ops', 'view', 'manager')
         and branch_name is not null
         and trim(branch_name) = trim(coalesce(vehicle_branch, ''))
     );
@@ -176,10 +256,11 @@ set search_path = public
 stable
 as $$
   select public.yahma_is_admin()
+    or public.yahma_manages_all_branches()
     or exists (
       select 1 from public.profiles
       where id = auth.uid()
-        and role = 'ops'
+        and role in ('ops', 'manager')
         and branch_name is not null
         and trim(branch_name) = trim(coalesce(vehicle_branch, ''))
     );
@@ -199,7 +280,7 @@ create policy "profiles_update_admin"
 on public.profiles for update
 to authenticated
 using (public.yahma_is_admin())
-with check (role in ('admin', 'ops', 'view'));
+with check (role in ('admin', 'manager', 'ops', 'view'));
 
 drop policy if exists "vehicles_auth" on public.vehicles;
 
@@ -243,8 +324,6 @@ alter table public.audit_logs enable row level security;
 -- سياسة الإدراج: مسموح للمستخدم المسجّل فقط يسجّل بخصوصه.
 -- + دالة trigger تفرض الحقول الحساسة (user_id / user_email / role / created_at)
 --   من مصادر موثوقة (الجلسة + جدول profiles) بدل القيم اللي يبعتها المتصفح.
---   بدون هذا الـ trigger كان أي مستخدم "ops" أو "view" يقدر يزوّر سجل تدقيق
---   يقول إن عملية معينة تمت بصلاحية admin أو باسم مستخدم آخر.
 drop policy if exists "audit_insert_authenticated" on public.audit_logs;
 create policy "audit_insert_authenticated"
 on public.audit_logs for insert
@@ -308,10 +387,6 @@ create policy "email_schedule_admin_write" on public.email_schedule
 
 -- ============================================================
 -- 2) Realtime
--- attachRealtimeSync() in app-core.js subscribes to postgres_changes
--- on public.vehicles. That only fires if the table is actually added
--- to the `supabase_realtime` publication — this statement was
--- referenced in a code comment but was missing from this file.
 -- ============================================================
 do $$
 begin
