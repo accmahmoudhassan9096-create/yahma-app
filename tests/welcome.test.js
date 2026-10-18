@@ -17,10 +17,10 @@ const ROOT = path.resolve(__dirname, '..');
 /* بنطلع الدالة من الملف المقروء مباشرة — أبسط منubsubغ률 sandbox
    كامل، والهدف إننا نختبر نفس الكود اللي بيتحمّله المتصفح. */
 function loadWelcomeRender() {
-  const src = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-user.js'), 'utf8');
   const marker = 'function welcomeRender(';
   const start = src.indexOf(marker);
-  assert.ok(start > 0, 'دالة welcomeRender مش موجودة في topbar-ui.js');
+  assert.ok(start > 0, 'دالة welcomeRender مش موجودة في topbar-user.js');
   /* نطلع الدالة بس: من start لآخر brace متوازن */
   let i = src.indexOf('{', start);
   let depth = 0;
@@ -33,7 +33,7 @@ function loadWelcomeRender() {
   const sandbox = { window: { location: { origin: 'https://example.test' } } };
   sandbox.window.window = sandbox.window;
   vm.createContext(sandbox);
-  vm.runInContext(body + '\nthis.__fn = welcomeRender;', sandbox, { filename: 'topbar-ui.js:welcomeRender' });
+  vm.runInContext(body + '\nthis.__fn = welcomeRender;', sandbox, { filename: 'topbar-user.js:welcomeRender' });
   return sandbox.__fn;
 }
 
@@ -90,7 +90,7 @@ test('نص من غير placeholders بيترجع زي ما هو', () => {
    بعد ما يضغط حفظ. */
 test('الحدود الافتراضية مطابقة للـEdge Function', () => {
   const fn = fs.readFileSync(path.join(ROOT, 'supabase', 'functions', 'send-user-email', 'index.ts'), 'utf8');
-  const topbar = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+  const topbar = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-user.js'), 'utf8');
   const subject = /(?:const|let|var)\s+WELCOME_MAX_SUBJECT\s*=\s*(\d+)/.exec(topbar);
   const body = /(?:const|let|var)\s+WELCOME_MAX_BODY\s*=\s*(\d+)/.exec(topbar);
   assert.ok(subject, 'الحد الأقصى للعنوان معرّف في الواجهة');
@@ -102,7 +102,7 @@ test('الحدود الافتراضية مطابقة للـEdge Function', () =>
 });
 
 test('النص الافتراضي فيه كل الحقول ونضيف', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-user.js'), 'utf8');
   ['{{name}}', '{{role}}', '{{branch}}', '{{login_url}}'].forEach(function (ph) {
     assert.ok(src.includes(ph), 'النص الافتراضي فيه ' + ph);
   });

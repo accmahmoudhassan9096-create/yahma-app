@@ -1,5 +1,5 @@
-/* اختبارات شاشة «بياناتي» — التحقق والقواعد.
-   نفس نهج باقي الاختبارات: بنحمّل الملف الحقيقي في sandbox. */
+﻿/* Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª Ø´Ø§Ø´Ø© Â«Ø¨ÙŠØ§Ù†Ø§ØªÙŠÂ» â€” Ø§Ù„ØªØ­Ù‚Ù‚ ÙˆØ§Ù„Ù‚ÙˆØ§Ø¹Ø¯.
+   Ù†ÙØ³ Ù†Ù‡Ø¬ Ø¨Ø§Ù‚ÙŠ Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª: Ø¨Ù†Ø­Ù…Ù‘Ù„ Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø­Ù‚ÙŠÙ‚ÙŠ ÙÙŠ sandbox. */
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
@@ -24,74 +24,74 @@ function loadModule() {
 
 const M = loadModule();
 
-/* ===== رقم الهوية (السعودية: 10 أرقام) ===== */
-test('رقم الهوية: 10 أرقام', () => {
-  assert.strictEqual(M.validate({ national_id: '' }), '', 'فاضي مقبول');
-  assert.strictEqual(M.validate({}), '', 'غير موجود مقبول');
-  assert.strictEqual(M.validate({ national_id: '1234567890' }), '', '10 أرقام صح');
-  assert.ok(M.validate({ national_id: '123456789' }), '9 أرقام مرفوض');
-  assert.ok(M.validate({ national_id: '12345678901' }), '11 رقم مرفوض');
-  /* الرقم المصري 14 رقم كان مقبول قبل — لازم يترفض دلوقتي */
-  assert.ok(M.validate({ national_id: '29801011234567' }), '14 رقم مرفوض');
-  assert.ok(M.validate({ national_id: '١٢٣٤٥٦٧٨٩٠' }), 'أرقام عربية مرفوضة');
-  assert.ok(M.validate({ national_id: '12345a7890' }), 'حرف مرفوض');
-  assert.ok(M.validate({ national_id: '1234 567890' }), 'مسافات مرفوضة');
-  assert.ok(M.validate({ national_id: '123-4567890' }), 'شرطة مرفوضة');
+/* ===== Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ© (Ø§Ù„Ø³Ø¹ÙˆØ¯ÙŠØ©: 10 Ø£Ø±Ù‚Ø§Ù…) ===== */
+test('Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ©: 10 Ø£Ø±Ù‚Ø§Ù…', () => {
+  assert.strictEqual(M.validate({ national_id: '' }), '', 'ÙØ§Ø¶ÙŠ Ù…Ù‚Ø¨ÙˆÙ„');
+  assert.strictEqual(M.validate({}), '', 'ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯ Ù…Ù‚Ø¨ÙˆÙ„');
+  assert.strictEqual(M.validate({ national_id: '1234567890' }), '', '10 Ø£Ø±Ù‚Ø§Ù… ØµØ­');
+  assert.ok(M.validate({ national_id: '123456789' }), '9 Ø£Ø±Ù‚Ø§Ù… Ù…Ø±ÙÙˆØ¶');
+  assert.ok(M.validate({ national_id: '12345678901' }), '11 Ø±Ù‚Ù… Ù…Ø±ÙÙˆØ¶');
+  /* Ø§Ù„Ø±Ù‚Ù… Ø§Ù„Ù…ØµØ±ÙŠ 14 Ø±Ù‚Ù… ÙƒØ§Ù† Ù…Ù‚Ø¨ÙˆÙ„ Ù‚Ø¨Ù„ â€” Ù„Ø§Ø²Ù… ÙŠØªØ±ÙØ¶ Ø¯Ù„ÙˆÙ‚ØªÙŠ */
+  assert.ok(M.validate({ national_id: '29801011234567' }), '14 Ø±Ù‚Ù… Ù…Ø±ÙÙˆØ¶');
+  assert.ok(M.validate({ national_id: 'Ù¡Ù¢Ù£Ù¤Ù¥Ù¦Ù§Ù¨Ù©Ù ' }), 'Ø£Ø±Ù‚Ø§Ù… Ø¹Ø±Ø¨ÙŠØ© Ù…Ø±ÙÙˆØ¶Ø©');
+  assert.ok(M.validate({ national_id: '12345a7890' }), 'Ø­Ø±Ù Ù…Ø±ÙÙˆØ¶');
+  assert.ok(M.validate({ national_id: '1234 567890' }), 'Ù…Ø³Ø§ÙØ§Øª Ù…Ø±ÙÙˆØ¶Ø©');
+  assert.ok(M.validate({ national_id: '123-4567890' }), 'Ø´Ø±Ø·Ø© Ù…Ø±ÙÙˆØ¶Ø©');
 });
 
-/* ===== الجوال (السعودية: 10 أرقام تبدأ بـ05) ===== */
-test('الجوال: 10 أرقام تبدأ بـ05', () => {
+/* ===== Ø§Ù„Ø¬ÙˆØ§Ù„ (Ø§Ù„Ø³Ø¹ÙˆØ¯ÙŠØ©: 10 Ø£Ø±Ù‚Ø§Ù… ØªØ¨Ø¯Ø£ Ø¨Ù€05) ===== */
+test('Ø§Ù„Ø¬ÙˆØ§Ù„: 10 Ø£Ø±Ù‚Ø§Ù… ØªØ¨Ø¯Ø£ Ø¨Ù€05', () => {
   assert.strictEqual(M.validate({ phone: '' }), '');
-  assert.strictEqual(M.validate({ phone: '0512345678' }), '', '05 + 8 أرقام');
-  assert.strictEqual(M.validate({ phone: '0501234567' }), '', '050 مقبول');
-  assert.strictEqual(M.validate({ phone: '0599999999' }), '', '0599 مقبول');
-  assert.ok(M.validate({ phone: '0412345678' }), '04 مرفوض');
-  assert.ok(M.validate({ phone: '0612345678' }), '06 مرفوض');
-  assert.ok(M.validate({ phone: '5012345678' }), 'من غير 0 مرفوض');
-  assert.ok(M.validate({ phone: '051234567' }), '9 أرقام مرفوض');
-  assert.ok(M.validate({ phone: '05123456789' }), '11 رقم مرفوض');
-  /* صيغ كانت مقبولة قبل ولازم ترفض */
-  assert.ok(M.validate({ phone: '+966512345678' }), 'صيغة دولية مرفوضة');
-  assert.ok(M.validate({ phone: '051 234 5678' }), 'مسافات مرفوضة');
-  assert.ok(M.validate({ phone: 'abc' }), 'حروف مرفوضة');
+  assert.strictEqual(M.validate({ phone: '0512345678' }), '', '05 + 8 Ø£Ø±Ù‚Ø§Ù…');
+  assert.strictEqual(M.validate({ phone: '0501234567' }), '', '050 Ù…Ù‚Ø¨ÙˆÙ„');
+  assert.strictEqual(M.validate({ phone: '0599999999' }), '', '0599 Ù…Ù‚Ø¨ÙˆÙ„');
+  assert.ok(M.validate({ phone: '0412345678' }), '04 Ù…Ø±ÙÙˆØ¶');
+  assert.ok(M.validate({ phone: '0612345678' }), '06 Ù…Ø±ÙÙˆØ¶');
+  assert.ok(M.validate({ phone: '5012345678' }), 'Ù…Ù† ØºÙŠØ± 0 Ù…Ø±ÙÙˆØ¶');
+  assert.ok(M.validate({ phone: '051234567' }), '9 Ø£Ø±Ù‚Ø§Ù… Ù…Ø±ÙÙˆØ¶');
+  assert.ok(M.validate({ phone: '05123456789' }), '11 Ø±Ù‚Ù… Ù…Ø±ÙÙˆØ¶');
+  /* ØµÙŠØº ÙƒØ§Ù†Øª Ù…Ù‚Ø¨ÙˆÙ„Ø© Ù‚Ø¨Ù„ ÙˆÙ„Ø§Ø²Ù… ØªØ±ÙØ¶ */
+  assert.ok(M.validate({ phone: '+966512345678' }), 'ØµÙŠØºØ© Ø¯ÙˆÙ„ÙŠØ© Ù…Ø±ÙÙˆØ¶Ø©');
+  assert.ok(M.validate({ phone: '051 234 5678' }), 'Ù…Ø³Ø§ÙØ§Øª Ù…Ø±ÙÙˆØ¶Ø©');
+  assert.ok(M.validate({ phone: 'abc' }), 'Ø­Ø±ÙˆÙ Ù…Ø±ÙÙˆØ¶Ø©');
 });
 
-/* ===== تاريخ الميلاد ===== */
-test('تاريخ الميلاد: في الماضي ومعقول', () => {
+/* ===== ØªØ§Ø±ÙŠØ® Ø§Ù„Ù…ÙŠÙ„Ø§Ø¯ ===== */
+test('ØªØ§Ø±ÙŠØ® Ø§Ù„Ù…ÙŠÙ„Ø§Ø¯: ÙÙŠ Ø§Ù„Ù…Ø§Ø¶ÙŠ ÙˆÙ…Ø¹Ù‚ÙˆÙ„', () => {
   assert.strictEqual(M.validate({ birth_date: '' }), '');
   assert.strictEqual(M.validate({ birth_date: '1990-05-17' }), '');
-  assert.ok(M.validate({ birth_date: '2999-01-01' }), 'المستقبل مرفوض');
-  assert.ok(M.validate({ birth_date: '1899-12-31' }), 'قبل 1900 مرفوض');
-  /* النهاردة مسموحة — مفيش حد بيتولد بالليل */
+  assert.ok(M.validate({ birth_date: '2999-01-01' }), 'Ø§Ù„Ù…Ø³ØªÙ‚Ø¨Ù„ Ù…Ø±ÙÙˆØ¶');
+  assert.ok(M.validate({ birth_date: '1899-12-31' }), 'Ù‚Ø¨Ù„ 1900 Ù…Ø±ÙÙˆØ¶');
+  /* Ø§Ù„Ù†Ù‡Ø§Ø±Ø¯Ø© Ù…Ø³Ù…ÙˆØ­Ø© â€” Ù…ÙÙŠØ´ Ø­Ø¯ Ø¨ÙŠØªÙˆÙ„Ø¯ Ø¨Ø§Ù„Ù„ÙŠÙ„ */
   const t = new Date();
   const s = t.getFullYear() + '-' + (t.getMonth() < 9 ? '0' : '') + (t.getMonth() + 1) +
     '-' + (t.getDate() < 10 ? '0' : '') + t.getDate();
-  assert.strictEqual(M.validate({ birth_date: s }), '', 'النهاردة مسموحة');
+  assert.strictEqual(M.validate({ birth_date: s }), '', 'Ø§Ù„Ù†Ù‡Ø§Ø±Ø¯Ø© Ù…Ø³Ù…ÙˆØ­Ø©');
 });
 
-/* ===== كلمة المرور ===== */
-test('كلمة المرور: لازم الحالية والتأكيد مطابق', () => {
-  assert.strictEqual(M.validatePassword('old1234', 'new12345', 'new12345'), '', 'المقبول');
-  assert.ok(M.validatePassword('', 'new12345', 'new12345'), 'الحالية مطلوبة');
-  assert.ok(M.validatePassword('old1234', 'short', 'short'), 'قصيرة مرفوضة');
-  assert.ok(M.validatePassword('old1234', 'new12345', 'different'), 'التأكيد مش مطابق');
-  assert.ok(M.validatePassword('old1234', 'old1234', 'old1234'), 'نفس القديمة مرفوضة');
+/* ===== ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± ===== */
+test('ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±: Ù„Ø§Ø²Ù… Ø§Ù„Ø­Ø§Ù„ÙŠØ© ÙˆØ§Ù„ØªØ£ÙƒÙŠØ¯ Ù…Ø·Ø§Ø¨Ù‚', () => {
+  assert.strictEqual(M.validatePassword('old1234', 'new12345', 'new12345'), '', 'Ø§Ù„Ù…Ù‚Ø¨ÙˆÙ„');
+  assert.ok(M.validatePassword('', 'new12345', 'new12345'), 'Ø§Ù„Ø­Ø§Ù„ÙŠØ© Ù…Ø·Ù„ÙˆØ¨Ø©');
+  assert.ok(M.validatePassword('old1234', 'short', 'short'), 'Ù‚ØµÙŠØ±Ø© Ù…Ø±ÙÙˆØ¶Ø©');
+  assert.ok(M.validatePassword('old1234', 'new12345', 'different'), 'Ø§Ù„ØªØ£ÙƒÙŠØ¯ Ù…Ø´ Ù…Ø·Ø§Ø¨Ù‚');
+  assert.ok(M.validatePassword('old1234', 'old1234', 'old1234'), 'Ù†ÙØ³ Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© Ù…Ø±ÙÙˆØ¶Ø©');
   assert.strictEqual(M.validatePassword('old1234', '12345678', '12345678'), '',
-    '8 حروف بالظبط مقبولة — الحد الأدنى مش أكبر');
+    '8 Ø­Ø±ÙˆÙ Ø¨Ø§Ù„Ø¸Ø¨Ø· Ù…Ù‚Ø¨ÙˆÙ„Ø© â€” Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ø¯Ù†Ù‰ Ù…Ø´ Ø£ÙƒØ¨Ø±');
 });
 
-/* ===== التوافق مع القاعدة =====
+/* ===== Ø§Ù„ØªÙˆØ§ÙÙ‚ Ù…Ø¹ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ø© =====
 
-   ⚠️ المطابقة بالنص كانت هتضلّلنا: تعبير الجوال في JS مكتوب
-   [0-9 -] وفي القاعدة [0-9 \-] — نفس المعنى بالظبط، مختلف
-   التهريب. فالمقارنة النصية كانت هتفشل وتخلّينا نصلّح نص سليم.
+   âš ï¸ Ø§Ù„Ù…Ø·Ø§Ø¨Ù‚Ø© Ø¨Ø§Ù„Ù†Øµ ÙƒØ§Ù†Øª Ù‡ØªØ¶Ù„Ù‘Ù„Ù†Ø§: ØªØ¹Ø¨ÙŠØ± Ø§Ù„Ø¬ÙˆØ§Ù„ ÙÙŠ JS Ù…ÙƒØªÙˆØ¨
+   [0-9 -] ÙˆÙÙŠ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ø© [0-9 \-] â€” Ù†ÙØ³ Ø§Ù„Ù…Ø¹Ù†Ù‰ Ø¨Ø§Ù„Ø¸Ø¨Ø·ØŒ Ù…Ø®ØªÙ„Ù
+   Ø§Ù„ØªÙ‡Ø±ÙŠØ¨. ÙØ§Ù„Ù…Ù‚Ø§Ø±Ù†Ø© Ø§Ù„Ù†ØµÙŠØ© ÙƒØ§Ù†Øª Ù‡ØªÙØ´Ù„ ÙˆØªØ®Ù„Ù‘ÙŠÙ†Ø§ Ù†ØµÙ„Ù‘Ø­ Ù†Øµ Ø³Ù„ÙŠÙ….
 
-   فبنقارن **السلوك**: نفس العينة من القيم، نفس الحكم.
-   ده بيلقط أي اختلاف حقيقي في المعنى ويعدّي اختلاف التهريب. */
+   ÙØ¨Ù†Ù‚Ø§Ø±Ù† **Ø§Ù„Ø³Ù„ÙˆÙƒ**: Ù†ÙØ³ Ø§Ù„Ø¹ÙŠÙ†Ø© Ù…Ù† Ø§Ù„Ù‚ÙŠÙ…ØŒ Ù†ÙØ³ Ø§Ù„Ø­ÙƒÙ….
+   Ø¯Ù‡ Ø¨ÙŠÙ„Ù‚Ø· Ø£ÙŠ Ø§Ø®ØªÙ„Ø§Ù Ø­Ù‚ÙŠÙ‚ÙŠ ÙÙŠ Ø§Ù„Ù…Ø¹Ù†Ù‰ ÙˆÙŠØ¹Ø¯Ù‘ÙŠ Ø§Ø®ØªÙ„Ø§Ù Ø§Ù„ØªÙ‡Ø±ÙŠØ¨. */
 function sqlPatternOf(label) {
   const sql = fs.readFileSync(path.join(ROOT, 'supabase', 'my-account.sql'), 'utf8');
   const m = new RegExp(label + " ~ '([^']+)'").exec(sql);
-  assert.ok(m, 'قيد ' + label + ' موجود في القاعدة');
+  assert.ok(m, 'Ù‚ÙŠØ¯ ' + label + ' Ù…ÙˆØ¬ÙˆØ¯ ÙÙŠ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ø©');
   return new RegExp(m[1].replace(/\\\\/g, '\\'));
 }
 
@@ -101,63 +101,63 @@ const SAMPLES = [
   '0512a45678', '0599999999', '0000000000', '0021234567'
 ];
 
-test('قاعدة الجوال في JS بتقبل نفس العينة اللي بتقبلها القاعدة', () => {
+test('Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¬ÙˆØ§Ù„ ÙÙŠ JS Ø¨ØªÙ‚Ø¨Ù„ Ù†ÙØ³ Ø§Ù„Ø¹ÙŠÙ†Ø© Ø§Ù„Ù„ÙŠ Ø¨ØªÙ‚Ø¨Ù„Ù‡Ø§ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ø©', () => {
   const sqlRe = sqlPatternOf('phone');
   const jsRe = new RegExp(M.PHONE_RE.source);
   let compared = 0;
   SAMPLES.forEach((s) => {
-    /* نفس القواعد: الفراغ مسموح ونعتبره «مش موجود» */
+    /* Ù†ÙØ³ Ø§Ù„Ù‚ÙˆØ§Ø¹Ø¯: Ø§Ù„ÙØ±Ø§Øº Ù…Ø³Ù…ÙˆØ­ ÙˆÙ†Ø¹ØªØ¨Ø±Ù‡ Â«Ù…Ø´ Ù…ÙˆØ¬ÙˆØ¯Â» */
     if (s === '' || s.trim() === '') return;
     const probe = s.trim();
     assert.strictEqual(jsRe.test(probe), sqlRe.test(probe),
-      'اختلاف على «' + probe + '» بين JS والقاعدة');
+      'Ø§Ø®ØªÙ„Ø§Ù Ø¹Ù„Ù‰ Â«' + probe + 'Â» Ø¨ÙŠÙ† JS ÙˆØ§Ù„Ù‚Ø§Ø¹Ø¯Ø©');
     compared++;
   });
-  assert.ok(compared >= 10, 'قارنت ' + compared + ' قيمة');
+  assert.ok(compared >= 10, 'Ù‚Ø§Ø±Ù†Øª ' + compared + ' Ù‚ÙŠÙ…Ø©');
 });
 
 const NID_SAMPLES = [
   '1234567890', '123456789', '12345678901', '29801011234567',
-  '١٢٣٤٥٦٧٨٩٠', '12345a7890', '1234 567890', '0000000000', '1010101010'
+  'Ù¡Ù¢Ù£Ù¤Ù¥Ù¦Ù§Ù¨Ù©Ù ', '12345a7890', '1234 567890', '0000000000', '1010101010'
 ];
 
-test('قاعدة رقم الهوية في JS بتقبل نفس العينة', () => {
+test('Ù‚Ø§Ø¹Ø¯Ø© Ø±Ù‚Ù… Ø§Ù„Ù‡ÙˆÙŠØ© ÙÙŠ JS Ø¨ØªÙ‚Ø¨Ù„ Ù†ÙØ³ Ø§Ù„Ø¹ÙŠÙ†Ø©', () => {
   const sqlRe = sqlPatternOf('national_id');
   const jsRe = new RegExp(M.NATIONAL_ID_RE.source);
   let compared = 0;
   NID_SAMPLES.forEach((s) => {
-    assert.strictEqual(jsRe.test(s), sqlRe.test(s), 'اختلاف على «' + s + '»');
+    assert.strictEqual(jsRe.test(s), sqlRe.test(s), 'Ø§Ø®ØªÙ„Ø§Ù Ø¹Ù„Ù‰ Â«' + s + 'Â»');
     compared++;
   });
-  assert.ok(compared >= 8, 'قارنت ' + compared + ' قيمة');
+  assert.ok(compared >= 8, 'Ù‚Ø§Ø±Ù†Øª ' + compared + ' Ù‚ÙŠÙ…Ø©');
 });
 
-test('القيود الثلاثة موجودة في القاعدة', () => {
+test('Ø§Ù„Ù‚ÙŠÙˆØ¯ Ø§Ù„Ø«Ù„Ø§Ø«Ø© Ù…ÙˆØ¬ÙˆØ¯Ø© ÙÙŠ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ø©', () => {
   const sql = fs.readFileSync(path.join(ROOT, 'supabase', 'my-account.sql'), 'utf8');
-  assert.ok(/national_id ~ '/.test(sql), 'قيد الرقم القومي');
-  assert.ok(/phone ~ '/.test(sql), 'قيد الجوال');
-  assert.ok(sql.includes('birth_date <= current_date'), 'قيد تاريخ الميلاد');
-  assert.ok(sql.includes("birth_date > date '1900-01-01'"), 'الحد الأدنى للميلاد');
+  assert.ok(/national_id ~ '/.test(sql), 'Ù‚ÙŠØ¯ Ø§Ù„Ø±Ù‚Ù… Ø§Ù„Ù‚ÙˆÙ…ÙŠ');
+  assert.ok(/phone ~ '/.test(sql), 'Ù‚ÙŠØ¯ Ø§Ù„Ø¬ÙˆØ§Ù„');
+  assert.ok(sql.includes('birth_date <= current_date'), 'Ù‚ÙŠØ¯ ØªØ§Ø±ÙŠØ® Ø§Ù„Ù…ÙŠÙ„Ø§Ø¯');
+  assert.ok(sql.includes("birth_date > date '1900-01-01'"), 'Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ø¯Ù†Ù‰ Ù„Ù„Ù…ÙŠÙ„Ø§Ø¯');
 });
 
-test('حارس الأعمدة بيقفل الدور والفرع والأقسام والبريد', () => {
+test('Ø­Ø§Ø±Ø³ Ø§Ù„Ø£Ø¹Ù…Ø¯Ø© Ø¨ÙŠÙ‚ÙÙ„ Ø§Ù„Ø¯ÙˆØ± ÙˆØ§Ù„ÙØ±Ø¹ ÙˆØ§Ù„Ø£Ù‚Ø³Ø§Ù… ÙˆØ§Ù„Ø¨Ø±ÙŠØ¯', () => {
   const sql = fs.readFileSync(path.join(ROOT, 'supabase', 'my-account.sql'), 'utf8');
   const flat = sql.replace(/\s+/g, ' ');
   ['role', 'branch_name', 'allowed_tabs', 'email', 'id'].forEach((col) => {
     assert.ok(flat.includes('new.' + col + ' is distinct from old.' + col),
-      'العمود ' + col + ' مقفول على المستخدم العادي');
+      'Ø§Ù„Ø¹Ù…ÙˆØ¯ ' + col + ' Ù…Ù‚ÙÙˆÙ„ Ø¹Ù„Ù‰ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„Ø¹Ø§Ø¯ÙŠ');
   });
-  /* واللي مفتوح لازم يكون شخصي بس */
+  /* ÙˆØ§Ù„Ù„ÙŠ Ù…ÙØªÙˆØ­ Ù„Ø§Ø²Ù… ÙŠÙƒÙˆÙ† Ø´Ø®ØµÙŠ Ø¨Ø³ */
   ['national_id', 'birth_date', 'phone'].forEach((col) => {
     assert.ok(flat.indexOf('new.' + col + ' is distinct') === -1,
-      col + ' مفتوح للمستخدم — ما يتقفلش');
+      col + ' Ù…ÙØªÙˆØ­ Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… â€” Ù…Ø§ ÙŠØªÙ‚ÙÙ„Ø´');
   });
 });
 
-/* التنضيف أثناء الكتابة: الحقل بيقبل لصق نص فيه مسافات وشرطات
-   والحروف، فيشيلها فورًا. الشاشة لو سابتها للمستخدم كان هيكتب
-   «051-234 5678» والقاعدة هترفضه برسالة بعد ما يضغط حفظ. */
-test('التنضيف بيشيل كل حاجة غير الأرقام', () => {
+/* Ø§Ù„ØªÙ†Ø¶ÙŠÙ Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„ÙƒØªØ§Ø¨Ø©: Ø§Ù„Ø­Ù‚Ù„ Ø¨ÙŠÙ‚Ø¨Ù„ Ù„ØµÙ‚ Ù†Øµ ÙÙŠÙ‡ Ù…Ø³Ø§ÙØ§Øª ÙˆØ´Ø±Ø·Ø§Øª
+   ÙˆØ§Ù„Ø­Ø±ÙˆÙØŒ ÙÙŠØ´ÙŠÙ„Ù‡Ø§ ÙÙˆØ±Ù‹Ø§. Ø§Ù„Ø´Ø§Ø´Ø© Ù„Ùˆ Ø³Ø§Ø¨ØªÙ‡Ø§ Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙƒØ§Ù† Ù‡ÙŠÙƒØªØ¨
+   Â«051-234 5678Â» ÙˆØ§Ù„Ù‚Ø§Ø¹Ø¯Ø© Ù‡ØªØ±ÙØ¶Ù‡ Ø¨Ø±Ø³Ø§Ù„Ø© Ø¨Ø¹Ø¯ Ù…Ø§ ÙŠØ¶ØºØ· Ø­ÙØ¸. */
+test('Ø§Ù„ØªÙ†Ø¶ÙŠÙ Ø¨ÙŠØ´ÙŠÙ„ ÙƒÙ„ Ø­Ø§Ø¬Ø© ØºÙŠØ± Ø§Ù„Ø£Ø±Ù‚Ø§Ù…', () => {
   const mk = (max) => {
     const el = { value: '', maxLength: max, selectionStart: 0,
                  setSelectionRange(a, b) { this.selectionStart = a; this._b = b; } };
@@ -165,69 +165,69 @@ test('التنضيف بيشيل كل حاجة غير الأرقام', () => {
   };
   const nid = mk(10);
   nid.value = '101-010 1010'; M.digitsOnly(nid);
-  assert.strictEqual(nid.value, '1010101010', 'شرطة ومسافات شِيلت');
+  assert.strictEqual(nid.value, '1010101010', 'Ø´Ø±Ø·Ø© ÙˆÙ…Ø³Ø§ÙØ§Øª Ø´ÙÙŠÙ„Øª');
 
   const phone = mk(10);
   phone.value = '+966512345678'; M.digitsOnly(phone);
-  /* العلامة بتشال والباقي يفضل زي ما هو — القص الصامت اتشال،
-     فـvalidate هو اللي بيرفض الرقم الطويل. */
-  assert.strictEqual(phone.value, '966512345678', 'العلاقة اتشالت والباقي زي ما هو');
-  assert.ok(M.validate({ phone: phone.value }), 'والتنضيف لوحده ما بيسمحش برقم أطول');
+  /* Ø§Ù„Ø¹Ù„Ø§Ù…Ø© Ø¨ØªØ´Ø§Ù„ ÙˆØ§Ù„Ø¨Ø§Ù‚ÙŠ ÙŠÙØ¶Ù„ Ø²ÙŠ Ù…Ø§ Ù‡Ùˆ â€” Ø§Ù„Ù‚Øµ Ø§Ù„ØµØ§Ù…Øª Ø§ØªØ´Ø§Ù„ØŒ
+     ÙÙ€validate Ù‡Ùˆ Ø§Ù„Ù„ÙŠ Ø¨ÙŠØ±ÙØ¶ Ø§Ù„Ø±Ù‚Ù… Ø§Ù„Ø·ÙˆÙŠÙ„. */
+  assert.strictEqual(phone.value, '966512345678', 'Ø§Ù„Ø¹Ù„Ø§Ù‚Ø© Ø§ØªØ´Ø§Ù„Øª ÙˆØ§Ù„Ø¨Ø§Ù‚ÙŠ Ø²ÙŠ Ù…Ø§ Ù‡Ùˆ');
+  assert.ok(M.validate({ phone: phone.value }), 'ÙˆØ§Ù„ØªÙ†Ø¶ÙŠÙ Ù„ÙˆØ­Ø¯Ù‡ Ù…Ø§ Ø¨ÙŠØ³Ù…Ø­Ø´ Ø¨Ø±Ù‚Ù… Ø£Ø·ÙˆÙ„');
 
   const arabic = mk(10);
-  arabic.value = '٠٥١٢٣٤٥٦٧٨'; M.digitsOnly(arabic);
-  assert.strictEqual(arabic.value, '0512345678', 'الأرقام العربية اتحولت واتقبلت');
+  arabic.value = 'Ù Ù¥Ù¡Ù¢Ù£Ù¤Ù¥Ù¦Ù§Ù¨'; M.digitsOnly(arabic);
+  assert.strictEqual(arabic.value, '0512345678', 'Ø§Ù„Ø£Ø±Ù‚Ø§Ù… Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© Ø§ØªØ­ÙˆÙ„Øª ÙˆØ§ØªÙ‚Ø¨Ù„Øª');
 });
 
-/* ⛔ الباج ده اتلقط بالاختبار على الإنتاج:
-   الكود كان بيقص أي رقم أطول من maxLength. لصق جوال 11 خانة كان
-   بينتهي بـ10 خانات ويتخزّن غلط — والشاشة بتقول «تم الحفظ».
-   الرقم الغلط المتخزّن أسوأ بكتير من رفض اللصق. */
-test('التنضيف ما بيقصّش الطول بصمت — التحقق هو اللي يمنع', () => {
+/* â›” Ø§Ù„Ø¨Ø§Ø¬ Ø¯Ù‡ Ø§ØªÙ„Ù‚Ø· Ø¨Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø± Ø¹Ù„Ù‰ Ø§Ù„Ø¥Ù†ØªØ§Ø¬:
+   Ø§Ù„ÙƒÙˆØ¯ ÙƒØ§Ù† Ø¨ÙŠÙ‚Øµ Ø£ÙŠ Ø±Ù‚Ù… Ø£Ø·ÙˆÙ„ Ù…Ù† maxLength. Ù„ØµÙ‚ Ø¬ÙˆØ§Ù„ 11 Ø®Ø§Ù†Ø© ÙƒØ§Ù†
+   Ø¨ÙŠÙ†ØªÙ‡ÙŠ Ø¨Ù€10 Ø®Ø§Ù†Ø§Øª ÙˆÙŠØªØ®Ø²Ù‘Ù† ØºÙ„Ø· â€” ÙˆØ§Ù„Ø´Ø§Ø´Ø© Ø¨ØªÙ‚ÙˆÙ„ Â«ØªÙ… Ø§Ù„Ø­ÙØ¸Â».
+   Ø§Ù„Ø±Ù‚Ù… Ø§Ù„ØºÙ„Ø· Ø§Ù„Ù…ØªØ®Ø²Ù‘Ù† Ø£Ø³ÙˆØ£ Ø¨ÙƒØªÙŠØ± Ù…Ù† Ø±ÙØ¶ Ø§Ù„Ù„ØµÙ‚. */
+test('Ø§Ù„ØªÙ†Ø¶ÙŠÙ Ù…Ø§ Ø¨ÙŠÙ‚ØµÙ‘Ø´ Ø§Ù„Ø·ÙˆÙ„ Ø¨ØµÙ…Øª â€” Ø§Ù„ØªØ­Ù‚Ù‚ Ù‡Ùˆ Ø§Ù„Ù„ÙŠ ÙŠÙ…Ù†Ø¹', () => {
   const el = { value: '', maxLength: 10, selectionStart: 0,
                setSelectionRange(a, b) { this.selectionStart = a; this._b = b; } };
-  el.value = '05123456789';        /* 11 خانة */
+  el.value = '05123456789';        /* 11 Ø®Ø§Ù†Ø© */
   M.digitsOnly(el);
-  assert.strictEqual(el.value.length, 11, 'الرقم الطويل اترك زي ما هو');
-  /* فـvalidate لازم يرفضه — وده اللي بيمنع التخزين */
-  assert.ok(M.validate({ phone: el.value }), 'التحقق يرفض 11 خانة جوال');
-  assert.ok(M.validate({ national_id: '12345678901' }), 'التحقق يرفض 11 خانة هوية');
+  assert.strictEqual(el.value.length, 11, 'Ø§Ù„Ø±Ù‚Ù… Ø§Ù„Ø·ÙˆÙŠÙ„ Ø§ØªØ±Ùƒ Ø²ÙŠ Ù…Ø§ Ù‡Ùˆ');
+  /* ÙÙ€validate Ù„Ø§Ø²Ù… ÙŠØ±ÙØ¶Ù‡ â€” ÙˆØ¯Ù‡ Ø§Ù„Ù„ÙŠ Ø¨ÙŠÙ…Ù†Ø¹ Ø§Ù„ØªØ®Ø²ÙŠÙ† */
+  assert.ok(M.validate({ phone: el.value }), 'Ø§Ù„ØªØ­Ù‚Ù‚ ÙŠØ±ÙØ¶ 11 Ø®Ø§Ù†Ø© Ø¬ÙˆØ§Ù„');
+  assert.ok(M.validate({ national_id: '12345678901' }), 'Ø§Ù„ØªØ­Ù‚Ù‚ ÙŠØ±ÙØ¶ 11 Ø®Ø§Ù†Ø© Ù‡ÙˆÙŠØ©');
 });
 
-test('الحد الأدنى لكلمة المرور واحد في كل الشاشات', () => {
-  const topbar = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+test('Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ø¯Ù†Ù‰ Ù„ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± ÙˆØ§Ø­Ø¯ ÙÙŠ ÙƒÙ„ Ø§Ù„Ø´Ø§Ø´Ø§Øª', () => {
+  const topbar = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-user.js'), 'utf8');
   const auth = fs.readFileSync(path.join(ROOT, 'core', 'auth-boot.js'), 'utf8');
   const mine = fs.readFileSync(path.join(ROOT, 'modules', 'my-account.js'), 'utf8');
-  assert.ok(M.MIN_PASSWORD >= 8, 'الحد الأدنى 8 على الأقل');
+  assert.ok(M.MIN_PASSWORD >= 8, 'Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ø¯Ù†Ù‰ 8 Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„');
   assert.ok(topbar.includes('minlength="' + M.MIN_PASSWORD + '"'),
-    'نموذج إنشاء المستخدم بيستخدم نفس الحد');
+    'Ù†Ù…ÙˆØ°Ø¬ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¨ÙŠØ³ØªØ®Ø¯Ù… Ù†ÙØ³ Ø§Ù„Ø­Ø¯');
   assert.ok(auth.includes('minlength="' + M.MIN_PASSWORD + '"'),
-    'شاشة استعادة كلمة المرور بنفس الحد');
-  assert.ok(mine.includes("MIN_PASSWORD = " + M.MIN_PASSWORD), 'الشاشة الجديدة بنفس الحد');
+    'Ø´Ø§Ø´Ø© Ø§Ø³ØªØ¹Ø§Ø¯Ø© ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¨Ù†ÙØ³ Ø§Ù„Ø­Ø¯');
+  assert.ok(mine.includes("MIN_PASSWORD = " + M.MIN_PASSWORD), 'Ø§Ù„Ø´Ø§Ø´Ø© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© Ø¨Ù†ÙØ³ Ø§Ù„Ø­Ø¯');
 });
 
-/* لوحة المستخدمين بتقرأ صف profile واحد وتعرضه. لو الأعمدة
-   الشخصية مش في الاستعلام مش هتظهر خالص مهما اتكتبت في القاعدة. */
-test('لوحة المستخدمين بتجيب الأعمدة الشخصية وبتعرضها', () => {
-  const topbar = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+/* Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† Ø¨ØªÙ‚Ø±Ø£ ØµÙ profile ÙˆØ§Ø­Ø¯ ÙˆØªØ¹Ø±Ø¶Ù‡. Ù„Ùˆ Ø§Ù„Ø£Ø¹Ù…Ø¯Ø©
+   Ø§Ù„Ø´Ø®ØµÙŠØ© Ù…Ø´ ÙÙŠ Ø§Ù„Ø§Ø³ØªØ¹Ù„Ø§Ù… Ù…Ø´ Ù‡ØªØ¸Ù‡Ø± Ø®Ø§Ù„Øµ Ù…Ù‡Ù…Ø§ Ø§ØªÙƒØªØ¨Øª ÙÙŠ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ø©. */
+test('Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† Ø¨ØªØ¬ÙŠØ¨ Ø§Ù„Ø£Ø¹Ù…Ø¯Ø© Ø§Ù„Ø´Ø®ØµÙŠØ© ÙˆØ¨ØªØ¹Ø±Ø¶Ù‡Ø§', () => {
+  const topbar = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-user.js'), 'utf8');
   const select = /from\('profiles'\)\.select\(([^)]*)\)/.exec(topbar);
-  assert.ok(select, 'في استعلام profiles');
+  assert.ok(select, 'ÙÙŠ Ø§Ø³ØªØ¹Ù„Ø§Ù… profiles');
   ['national_id', 'birth_date', 'phone'].forEach((col) => {
-    assert.ok(select[1].includes(col), col + ' مش في الاستعلام — مش هيظهر للمدير');
-    assert.ok(topbar.includes('u.' + col), col + ' مش بيتقرأ من الصف');
+    assert.ok(select[1].includes(col), col + ' Ù…Ø´ ÙÙŠ Ø§Ù„Ø§Ø³ØªØ¹Ù„Ø§Ù… â€” Ù…Ø´ Ù‡ÙŠØ¸Ù‡Ø± Ù„Ù„Ù…Ø¯ÙŠØ±');
+    assert.ok(topbar.includes('u.' + col), col + ' Ù…Ø´ Ø¨ÙŠØªÙ‚Ø±Ø£ Ù…Ù† Ø§Ù„ØµÙ');
   });
-  /* والقيم الفاضية لازم تقول «مش مسجّل» مش تبقى فراغ صامت */
-  assert.ok(topbar.includes('مش مسجّل'), 'فيه نص واضح للقيم الفاضية');
+  /* ÙˆØ§Ù„Ù‚ÙŠÙ… Ø§Ù„ÙØ§Ø¶ÙŠØ© Ù„Ø§Ø²Ù… ØªÙ‚ÙˆÙ„ Â«Ù…Ø´ Ù…Ø³Ø¬Ù‘Ù„Â» Ù…Ø´ ØªØ¨Ù‚Ù‰ ÙØ±Ø§Øº ØµØ§Ù…Øª */
+  assert.ok(topbar.includes('Ù…Ø´ Ù…Ø³Ø¬Ù‘Ù„'), 'ÙÙŠÙ‡ Ù†Øµ ÙˆØ§Ø¶Ø­ Ù„Ù„Ù‚ÙŠÙ… Ø§Ù„ÙØ§Ø¶ÙŠØ©');
 });
 
-test('المدير يعدّل البيانات الشخصية بنفسه — القاعدة تسمح بيه', () => {
-  /* trigger بيرجّع زي ما هو لو المدير، فمفيش مانع في القاعدة */
+test('Ø§Ù„Ù…Ø¯ÙŠØ± ÙŠØ¹Ø¯Ù‘Ù„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø´Ø®ØµÙŠØ© Ø¨Ù†ÙØ³Ù‡ â€” Ø§Ù„Ù‚Ø§Ø¹Ø¯Ø© ØªØ³Ù…Ø­ Ø¨ÙŠÙ‡', () => {
+  /* trigger Ø¨ÙŠØ±Ø¬Ù‘Ø¹ Ø²ÙŠ Ù…Ø§ Ù‡Ùˆ Ù„Ùˆ Ø§Ù„Ù…Ø¯ÙŠØ±ØŒ ÙÙ…ÙÙŠØ´ Ù…Ø§Ù†Ø¹ ÙÙŠ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ø© */
   const sql = fs.readFileSync(path.join(ROOT, 'supabase', 'my-account.sql'), 'utf8');
   const flat = sql.replace(/\s+/g, ' ');
   assert.ok(/if v_admin then\s*return new;/.test(flat),
-    'المدير يعدّي من غير قيود — وده اللي يسمحله يعدّل البيانات');
-  /* والواجهة لازم تبعت الأعمدة مع زر الحفظ */
-  const topbar = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-ui.js'), 'utf8');
+    'Ø§Ù„Ù…Ø¯ÙŠØ± ÙŠØ¹Ø¯Ù‘ÙŠ Ù…Ù† ØºÙŠØ± Ù‚ÙŠÙˆØ¯ â€” ÙˆØ¯Ù‡ Ø§Ù„Ù„ÙŠ ÙŠØ³Ù…Ø­Ù„Ù‡ ÙŠØ¹Ø¯Ù‘Ù„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª');
+  /* ÙˆØ§Ù„ÙˆØ§Ø¬Ù‡Ø© Ù„Ø§Ø²Ù… ØªØ¨Ø¹Øª Ø§Ù„Ø£Ø¹Ù…Ø¯Ø© Ù…Ø¹ Ø²Ø± Ø§Ù„Ø­ÙØ¸ */
+  const topbar = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-user.js'), 'utf8');
   assert.ok(/payload\.phone\s*=/.test(topbar) && /payload\.national_id\s*=/.test(topbar)
-    && /payload\.birth_date\s*=/.test(topbar), 'زر الحفظ بيبعت الأعمدة الثلاثة');
+    && /payload\.birth_date\s*=/.test(topbar), 'Ø²Ø± Ø§Ù„Ø­ÙØ¸ Ø¨ÙŠØ¨Ø¹Øª Ø§Ù„Ø£Ø¹Ù…Ø¯Ø© Ø§Ù„Ø«Ù„Ø§Ø«Ø©');
 });

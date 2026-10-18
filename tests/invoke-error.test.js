@@ -61,7 +61,7 @@ function loadTopbar() {
   sandbox.self = sandbox;
 
   const context = vm.createContext(sandbox);
-  const file = path.join(ROOT, 'modules', 'topbar-ui.js');
+  const file = path.join(ROOT, 'modules', 'topbar-invoke.js');
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 
   assert.strictEqual(typeof sandbox.yahmaDescribeInvokeError, 'function',

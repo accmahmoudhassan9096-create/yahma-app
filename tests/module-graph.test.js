@@ -325,6 +325,46 @@ test('تقسيم العمليات الاستخبارية ما ضفش مفتاح 
   assert.strictEqual(ctx.toastKbd.length, 1, 'toastKbd المفروض تاخد msg واحد');
 });
 
+/* ⭐ تقسيم تفاعلات الشريط العلوي ما_addedش حاجة للواجهة العامة.
+
+   invokeYahmaFunction صدر كـ window.yahmaInvokeFunction (يستخدمه my-account.js).
+   openWelcomeEditor صدر كـ window.yahmaOpenWelcomeEditor.
+   الدوال 나머지 صدرت ضمن YahmaTopbarUser و YahmaTopbarMenu. */
+test('تقسيم الشريط العلوي ما ضفش مفتاح جديد للـAPI العام', () => {
+  const { ctx } = loadApp();
+  assert.strictEqual(typeof ctx.yahmaInvokeFunction, 'function', 'yahmaInvokeFunction العام ناقص');
+  assert.strictEqual(ctx.yahmaInvokeFunction.length, 3,
+    'yahmaInvokeFunction المفروض (name, body, msgEl)');
+  assert.strictEqual(typeof ctx.yahmaOpenWelcomeEditor, 'function', 'yahmaOpenWelcomeEditor العام ناقص');
+  assert.strictEqual(ctx.yahmaOpenWelcomeEditor.length, 0,
+    'yahmaOpenWelcomeEditor المفروض ماخدش وسائط');
+
+  assert.deepStrictEqual(Object.keys(ctx.YahmaTopbarUser).sort(),
+    ['closeMenu', 'openUserAdmin', 'openWelcomeEditor', 'syncProfileMenu', 'welcomeLoadTemplate', 'welcomeRender']);
+  assert.deepStrictEqual(Object.keys(ctx.YahmaTopbarMenu).sort(),
+    ['bindMobileTools', 'openMenu', 'positionMenu']);
+});
+
+/* ⭐ كل دالة منقولة للشريط العلوي لازم تاخد عدد وسائطها المتوقع. */
+test('الدوال المنقولة للشريط العلوي بتاخد وسائط صريحة', () => {
+  const { ctx } = loadApp();
+  assert.strictEqual(typeof ctx.YahmaTopbarUser.openUserAdmin, 'function');
+  assert.strictEqual(ctx.YahmaTopbarUser.openUserAdmin.length, 0,
+    'openUserAdmin المفروض ماخدش وسائط');
+  assert.strictEqual(typeof ctx.YahmaTopbarUser.syncProfileMenu, 'function');
+  assert.strictEqual(ctx.YahmaTopbarUser.syncProfileMenu.length, 0,
+    'syncProfileMenu المفروض ماخدش وسائط');
+  assert.strictEqual(typeof ctx.YahmaTopbarMenu.positionMenu, 'function');
+  assert.strictEqual(ctx.YahmaTopbarMenu.positionMenu.length, 2,
+    'positionMenu المفروض (menu, trigger)');
+  assert.strictEqual(typeof ctx.YahmaTopbarMenu.openMenu, 'function');
+  assert.strictEqual(ctx.YahmaTopbarMenu.openMenu.length, 2,
+    'openMenu المفروض (menu, trigger)');
+  assert.strictEqual(typeof ctx.YahmaTopbarMenu.bindMobileTools, 'function');
+  assert.strictEqual(ctx.YahmaTopbarMenu.bindMobileTools.length, 0,
+    'bindMobileTools المفروض ماخدش وسائط');
+});
+
 /* ⭐ كل دالة منقولة للعمليات الاستخبارية لازم تاخد عدد وسائطها المتوقع. */
 test('الدوال المنقولة للعمليات الاستخبارية بتاخد وسائط صريحة', () => {
   const { ctx } = loadApp();

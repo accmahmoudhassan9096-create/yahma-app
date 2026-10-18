@@ -408,6 +408,19 @@
   "openDrill",
   "reportsTemplate"
  ],
+ "YahmaTopbarMenu": [
+  "bindMobileTools",
+  "openMenu",
+  "positionMenu"
+ ],
+ "YahmaTopbarUser": [
+  "closeMenu",
+  "openUserAdmin",
+  "openWelcomeEditor",
+  "syncProfileMenu",
+  "welcomeLoadTemplate",
+  "welcomeRender"
+ ],
  "YahmaTransfers": [
   "render"
  ],
