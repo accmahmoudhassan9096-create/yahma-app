@@ -219,6 +219,21 @@
   "on",
   "snapshot"
  ],
+ "YahmaOpsCore": [
+  "addDays",
+  "buildOpsNotifications",
+  "branchMetrics",
+  "collectTasks",
+  "daysBetween",
+  "expiryAlerts",
+  "fleetArr",
+  "parseDate",
+  "readinessFailures",
+  "slaTargetFor",
+  "taskSLA",
+  "today",
+  "toastKbd"
+ ],
  "YahmaOpsUX": [
   "branchMetrics",
   "buildOpsNotifications",

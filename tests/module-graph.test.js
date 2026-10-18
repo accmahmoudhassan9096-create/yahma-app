@@ -303,6 +303,48 @@ test('الدوال المنقولة للوحة التحكم بتاخد وسائ�
     'bindDashboardEvents المفروض (content, context, state)');
 });
 
+/* ⭐ تقسيم العمليات الاستخبارية ما_addedش حاجة للواجهة العامة.
+
+   funciones الحساب اتنقلت لـ ops-intel-core.js كمتغيرات عامة وبمساحة
+   YahmaOpsCore. وYahmaOpsUX لسه يصدر نفس الستة دوال. */
+test('تقسيم العمليات الاستخبارية ما ضفش مفتاح جديد للـAPI العام', () => {
+  const { ctx } = loadApp();
+  const UX = ctx.YahmaOpsUX;
+  assert.strictEqual(Object.keys(UX).length, 6,
+    'YahmaOpsUX بقى ' + Object.keys(UX).length + ' مفتاح بدل 6: ' + Object.keys(UX).join(', '));
+  assert.deepStrictEqual(Object.keys(UX).sort(),
+    ['branchMetrics', 'buildOpsNotifications', 'expiryAlerts', 'openNotifyCenter', 'searchAll', 'taskSLA']);
+
+  assert.deepStrictEqual(Object.keys(ctx.YahmaOpsCore).sort(),
+    ['addDays', 'branchMetrics', 'buildOpsNotifications', 'collectTasks', 'daysBetween',
+     'expiryAlerts', 'fleetArr', 'parseDate', 'readinessFailures', 'slaTargetFor',
+     'taskSLA', 'toastKbd', 'today']);
+
+  /* toastKbd لسه متاح كمتغير عام (dashboard-view.js يناديه così) */
+  assert.strictEqual(typeof ctx.toastKbd, 'function', 'toastKbd العام ناقص');
+  assert.strictEqual(ctx.toastKbd.length, 1, 'toastKbd المفروض تاخد msg واحد');
+});
+
+/* ⭐ كل دالة منقولة للعمليات الاستخبارية لازم تاخد عدد وسائطها المتوقع. */
+test('الدوال المنقولة للعمليات الاستخبارية بتاخد وسائط صريحة', () => {
+  const { ctx } = loadApp();
+  assert.strictEqual(typeof ctx.YahmaOpsCore.expiryAlerts, 'function');
+  assert.strictEqual(ctx.YahmaOpsCore.expiryAlerts.length, 1,
+    'expiryAlerts المفروض تاخد withinDays واحد');
+  assert.strictEqual(typeof ctx.YahmaOpsCore.taskSLA, 'function');
+  assert.strictEqual(ctx.YahmaOpsCore.taskSLA.length, 0,
+    'taskSLA المفروض ماخدش وسائط');
+  assert.strictEqual(typeof ctx.YahmaOpsCore.branchMetrics, 'function');
+  assert.strictEqual(ctx.YahmaOpsCore.branchMetrics.length, 0,
+    'branchMetrics المفروض ماخدش وسائط');
+  assert.strictEqual(typeof ctx.YahmaOpsCore.buildOpsNotifications, 'function');
+  assert.strictEqual(ctx.YahmaOpsCore.buildOpsNotifications.length, 0,
+    'buildOpsNotifications المفروض ماخدش وسائط');
+  assert.strictEqual(typeof ctx.YahmaOpsCore.collectTasks, 'function');
+  assert.strictEqual(ctx.YahmaOpsCore.collectTasks.length, 0,
+    'collectTasks المفروض ماخدش وسائط');
+});
+
 /* ⭐ كل دالة منقولة لازم تاخد ctx — عشان ما تفتحش نطاق جديد
    بالصدفة وتقرأ متغير عام بالغلط. */
 test('الدوال المنقولة للعرض بتاخد ctx صريح', () => {
