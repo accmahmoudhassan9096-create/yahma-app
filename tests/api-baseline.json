@@ -178,6 +178,13 @@
   "render",
   "uniqueFieldValues"
  ],
+ "YahmaFleetCore": [
+  "createFilterEngine",
+  "getFleet",
+  "optionList",
+  "readinessStats",
+  "uniqueFieldValues"
+ ],
  "YahmaFleetExcel": [
   "EXCEL_HEADERS",
   "FIELD_ALIASES",
@@ -192,6 +199,9 @@
   "parseTransferFileRows",
   "toDateStr",
   "transferPlateVariants"
+ ],
+ "YahmaFleetView": [
+  "render"
  ],
  "YahmaFollowUp": [
   "render"

@@ -365,6 +365,40 @@ test('الدوال المنقولة للشريط العلوي بتاخد وسا�
     'bindMobileTools المفروض ماخدش وسائط');
 });
 
+/* ⭐ تقسيم الأسطول ما_addedش حاجة للواجهة العامة.
+
+   الدوال النافعة صدرت بـ YahmaFleetCore، والعرض بـ YahmaFleetView،
+   والواجهة العامة YahmaFleet لسه تصدر نفس الدوال العشر. */
+test('تقسيم الأسطول ما ضفش مفتاح جديد للـAPI العام', () => {
+  const { ctx } = loadApp();
+  const F = ctx.YahmaFleet;
+  assert.strictEqual(Object.keys(F).length, 10,
+    'YahmaFleet بقى ' + Object.keys(F).length + ' مفتاح بدل 10: ' + Object.keys(F).join(', '));
+  assert.deepStrictEqual(Object.keys(F).sort(),
+    ['count','createFilterEngine','exportExcel','getAll','go','optionList','persist','readinessStats','render','uniqueFieldValues']);
+
+  assert.deepStrictEqual(Object.keys(ctx.YahmaFleetCore).sort(),
+    ['createFilterEngine','getFleet','optionList','readinessStats','uniqueFieldValues']);
+  assert.deepStrictEqual(Object.keys(ctx.YahmaFleetView).sort(), ['render']);
+
+  /* YahmaFleet.render لسه دالة */
+  assert.strictEqual(typeof F.render, 'function', 'YahmaFleet.render لازم تفضل دالة');
+});
+
+/* ⭐ كل دالة منقولة للأسطول لازم تاخد عدد وسائطها المتوقع. */
+test('الدوال المنقولة للأسطول بتاخد وسائط صريحة', () => {
+  const { ctx } = loadApp();
+  assert.strictEqual(typeof ctx.YahmaFleetCore.getFleet, 'function');
+  assert.strictEqual(ctx.YahmaFleetCore.getFleet.length, 0,
+    'getFleet المفروض ماخدش وسائط');
+  assert.strictEqual(typeof ctx.YahmaFleetCore.readinessStats, 'function');
+  assert.strictEqual(ctx.YahmaFleetCore.readinessStats.length, 0,
+    'readinessStats المفروض ماخدش وسائط');
+  assert.strictEqual(typeof ctx.YahmaFleetView.render, 'function');
+  assert.strictEqual(ctx.YahmaFleetView.render.length, 2,
+    'render المفروض (content, cars)');
+});
+
 /* ⭐ كل دالة منقولة للعمليات الاستخبارية لازم تاخد عدد وسائطها المتوقع. */
 test('الدوال المنقولة للعمليات الاستخبارية بتاخد وسائط صريحة', () => {
   const { ctx } = loadApp();
