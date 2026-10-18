@@ -8,6 +8,8 @@
 (function (global) {
   'use strict';
 
+  let globalSearchValue = '';
+
   function render(content, cars) {
     renderFleet(content, cars);
   }
@@ -525,7 +527,8 @@ const q=(search.value||'').trim().toLowerCase();
     filterPanel.classList.toggle('is-open',open);
     filterBody.hidden=!open;
     filterToggle.setAttribute('aria-expanded',String(open));
-    filterToggle.firstChild.textContent=open?'إخفاء الفلاتر ':'إظهار الفلاتر ';
+    if(filterToggle.firstChild) filterToggle.firstChild.textContent=open?'إخفاء الفلاتر ':'إظهار الفلاتر ';
+    else filterToggle.textContent=open?'إخفاء الفلاتر ':'إظهار الفلاتر ';
     window._fleetFiltersOpen=open;
   };
   if(filterToggle){
