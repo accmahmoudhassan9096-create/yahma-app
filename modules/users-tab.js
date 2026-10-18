@@ -1,7 +1,7 @@
 /* ===== modules/users-tab.js — تبويب إدارة المستخدمين (مستقل) =====
    استُخرج من openUserAdmin() في topbar-user.js وجُعل تبويبًا مستقلاً
    يظهر في الشريط الجانبي بعد «الرئيسية»، ويبدو لمدير النظام (admin) فقط.
-   تعرض واجهة إضافة/تعديل/حذف المستخدمين داخل content كشاشة كاملة ومنسقة. */
+   تعرض واجهة إضافة/تعديل/حذف المستخدمين داخل content كشاشة كاملة مع فلاتر وبحث شامل. */
 
 (function (global) {
   'use strict';
@@ -20,11 +20,7 @@
       return;
     }
 
-    /* ===== أسماء الفروع =====
-       دليل الفروع محفوظ على الجهاز (IndexedDB) وممكن يكون ناقص أو مختلف
-       عن الأسماء الحقيقية الموجودة في بيانات السيارات. ولأن الخادم بيطابق
-       الاسم بالحرف (yahma_can_access_branch)، لازم القائمة تعرض الأسماء
-       الحقيقية من الأسطول مع عدد سيارات كل فرع. */
+    /* ===== أسماء الفروع ===== */
     var branchCounts = new Map();
     var fleetList = (typeof fleet !== 'undefined' && Array.isArray(fleet)) ? fleet : (window.yahmaGetFleet ? window.yahmaGetFleet() : []);
     fleetList.forEach(function (c) {
@@ -42,6 +38,10 @@
         var label = pair[0] + ' — ' + pair[1] + ' سيارة';
         return '<option value="' + escapeHtml(pair[0]) + '">' + escapeHtml(label) + '</option>';
       }).join('');
+
+    var branchFilterOptions = sortedBranches.map(function (pair) {
+      return '<option value="' + escapeHtml(pair[0]) + '">' + escapeHtml(pair[0]) + '</option>';
+    }).join('') + '<option value="__none__">بدون فرع مخصص (كل الفروع)</option>';
 
     var permsList = (typeof PAGE_PERMISSION_OPTIONS !== 'undefined' && Array.isArray(PAGE_PERMISSION_OPTIONS))
       ? PAGE_PERMISSION_OPTIONS
@@ -63,7 +63,7 @@
       '  <div class="user-admin-head" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">' +
       '    <div>' +
       '      <h2 style="margin:0 0 4px; font-size:20px; font-weight:700; color:var(--ink);">إدارة المستخدمين والصلاحيات</h2>' +
-      '      <p style="margin:0; color:var(--muted); font-size:13px;">أنشئ مستخدمين جدد، تحكّم في الفروع والأقسام المسموح بها، وعدّل بيانات الحسابات المسجلة.</p>' +
+      '      <p style="margin:0; color:var(--muted); font-size:13px;">أنشئ مستخدمين جدد، تحكّم في الفروع والأقسام المسموح بها، وابحث في حسابات النظام.</p>' +
       '    </div>' +
       '    <div class="ua-head-actions">' +
       '      <button type="button" class="btn btn-ghost btn-small" id="ua-welcome-template" title="عدّل نص رسالة الترحيب التي تُرسل لكل حساب جديد">✉️ رسالة الترحيب</button>' +
@@ -91,12 +91,46 @@
       '  </div>' +
 
       '  <div class="panel" style="background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:18px;">' +
-      '    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">' +
+      '    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">' +
       '      <h3 style="margin:0; font-size:16px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px;">' +
-      '        <span>👥</span> المستخدمون الحاليون' +
+      '        <span>👥</span> المستخدمون المسجلون بالمنصة' +
       '      </h3>' +
-      '      <span id="ua-users-count" style="font-size:12px; color:var(--muted);"></span>' +
+      '      <span id="ua-users-count" style="font-size:12px; color:var(--muted); font-weight:500;"></span>' +
       '    </div>' +
+
+      /* ===== شريط الفلاتر والبحث في المستخدمين ===== */
+      '    <div class="user-filter-bar" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:16px; padding:12px; background:var(--panel); border:1px solid var(--line); border-radius:9px;">' +
+      '      <div style="flex:1 1 240px; position:relative;">' +
+      '        <span style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; font-size:14px;">⌕</span>' +
+      '        <input id="ua-filter-search" placeholder="ابحث بالاسم، الجوال، رقم الهوية أو الفرع..." style="width:100%; padding:8px 30px 8px 10px; border:1px solid var(--line); border-radius:7px; font:inherit; background:var(--paper); color:var(--ink);">' +
+      '      </div>' +
+      '      <div style="flex:0 0 150px;">' +
+      '        <select id="ua-filter-role" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:7px; font:inherit; background:var(--paper); color:var(--ink);">' +
+      '          <option value="">كل الأدوار</option>' +
+      '          <option value="admin">مدير النظام</option>' +
+      '          <option value="manager">إداري</option>' +
+      '          <option value="ops">تشغيل</option>' +
+      '          <option value="view">مشاهدة</option>' +
+      '        </select>' +
+      '      </div>' +
+      '      <div style="flex:0 0 180px;">' +
+      '        <select id="ua-filter-branch" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:7px; font:inherit; background:var(--paper); color:var(--ink);">' +
+      '          <option value="">كل الفروع</option>' +
+      '          ' + branchFilterOptions +
+      '        </select>' +
+      '      </div>' +
+      '      <div style="flex:0 0 150px;">' +
+      '        <select id="ua-filter-status" style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:7px; font:inherit; background:var(--paper); color:var(--ink);">' +
+      '          <option value="">كل الحالات</option>' +
+      '          <option value="complete">🟢 بيانات مكتملة</option>' +
+      '          <option value="incomplete">🟡 بيانات ناقصة</option>' +
+      '        </select>' +
+      '      </div>' +
+      '      <div>' +
+      '        <button type="button" class="btn btn-ghost btn-small" id="ua-filter-clear" style="white-space:nowrap;">↺ مسح الفلاتر</button>' +
+      '      </div>' +
+      '    </div>' +
+
       '    <div class="user-admin-list" id="user-admin-list" style="max-height:none; overflow:visible;">' +
       '      <div class="empty">جارٍ تحميل المستخدمين...</div>' +
       '    </div>' +
@@ -105,6 +139,12 @@
 
     var msg = content.querySelector('#user-admin-message'), list = content.querySelector('#user-admin-list');
     var countEl = content.querySelector('#ua-users-count');
+    var searchInput = content.querySelector('#ua-filter-search');
+    var roleFilter = content.querySelector('#ua-filter-role');
+    var branchFilter = content.querySelector('#ua-filter-branch');
+    var statusFilter = content.querySelector('#ua-filter-status');
+    var clearBtn = content.querySelector('#ua-filter-clear');
+
     var welcomeBtn = content.querySelector('#ua-welcome-template');
     if (welcomeBtn) {
       welcomeBtn.onclick = function () {
@@ -118,14 +158,53 @@
       };
     }
 
-    var renderUsersInner = async function () {
-      if (!window.supabaseReady || !window.supabaseClient) { list.innerHTML = '<div class="empty">إدارة المستخدمين تحتاج اتصال Supabase.</div>'; return; }
-      var result = await window.supabaseClient.from('profiles').select('id,full_name,role,branch_name,allowed_tabs,national_id,birth_date,phone').order('full_name', { ascending: true });
-      if (result.error) { list.innerHTML = '<div class="empty">تعذر تحميل المستخدمين: ' + escapeHtml(result.error.message) + '</div>'; return; }
-      var users = result.data || [];
-      if (countEl) countEl.textContent = 'إجمالي الحسابات: ' + users.length;
+    var cachedUsers = [];
+
+    var applyFiltersAndRenderList = function () {
+      var q = (searchInput && searchInput.value || '').trim().toLowerCase();
+      var normQ = q.replace(/[يى]/g, 'ي').replace(/[أإآ]/g, 'ا');
+      var selRole = roleFilter && roleFilter.value || '';
+      var selBranch = branchFilter && branchFilter.value || '';
+      var selStatus = statusFilter && statusFilter.value || '';
+
+      var filtered = cachedUsers.filter(function (u) {
+        if (selRole && u.role !== selRole) return false;
+        if (selBranch) {
+          var b = String(u.branch_name || '').trim();
+          if (selBranch === '__none__') {
+            if (b) return false;
+          } else {
+            if (b !== selBranch) return false;
+          }
+        }
+        if (selStatus === 'complete') {
+          if (!u.phone || !u.national_id) return false;
+        } else if (selStatus === 'incomplete') {
+          if (u.phone && u.national_id) return false;
+        }
+        if (normQ) {
+          var hay = [
+            u.full_name || '',
+            u.phone || '',
+            u.national_id || '',
+            u.branch_name || '',
+            (window.YahmaPerms && window.YahmaPerms.label ? window.YahmaPerms.label(u.role) : u.role) || ''
+          ].join(' ').toLowerCase().replace(/[يى]/g, 'ي').replace(/[أإآ]/g, 'ا');
+          if (!hay.includes(normQ)) return false;
+        }
+        return true;
+      });
+
+      if (countEl) {
+        if (filtered.length === cachedUsers.length) {
+          countEl.textContent = 'إجمالي الحسابات: ' + cachedUsers.length;
+        } else {
+          countEl.textContent = 'عرض ' + filtered.length + ' من أصل ' + cachedUsers.length + ' مستخدم';
+        }
+      }
+
       var myId = window.currentUser && window.currentUser.id;
-      list.innerHTML = users.map(function (u) {
+      list.innerHTML = filtered.map(function (u) {
         var wanted = String(u.branch_name || '').trim();
         var options = branchOptions.split('<option ').map(function (chunk) {
           var isMatch = wanted && chunk.indexOf('value="' + escapeHtml(wanted) + '"') >= 0;
@@ -147,7 +226,7 @@
           '<div class="ua-user-fields"><select class="ua-existing-branch">' + options + '</select><select class="ua-existing-role"><option value="view" ' + (u.role === 'view' ? 'selected' : '') + '>مشاهدة</option><option value="ops" ' + (u.role === 'ops' ? 'selected' : '') + '>تشغيل</option><option value="manager" ' + (u.role === 'manager' ? 'selected' : '') + '>إداري</option><option value="admin" ' + (u.role === 'admin' ? 'selected' : '') + '>مدير النظام</option></select></div>' +
           '<div class="ua-user-permissions"><strong>الأقسام المسموح بها</strong>' + permissionGrid('ua-existing-permissions', allowed, u.role === 'admin') + '</div>' +
           '<div class="ua-user-actions"><button type="button" class="btn btn-ghost btn-small ua-save-role">حفظ</button>' + deleteBtn + '</div></div>';
-      }).join('') || '<div class="empty">لا يوجد مستخدمون بعد.</div>';
+      }).join('') || '<div class="empty">لا توجد حسابات مطابقة لمعايير البحث الحالية.</div>';
 
       list.querySelectorAll('.ua-existing-role').forEach(function (select) { select.addEventListener('change', function () { syncPermissions(select.closest('.user-admin-row'), select.value); }); });
       list.querySelectorAll('.ua-save-role').forEach(function (btn) { btn.onclick = async function () {
@@ -196,6 +275,35 @@
         }
       }; });
     };
+
+    var renderUsersInner = async function () {
+      if (!window.supabaseReady || !window.supabaseClient) { list.innerHTML = '<div class="empty">إدارة المستخدمين تحتاج اتصال Supabase.</div>'; return; }
+      var result = await window.supabaseClient.from('profiles').select('id,full_name,role,branch_name,allowed_tabs,national_id,birth_date,phone').order('full_name', { ascending: true });
+      if (result.error) { list.innerHTML = '<div class="empty">تعذر تحميل المستخدمين: ' + escapeHtml(result.error.message) + '</div>'; return; }
+      cachedUsers = result.data || [];
+      applyFiltersAndRenderList();
+    };
+
+    /* ربط أحداث الفلاتر */
+    if (searchInput) {
+      var st = null;
+      searchInput.addEventListener('input', function () {
+        clearTimeout(st);
+        st = setTimeout(applyFiltersAndRenderList, 120);
+      });
+    }
+    if (roleFilter) roleFilter.addEventListener('change', applyFiltersAndRenderList);
+    if (branchFilter) branchFilter.addEventListener('change', applyFiltersAndRenderList);
+    if (statusFilter) statusFilter.addEventListener('change', applyFiltersAndRenderList);
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        if (searchInput) searchInput.value = '';
+        if (roleFilter) roleFilter.value = '';
+        if (branchFilter) branchFilter.value = '';
+        if (statusFilter) statusFilter.value = '';
+        applyFiltersAndRenderList();
+      });
+    }
 
     var roleSelect = content.querySelector('#ua-role');
     if (roleSelect) {
