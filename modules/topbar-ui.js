@@ -14,7 +14,7 @@
     /* syncProfileMenu يزامن قائمة المستخدم */
     if(window.YahmaTopbarUser && typeof window.YahmaTopbarUser.syncProfileMenu === 'function') window.YahmaTopbarUser.syncProfileMenu();
     /* زر الإعدادات يفتح إدارة المستخدمين (للمدير فقط) */
-    const settings=document.getElementById('topbar-settings');
+    const settings=document.getElementById('topbar-user');
     if(settings){
       settings.onclick=function(e){
         e.preventDefault();
