@@ -1,0 +1,451 @@
+/*
+ * modules/dashboard-core.js — حساب حالة لوحة التحكم الرئيسية
+ *
+ * دالة واحدة صافية: تتلقى أسطول السيارات وتعيد كائن حالة يحتوي
+ * على كل المؤشرات والفرز والصفوف التي تحتاجها طبقة العرض.
+ * لا تلمس الـDOM.
+ */
+(function (global) {
+  'use strict';
+
+function computeDashboardState(fleet) {
+  const st = readinessStats();
+  const reasons = readinessReasons(st);
+  const total = st.total || 0;
+  const ready = st.ready || 0;
+  const notReady = Math.max(0, (st.out||0) + (st.other||0) + (st.inspection||0));
+  const available = ready;
+  const rented = fleet.filter(c => String(c.carStatus||'').includes('مؤجر')).length;
+  // قيد التجهيز بالمعيار: أوراق ناقصة (كارت/رخصة/تأمين/فحص) — البطاقة تعرض الكل، والدونات يستبعد الصيانة والخارجة (لهما مواضعهما)
+  const docFailing = c => vehicleReadiness(c).failed.some(x => x.key === 'card' || x.key === 'license' || x.key === 'insurance' || x.key === 'inspection');
+  const outStatus = c => { const s = String(c.carStatus || ''); return s.includes('خارج') || s.includes('مسروق') || s.includes('محول') || s.includes('مفقود'); };
+  const maintStatus = c => String(c.carStatus || '').includes('صيانة');
+  const inPrepExcl = fleet.filter(c => docFailing(c) && !maintStatus(c) && !outStatus(c)).length;
+  // بطاقات التجديد لكل وثيقة (قد تتداخل: السيارة الواحدة تُعد في كل وثيقة ناقصة)
+  const renInsp = fleet.filter(c => inspectionDisplayStatus(c.inspectionStatus).level !== 'green').length;
+  const renLic = fleet.filter(c => dateStatus(c.licenseExpiry).level !== 'green').length;
+  const renIns = fleet.filter(c => textTag(c.insuranceStatus).level !== 'green').length;
+
+  /* ===== تصدير الرئيسية =====
+     مفيش جدول في الشاشة، فبن export مُلخّص تنفيذي + توزيع الفروع.
+     ده اللي المستخدم محتاج ينسخه لما يطلب تقرير الحالة. */
+  window._yahmaCurrentPdfData = () => {
+    const rows = [];
+    const summary = [
+      ['إجمالي الأسطول', total],
+      ['جاهزة للتأجير', ready],
+      ['قيد التجهيز (أوراق ناقصة)', inPrepExcl],
+      ['غير جاهزة', notReady],
+      ['مؤجرة', rented],
+      ['تحت الصيانة', fleet.filter(maintStatus).length],
+      ['خارج الخدمة', fleet.filter(outStatus).length],
+      ['فحص مطلوب', renInsp],
+      ['رخص تحتاج متابعة', renLic],
+      ['تأمين يحتاج متابعة', renIns],
+      ['نسبة الجاهزية', (total ? Math.round(ready / total * 1000) / 10 : 0) + '%']
+    ];
+    summary.forEach(function (r) { rows.push([r[0], String(r[1])]); });
+
+    /* توزيع الفروع — الجزء المفيد فعلًا في تقرير الحالة */
+    const byBranch = new Map();
+    fleet.forEach(function (c) {
+      const b = String(c.branch || '').trim() || 'بدون فرع';
+      const cur = byBranch.get(b) || { total: 0, ready: 0 };
+      cur.total++;
+      try { if (vehicleReadiness(c).ready) cur.ready++; } catch(_){yahmaErr(_,'dashboard.js:53');}
+      byBranch.set(b, cur);
+    });
+    Array.from(byBranch.entries())
+      .sort(function (a, b) { return b[1].total - a[1].total; })
+      .forEach(function (e) {
+        rows.push([e[0], String(e[1].total), String(e[1].ready), String(e[1].total - e[1].ready)]);
+      });
+
+    return {
+      title: 'الملخص التنفيذي للأسطول',
+      subtitle: 'إجمالي ' + total + ' سيارة — جاهزة ' + ready + ' — ' + new Date().toLocaleDateString('ar-EG'),
+      headers: ['البند / الفرع', 'الإجمالي', 'جاهزة', 'غير جاهزة'],
+      rows: rows
+    };
+  };
+  const renCard = fleet.filter(c => cardDisplayStatus(c.cardExpiry, c.cardStatus).level !== 'green').length;
+  let finalReview = 0;
+  // مراجعة نهائية
+  try {
+    finalReview = fleet.filter(c => vehicleReadiness(c).ready && !(typeof prepChecklistForCar==='function' && prepChecklistForCar(c).final)).length;
+  } catch(e) { finalReview = 0; }
+
+  // نسب الكروت
+  const pct = (n) => total ? Math.round(n / total * 1000) / 10 : 0;
+  const pReady = pct(ready);
+  const pRenInsp = pct(renInsp);
+  const pRenLic = pct(renLic);
+  const pRenIns = pct(renIns);
+  const pRenCard = pct(renCard);
+
+  // فروع
+  const branch = {};
+  fleet.forEach(c => {
+    const b = c.branch || 'غير محدد';
+    branch[b] = branch[b] || { total: 0, ready: 0, city: '' };
+    if (!branch[b].city && c.city) branch[b].city = String(c.city).trim();
+    branch[b].total++;
+    if (vehicleReadiness(c).ready) branch[b].ready++;
+  });
+  const topBranches = Object.entries(branch)
+    .map(([name, x]) => ({ name, ...x, notReady: x.total - x.ready, pct: x.total ? Math.round(x.ready / x.total * 100) : 0 }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
+  // خريطة الفروع: كل فرع بإحداثيات مدينته + نمو فرعي من اللقطات
+  const branchFull = Object.entries(branch).map(([name, x]) => {
+    const city = (typeof cityOfBranch === 'function') ? cityOfBranch(name, x.city) : { name: 'الرياض', lat: 24.63, lng: 46.68 };
+    return { name, total: x.total, ready: x.ready, city: city.name, lat: city.lat, lng: city.lng };
+  }).sort((a, b) => b.total - a.total);
+  branchFull.forEach((b, i, arr) => {
+    const same = arr.filter(x => x.lat === b.lat && x.lng === b.lng);
+    const k = same.indexOf(b);
+    const ang = k * 2.39996, dist = 0.022 * Math.sqrt(k + 1);
+    b.mlat = b.lat + dist * Math.sin(ang);
+    b.mlng = b.lng + dist * Math.cos(ang);
+  });
+
+  // حالة الأسطول — مستوى الشركة بالترتيب المعتمد
+  const stOf = c => String(c.carStatus || '').trim();
+  const statusRows = [
+    { label: 'تحت الصيانة', color: '#E6A23C', match: s => s.includes('صيانة') },
+    { label: 'حجز', color: '#D6952A', match: s => s === 'حجز' },
+    { label: 'متاحة للايجار', color: '#0BAA86', match: s => { const n = normStatus(s); return n === 'متاحه للايجار' || n === 'موجوده' || n === 'نشط'; } },
+    { label: 'محولة غير مستلمة', color: '#7C5CFF', match: s => s.includes('محول') },
+    { label: 'مسروقة', color: '#991B1B', match: s => s.includes('مسروق') },
+    { label: 'معروضة للبيع', color: '#3B82C4', match: s => normStatus(s) === 'معروضه للبيع' },
+    { label: 'مؤجرة', color: '#2FA36B', match: s => s.includes('مؤجر') },
+    { label: 'خدمة', color: '#0EA5E9', match: s => s === 'خدمة' },
+    { label: 'مفقودة', color: '#4B5563', match: s => s.includes('مفقود') }
+  ].map(r => ({ label: r.label, color: r.color, match: r.match, n: fleet.filter(c => r.match(stOf(c))).length }));
+  const matchedIds = new Set();
+  fleet.forEach(c => { const s = stOf(c); if (statusRows.some(r => r.match(s))) matchedIds.add(c.id); });
+  const otherCars = fleet.filter(c => !matchedIds.has(c.id));
+  statusRows.push({ label: 'أخرى', color: '#9AA5B1', n: otherCars.length, more: true });
+  // خريطة المناطق: تجميع الفروع + لقطة يومية لمعدل النمو (يبدأ القياس من أول يوم)
+  const regionStats = (typeof REGION_DEFS !== 'undefined' ? REGION_DEFS : []).map(r => ({ ...r, total: 0, branches: {} }));
+  const regionById = {};
+  regionStats.forEach(r => { regionById[r.id] = r; });
+  fleet.forEach(c => {
+    const b = (c.branch || 'غير محدد').trim() || 'غير محدد';
+    const rid = (typeof regionOfBranch === 'function') ? regionOfBranch(b, c.city) : 'central';
+    const r = regionById[rid] || regionById.central;
+    r.total++;
+    r.branches[b] = (r.branches[b] || 0) + 1;
+  });
+  const REG_HIST_KEY = 'yahma-region-history-v1';
+  const readHist = () => { try { const a = JSON.parse(localStorage.getItem(REG_HIST_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch(e) { return []; } };
+  const todayIso = new Date().toISOString().slice(0, 10);
+  let regHist = readHist();
+  const branchSnap = {};
+  branchFull.forEach(b => { branchSnap[b.name] = b.total; });
+  if (!regHist.length || regHist[regHist.length - 1].d !== todayIso) {
+    regHist.push({ d: todayIso, west: (regionById.west || { total: 0 }).total, east: (regionById.east || { total: 0 }).total, central: (regionById.central || { total: 0 }).total, branches: branchSnap });
+    regHist = regHist.slice(-90);
+    try { localStorage.setItem(REG_HIST_KEY, JSON.stringify(regHist)); } catch(e){yahmaErr(e,'dashboard.js:147');}
+  }
+  const histBase = (() => {
+    if (regHist.length < 2) return null;
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+    const iso = weekAgo.toISOString().slice(0, 10);
+    const found = regHist.filter(h => h.d <= iso);
+    return (found.length ? found[found.length - 1] : regHist[0]);
+  })();
+  regionStats.forEach(r => {
+    const base = histBase ? (+histBase[r.id] || 0) : null;
+    r.delta = base === null ? null : r.total - base;
+    r.growth = (base === null || !base) ? null : Math.round((r.total - base) / base * 1000) / 10;
+    r.since = histBase ? histBase.d : null;
+    r.topBranches = Object.entries(r.branches).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  });
+  const mapMode = (() => { try { return localStorage.getItem('yahma-map-mode') || 'regions'; } catch(e) { return 'regions'; } })();
+  branchFull.forEach(b => {
+    const base = (histBase && histBase.branches) ? (+histBase.branches[b.name] || 0) : null;
+    b.delta = base === null ? null : b.total - base;
+    b.growth = (base === null || !base) ? null : Math.round((b.total - base) / base * 1000) / 10;
+    b.pct = b.total ? Math.round(b.ready / b.total * 100) : 0;
+  });
+  /* ===== قائمة عمل الفروع: نواقص الأوراق مجمّعة لكل فرع + رسالة واتساب بضغطة ===== */
+  const DOC_KEYS = [
+    { key: 'card', label: 'الكارت', icon: '🪪' },
+    { key: 'license', label: 'الرخصة', icon: '📄' },
+    { key: 'insurance', label: 'التأمين', icon: '🛡️' },
+    { key: 'inspection', label: 'الفحص', icon: '🔍' }
+  ];
+  const wqOut = c => { const s = String(c.carStatus || ''); return s.includes('خارج') || s.includes('مسروق') || s.includes('مفقود') || s.includes('محول'); };
+  const wqLabel = (k) => (DOC_KEYS.find(d => d.key === k) || {}).label || k;
+  const workMap = {};
+  fleet.forEach(c => {
+    const r = vehicleReadiness(c);
+    if (r.ready || wqOut(c)) return;
+    const keys = r.failed.filter(x => DOC_KEYS.some(d => d.key === x.key)).map(x => x.key);
+    if (!keys.length) return;
+    const name = (c.branch || 'غير محدد').trim() || 'غير محدد';
+    const w = workMap[name] || (workMap[name] = { name, total: 0, gap: [], byDoc: { card: 0, license: 0, insurance: 0, inspection: 0 } });
+    w.total++;
+    w.gap.push({ plate: c.plate || '—', docs: keys.map(wqLabel), id: c.id });
+    DOC_KEYS.forEach(d => { if (keys.includes(d.key)) w.byDoc[d.key]++; });
+  });
+  const workQueue = Object.values(workMap)
+    .map(w => ({ ...w, pctReady: w.total ? Math.round((w.total - w.gap.length) / w.total * 100) : 0 }))
+    .sort((a, b) => b.gap.length - a.gap.length);
+  const wqCars = workQueue.reduce((s, w) => s + w.gap.length, 0);
+  const wqDocTotals = DOC_KEYS.map(d => ({ ...d, n: workQueue.reduce((s, w) => s + w.byDoc[d.key], 0) }));
+  const wqDate = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0, 10);
+  const wqMessage = (w) => {
+    const L = [];
+    L.push('⛔ طلب استكمال أوراق — ' + w.name);
+    L.push('التاريخ: ' + wqDate);
+    L.push('');
+    L.push('السيارات الناقصة: ' + w.gap.length + ' من ' + w.total + ' (الجاهزية ' + w.pctReady + '%)');
+    const top = DOC_KEYS.filter(d => w.byDoc[d.key] > 0).map(d => d.icon + ' ' + d.label + ': ' + w.byDoc[d.key]).join(' · ');
+    if (top) L.push('النواقص: ' + top);
+    L.push('');
+    w.gap.slice(0, 40).forEach((g, i) => { L.push((i + 1) + ') ' + g.plate + ' — ناقص: ' + g.docs.join(' + ')); });
+    if (w.gap.length > 40) L.push('… و' + (w.gap.length - 40) + ' سيارة أخرى (القائمة كاملة في التطبيق)');
+    L.push('');
+    L.push('برجاء الإجراء وإبلاغ الإدارة فور الانتهاء. شكرًا تعاونكم.');
+    return L.join('\n');
+  };
+  const wqMessageAll = () => {
+    const L = ['⛔ طلب استكمال أوراق — كل الفروع', 'التاريخ: ' + wqDate, '', 'إجمالي السيارات الناقصة: ' + wqCars, ''];
+    workQueue.slice(0, 25).forEach(w => {
+      L.push('■ ' + w.name + ' — ' + w.gap.length + '/' + w.total + ' ناقصة');
+      w.gap.slice(0, 8).forEach(g => L.push('   • ' + g.plate + ' — ' + g.docs.join(' + ')));
+      if (w.gap.length > 8) L.push('   … و' + (w.gap.length - 8) + ' أخرى');
+      L.push('');
+    });
+    return L.join('\n');
+  };
+  // أسباب عدم الجاهزية بنسب
+  /* ===== توقّع دوران الأسطول + المنحنى التاريخي ===== */
+  const churn = (typeof churnStats === 'function') ? churnStats(fleet)
+    : { total: 0, buckets: {}, docs: {}, riskList: [], risk30: 0 };
+  const churnRows = (typeof CHURN_BUCKETS !== 'undefined' ? CHURN_BUCKETS : [])
+    .map(b => ({ ...b, cars: (churn.buckets[b.id] || {}).cars || 0, docs: (churn.buckets[b.id] || {}).docs || 0 }));
+  const churnSum = churnRows.reduce((s, r) => s + r.cars, 0) || 1;
+  const churnQuick = { expired: 'exp_now', d30: 'exp_30', d60: 'exp_60', d90: 'exp_90' };
+  const docStats = (typeof CHURN_DOCS !== 'undefined' ? CHURN_DOCS : []).map(d => ({ ...d, ...(churn.docs[d.key] || { expired: 0, d30: 0, d90: 0, total: 0 }) }));
+  /* لقطة يومية ب Gesamt العدد والجاهزية (تغذّي المنحنى) */
+  if (!regHist.length || regHist[regHist.length - 1].d !== todayIso) {
+    const last = regHist[regHist.length - 1];
+    if (!last || last.total === undefined) {
+      regHist.push(Object.assign({}, last || {}, {
+        d: todayIso, west: (regionById.west || { total: 0 }).total, east: (regionById.east || { total: 0 }).total,
+        central: (regionById.central || { total: 0 }).total, branches: branchSnap,
+        total: fleet.length, ready: ready, pct: pReady
+      }));
+      regHist = regHist.slice(-90);
+      try { localStorage.setItem(REG_HIST_KEY, JSON.stringify(regHist)); } catch(e){yahmaErr(e,'dashboard.js:241');}
+    }
+  }
+  const trend = regHist.filter(h => h && typeof h.total === 'number').slice(-30);
+  const trendSvg = (() => {
+    if (trend.length < 2) return '';
+    const W = 620, H = 152, PL = 36, PR = 38, PT = 12, PB = 22;
+    const iw = W - PL - PR, ih = H - PT - PB;
+    const totals = trend.map(h => h.total);
+    const pcts = trend.map(h => h.pct || 0);
+    const tMax = Math.max(...totals), tMin = Math.min(...totals);
+    const tPad = Math.max(1, Math.round((tMax - tMin) * 0.25));
+    const lo = Math.max(0, tMin - tPad), hi = tMax + tPad;
+    const x = (i) => PL + (trend.length === 1 ? iw / 2 : (i / (trend.length - 1)) * iw);
+    const yT = (v) => PT + ih - ((v - lo) / (hi - lo || 1)) * ih;
+    const yP = (v) => PT + ih - (v / 100) * ih;
+    const line = (arr, yf) => arr.map((v, i) => (i ? 'L ' : 'M ') + x(i).toFixed(1) + ' ' + yf(v).toFixed(1)).join(' ');
+    const area = line(totals, yT) + ' L ' + x(trend.length - 1).toFixed(1) + ' ' + (PT + ih) + ' L ' + x(0).toFixed(1) + ' ' + (PT + ih) + ' Z';
+    let grid = '';
+    [0, 50, 100].forEach(p => { grid += '<line x1="' + PL + '" y1="' + yP(p).toFixed(1) + '" x2="' + (W - PR) + '" y2="' + yP(p).toFixed(1) + '" stroke="rgba(21,35,80,.10)" stroke-width="1" stroke-dasharray="3 4"/>'; });
+    const dots = trend.map((h, i) => '<circle cx="' + x(i).toFixed(1) + '" cy="' + yT(h.total).toFixed(1) + '" r="2.6" fill="#C6952E"><title>' + escapeHtml(h.d + ' — ' + h.total + ' سيارة · جاهزية ' + (h.pct || 0) + '%') + '</title></circle>').join('');
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="منحنى عدد السيارات ونسبة الجاهزية" style="display:block;width:100%;height:auto">' +
+      grid +
+      '<path d="' + area + '" fill="rgba(198,149,46,.12)"/>' +
+      '<path d="' + line(pcts, yP) + '" fill="none" stroke="#0BAA86" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<path d="' + line(totals, yT) + '" fill="none" stroke="#C6952E" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>' +
+      dots +
+      '<text x="' + PL + '" y="' + (PT + 9) + '" font-size="10" fill="#8A93AD">100%</text>' +
+      '<text x="' + PL + '" y="' + (PT + ih) + '" font-size="10" fill="#8A93AD">0%</text>' +
+      '<text x="' + (W - PR - 30) + '" y="' + (PT + 9) + '" font-size="10" fill="#8A93AD">' + hi + '</text>' +
+      '<text x="' + (W - PR - 30) + '" y="' + (PT + ih) + '" font-size="10" fill="#8A93AD">' + lo + '</text>' +
+      '<text x="' + PL + '" y="' + (H - 6) + '" font-size="10" fill="#8A93AD">' + escapeHtml(trend[0].d) + '</text>' +
+      '<text x="' + (W - PR - 44) + '" y="' + (H - 6) + '" font-size="10" fill="#8A93AD" text-anchor="end">' + escapeHtml(trend[trend.length - 1].d) + '</text>' +
+      '</svg>';
+  })();
+
+  const reasonTotal = reasons.reduce((s, [, v]) => s + v, 0) || 1;
+  const reasonRows = reasons.slice(0, 5).map(([k, v]) => ({
+    label: k, count: v, pct: Math.round(v / reasonTotal * 1000) / 10
+  }));
+
+  // مقياس الجاهزية (SVG): مناطق أحمر/كهرمان/أخضر + إبرة عند النسبة (عتبة 70% كالتقارير)
+  const gF = total ? Math.min(1, Math.max(0, ready / total)) : 0;
+  const gP = (f) => { const a = Math.PI * (1 - f); return [100 + 78 * Math.cos(a), 106 - 78 * Math.sin(a)]; };
+  const gArc = (f0, f1) => { const p0 = gP(f0), p1 = gP(f1); return 'M ' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1) + ' A 78 78 0 0 1 ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1); };
+  const gA = Math.PI * (1 - gF);
+  const gNx = 100 + 56 * Math.cos(gA), gNy = 106 - 56 * Math.sin(gA);
+  let gTicks = '';
+  [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+    const a = Math.PI * (1 - f);
+    gTicks += '<line x1="' + (100 + 60 * Math.cos(a)).toFixed(1) + '" y1="' + (106 - 60 * Math.sin(a)).toFixed(1) +
+      '" x2="' + (100 + 68 * Math.cos(a)).toFixed(1) + '" y2="' + (106 - 68 * Math.sin(a)).toFixed(1) +
+      '" stroke="var(--ink)" stroke-width="2" opacity=".35"/>';
+  });
+  const gaugeSvg = '<svg viewBox="0 0 200 128" role="presentation" style="display:block;width:200px;height:auto">'
+    + '<path d="' + gArc(0, 0.5) + '" fill="none" stroke="#E64B4B" stroke-width="18" stroke-linecap="round"/>'
+    + '<path d="' + gArc(0.5, 0.7) + '" fill="none" stroke="#E6A23C" stroke-width="18"/>'
+    + '<path d="' + gArc(0.7, 1) + '" fill="none" stroke="#0BAA86" stroke-width="18" stroke-linecap="round"/>'
+    + gTicks
+    + '<line x1="100" y1="106" x2="' + gNx.toFixed(1) + '" y2="' + gNy.toFixed(1) + '" style="stroke:var(--ink)" stroke-width="5" stroke-linecap="round"/>'
+    + '<circle cx="100" cy="106" r="9" style="fill:var(--ink)"/>'
+    + '<text x="100" y="74" text-anchor="middle" font-size="23" font-weight="800" style="fill:var(--ink)">' + pReady + '%</text></svg>';
+
+  // مهامي اليوم من مهام التجهيز
+  const today = typeof todayStr === 'function' ? todayStr() : new Date().toISOString().slice(0, 10);
+  let todayTasks = [];
+  try {
+    const tasks = getPrepTasks();
+    const needInsp = fleet.filter(c => vehicleReadiness(c).label === 'تحتاج فحص').length;
+    const cardSoon = fleet.filter(c => dateStatus(c.cardExpiry).level !== 'green').length;
+    const licSoon = fleet.filter(c => dateStatus(c.licenseExpiry).level !== 'green').length;
+    const overdue = tasks.filter(t => t.status !== 'done' && t.dueDate && t.dueDate < today).length;
+    todayTasks = [
+      { n: needInsp, label: 'سيارات تحتاج فحص', go: 'inspections', alert: false },
+      { n: cardSoon, label: 'تجديد كارت قريب الانتهاء', go: 'inspections', alert: false },
+      { n: licSoon, label: 'تجديد رخصة قريب الانتهاء', go: 'license-renewals', alert: false },
+      { n: overdue, label: 'مهام متأخرة', go: 'preparation', alert: true }
+    ].filter(x => x.n > 0);
+    if (!todayTasks.length) {
+      todayTasks = [{ n: 0, label: 'لا توجد مهام عاجلة اليوم', go: 'preparation', alert: false }];
+    }
+  } catch(e) {
+    todayTasks = [{ n: 0, label: 'لا توجد مهام', go: 'preparation', alert: false }];
+  }
+  const todayCount = todayTasks.reduce((s, t) => s + (t.n || 0), 0);
+
+  // أحدث النشاطات من audit + prepEvents
+  let activity = [];
+  try {
+    const audit = JSON.parse(localStorage.getItem('fleet-audit-v1') || '[]');
+    activity = audit.slice(0, 8).map(a => ({
+      time: a.displayAt || a.at || '',
+      title: a.action || 'نشاط',
+      detail: a.detail || a.user || '',
+      icon: '•'
+    }));
+  } catch(e){yahmaErr(e,'dashboard.js:337');}
+  if (activity.length < 4) {
+    try {
+      const events = [];
+      fleet.forEach(c => {
+        (c.prepEvents || []).forEach(ev => events.push({
+          time: ev.at || '',
+          title: ev.title || 'حدث تجهيز',
+          detail: (c.plate || '') + (ev.details ? ' — ' + ev.details : ''),
+          icon: '✓'
+        }));
+      });
+      events.sort((a, b) => String(b.time).localeCompare(String(a.time)));
+      activity = activity.concat(events.slice(0, 8 - activity.length));
+    } catch(e){yahmaErr(e,'dashboard.js:351');}
+  }
+  if (!activity.length) {
+    activity = [
+      { time: '—', title: 'لا توجد نشاطات مسجلة بعد', detail: 'ستظهر هنا التحديثات والاعتمادات', icon: '•' }
+    ];
+  }
+
+  // Donut SVG — segments: ready, inPrep, notReady, finalReview
+  // Use ready, inPrep-ish, notReady, finalReview for legend matching image
+  const dReady = ready;
+  const dPrep = Math.max(0, inPrepExcl);
+  const dNeed = Math.max(0, notReady - inPrepExcl);
+  const dFinal = finalReview;
+  const dSum = dReady + dPrep + dNeed + dFinal || 1;
+  const colors = ['#0BAA86', '#E6A23C', '#E64B4B', '#3B82C4'];
+  const segs = [
+    { v: dReady, c: colors[0], label: 'جاهزة للتأجير' },
+    { v: dPrep, c: colors[1], label: 'قيد التجهيز' },
+    { v: dNeed, c: colors[2], label: 'تحتاج إجراء' },
+    { v: dFinal, c: colors[3], label: 'مراجعة نهائية' }
+  ];
+  // build conic-gradient style
+  let acc = 0;
+  const conicParts = segs.map(s => {
+    const start = acc;
+    acc += (s.v / dSum) * 100;
+    return `${s.c} ${start}% ${acc}%`;
+  }).join(', ');
+
+  const fmtTime = (t) => {
+    if (!t) return '—';
+    try {
+      const d = new Date(t);
+      if (isNaN(d)) return String(t).slice(0, 16);
+      return d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+    } catch(e) { return String(t).slice(0, 10); }
+  };
+  const isToday = (t) => {
+    if (!t) return false;
+    try { return new Date(t).toISOString().slice(0, 10) === today; } catch(e) { return false; }
+  };
+
+  return {
+ DOC_KEYS,
+ activity,
+ available,
+ branchFull,
+ churn,
+ churnQuick,
+ churnRows,
+ churnSum,
+ colors,
+ conicParts,
+ dFinal,
+ dNeed,
+ dPrep,
+ dReady,
+ docStats,
+ fmtTime,
+ gaugeSvg,
+ histBase,
+ isToday,
+ mapMode,
+ otherCars,
+ pReady,
+ pRenCard,
+ pRenIns,
+ pRenInsp,
+ pRenLic,
+ pct,
+ ready,
+ reasonRows,
+ regionById,
+ regionStats,
+ renCard,
+ renIns,
+ renInsp,
+ renLic,
+ rented,
+ stOf,
+ statusRows,
+ todayCount,
+ todayIso,
+ todayTasks,
+ topBranches,
+ total,
+ trend,
+ trendSvg,
+ workQueue,
+ wqCars,
+ wqDocTotals,
+ wqMessage,
+ wqMessageAll
+  };
+}
+
+  global.YahmaDashboardCore = { computeDashboardState };
+})(typeof window !== 'undefined' ? window : this);

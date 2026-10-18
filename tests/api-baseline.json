@@ -66,6 +66,13 @@
  "YahmaDashboard": [
   "render"
  ],
+ "YahmaDashboardCore": [
+  "computeDashboardState"
+ ],
+ "YahmaDashboardView": [
+  "bindDashboardEvents",
+  "dashboardTemplate"
+ ],
  "YahmaData": [
   "fetchAllVehicles",
   "fromVehicleRow",

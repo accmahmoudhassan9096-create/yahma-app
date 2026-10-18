@@ -266,6 +266,43 @@ test('تقسيم الواجهة ما ضفش مفتاح جديد للـAPI الع
   assert.strictEqual(typeof ctx.renderReports, 'function', 'renderReports العالمية ناقصة');
 });
 
+/* ⭐ تقسيم لوحة التحكم ما_addedش حاجة للواجهة العامة.
+
+   واجهة التحكم اتقسمت لـ core (الحساب) و view (العرض). الدوال الجديدة
+   داخلية — المفروض ما تظهر على window غير كـnamespace، وما تاخدش
+   مفتاح جديد في YahmaDashboard. */
+test('تقسيم لوحة التحكم ما ضفش مفتاح جديد للـAPI العام', () => {
+  const { ctx } = loadApp();
+  const D = ctx.YahmaDashboard;
+  assert.strictEqual(Object.keys(D).length, 1,
+    'YahmaDashboard بقى ' + Object.keys(D).length + ' مفتاح بدل 1: ' + Object.keys(D).join(', '));
+
+  /* الأسماء اللي اتنقلت لازم تكون موجودة في ملفاتها الجديدة */
+  assert.deepStrictEqual(Object.keys(ctx.YahmaDashboardCore).sort(),
+    ['computeDashboardState']);
+  assert.deepStrictEqual(Object.keys(ctx.YahmaDashboardView).sort(),
+    ['bindDashboardEvents', 'dashboardTemplate']);
+
+  /* وrenderDashboard لازم تفضل هي اللي تتعرض */
+  assert.strictEqual(typeof D.render, 'function', 'YahmaDashboard.render لازم تفضل دالة');
+  assert.strictEqual(typeof ctx.renderDashboard, 'function', 'renderDashboard العالمية ناقصة');
+});
+
+/* ⭐ كل دالة منقولة للوحة التحكم لازم تاخد عدد وسائطها المتوقع —
+   عشان ما تفتح نطاق جديد بالصدفة وتقرأ متغير عام بالغلط. */
+test('الدوال المنقولة للوحة التحكم بتاخد وسائط صريحة', () => {
+  const { ctx } = loadApp();
+  assert.strictEqual(typeof ctx.YahmaDashboardCore.computeDashboardState, 'function');
+  assert.strictEqual(ctx.YahmaDashboardCore.computeDashboardState.length, 1,
+    'computeDashboardState المفروض تاخد fleet واحد');
+  assert.strictEqual(typeof ctx.YahmaDashboardView.dashboardTemplate, 'function');
+  assert.strictEqual(ctx.YahmaDashboardView.dashboardTemplate.length, 1,
+    'dashboardTemplate المفروض تاخد state واحد');
+  assert.strictEqual(typeof ctx.YahmaDashboardView.bindDashboardEvents, 'function');
+  assert.strictEqual(ctx.YahmaDashboardView.bindDashboardEvents.length, 3,
+    'bindDashboardEvents المفروض (content, context, state)');
+});
+
 /* ⭐ كل دالة منقولة لازم تاخد ctx — عشان ما تفتحش نطاق جديد
    بالصدفة وتقرأ متغير عام بالغلط. */
 test('الدوال المنقولة للعرض بتاخد ctx صريح', () => {
