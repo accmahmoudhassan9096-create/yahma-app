@@ -13,16 +13,44 @@
     if(window.YahmaTopbarMenu && typeof window.YahmaTopbarMenu.bindMobileTools === 'function') window.YahmaTopbarMenu.bindMobileTools();
     /* syncProfileMenu يزامن قائمة المستخدم */
     if(window.YahmaTopbarUser && typeof window.YahmaTopbarUser.syncProfileMenu === 'function') window.YahmaTopbarUser.syncProfileMenu();
-    /* زر الإعدادات يفتح إدارة المستخدمين (للمدير فقط) */
-    const settings=document.getElementById('topbar-user');
-    if(settings){
-      settings.onclick=function(e){
+    /* زر المستخدم يفتح/يغلق القائمة المنسدلة */
+    const userBtn=document.getElementById('topbar-user');
+    const userDropdown=document.getElementById('user-dropdown');
+    if(userBtn && userDropdown){
+      userBtn.onclick=function(e){
         e.preventDefault();
-        if(window.YahmaTopbarUser && typeof window.YahmaTopbarUser.closeMenu === 'function') window.YahmaTopbarUser.closeMenu();
-        if(window.YahmaTopbarUser && typeof window.YahmaTopbarUser.openUserAdmin === 'function') window.YahmaTopbarUser.openUserAdmin();
+        e.stopPropagation();
+        const isHidden = userDropdown.hidden;
+        userDropdown.hidden = !isHidden;
+        userDropdown.style.display = isHidden ? '' : 'none';
       };
     }
+    /* زر "إدارة المستخدمين" داخل القائمة يفتح تبويب المستخدمين (للمدير فقط) */
+    const adminBtn=document.getElementById('btn-account-settings');
+    if(adminBtn){
+      adminBtn.onclick=function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        if(window.currentRole!=='admin'){ alert('إدارة المستخدمين متاحة للمدير فقط.'); return; }
+        if(typeof window.yahmaSetTab === 'function') window.yahmaSetTab('users');
+        else window.currentTab='users';
+        if(typeof window.render === 'function') window.render();
+        if(userDropdown) { userDropdown.hidden = true; userDropdown.style.display = 'none'; }
+      };
+    }
+    /* syncProfileMenu يزامن قائمة المستخدم */
+    if(window.YahmaTopbarUser && typeof window.YahmaTopbarUser.syncProfileMenu === 'function') window.YahmaTopbarUser.syncProfileMenu();
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+  /* إغلاق القائمة عند الضغط خارجها */
+  document.addEventListener('click', function(e){
+    const userDropdown=document.getElementById('user-dropdown');
+    const userBtn=document.getElementById('topbar-user');
+    if(userDropdown && userBtn && !userDropdown.hidden && !userDropdown.contains(e.target) && !userBtn.contains(e.target)){
+      userDropdown.hidden = true;
+      userDropdown.style.display = 'none';
+    }
+  });
 })();
