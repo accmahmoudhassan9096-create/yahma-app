@@ -1,5 +1,16 @@
 (function(){
   'use strict';
+  var MENU_MIN_MARGIN = 8;
+  function closeMenu(){
+    if(window.YahmaTopbarUser && typeof window.YahmaTopbarUser.closeMenu === 'function'){
+      window.YahmaTopbarUser.closeMenu();
+    } else {
+      var menu = document.getElementById('user-dropdown'), trigger = document.getElementById('topbar-user');
+      if(menu) menu.hidden = true;
+      if(trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+  }
+
   function positionMenu(menu, trigger){
     if(!menu||!trigger) return;
     /* القائمة تُثبَّت على الشاشة (fixed) حتى تكون الإحداثيات نسبةً للـ viewport

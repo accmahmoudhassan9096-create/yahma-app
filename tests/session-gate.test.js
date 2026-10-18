@@ -1,4 +1,4 @@
-﻿/* Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„Ø¬Ù„Ø³Ø©.
+/* Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„Ø¬Ù„Ø³Ø©.
 
    Ø§Ù„Ù…Ø´ÙƒÙ„Ø©: Ø§Ù„Ø¯Ø§Ù„Ø© Ø±Ø¯Ù‘Øª Â«Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ§Ù„Ø­Ø©Â» ÙˆØ§Ù„ÙˆØ§Ø¬Ù‡Ø© ÙˆÙ‚Ù‘ÙØª Ø¹Ù†Ø¯
    Ø§Ù„Ø±Ø³Ø§Ù„Ø©. Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ù‚Ø§Ø¹Ø¯ Ù‚Ø¯Ø§Ù… Ø²Ø± Ù…ÙŠØªØŒ ÙˆØ§Ù„Ø³Ø¨Ø¨ Ù…Ø¹Ø±ÙˆÙØŒ Ø¨Ø³ Ù…Ø§ÙÙŠØ´ Ø·Ø±ÙŠÙ‚
@@ -136,7 +136,7 @@ function boot(opts) {
   };
 
   const context = vm.createContext(sandbox);
-  for (const rel of ['core/auth-boot.js', 'modules/topbar-ui.js']) {
+  for (const rel of ['core/auth-boot.js', 'modules/topbar-invoke.js', 'modules/topbar-ui.js']) {
     const file = path.join(ROOT, rel);
     vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
   }

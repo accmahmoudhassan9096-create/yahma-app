@@ -140,8 +140,11 @@
      منشورة، مش على شكل مرسوم في الكتاب. */
 
   window.yahmaDescribeInvokeError = describeInvokeError;
+  window.describeInvokeError = describeInvokeError;
 
   window.yahmaShowResultInto = showResult;
+  window.showResult = showResult;
 
   window.yahmaInvokeFunction = invokeYahmaFunction;
+  window.invokeYahmaFunction = invokeYahmaFunction;
 })();
