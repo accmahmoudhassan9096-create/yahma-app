@@ -66,6 +66,7 @@ const PAGE_PERMISSION_OPTIONS=[
   {id:'insurance-renewals',label:'التأمين'},{id:'inspections',label:'بطاقات التشغيل'},
   {id:'transfers',label:'التنازلات'},{id:'rentals',label:'الاستئجارات'},{id:'reports',label:'التقارير'},{id:'dues',label:'المستحقات'},{id:'audit',label:'سجل النشاط'},{id:'users',label:'المستخدمون'}
 ];
+window.PAGE_PERMISSION_OPTIONS=PAGE_PERMISSION_OPTIONS;
 window.currentUserPermissions=Array.isArray(window.currentUserPermissions)?window.currentUserPermissions:[];
 /* ===== إصلاح: allowed_tabs فاضي/ null كان بيخفي كل التبويبات =====
    الدالة كانت بترجّع مصفوفة فاضية لو الحقل اتسجل null أو [] في profiles،
@@ -109,7 +110,7 @@ function fleetForTab(tab, list){
   var all = Array.isArray(list) ? list : (typeof fleet !== 'undefined' && Array.isArray(fleet) ? fleet : []);
   if(!tab) return all;
   /* الأسطول/الفروع/الرئيسية/التقارير/السجل: كل السيارات */
-  if(['dashboard','fleet','branches','reports','audit','preparation'].indexOf(tab)>=0) return all;
+  if(['dashboard','fleet','branches','reports','audit','preparation','dues','rentals','users'].indexOf(tab)>=0) return all;
 
   var lvl = (typeof dateStatus==='function') ? function(d){ return dateStatus(d).level; }
            : function(d){ return d ? 'green' : 'grey'; };

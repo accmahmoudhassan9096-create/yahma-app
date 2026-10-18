@@ -31,11 +31,24 @@
       adminBtn.onclick=function(e){
         e.preventDefault();
         e.stopPropagation();
-        if(window.currentRole!=='admin'){ alert('إدارة المستخدمين متاحة للمدير فقط.'); return; }
-        if(typeof window.yahmaSetTab === 'function') window.yahmaSetTab('users');
-        else window.currentTab='users';
-        if(typeof window.render === 'function') window.render();
         if(userDropdown) { userDropdown.hidden = true; userDropdown.style.display = 'none'; }
+        if(window.currentRole!=='admin'){ alert('إدارة المستخدمين متاحة للمدير فقط.'); return; }
+        if(typeof window.yahmaGoTab === 'function') window.yahmaGoTab('users');
+        else if(typeof window.yahmaSetTab === 'function'){
+          window.yahmaSetTab('users');
+          if(typeof window.render === 'function') window.render();
+        }
+      };
+    }
+    /* زر "بياناتي وكلمة المرور" يفتح شاشة البيانات الشخصية */
+    const myAccountBtn=document.getElementById('btn-my-account');
+    if(myAccountBtn){
+      myAccountBtn.onclick=function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        if(userDropdown) { userDropdown.hidden = true; userDropdown.style.display = 'none'; }
+        if(typeof window.yahmaOpenMyAccount === 'function') window.yahmaOpenMyAccount();
+        else if(window.YahmaMyAccount && typeof window.YahmaMyAccount.open === 'function') window.YahmaMyAccount.open();
       };
     }
     /* syncProfileMenu يزامن قائمة المستخدم */

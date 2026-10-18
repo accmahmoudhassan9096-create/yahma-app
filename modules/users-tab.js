@@ -1,17 +1,19 @@
 /* ===== modules/users-tab.js — تبويب إدارة المستخدمين (مستقل) =====
    استُخرج من openUserAdmin() في topbar-user.js وجُعل تبويبًا مستقلاً
    يظهر في الشريط الجانبي بعد «الرئيسية»، ويبدو لمدير النظام (admin) فقط.
-   تعرض نفس واجهة إضافة/تعديل/حذف المستخدمين داخل content بدلاً من نافذة منبثقة.
-   सभी المتغيرات العامة (fleet, branches, PAGE_PERMISSION_OPTIONS, invokeYahmaFunction,
-   escapeHtml, yahmaErr, fmtDate, showResult, describeInvokeError, openWelcomeEditor)
-   متاحة لأنها تُحمَّل قبل هذا الملف في index.html. */
+   تعرض واجهة إضافة/تعديل/حذف المستخدمين داخل content كشاشة كاملة ومنسقة. */
 
 (function (global) {
   'use strict';
 
   async function renderUsers(content) {
-    document.getElementById('topbar-title').textContent = 'إدارة المستخدمين';
-    document.getElementById('topbar-sub').textContent = 'أضف المستخدم وحدد دوره والفرع والأقسام التي يستطيع رؤيتها.';
+    if (!content) content = document.getElementById('content');
+    if (!content) return;
+
+    var tbTitle = document.getElementById('topbar-title');
+    var tbSub = document.getElementById('topbar-sub');
+    if (tbTitle) tbTitle.textContent = 'إدارة المستخدمين';
+    if (tbSub) tbSub.textContent = 'أضف المستخدم وحدد دوره والفرع والأقسام التي يستطيع رؤيتها.';
 
     if (window.currentRole !== 'admin') {
       content.innerHTML = '<div class="panel"><h3>غير مسموح</h3><p class="muted-small">إدارة المستخدمين متاحة لمدير النظام فقط.</p></div>';
@@ -24,12 +26,13 @@
        الاسم بالحرف (yahma_can_access_branch)، لازم القائمة تعرض الأسماء
        الحقيقية من الأسطول مع عدد سيارات كل فرع. */
     var branchCounts = new Map();
-    var fleetList = (typeof fleet !== 'undefined' && Array.isArray(fleet)) ? fleet : [];
+    var fleetList = (typeof fleet !== 'undefined' && Array.isArray(fleet)) ? fleet : (window.yahmaGetFleet ? window.yahmaGetFleet() : []);
     fleetList.forEach(function (c) {
       var n = String((c && c.branch) || '').trim(); if (!n) return;
       branchCounts.set(n, (branchCounts.get(n) || 0) + 1);
     });
-    (Array.isArray(branches) ? branches : []).forEach(function (b) {
+    var branchSource = (typeof branches !== 'undefined' && Array.isArray(branches)) ? branches : [];
+    branchSource.forEach(function (b) {
       var n = b && b.name ? String(b.name).trim() : ''; if (!n) return;
       if (!branchCounts.has(n)) branchCounts.set(n, 0);
     });
@@ -39,9 +42,13 @@
         var label = pair[0] + ' — ' + pair[1] + ' سيارة';
         return '<option value="' + escapeHtml(pair[0]) + '">' + escapeHtml(label) + '</option>';
       }).join('');
-    var allPageIds = PAGE_PERMISSION_OPTIONS.map(function (page) { return page.id; });
+
+    var permsList = (typeof PAGE_PERMISSION_OPTIONS !== 'undefined' && Array.isArray(PAGE_PERMISSION_OPTIONS))
+      ? PAGE_PERMISSION_OPTIONS
+      : (window.PAGE_PERMISSION_OPTIONS || []);
+    var allPageIds = permsList.map(function (page) { return page.id; });
     var permissionGrid = function (className, selected, disabled) {
-      return '<div class="ua-permission-grid ' + className + '">' + PAGE_PERMISSION_OPTIONS.map(function (page) {
+      return '<div class="ua-permission-grid ' + className + '">' + permsList.map(function (page) {
         return '<label><input type="checkbox" value="' + page.id + '" ' + (selected.includes(page.id) ? 'checked ' : '') + (disabled ? 'disabled' : '') + '><span>' + page.label + '</span></label>';
       }).join('') + '</div>';
     };
@@ -52,38 +59,73 @@
     };
 
     content.innerHTML =
-      '<div class="modal user-admin-modal">' +
-      '<div class="user-admin-head">' +
-      '<div><h2>إدارة المستخدمين</h2><p>أضف المستخدم وحدد دوره والفرع والأقسام التي يستطيع رؤيتها.</p></div>' +
-      '<div class="ua-head-actions">' +
-      '<button type="button" class="btn btn-ghost btn-small" id="ua-welcome-template" title="عدّل نص رسالة الترحيب اللي بتتبعت لكل حساب جديد">✉️ رسالة الترحيب</button>' +
-      '<button type="button" class="btn btn-ghost btn-small" id="user-admin-close">إغلاق</button>' +
-      '</div></div>' +
-      '<form id="user-admin-form" class="user-admin-form">' +
-      '<input id="ua-name" placeholder="الاسم الكامل" required>' +
-      '<input id="ua-email" type="email" dir="ltr" placeholder="البريد الإلكتروني" required>' +
-      '<input id="ua-password" type="password" dir="ltr" placeholder="كلمة المرور المؤقتة" minlength="8" required>' +
-      '<select id="ua-role"><option value="view">مشاهدة فقط</option><option value="ops">تشغيل (يفحص بس)</option><option value="manager">إداري</option><option value="admin">مدير النظام</option></select>' +
-      '<select id="ua-branch">' + branchOptions + '</select>' +
-      '<label id="ua-send-welcome"><input type="checkbox" id="ua-welcome-check" checked> إرسال رسالة ترحيب على بريده</label>' +
-      '<small class="ua-branch-note">«كل الفروع» ⇐ يشوف كل الأسطول. لو اخترت فرع بعينه ⇐ يشوف ذلك الفرع فقط (الاسم لازم يطابق تمامًا).</small>' +
-      '<div class="ua-permissions-block"><strong>الأقسام المسموح بها</strong><small>الرئيسية متاحة للجميع. المدير لديه وصول كامل.</small>' + permissionGrid('ua-new-permissions', allPageIds, false) + '</div>' +
-      '<button class="btn btn-primary" type="submit">إضافة المستخدم</button>' +
-      '</form>' +
-      '<div id="user-admin-message" class="user-admin-message"></div>' +
-      '<div class="user-admin-list" id="user-admin-list"><div class="empty">جارٍ تحميل المستخدمين...</div></div>' +
+      '<div class="user-admin-tab-container" style="max-width:1150px; margin:0 auto; display:flex; flex-direction:column; gap:20px; padding:8px 0 32px;">' +
+      '  <div class="user-admin-head" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">' +
+      '    <div>' +
+      '      <h2 style="margin:0 0 4px; font-size:20px; font-weight:700; color:var(--ink);">إدارة المستخدمين والصلاحيات</h2>' +
+      '      <p style="margin:0; color:var(--muted); font-size:13px;">أنشئ مستخدمين جدد، تحكّم في الفروع والأقسام المسموح بها، وعدّل بيانات الحسابات المسجلة.</p>' +
+      '    </div>' +
+      '    <div class="ua-head-actions">' +
+      '      <button type="button" class="btn btn-ghost btn-small" id="ua-welcome-template" title="عدّل نص رسالة الترحيب التي تُرسل لكل حساب جديد">✉️ رسالة الترحيب</button>' +
+      '    </div>' +
+      '  </div>' +
+
+      '  <div class="panel" style="background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:18px;">' +
+      '    <h3 style="margin:0 0 14px; font-size:16px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px;">' +
+      '      <span>➕</span> إنشاء مستخدم جديد' +
+      '    </h3>' +
+      '    <form id="user-admin-form" class="user-admin-form" style="background:transparent; border:none; padding:0;">' +
+      '      <input id="ua-name" placeholder="الاسم الكامل" required>' +
+      '      <input id="ua-email" type="email" dir="ltr" placeholder="البريد الإلكتروني" required>' +
+      '      <input id="ua-password" type="password" dir="ltr" placeholder="كلمة المرور المؤقتة (8 أحرف فأكثر)" minlength="8" required>' +
+      '      <select id="ua-role"><option value="view">مشاهدة فقط</option><option value="ops">تشغيل (يفحص بس)</option><option value="manager">إداري</option><option value="admin">مدير النظام</option></select>' +
+      '      <select id="ua-branch">' + branchOptions + '</select>' +
+      '      <label id="ua-send-welcome" style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;"><input type="checkbox" id="ua-welcome-check" checked> إرسال رسالة ترحيب على بريده</label>' +
+      '      <small class="ua-branch-note" style="grid-column:1/-1; color:var(--muted); font-size:11px;">«كل الفروع» ⇐ يشوف كل الأسطول. لو اخترت فرع بعينه ⇐ يشوف ذلك الفرع فقط (الاسم لازم يطابق تمامًا).</small>' +
+      '      <div class="ua-permissions-block"><strong>الأقسام المسموح بها</strong><small>الرئيسية متاحة للجميع. المدير لديه وصول كامل.</small>' + permissionGrid('ua-new-permissions', allPageIds, false) + '</div>' +
+      '      <div style="grid-column:1/-1; margin-top:8px;">' +
+      '        <button class="btn btn-primary" type="submit" style="padding:9px 24px; font-weight:600;">إضافة المستخدم</button>' +
+      '      </div>' +
+      '    </form>' +
+      '    <div id="user-admin-message" class="user-admin-message" style="margin-top:10px; font-weight:500;"></div>' +
+      '  </div>' +
+
+      '  <div class="panel" style="background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:18px;">' +
+      '    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">' +
+      '      <h3 style="margin:0; font-size:16px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px;">' +
+      '        <span>👥</span> المستخدمون الحاليون' +
+      '      </h3>' +
+      '      <span id="ua-users-count" style="font-size:12px; color:var(--muted);"></span>' +
+      '    </div>' +
+      '    <div class="user-admin-list" id="user-admin-list" style="max-height:none; overflow:visible;">' +
+      '      <div class="empty">جارٍ تحميل المستخدمين...</div>' +
+      '    </div>' +
+      '  </div>' +
       '</div>';
 
     var msg = content.querySelector('#user-admin-message'), list = content.querySelector('#user-admin-list');
+    var countEl = content.querySelector('#ua-users-count');
     var welcomeBtn = content.querySelector('#ua-welcome-template');
-    if (welcomeBtn) welcomeBtn.onclick = function () { openWelcomeEditor(); };
+    if (welcomeBtn) {
+      welcomeBtn.onclick = function () {
+        if (typeof window.yahmaOpenWelcomeEditor === 'function') {
+          window.yahmaOpenWelcomeEditor();
+        } else if (window.YahmaTopbarUser && typeof window.YahmaTopbarUser.openWelcomeEditor === 'function') {
+          window.YahmaTopbarUser.openWelcomeEditor();
+        } else if (typeof openWelcomeEditor === 'function') {
+          openWelcomeEditor();
+        }
+      };
+    }
 
     var renderUsersInner = async function () {
       if (!window.supabaseReady || !window.supabaseClient) { list.innerHTML = '<div class="empty">إدارة المستخدمين تحتاج اتصال Supabase.</div>'; return; }
       var result = await window.supabaseClient.from('profiles').select('id,full_name,role,branch_name,allowed_tabs,national_id,birth_date,phone').order('full_name', { ascending: true });
       if (result.error) { list.innerHTML = '<div class="empty">تعذر تحميل المستخدمين: ' + escapeHtml(result.error.message) + '</div>'; return; }
+      var users = result.data || [];
+      if (countEl) countEl.textContent = 'إجمالي الحسابات: ' + users.length;
       var myId = window.currentUser && window.currentUser.id;
-      list.innerHTML = (result.data || []).map(function (u) {
+      list.innerHTML = users.map(function (u) {
         var wanted = String(u.branch_name || '').trim();
         var options = branchOptions.split('<option ').map(function (chunk) {
           var isMatch = wanted && chunk.indexOf('value="' + escapeHtml(wanted) + '"') >= 0;
@@ -155,29 +197,39 @@
       }; });
     };
 
-    content.querySelector('#ua-role').addEventListener('change', function () { syncPermissions(content.querySelector('.ua-new-permissions'), this.value); });
-    content.querySelector('#user-admin-form').onsubmit = async function (e) {
-      e.preventDefault(); msg.textContent = 'جارٍ إنشاء المستخدم...';
-      if (!window.supabaseReady || !window.supabaseClient) { msg.textContent = 'اتصال Supabase غير متاح.'; return; }
-      var role = content.querySelector('#ua-role').value;
-      var payload = {
-        name: content.querySelector('#ua-name').value.trim(),
-        email: content.querySelector('#ua-email').value.trim(),
-        password: content.querySelector('#ua-password').value,
-        role: role,
-        branch_name: content.querySelector('#ua-branch').value.trim(),
-        allowed_tabs: role === 'admin' ? allPageIds : selectedPermissions(content.querySelector('.ua-new-permissions'))
+    var roleSelect = content.querySelector('#ua-role');
+    if (roleSelect) {
+      roleSelect.addEventListener('change', function () {
+        syncPermissions(content.querySelector('.ua-new-permissions'), this.value);
+      });
+    }
+
+    var form = content.querySelector('#user-admin-form');
+    if (form) {
+      form.onsubmit = async function (e) {
+        e.preventDefault(); msg.textContent = 'جارٍ إنشاء المستخدم...';
+        if (!window.supabaseReady || !window.supabaseClient) { msg.textContent = 'اتصال Supabase غير متاح.'; return; }
+        var role = content.querySelector('#ua-role').value;
+        var payload = {
+          name: content.querySelector('#ua-name').value.trim(),
+          email: content.querySelector('#ua-email').value.trim(),
+          password: content.querySelector('#ua-password').value,
+          role: role,
+          branch_name: content.querySelector('#ua-branch').value.trim(),
+          allowed_tabs: role === 'admin' ? allPageIds : selectedPermissions(content.querySelector('.ua-new-permissions'))
+        };
+        var call = await invokeYahmaFunction('admin-create-user', payload, msg);
+        if (call.skipped) return;
+        var r = call.result;
+        if (r.error) {
+          showResult(msg, await describeInvokeError(r, 'تعذر إنشاء المستخدم: '), 'تعذر إنشاء المستخدم.');
+          return;
+        }
+        msg.textContent = 'تم إنشاء المستخدم بنجاح';
+        form.reset();
+        await renderUsersInner();
       };
-      var call = await invokeYahmaFunction('admin-create-user', payload, msg);
-      if (call.skipped) return;
-      var r = call.result;
-      if (r.error) {
-        showResult(msg, await describeInvokeError(r, 'تعذر إنشاء المستخدم: '), 'تعذر إنشاء المستخدم.');
-        return;
-      }
-      msg.textContent = 'تم إنشاء المستخدم بنجاح';
-      await renderUsersInner();
-    };
+    }
 
     renderUsersInner();
   }

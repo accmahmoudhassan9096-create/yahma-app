@@ -164,7 +164,7 @@ function render(){
      الأسطول، فلو دخل في النطاق هيتقفل على «المحتاجة فحص» ونفس
      الفلتر بيقصي سجلات ما ليها علاقة. */
   if (typeof fleetForTab==='function' && currentTab
-      && ['dashboard','fleet','branches','reports','audit','preparation','dues','rentals'].indexOf(currentTab)<0){
+      && ['dashboard','fleet','branches','reports','audit','preparation','dues','rentals','users'].indexOf(currentTab)<0){
     try{
       __yahmaFullFleet = fleet;
       scopedFleet = fleetForTab(currentTab, fleet);
@@ -390,3 +390,8 @@ document.getElementById('btn-email-filtered-pdf')?.addEventListener('click',func
 
 function renderDashboard(content){ return window.YahmaDashboard.render(content, {fleet, setCurrentTab: tab => { currentTab = tab; }}); }
 function renderFleet(content){ return window.YahmaFleet.render(content, fleet); }
+function renderUsers(content){
+  if(window.YahmaUsers && typeof window.YahmaUsers.render === 'function'){
+    return window.YahmaUsers.render(content);
+  }
+}
