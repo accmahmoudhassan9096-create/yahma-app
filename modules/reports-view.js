@@ -398,10 +398,9 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
   }
 
   /* ===== نافذة التفاصيل (drill-down) ===== */
-  function openDrill(ctx, title, cars, extraCol){
-  const { esc } = ctx;
   /* ---- Drill-down: click KPI / rows to see cars ---- */
   function openDrill(ctx, title, cars, extraCol){
+  const { esc } = ctx;
     let ov = document.getElementById('rd-drill-overlay');
     if(!ov){
       ov = document.createElement('div');
@@ -464,7 +463,6 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
       const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'التفاصيل');
       XLSX.writeFile(wb, 'yahma-drill-'+Date.now()+'.xlsx');
     };
-  }
   }
 
   /* ===== بطاقات المؤشرات والصفوف ===== */
@@ -620,7 +618,6 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
   /* ===== صفوف الملاك ===== */
   function bindOwnerRows(ctx){
   const { fleet, ownersBars } = ctx;
-  function bindOwnerRows(ctx){
     if (!ownersBars) return;
     ownersBars.querySelectorAll('.rd-owner-row').forEach(row => {
       if (row._bound) return;
@@ -633,7 +630,6 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
         openDrill(ctx, 'مالك: ' + name, list);
       });
     });
-  }
   }
 
 
