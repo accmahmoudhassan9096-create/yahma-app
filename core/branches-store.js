@@ -64,7 +64,7 @@ const PAGE_PERMISSION_OPTIONS=[
   {id:'fleet',label:'الأسطول'},{id:'branches',label:'الفروع'},{id:'renewals',label:'الفحص'},
   {id:'payments',label:'تحت الدفع'},{id:'paid',label:'تم الدفع'},{id:'renewed',label:'تم التجديد'},{id:'license-renewals',label:'رخص منتهية'},
   {id:'insurance-renewals',label:'التأمين'},{id:'inspections',label:'بطاقات التشغيل'},
-  {id:'transfers',label:'التنازلات'},{id:'rentals',label:'الاستئجارات'},{id:'reports',label:'التقارير'},{id:'dues',label:'المستحقات'},{id:'audit',label:'سجل النشاط'}
+  {id:'transfers',label:'التنازلات'},{id:'rentals',label:'الاستئجارات'},{id:'reports',label:'التقارير'},{id:'dues',label:'المستحقات'},{id:'audit',label:'سجل النشاط'},{id:'users',label:'المستخدمون'}
 ];
 window.currentUserPermissions=Array.isArray(window.currentUserPermissions)?window.currentUserPermissions:[];
 /* ===== إصلاح: allowed_tabs فاضي/ null كان بيخفي كل التبويبات =====
@@ -76,9 +76,11 @@ window.ALL_YAHMA_TABS=(typeof PAGE_PERMISSION_OPTIONS!=='undefined'&&Array.isArr
   : ['dashboard','fleet','branches','renewals','payments','paid','renewed','license-renewals','insurance-renewals','inspections','transfers','rentals','reports','dues','audit'];
 window.defaultYahmaTabsForRole=function(role){
   var all=window.ALL_YAHMA_TABS||[];
-  if(role==='admin'||role==='manager') return all.slice();
-  /* «ops» و«view» يشوفوا كل الأقسام عدا سجل النشاط (إداري بحت) */
-  return all.filter(function(id){ return id!=='audit'; });
+  if(role==='admin') return all.slice();
+  /* «المستخدمون» و«سجل النشاط» إداري بحت —.manager لا يشوفهما */
+  if(role==='manager') return all.filter(function(id){ return id!=='users' && id!=='audit'; });
+  /* «ops» و«view» يشوفوا كل الأقسام عدا السجل الإداري والمستخدمين */
+  return all.filter(function(id){ return id!=='audit' && id!=='users'; });
 };
 window.resolveYahmaPermissions=function(allowed, role){
   if(Array.isArray(allowed) && allowed.length) return allowed.slice();

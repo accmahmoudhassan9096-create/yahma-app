@@ -445,6 +445,9 @@
   "syncMenu",
   "undo"
  ],
+ "YahmaUsers": [
+  "render"
+ ],
  "YahmaUtils": [
   "CHURN_BUCKETS",
   "CHURN_DOCS",

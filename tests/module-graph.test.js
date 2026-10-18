@@ -365,6 +365,17 @@ test('الدوال المنقولة للشريط العلوي بتاخد وسا�
     'bindMobileTools المفروض ماخدش وسائط');
 });
 
+/* ⭐ تبويب المستخدمين الجديد ما ضفش حاجة غريبة للواجهة العامة.
+   YahmaUsers لسه يصدر دالة render بالظبط. */
+test('تبويب المستخدمين — YahmaUsers يصدر render بالظبط', () => {
+  const { ctx } = loadApp();
+  assert.strictEqual(Object.keys(ctx.YahmaUsers).length, 1,
+    'YahmaUsers بقى ' + Object.keys(ctx.YahmaUsers).length + ' مفتاح بدل 1: ' + Object.keys(ctx.YahmaUsers).join(', '));
+  assert.deepStrictEqual(Object.keys(ctx.YahmaUsers).sort(), ['render']);
+  assert.strictEqual(typeof ctx.YahmaUsers.render, 'function');
+  assert.strictEqual(ctx.YahmaUsers.render.length, 1, 'render(users-tab) المفروض تاخد content واحد');
+});
+
 /* ⭐ تقسيم الأسطول ما_addedش حاجة للواجهة العامة.
 
    الدوال النافعة صدرت بـ YahmaFleetCore، والعرض بـ YahmaFleetView،

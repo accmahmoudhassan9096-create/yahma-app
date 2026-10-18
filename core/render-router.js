@@ -209,6 +209,7 @@ if(currentTab === 'dashboard') renderDashboard(content);
     }
     else if(currentTab === 'reports') renderReports(content);
     else if(currentTab === 'audit') renderAuditPage(content);
+    else if(currentTab === 'users') renderUsers(content);
     else if(currentTab === 'branches') renderBranches(content);
     else if(currentTab === 'preparation') renderPreparation(content);
     else if(currentTab === 'dues' && window.YahmaDues && typeof window.YahmaDues.render==='function'){
