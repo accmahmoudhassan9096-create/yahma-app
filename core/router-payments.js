@@ -763,46 +763,136 @@ function renderInspectionPayments(content){
   const rows=deduplicatePaymentRows(rawRows);
   PAY_ROW_INDEX.payments=Object.create(null);
   rows.forEach(function(r){ PAY_ROW_INDEX.payments[String(r.item.id)]=r; });
+
+  const getBranches = () => {
+    const s = new Set();
+    rows.forEach(r => { const b = (r.car && r.car.branch) || (r.item && r.item.branch); if (b && String(b).trim()) s.add(String(b).trim()); });
+    return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
+  };
+  const getCompanies = () => {
+    const s = new Set();
+    rows.forEach(r => { const c = r.car && r.car.companyName; if (c && String(c).trim()) s.add(String(c).trim()); });
+    return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
+  };
+  const getUsers = () => {
+    const s = new Set();
+    rows.forEach(r => { const u = resolveItemUserName(r.item); if (u && u !== '—') s.add(u); });
+    return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
+  };
+
+  const branchOpts = '<option value="">كل الفروع</option>' + getBranches().map(b => '<option value="' + escapeHtml(b) + '">' + escapeHtml(b) + '</option>').join('');
+  const compOpts = '<option value="">كل الشركات</option>' + getCompanies().map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
+  const userOpts = '<option value="">كل المستخدمين</option>' + getUsers().map(u => '<option value="' + escapeHtml(u) + '">' + escapeHtml(u) + '</option>').join('');
+
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip"><div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>طلبات تحت الدفع</small></span></div></div>
-  <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تجديد الفحص بانتظار الدفع</strong><span>بعد تسجيل الدفع تنتقل الطلب إلى تبويب «تم الدفع»</span></div></div>
+  <div class="filter-panel">
+    <div class="filter-panel-title"><strong>🔎 فلاتر طلبات تحت الدفع</strong><span>صفِّ النتائج حسب اللوحة، الفرع، الشركة، أو المستخدم</span></div>
+    <div class="fleet-filter-grid">
+      <label>بحث<input id="pay-search-payments" placeholder="رقم اللوحة، الفرع، الشركة، الرقم التسلسلي، المستخدم..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
+      <label>الفرع<select id="pay-branch-payments">${branchOpts}</select></label>
+      <label>الشركة<select id="pay-company-payments">${compOpts}</select></label>
+      <label>المستخدم<select id="pay-user-payments">${userOpts}</select></label>
+    </div>
+    <div class="filter-footer">
+      <span id="pay-count-payments">عرض ${rows.length} من ${rows.length} طلب</span>
+      <button type="button" class="btn btn-ghost btn-small" id="pay-clear-payments">↺ مسح الفلاتر</button>
+    </div>
+  </div>
   ${paymentsSyncWarningHtml()}
   ${payBulkBarFor('payments')}
-  <div class="table-scroll"><table class="fleet-table"><thead><tr>${payCheckHeader('payments',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th>${CORE_PAY_HEADERS}<th>تاريخ الطلب</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody>
-  ${rows.length?rows.map(({item,car})=>`<tr>${payCheckCell('payments',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td>${corePayCellsHtml(car)}<td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</td></tr>`).join(''):'<tr><td class="empty-span"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
+  <div class="table-scroll"><table class="fleet-table" id="pay-table-payments"><thead><tr>${payCheckHeader('payments',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th>${CORE_PAY_HEADERS}<th>تاريخ الطلب</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody id="pay-tbody-payments">
   </tbody></table></div>`;
-  bindPaymentsDiagnostic(content);
-  bindPayNotes(content);
-  bindPaySelection(content,'payments');
+
+  function getFiltered() {
+    const q = (document.getElementById('pay-search-payments')?.value || '').trim().toLowerCase();
+    const branch = (document.getElementById('pay-branch-payments')?.value || '').trim();
+    const comp = (document.getElementById('pay-company-payments')?.value || '').trim();
+    const user = (document.getElementById('pay-user-payments')?.value || '').trim();
+
+    return rows.filter(({item, car}) => {
+      if (q) {
+        const hay = [car.plate, item.plate, car.branch, item.branch, car.companyName, car.serial, car.accountNo, car.notes, resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
+        if (!hay.includes(q)) return false;
+      }
+      if (branch && String((car && car.branch) || (item && item.branch) || '').trim() !== branch) return false;
+      if (comp && String((car && car.companyName) || '').trim() !== comp) return false;
+      if (user && resolveItemUserName(item) !== user) return false;
+      return true;
+    });
+  }
+
+  function draw() {
+    const list = getFiltered();
+    const tbody = document.getElementById('pay-tbody-payments');
+    if (!tbody) return;
+
+    PAY_ROW_INDEX.payments=Object.create(null);
+    list.forEach(function(r){ PAY_ROW_INDEX.payments[String(r.item.id)]=r; });
+
+    const headTh = content.querySelector('.fleet-table thead tr th.th-check');
+    if (headTh) {
+      headTh.outerHTML = payCheckHeader('payments', list.map(r => String(r.item.id)));
+    }
+
+    tbody.innerHTML = list.length ? list.map(({item,car})=>`<tr>${payCheckCell('payments',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td>${corePayCellsHtml(car)}<td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</td></tr>`).join('') : '<tr><td class="empty-span"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>';
+
+    const countLabel = document.getElementById('pay-count-payments');
+    if (countLabel) countLabel.textContent = 'عرض ' + list.length + ' من ' + rows.length + ' طلب';
+
+    window._yahmaCurrentPdfData=()=>({
+      title:'طلبات فحص تحت الدفع',
+      subtitle:'عدد الطلبات: '+list.length,
+      headers:['رقم اللوحة','الفرع'].concat(PAY_CELL_LABELS,['تاريخ الطلب','حالة الدفع','المستخدم']),
+      rows:list.map(({item,car})=>[
+        car.plate||item.plate||'—', car.branch||item.branch||'—']
+          .concat(PAY_CELL_FIELDS.map(d=>car[d.field]||'—'))
+          .concat([formatArabicDate(item.requestedAt), 'تحت الدفع', resolveItemUserName(item)]))
+    });
+
+    bindRowButtons();
+    bindPayNotes(content);
+    bindPaySelection(content,'payments');
   fixPaySpans(content);
-  window._yahmaCurrentPdfData=()=>({
-    title:'طلبات فحص تحت الدفع',
-    subtitle:'عدد الطلبات: '+rows.length,
-    headers:['رقم اللوحة','الفرع'].concat(PAY_CELL_LABELS,['تاريخ الطلب','حالة الدفع','المستخدم']),
-    rows:rows.map(({item,car})=>[
-      car.plate||item.plate||'—', car.branch||item.branch||'—']
-        .concat(PAY_CELL_FIELDS.map(d=>car[d.field]||'—'))
-        .concat([formatArabicDate(item.requestedAt), 'تحت الدفع', resolveItemUserName(item)]))
-  });
-  /* العُرضيّن بينادوا نفس الدوال بتاعة النسخة الجماعية — مسار
-     واحد للمنطق. طلب التأكيد هنا كان جوّه الكود دلوقتي مرتين. */
-  content.querySelectorAll('[data-payment-done]').forEach(function(button){
-    button.addEventListener('click', async function(){
-      if(!canRunPayments('إدارة طلبات الدفع')) return;
-      const id=button.dataset.paymentDone;
-      const item=loadInspectionPayments().find(p=>String(p.id)===String(id));
-      if(!item) return;
-      await PAY_ITEM_ACTION.paid(item, byId.get(String(item.carId)), false);
+  }
+
+  function bindRowButtons() {
+    content.querySelectorAll('[data-payment-done]').forEach(function(button){
+      button.onclick = async function(){
+        if(!canRunPayments('إدارة طلبات الدفع')) return;
+        const id=button.dataset.paymentDone;
+        const item=loadInspectionPayments().find(p=>String(p.id)===String(id));
+        if(!item) return;
+        await PAY_ITEM_ACTION.paid(item, byId.get(String(item.carId)), false);
+      };
     });
-  });
-  content.querySelectorAll('[data-payment-cancel]').forEach(function(button){
-    button.addEventListener('click', async function(){
-      if(!canRunPayments('إدارة طلبات الدفع')) return;
-      const id=button.dataset.paymentCancel;
-      const item=loadInspectionPayments().find(p=>String(p.id)===String(id));
-      if(!item) return;
-      await PAY_ITEM_ACTION.cancel(item, byId.get(String(item.carId)), false);
+    content.querySelectorAll('[data-payment-cancel]').forEach(function(button){
+      button.onclick = async function(){
+        if(!canRunPayments('إدارة طلبات الدفع')) return;
+        const id=button.dataset.paymentCancel;
+        const item=loadInspectionPayments().find(p=>String(p.id)===String(id));
+        if(!item) return;
+        await PAY_ITEM_ACTION.cancel(item, byId.get(String(item.carId)), false);
+      };
     });
+  }
+
+  ['pay-search-payments', 'pay-branch-payments', 'pay-company-payments', 'pay-user-payments'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', draw);
+      el.addEventListener('change', draw);
+    }
   });
+  document.getElementById('pay-clear-payments')?.addEventListener('click', function(){
+    ['pay-search-payments', 'pay-branch-payments', 'pay-company-payments', 'pay-user-payments'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    draw();
+  });
+
+  draw();
+  bindPaymentsDiagnostic(content);
 }
 
 /* ===== تبويب «تم الدفع» =====
@@ -829,57 +919,165 @@ function renderPaidInspections(content){
     return !d || isNaN(d.getTime()) || d.getTime() < Date.now();
   };
   const pendingLicense=rows.filter(needsLicense).length;
+
+  const getBranches = () => {
+    const s = new Set();
+    rows.forEach(r => { const b = (r.car && r.car.branch) || (r.item && r.item.branch); if (b && String(b).trim()) s.add(String(b).trim()); });
+    return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
+  };
+  const getUsers = () => {
+    const s = new Set();
+    rows.forEach(r => { const u = resolveItemUserName(r.item); if (u && u !== '—') s.add(u); });
+    return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
+  };
+  const branchOpts = '<option value="">كل الفروع</option>' + getBranches().map(b => '<option value="' + escapeHtml(b) + '">' + escapeHtml(b) + '</option>').join('');
+  const userOpts = '<option value="">كل المستخدمين</option>' + getUsers().map(u => '<option value="' + escapeHtml(u) + '">' + escapeHtml(u) + '</option>').join('');
+
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip">
     <div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>إجمالي المدفوع</small></span></div>
     <div class="fleet-summary-card"><span class="fleet-summary-icon">✓</span><span><b>${todayCount}</b><small>مدفوع اليوم</small></span></div>
     <div class="fleet-summary-card ${pendingLicense?'attention':''}"><span class="fleet-summary-icon">📄</span><span><b>${pendingLicense}</b><small>بانتظار تجديد الرخصة</small></span></div>
     <div class="fleet-summary-card"><span class="fleet-summary-icon">✅</span><span><b>${doneCount}</b><small>تم تجديد رخصها</small></span></div>
   </div>
-  <div class="filter-panel"><div class="filter-panel-title"><strong>طلبات تم الدفع</strong><span>الخطوة التالية: تجديد الرخصة — اضغط «تجديد الآن» لتسجيل الرخصة مباشرة من هنا</span></div></div>
+  <div class="filter-panel">
+    <div class="filter-panel-title"><strong>🔎 فلاتر طلبات تم الدفع</strong><span>صفِّ النتائج حسب اللوحة، الفرع، حالة الرخصة، أو المستخدم</span></div>
+    <div class="quick-filters" id="paid-quick">
+      <button type="button" class="quick-filter active" data-pq="all">الكل</button>
+      <button type="button" class="quick-filter" data-pq="need_lic">📄 بانتظار تجديد الرخصة</button>
+      <button type="button" class="quick-filter" data-pq="has_lic">✅ الرخصة سارية</button>
+      <button type="button" class="quick-filter" data-pq="today">📅 مدفوع اليوم</button>
+    </div>
+    <div class="fleet-filter-grid">
+      <label>بحث<input id="pay-search-paid" placeholder="رقم اللوحة، الفرع، المستخدم، الملاحظات..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
+      <label>الفرع<select id="pay-branch-paid">${branchOpts}</select></label>
+      <label>حالة الرخصة<select id="pay-lic-status-paid"><option value="">كل الحالات</option><option value="need">بانتظار تجديد الرخصة</option><option value="valid">الرخصة سارية</option></select></label>
+      <label>المستخدم<select id="pay-user-paid">${userOpts}</select></label>
+    </div>
+    <div class="filter-footer">
+      <span id="pay-count-paid">عرض ${rows.length} من ${rows.length} طلب</span>
+      <button type="button" class="btn btn-ghost btn-small" id="pay-clear-paid">↺ مسح الفلاتر</button>
+    </div>
+  </div>
   ${paymentsSyncWarningHtml()}
   ${payBulkBarFor('paid')}
-  <div class="table-scroll"><table class="fleet-table"><thead><tr>${payCheckHeader('paid',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody>
-  ${rows.length?rows.map(({item,car})=>{
+  <div class="table-scroll"><table class="fleet-table" id="pay-table-paid"><thead><tr>${payCheckHeader('paid',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody id="pay-tbody-paid">
+  </tbody></table></div>`;
+
+  let activePQ = 'all';
+
+  function getFiltered() {
+    const q = (document.getElementById('pay-search-paid')?.value || '').trim().toLowerCase();
+    const branch = (document.getElementById('pay-branch-paid')?.value || '').trim();
+    const licSt = (document.getElementById('pay-lic-status-paid')?.value || '').trim();
+    const user = (document.getElementById('pay-user-paid')?.value || '').trim();
+
+    return rows.filter(({item, car}) => {
+      const needs = needsLicense({car});
+      if (activePQ === 'need_lic' && !needs) return false;
+      if (activePQ === 'has_lic' && needs) return false;
+      if (activePQ === 'today' && (!item.paidAt || new Date(item.paidAt) < today)) return false;
+
+      if (licSt === 'need' && !needs) return false;
+      if (licSt === 'valid' && needs) return false;
+
+      if (q) {
+        const hay = [car.plate, item.plate, car.branch, item.branch, car.notes, resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
+        if (!hay.includes(q)) return false;
+      }
+      if (branch && String((car && car.branch) || (item && item.branch) || '').trim() !== branch) return false;
+      if (user && resolveItemUserName(item) !== user) return false;
+      return true;
+    });
+  }
+
+  function draw() {
+    const list = getFiltered();
+    const tbody = document.getElementById('pay-tbody-paid');
+    if (!tbody) return;
+
+    PAY_ROW_INDEX.paid=Object.create(null);
+    list.forEach(function(r){ PAY_ROW_INDEX.paid[String(r.item.id)]=r; });
+
+    const headTh = content.querySelector('.fleet-table thead tr th.th-check');
+    if (headTh) {
+      headTh.outerHTML = payCheckHeader('paid', list.map(r => String(r.item.id)));
+    }
+
+    tbody.innerHTML = list.length ? list.map(({item,car})=>{
       const needs=needsLicense({car});
       return `<tr>${payCheckCell('paid',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><div class="row-actions">${needs
         ? `<button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(item.id)}">تجديد الرخصة</button>`
         : `<span class="tag green">الرخصة سارية</span>`}<button type="button" class="btn btn-ghost btn-small row-del" data-stepback-payment="${escapeHtml(item.id)}" title="رجوع السيارة لقائمة «تحت الدفع»">↩ رجوع لِتحت الدفع</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</div></td></tr>`;
-    }).join(''):'<tr><td class="empty-span"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
-  </tbody></table></div>`;
-  bindPaymentsDiagnostic(content);
-  bindPayNotes(content);
-  bindPaySelection(content,'paid');
+    }).join('') : '<tr><td class="empty-span"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>';
+
+    const countLabel = document.getElementById('pay-count-paid');
+    if (countLabel) countLabel.textContent = 'عرض ' + list.length + ' من ' + rows.length + ' طلب';
+
+    window._yahmaCurrentPdfData=()=>({
+      title:'طلبات تم الدفع',
+      subtitle:'عدد الطلبات: '+list.length,
+      headers:['رقم اللوحة','الفرع','تاريخ الطلب','تاريخ الدفع','حالة الدفع','ملاحظات','المستخدم'],
+      rows:list.map(({item,car})=>[
+        car.plate||item.plate||'—', car.branch||item.branch||'—',
+        formatArabicDate(item.requestedAt), formatArabicDate(item.paidAt),
+        'تم الدفع', car.notes||'—', resolveItemUserName(item)])
+    });
+
+    bindRowButtons();
+    bindPayNotes(content);
+    bindPaySelection(content,'paid');
   fixPaySpans(content);
-  window._yahmaCurrentPdfData=()=>({
-    title:'طلبات تم الدفع',
-    subtitle:'عدد الطلبات: '+rows.length,
-    headers:['رقم اللوحة','الفرع','تاريخ الطلب','تاريخ الدفع','حالة الدفع','ملاحظات','المستخدم'],
-    rows:rows.map(({item,car})=>[
-      car.plate||item.plate||'—', car.branch||item.branch||'—',
-      formatArabicDate(item.requestedAt), formatArabicDate(item.paidAt),
-      'تم الدفع', car.notes||'—', resolveItemUserName(item)])
-  });
-  /* الضغطة بتجدد الرخصة على طول (3 سنين) وبتشيل السطر من القائمة.
-     بتنادي نفس PAY_ITEM_ACTION.renew اللي بتستدعيه النسخة
-     الجماعية — quiet=false فبيفتح نافذة التاريخ زي الأول. */
-  content.querySelectorAll('[data-renew-license]').forEach(function(button){
-    button.addEventListener('click', async function(){
-      if(!canRunPayments('إدارة طلبات الدفع')) return;
-      const item=loadPaidInspections().find(p=>String(p.id)===String(button.dataset.renewLicense));
-      if(!item){renderPaidInspections(content);return;}
-      const car=fleet.find(c=>String(c.id)===String(item.carId));
-      await PAY_ITEM_ACTION.renew(item, car, false);
+  }
+
+  function bindRowButtons() {
+    content.querySelectorAll('[data-renew-license]').forEach(function(button){
+      button.onclick = async function(){
+        if(!canRunPayments('إدارة طلبات الدفع')) return;
+        const item=loadPaidInspections().find(p=>String(p.id)===String(button.dataset.renewLicense));
+        if(!item){renderPaidInspections(content);return;}
+        const car=fleet.find(c=>String(c.id)===String(item.carId));
+        await PAY_ITEM_ACTION.renew(item, car, false);
+      };
     });
-  });
-  /* نفس الدالة المستخرجة — المفرد والجماعي نفس المسار. */
-  content.querySelectorAll('[data-stepback-payment]').forEach(function(button){
-    button.addEventListener('click', async function(){
-      if(!canRunPayments('إدارة طلبات الدفع')) return;
-      const item=loadPaidInspections().find(p=>String(p.id)===String(button.dataset.stepbackPayment));
-      if(!item) return;
-      await PAY_ITEM_ACTION.back(item, fleet.find(c=>String(c.id)===String(item.carId)), false);
+    content.querySelectorAll('[data-stepback-payment]').forEach(function(button){
+      button.onclick = async function(){
+        if(!canRunPayments('إدارة طلبات الدفع')) return;
+        const item=loadPaidInspections().find(p=>String(p.id)===String(button.dataset.stepbackPayment));
+        if(!item) return;
+        await PAY_ITEM_ACTION.back(item, fleet.find(c=>String(c.id)===String(item.carId)), false);
+      };
     });
+  }
+
+  content.querySelectorAll('#paid-quick .quick-filter').forEach(btn => {
+    btn.onclick = () => {
+      content.querySelectorAll('#paid-quick .quick-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activePQ = btn.dataset.pq;
+      draw();
+    };
   });
+
+  ['pay-search-paid', 'pay-branch-paid', 'pay-lic-status-paid', 'pay-user-paid'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', draw);
+      el.addEventListener('change', draw);
+    }
+  });
+
+  document.getElementById('pay-clear-paid')?.addEventListener('click', function(){
+    ['pay-search-paid', 'pay-branch-paid', 'pay-lic-status-paid', 'pay-user-paid'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    activePQ = 'all';
+    content.querySelectorAll('#paid-quick .quick-filter').forEach(b => b.classList.toggle('active', b.dataset.pq === 'all'));
+    draw();
+  });
+
+  draw();
+  bindPaymentsDiagnostic(content);
 }
 
 /* ===== تبويب «تم التجديد» =====
@@ -898,17 +1096,82 @@ function renderRenewedInspections(content){
   const stampOf=(p)=>(window.YahmaPayments&&typeof window.YahmaPayments.doneStamp==='function')
     ? window.YahmaPayments.doneStamp(p) : p.licenseRenewedAt || null;
   const todayCount=rows.filter(({item})=>{ const s=stampOf(item); return s && new Date(s)>=today; }).length;
+
+  const getBranches = () => {
+    const s = new Set();
+    rows.forEach(r => { const b = (r.car && r.car.branch) || (r.item && r.item.branch); if (b && String(b).trim()) s.add(String(b).trim()); });
+    return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
+  };
+  const getUsers = () => {
+    const s = new Set();
+    rows.forEach(r => { const u = resolveItemUserName(r.item); if (u && u !== '—') s.add(u); });
+    return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
+  };
+  const branchOpts = '<option value="">كل الفروع</option>' + getBranches().map(b => '<option value="' + escapeHtml(b) + '">' + escapeHtml(b) + '</option>').join('');
+  const userOpts = '<option value="">كل المستخدمين</option>' + getUsers().map(u => '<option value="' + escapeHtml(u) + '">' + escapeHtml(u) + '</option>').join('');
+
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip">
     <div class="fleet-summary-card"><span class="fleet-summary-icon">✓</span><span><b>${rows.length}</b><small>إجمالي المجدّد</small></span></div>
     <div class="fleet-summary-card"><span class="fleet-summary-icon">📅</span><span><b>${todayCount}</b><small>تم تجديدها اليوم</small></span></div>
   </div>
-  <div class="filter-panel"><div class="filter-panel-title"><strong>تم تجديد الرخصة</strong><span>هذه السيارات اتجدّدت رخصها بالفعل وهي مسجّلة في الأسطول</span></div></div>
+  <div class="filter-panel">
+    <div class="filter-panel-title"><strong>🔎 فلاتر تم التجديد</strong><span>صفِّ النتائج حسب اللوحة، الفرع، المستخدم، أو التاريخ</span></div>
+    <div class="quick-filters" id="renewed-quick">
+      <button type="button" class="quick-filter active" data-rq="all">الكل</button>
+      <button type="button" class="quick-filter" data-rq="today">📅 تم تجديدها اليوم</button>
+    </div>
+    <div class="fleet-filter-grid">
+      <label>بحث<input id="pay-search-renewed" placeholder="رقم اللوحة، الفرع، المستخدم، الملاحظات..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
+      <label>الفرع<select id="pay-branch-renewed">${branchOpts}</select></label>
+      <label>المستخدم<select id="pay-user-renewed">${userOpts}</select></label>
+    </div>
+    <div class="filter-footer">
+      <span id="pay-count-renewed">عرض ${rows.length} من ${rows.length} سيارة</span>
+      <button type="button" class="btn btn-ghost btn-small" id="pay-clear-renewed">↺ مسح الفلاتر</button>
+    </div>
+  </div>
   ${paymentsSyncWarningHtml()}
   ${payBulkBarFor('renewed')}
-  <div class="table-scroll"><table class="fleet-table"><thead><tr>
+  <div class="table-scroll"><table class="fleet-table" id="pay-table-renewed"><thead><tr>
     ${payCheckHeader('renewed',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>تاريخ التجديد</th><th>الرخصة الجديدة</th><th>الحالة</th><th>ملاحظات</th><th>المستخدم</th><th>إجراء</th>
-  </tr></thead><tbody>
-  ${rows.length?rows.map(({item,car})=>{
+  </tr></thead><tbody id="pay-tbody-renewed">
+  </tbody></table></div>`;
+
+  let activeRQ = 'all';
+
+  function getFiltered() {
+    const q = (document.getElementById('pay-search-renewed')?.value || '').trim().toLowerCase();
+    const branch = (document.getElementById('pay-branch-renewed')?.value || '').trim();
+    const user = (document.getElementById('pay-user-renewed')?.value || '').trim();
+
+    return rows.filter(({item, car}) => {
+      const stamp = stampOf(item);
+      if (activeRQ === 'today' && (!stamp || new Date(stamp) < today)) return false;
+
+      if (q) {
+        const hay = [car.plate, item.plate, car.branch, item.branch, car.licenseExpiry, car.notes, formatArabicDate(stamp), resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
+        if (!hay.includes(q)) return false;
+      }
+      if (branch && String((car && car.branch) || (item && item.branch) || '').trim() !== branch) return false;
+      if (user && resolveItemUserName(item) !== user) return false;
+      return true;
+    });
+  }
+
+  function draw() {
+    const list = getFiltered();
+    const tbody = document.getElementById('pay-tbody-renewed');
+    if (!tbody) return;
+
+    PAY_ROW_INDEX.renewed=Object.create(null);
+    list.forEach(function(r){ PAY_ROW_INDEX.renewed[String(r.item.id)]=r; });
+
+    const headTh = content.querySelector('.fleet-table thead tr th.th-check');
+    if (headTh) {
+      headTh.outerHTML = payCheckHeader('renewed', list.map(r => String(r.item.id)));
+    }
+
+    tbody.innerHTML = list.length ? list.map(({item,car})=>{
       const stamp=stampOf(item);
       return `<tr>${payCheckCell('renewed',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td>
         <td>${escapeHtml(car.branch||item.branch||'—')}</td>
@@ -920,42 +1183,69 @@ function renderRenewedInspections(content){
         ${payNoteCell(car)}
         <td>${escapeHtml(resolveItemUserName(item))}</td>
         <td><button type="button" class="btn btn-ghost btn-small" data-stepback-renewed="${escapeHtml(item.id)}" title="رجوع السيارة لِتبويب «تم الدفع»">↩ رجوع لِتم الدفع</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</td></tr>`;
-    }).join(''):'<tr><td class="empty-span"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>'}
-  </tbody></table></div>`;
-  bindPaymentsDiagnostic(content);
-  bindPayNotes(content);
-  bindPaySelection(content,'renewed');
-  fixPaySpans(content);
-  window._yahmaCurrentPdfData=()=>({
-    title:'سجل تجديد الرخص',
-    subtitle:'عدد العمليات: '+rows.length,
-    headers:['رقم اللوحة','الفرع','تاريخ الطلب','تاريخ الدفع','تاريخ التجديد','الرخصة الجديدة','الحالة','ملاحظات','المستخدم'],
-    rows:rows.map(({item,car})=>[
-      car.plate||item.plate||'—', car.branch||item.branch||'—',
-      formatArabicDate(item.requestedAt), formatArabicDate(item.paidAt),
-      formatArabicDate(stampOf(item)), car.licenseExpiry||'—', 'تم التجديد', car.notes||'—', resolveItemUserName(item)])
-  });
-  /* الرجوع: «تم التجديد» ⇐ «تم الدفع» — السطر يخرج من «تم التجديد»
-     (مفيش note تجديد)، وتاريخ الرخصة يرجع للي كان قبل التجديد. */
-  content.querySelectorAll('[data-stepback-renewed]').forEach(function(button){
-    button.addEventListener('click', async function(){
-      if(!canRunPayments('إدارة طلبات الدفع')) return;
-      const item=loadRenewedInspections().find(p=>String(p.id)===String(button.dataset.stepbackRenewed));
-      if(!item) return;
-      await PAY_ITEM_ACTION.back2(item, fleet.find(c=>String(c.id)===String(item.carId)), false);
+    }).join('') : '<tr><td class="empty-span"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>';
+
+    const countLabel = document.getElementById('pay-count-renewed');
+    if (countLabel) countLabel.textContent = 'عرض ' + list.length + ' من ' + rows.length + ' سيارة';
+
+    window._yahmaCurrentPdfData=()=>({
+      title:'سجل تجديد الرخص',
+      subtitle:'عدد العمليات: '+list.length,
+      headers:['رقم اللوحة','الفرع','تاريخ الطلب','تاريخ الدفع','تاريخ التجديد','الرخصة الجديدة','الحالة','ملاحظات','المستخدم'],
+      rows:list.map(({item,car})=>[
+        car.plate||item.plate||'—', car.branch||item.branch||'—',
+        formatArabicDate(item.requestedAt), formatArabicDate(item.paidAt),
+        formatArabicDate(stampOf(item)), car.licenseExpiry||'—', 'تم التجديد', car.notes||'—', resolveItemUserName(item)])
     });
+
+    bindRowButtons();
+    bindPayNotes(content);
+    bindPaySelection(content,'renewed');
+  fixPaySpans(content);
+  }
+
+  function bindRowButtons() {
+    content.querySelectorAll('[data-stepback-renewed]').forEach(function(button){
+      button.onclick = async function(){
+        if(!canRunPayments('إدارة طلبات الدفع')) return;
+        const item=loadRenewedInspections().find(p=>String(p.id)===String(button.dataset.stepbackRenewed));
+        if(!item) return;
+        await PAY_ITEM_ACTION.back2(item, fleet.find(c=>String(c.id)===String(item.carId)), false);
+      };
+    });
+  }
+
+  content.querySelectorAll('#renewed-quick .quick-filter').forEach(btn => {
+    btn.onclick = () => {
+      content.querySelectorAll('#renewed-quick .quick-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeRQ = btn.dataset.rq;
+      draw();
+    };
   });
+
+  ['pay-search-renewed', 'pay-branch-renewed', 'pay-user-renewed'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', draw);
+      el.addEventListener('change', draw);
+    }
+  });
+
+  document.getElementById('pay-clear-renewed')?.addEventListener('click', function(){
+    ['pay-search-renewed', 'pay-branch-renewed', 'pay-user-renewed'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    activeRQ = 'all';
+    content.querySelectorAll('#renewed-quick .quick-filter').forEach(b => b.classList.toggle('active', b.dataset.rq === 'all'));
+    draw();
+  });
+
+  draw();
+  bindPaymentsDiagnostic(content);
 }
 
-/* ⭐ تأكيد الإجراء — مرّة واحدة في الجماعي، وكل سيارة لوحدها في المفرد.
-
-   quiet (النسخة الجماعية) بتكتم التأكيد الخاص بكل سيارة: نافذة
-   الجماعية أصلاً سألت «متابعة؟» وذكرت كل اللوحات، فسؤال تاني
-   لكل سيارة = 20 نافذة فوق 20 نافذة = 40 نافذة على عملية واحدة.
-   ده نفس السبب اللي خلّى silentDate في التجديد.
-
-   ⚠️ التفاصيل المهمة (حالة الفحص هترجع لـ…) بتروح مع الكتم، فبترجع
-   مكانها في رسالة التأكيد الجماعية (رسالةBulkHint) — مش بتضيع. */
 function payConfirm(quiet, message) {
   if (quiet) return true;
   return confirm(message);
