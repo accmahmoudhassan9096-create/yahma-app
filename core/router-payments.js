@@ -1004,10 +1004,8 @@ function renderPaidInspections(content){
     }
 
     tbody.innerHTML = list.length ? list.map(({item,car})=>{
-      const needs=needsLicense({car});
-      return `<tr>${payCheckCell('paid',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><div class="row-actions">${needs
-        ? `<button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(item.id)}">تجديد الرخصة</button>`
-        : `<span class="tag green">الرخصة سارية</span>`}<button type="button" class="btn btn-ghost btn-small row-del" data-stepback-payment="${escapeHtml(item.id)}" title="رجوع السيارة لقائمة «تحت الدفع»">↩ رجوع لِتحت الدفع</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</div></td></tr>`;
+      const needs = needsLicense({car});
+      return `<tr>${payCheckCell('paid',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><div class="row-actions"><button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(item.id)}">تجديد الرخصة</button>${!needs ? '<span class="tag green" style="margin:0 2px">الرخصة سارية</span>' : ''}<button type="button" class="btn btn-ghost btn-small row-del" data-stepback-payment="${escapeHtml(item.id)}" title="رجوع السيارة لقائمة «تحت الدفع»">↩ رجوع لِتحت الدفع</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</div></td></tr>`;
     }).join('') : '<tr><td class="empty-span"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>';
 
     const countLabel = document.getElementById('pay-count-paid');

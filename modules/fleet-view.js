@@ -133,6 +133,12 @@
         <span id="bulk-count">0 محددة</span>
       </div>
       <div class="bulk-bar-actions">
+        ${canDelete ? `
+          <button type="button" class="btn btn-primary btn-small" id="fleet-admin-to-renewals" style="background:#0284c7;color:#fff;border-color:#0284c7" title="نقل السيارات المحددة لتبويب الفحص">نقل للفحص</button>
+          <button type="button" class="btn btn-primary btn-small" id="fleet-admin-to-payments" style="background:#d97706;color:#fff;border-color:#d97706" title="نقل السيارات المحددة لتبويب تحت الدفع">نقل لتحت الدفع</button>
+          <button type="button" class="btn btn-primary btn-small" id="fleet-admin-to-paid" style="background:#059669;color:#fff;border-color:#059669" title="نقل السيارات المحددة لتبويب تم الدفع">نقل لتم الدفع</button>
+          <button type="button" class="btn btn-primary btn-small" id="fleet-admin-to-renewed" style="background:#4f46e5;color:#fff;border-color:#4f46e5" title="نقل السيارات المحددة لتبويب تم التجديد">نقل لتم التجديد</button>
+        ` : ''}
         <button class="btn btn-primary btn-small" id="bulk-renew-license">تجديد الرخصة</button>
         <button class="btn btn-ghost btn-small" id="bulk-renew-card">تجديد الكارت</button>
         <button class="btn btn-ghost btn-small" id="bulk-set-status">تغيير الحالة</button>
@@ -356,6 +362,93 @@
     const cars=getSelectedCars();
     if(!cars.length){ alert('لا توجد سيارات محددة'); return; }
     exportRows(cars);
+  }
+
+  async function fleetAdminMoveSelectedCars(targetTab){
+    if(typeof currentRole !== "undefined" && currentRole !== "admin"){
+      alert("هذا الإجراء متاح لمدير النظام فقط.");
+      return;
+    }
+    const cars = getSelectedCars();
+    if(!cars.length){ alert("يرجى تحديد سيارة واحدة على الأقل."); return; }
+    const tabNames = { renewals: "الفحص", payments: "تحت الدفع", paid: "تم الدفع", renewed: "تم التجديد" };
+    const targetName = tabNames[targetTab] || targetTab;
+    if(!confirm("هل تريد بالتأكيد نقل " + cars.length + " سيارة إلى تبويب «" + targetName + "»؟")) return;
+
+    let moved = 0;
+    const failed = [];
+
+    if(targetTab === "renewals"){
+      cars.forEach(function(c){ c.inspectionStatus = "لم يفحص"; });
+      try{ await saveData(cars.map(c=>c.id)); }catch(_){}
+      for(const car of cars){
+        try{
+          if(window.YahmaPayments && typeof window.YahmaPayments.localAll === 'function'){
+            const allP = window.YahmaPayments.localAll().filter(p => String(p.carId) === String(car.id) && (p.status === 'pending' || p.status === 'paid'));
+            for(const p of allP){
+              if(typeof window.YahmaPayments.cancel === 'function'){
+                await window.YahmaPayments.cancel(p.id, car.id);
+              }
+            }
+          }
+          moved++;
+        }catch(err){
+          console.error("Failed to move car to renewals:", car.plate, err);
+          failed.push(car.plate || car.id);
+        }
+      }
+    } else {
+      cars.forEach(function(c){ c.inspectionStatus = "تم الفحص"; });
+      try{ await saveData(cars.map(c=>c.id)); }catch(_){}
+      if(!window.YahmaPayments){ alert("تعذر الوصول لوحدة الدفع."); return; }
+      for(const car of cars){
+        try{
+          if(targetTab === "payments"){
+            await window.YahmaPayments.requestPayment(car);
+          } else if(targetTab === "paid"){
+            var pendingList = window.YahmaPayments.localByStatus("pending");
+            var item = pendingList.find(function(p){ return String(p.carId)===String(car.id); });
+            if(!item){
+              await window.YahmaPayments.requestPayment(car);
+              pendingList = window.YahmaPayments.localByStatus("pending");
+              item = pendingList.find(function(p){ return String(p.carId)===String(car.id); });
+            }
+            if(window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.paid){
+              await window.PAY_ITEM_ACTION.paid(item || { id: car.id, carId: car.id }, car, true);
+            }
+          } else if(targetTab === "renewed"){
+            var pList = window.YahmaPayments.localByStatus("pending");
+            var pItem = pList.find(function(p){ return String(p.carId)===String(car.id); });
+            if(!pItem){
+              await window.YahmaPayments.requestPayment(car);
+              pList = window.YahmaPayments.localByStatus("pending");
+              pItem = pList.find(function(p){ return String(p.carId)===String(car.id); });
+            }
+            if(window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.paid){
+              await window.PAY_ITEM_ACTION.paid(pItem || { id: car.id, carId: car.id }, car, true);
+            }
+            var paidList = window.YahmaPayments.localByStatus("paid");
+            var paidItem = paidList.find(function(p){ return String(p.carId)===String(car.id); }) || pItem || { id: car.id, carId: car.id };
+            if(window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.renew){
+              await window.PAY_ITEM_ACTION.renew(paidItem, car, true);
+            }
+          }
+          moved++;
+        }catch(err){
+          console.error("Failed to move car:", car.plate, err);
+          failed.push(car.plate || car.id);
+        }
+      }
+    }
+
+    selectedIds.clear();
+    draw();
+    updateBulkBar();
+    var msg = "✓ تم نقل " + moved + " سيارة بنجاح إلى تبويب «" + targetName + "».";
+    if(failed.length) msg += "\nفشل نقل: " + failed.join("، ");
+    alert(msg);
+    if(typeof log === "function"){ try{ log("نقل سيارات من الأسطول", moved + " سيارة إلى " + targetName); }catch(_){} }
+    if(typeof render === "function") render();
   }
 
   const cardState=c=>cardDisplayStatus(c.cardExpiry,c.cardStatus);
@@ -755,6 +848,10 @@ const q=(search.value||'').trim().toLowerCase();
   $('bulk-select-all')?.addEventListener('change', (e)=>{
     if(e.target.checked) selectAllVisible(); else clearSelection();
   });
+  $('fleet-admin-to-renewals')?.addEventListener('click', ()=>fleetAdminMoveSelectedCars('renewals'));
+  $('fleet-admin-to-payments')?.addEventListener('click', ()=>fleetAdminMoveSelectedCars('payments'));
+  $('fleet-admin-to-paid')?.addEventListener('click', ()=>fleetAdminMoveSelectedCars('paid'));
+  $('fleet-admin-to-renewed')?.addEventListener('click', ()=>fleetAdminMoveSelectedCars('renewed'));
   $('bulk-renew-license')?.addEventListener('click', bulkRenewLicense);
   $('bulk-renew-card')?.addEventListener('click', bulkRenewCard);
   $('bulk-set-status')?.addEventListener('click', bulkSetStatus);
