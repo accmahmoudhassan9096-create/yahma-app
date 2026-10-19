@@ -10,6 +10,78 @@
 
   let globalSearchValue = '';
 
+  function findDuplicateCars(list) {
+    const cars = Array.isArray(list) ? list : [];
+    const normPlate = typeof normalizePlateKey === 'function'
+      ? normalizePlateKey
+      : (p => String(p || '').replace(/\s+/g, '').toLowerCase());
+
+    const plateGroups = new Map();
+    const serialGroups = new Map();
+
+    cars.forEach(c => {
+      const pKey = normPlate(c.plate);
+      if (pKey) {
+        if (!plateGroups.has(pKey)) plateGroups.set(pKey, []);
+        plateGroups.get(pKey).push(c);
+      }
+
+      const sKey = String(c.serial || '').trim().toLowerCase();
+      const isPlaceholder = !sKey || sKey === '0' || sKey === 'بدون' || sKey === 'لا يوجد' || sKey === '-';
+      if (!isPlaceholder) {
+        if (!serialGroups.has(sKey)) serialGroups.set(sKey, []);
+        serialGroups.get(sKey).push(c);
+      }
+    });
+
+    const processedIds = new Set();
+    const clusters = [];
+
+    plateGroups.forEach((group, pKey) => {
+      if (group.length > 1) {
+        clusters.push({ type: 'plate', key: group[0].plate || pKey, cars: group });
+        group.forEach(c => processedIds.add(String(c.id)));
+      }
+    });
+
+    serialGroups.forEach((group, sKey) => {
+      const unclustered = group.filter(c => !processedIds.has(String(c.id)));
+      if (unclustered.length > 1) {
+        clusters.push({ type: 'serial', key: 'شاسيه: ' + (unclustered[0].serial || sKey), cars: unclustered });
+        unclustered.forEach(c => processedIds.add(String(c.id)));
+      }
+    });
+
+    let totalDupsCount = 0;
+    const plan = [];
+
+    clusters.forEach(cl => {
+      const scored = cl.cars.map(c => {
+        let score = 0;
+        ['plate', 'brand', 'type', 'model', 'year', 'serial', 'cardNumber', 'branch', 'carStatus',
+          'inspectionStatus', 'licenseExpiry', 'insuranceStatus', 'owner', 'odometer', 'notes', 'accountNo', 'companyName'].forEach(f => {
+          if (c[f] !== undefined && c[f] !== null && String(c[f]).trim() !== '') score += 10;
+        });
+        if (c.updatedAt) score += 5;
+        return { car: c, score, id: String(c.id) };
+      });
+
+      scored.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return String(b.car.updatedAt || '').localeCompare(String(a.car.updatedAt || ''));
+      });
+
+      const keeper = scored[0].car;
+      const duplicates = scored.slice(1).map(s => s.car);
+      totalDupsCount += duplicates.length;
+      plan.push({ keeper, duplicates, key: cl.key, type: cl.type });
+    });
+
+    return { clusters, totalDupsCount, plan };
+  }
+
+  global.yahmaFindDuplicates = findDuplicateCars;
+
   function render(content, cars) {
     renderFleet(content, cars);
   }
@@ -52,6 +124,7 @@
       </div>
       <!-- أزرار التصدير القديمة (fleet-export-*) اتشالت — التصدير
            من شريط yx الموحّد. -->
+      ${canDelete ? '<button class="btn btn-ghost" id="fleet-clean-duplicates" type="button" title="فحص الأسطول واكتشاف وحذف أي سيارات مكررة" style="color:var(--accent,#008080)">🔍 فحص وحذف المكرر</button>' : ''}
       <button class="btn btn-ghost" id="fleet-clear-filters" title="إلغاء جميع الفلاتر">↺ مسح الفلاتر</button>
     </div>
     <div class="bulk-bar" id="bulk-bar" style="display:none">
@@ -549,6 +622,102 @@ const q=(search.value||'').trim().toLowerCase();
     else { activeQuick=activeQuick===quick?'':quick; }
     resetAndDraw();
   }));
+
+  async function handleDeduplicateFleet(carsList) {
+    const list = Array.isArray(carsList) ? carsList : (Array.isArray(fleet) ? fleet : []);
+    if (!list.length) {
+      alert('لا توجد سيارات في الأسطول لفحصها.');
+      return;
+    }
+
+    const { clusters, totalDupsCount, plan } = findDuplicateCars(list);
+
+    if (!clusters.length) {
+      alert('✓ فحص الأسطول مكتمل: تم فحص جميع سيارات المنصة (' + list.length + ' سيارة) ولا توجد أي سيارة مكررة.');
+      return;
+    }
+
+    const previewList = plan.slice(0, 8).map((p, idx) => {
+      return (idx + 1) + ') ' + p.key + ':\n' +
+        '   • الاحتفاظ بـ: ' + (p.keeper.brand || '') + ' ' + (p.keeper.model || '') + ' (فرع: ' + (p.keeper.branch || '—') + ')\n' +
+        '   • حذف ' + p.duplicates.length + ' مكررة (فروع: ' + p.duplicates.map(d => d.branch || '—').join('، ') + ')';
+    }).join('\n\n');
+
+    const moreText = plan.length > 8 ? '\n\n... والمزيد (' + (plan.length - 8) + ' مجموعة أخرى)' : '';
+
+    const confirmed = confirm(
+      '⚠️ تم العثور على ' + totalDupsCount + ' سيارة مكررة في ' + plan.length + ' مجموعة:\n\n' +
+      previewList + moreText + '\n\n' +
+      'سيتم دمج أي بيانات ناقصة في السيارة المحتفظ بها، وحذف النسخ المكررة نهائيًا من المنصة وقاعدة البيانات.\n\nهل تريد المتابعة وحذف المكرر الآن؟'
+    );
+
+    if (!confirmed) return;
+
+    const btn = $('fleet-clean-duplicates');
+    if (btn) { btn.disabled = true; btn.textContent = 'جارِ الحذف...'; }
+
+    let deletedCount = 0;
+    let failedCount = 0;
+    const keeperIdsToSave = [];
+    const deleteIds = [];
+
+    for (const p of plan) {
+      const keeper = p.keeper;
+      p.duplicates.forEach(dup => {
+        ['serial', 'cardNumber', 'accountNo', 'companyName', 'licenseExpiry', 'cardExpiry',
+          'inspectionStatus', 'insuranceStatus', 'odometer', 'owner', 'ownerNumber', 'notes'].forEach(f => {
+          if ((!keeper[f] || String(keeper[f]).trim() === '') && dup[f]) {
+            keeper[f] = dup[f];
+          }
+        });
+        deleteIds.push(String(dup.id));
+      });
+      keeperIdsToSave.push(keeper.id);
+    }
+
+    for (const delId of deleteIds) {
+      try {
+        if (typeof deleteVehicleFromCloud === 'function') {
+          const res = await deleteVehicleFromCloud(delId);
+          if (res && res.ok) deletedCount++;
+          else failedCount++;
+        } else {
+          deletedCount++;
+        }
+      } catch (err) {
+        console.error('Failed to delete car:', delId, err);
+        failedCount++;
+      }
+    }
+
+    const deleteSet = new Set(deleteIds);
+    if (Array.isArray(fleet)) {
+      fleet = fleet.filter(c => !deleteSet.has(String(c.id)));
+      if (typeof window !== 'undefined') window.fleet = fleet;
+    }
+
+    if (typeof saveData === 'function') {
+      await saveData(keeperIdsToSave);
+    }
+
+    if (btn) { btn.disabled = false; btn.textContent = '🔍 فحص وحذف المكرر'; }
+
+    if (typeof render === 'function') render();
+
+    alert(
+      '✓ اكتملت العملية بنجاح!\n\n' +
+      '• تم حذف: ' + deletedCount + ' سيارة مكررة.\n' +
+      (failedCount > 0 ? '• تعذر حذف ' + failedCount + ' من Supabase (تأكد من الصلاحيات والاتصال).\n' : '') +
+      '• تم الاحتفاظ بـ ' + plan.length + ' سيارة وتحديث بياناتها بالكامل.'
+    );
+  }
+
+  window.yahmaCheckDuplicates = handleDeduplicateFleet;
+  window.yahmaFindDuplicates = findDuplicateCars;
+
+  $('fleet-clean-duplicates')?.addEventListener('click', async () => {
+    await handleDeduplicateFleet(cars);
+  });
   $('fleet-clear-filters').addEventListener('click',()=>{search.value='';filters.forEach(el=>el.value='');activeQuick='';selectedIds.clear();_filterCacheKey=null;_filterCacheRows=null;resetAndDraw();updateBulkBar();});
   window._yahmaModuleExport = function(fmt){
     const rows=getFilteredRows();
