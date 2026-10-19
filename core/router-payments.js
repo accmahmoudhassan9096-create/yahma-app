@@ -360,6 +360,7 @@ const PAY_ITEM_ACTION = {
     return 'done';
   }
 };
+if (typeof window !== 'undefined') window.PAY_ITEM_ACTION = PAY_ITEM_ACTION;
 
 /* ===== التحديد الجماعي في دورة الفحص/الدفع/التجديد =====
 
@@ -567,6 +568,45 @@ function canDeleteHere() {
 
 /* يربط التحديد والشريط. تفويض واحد على الـtbody مش listener لكل
    صف — الجدول بيعاد بناؤه مع كل رسم. */
+async function handleDeleteCarFromPaymentRow(carId, plate) {
+  if (!canDeleteHere()) {
+    alert('الحذف متاح لمدير النظام فقط.');
+    return;
+  }
+  const car = (Array.isArray(fleet) ? fleet : []).find(c => String(c.id) === String(carId));
+  const carPlate = plate || (car && car.plate) || carId;
+  if (!confirm('هل تريد بالتأكيد حذف السيارة ' + carPlate + ' نهائيًا من الأسطول وقاعدة البيانات؟')) {
+    return;
+  }
+  try {
+    if (typeof deleteVehicleFromCloud === 'function') {
+      await deleteVehicleFromCloud(carId);
+    }
+    if (Array.isArray(fleet)) {
+      fleet = fleet.filter(c => String(c.id) !== String(carId));
+      if (typeof window !== 'undefined') window.fleet = fleet;
+    }
+    if (window.YahmaPayments && typeof window.YahmaPayments.cancel === 'function') {
+      try {
+        var all = window.YahmaPayments.localAll();
+        for (var p of all) {
+          if (String(p.carId) === String(carId)) {
+            await window.YahmaPayments.cancel(p.id, carId);
+          }
+        }
+      } catch (_) {}
+    }
+    if (typeof saveData === 'function') {
+      await saveData();
+    }
+    if (typeof render === 'function') render();
+    alert('تم حذف السيارة ' + carPlate + ' بنجاح.');
+  } catch (err) {
+    console.error('Delete car failed:', err);
+    alert('فشل حذف السيارة: ' + (err && err.message || err));
+  }
+}
+
 function bindPaySelection(content, tab) {
   const tbody = content.querySelector('.fleet-table tbody');
   if (!tbody) return;
@@ -603,6 +643,15 @@ function bindPaySelection(content, tab) {
     PAY_SELECTIONS[tab] = new Set();
     payBulkBarHtml(tab);
   };
+
+  content.querySelectorAll('[data-del-car]').forEach(function (b) {
+    if (b._delBound) return;
+    b._delBound = true;
+    b.onclick = async function (e) {
+      e.stopPropagation();
+      await handleDeleteCarFromPaymentRow(b.dataset.delCar, b.dataset.plate);
+    };
+  });
 
   content.querySelectorAll('[data-pay-act]').forEach(function (b) {
     if (b._payBound) return;
@@ -719,7 +768,7 @@ function renderInspectionPayments(content){
   ${paymentsSyncWarningHtml()}
   ${payBulkBarFor('payments')}
   <div class="table-scroll"><table class="fleet-table"><thead><tr>${payCheckHeader('payments',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th>${CORE_PAY_HEADERS}<th>تاريخ الطلب</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody>
-  ${rows.length?rows.map(({item,car})=>`<tr>${payCheckCell('payments',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td>${corePayCellsHtml(car)}<td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td class="empty-span"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
+  ${rows.length?rows.map(({item,car})=>`<tr>${payCheckCell('payments',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td>${corePayCellsHtml(car)}<td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</td></tr>`).join(''):'<tr><td class="empty-span"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
   bindPayNotes(content);
@@ -794,7 +843,7 @@ function renderPaidInspections(content){
       const needs=needsLicense({car});
       return `<tr>${payCheckCell('paid',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><div class="row-actions">${needs
         ? `<button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(item.id)}">تجديد الرخصة</button>`
-        : `<span class="tag green">الرخصة سارية</span>`}<button type="button" class="btn btn-ghost btn-small row-del" data-stepback-payment="${escapeHtml(item.id)}" title="رجوع السيارة لقائمة «تحت الدفع»">↩ رجوع لِتحت الدفع</button></div></td></tr>`;
+        : `<span class="tag green">الرخصة سارية</span>`}<button type="button" class="btn btn-ghost btn-small row-del" data-stepback-payment="${escapeHtml(item.id)}" title="رجوع السيارة لقائمة «تحت الدفع»">↩ رجوع لِتحت الدفع</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</div></td></tr>`;
     }).join(''):'<tr><td class="empty-span"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
@@ -870,7 +919,7 @@ function renderRenewedInspections(content){
         <td><span class="tag green">تم التجديد</span></td>
         ${payNoteCell(car)}
         <td>${escapeHtml(resolveItemUserName(item))}</td>
-        <td><button type="button" class="btn btn-ghost btn-small" data-stepback-renewed="${escapeHtml(item.id)}" title="رجوع السيارة لِتبويب «تم الدفع»">↩ رجوع لِتم الدفع</button></td></tr>`;
+        <td><button type="button" class="btn btn-ghost btn-small" data-stepback-renewed="${escapeHtml(item.id)}" title="رجوع السيارة لِتبويب «تم الدفع»">↩ رجوع لِتم الدفع</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</td></tr>`;
     }).join(''):'<tr><td class="empty-span"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);

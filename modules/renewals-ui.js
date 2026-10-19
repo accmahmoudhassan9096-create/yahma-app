@@ -111,6 +111,14 @@ function renderRenewals(content, mode='inspection'){
         ${(!licenseMode&&!insuranceMode)?'<button class="btn btn-ghost btn-small" id="ren-insp-from-lic" title="يضبط حالة الفحص من تاريخ الرخصة: منتهية ⇐ لم يفحص، سارية ⇐ تم الفحص">🔄 فحص من الرخص</button><button class="btn btn-primary btn-small" id="ren-bulk-insp-yes" title="يضبط الحالة «تم الفحص» وينقل المحددة لِتبويب «تحت الدفع» — الخطوة التالية في الدورة">✅ تم الفحص ← تحت الدفع</button><button class="btn btn-ghost btn-small" id="ren-bulk-insp-no" title="يضبط الحالة «لم يفحص» بدون نقل — السيارة بتفضل في «الفحص»">لم يُفحص</button>':''}
         ${licenseMode?'<button class="btn btn-primary btn-small" id="ren-bulk-lic-renew">📅 تجديد الرخصة (سنة)</button><button class="btn btn-ghost btn-small" id="ren-bulk-lic-status">ضبط حالة الرخصة</button>':''}
         <button class="btn btn-danger btn-small" id="ren-bulk-delete">🗑 حذف المحددة</button>
+        ${canDelete?`
+          <div class="admin-transfer-group" style="display:inline-flex;gap:4px;align-items:center;background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:6px;">
+            <span style="font-size:11px;font-weight:bold;color:var(--accent,#008080)">نقل المحددة (للمدير):</span>
+            <button class="btn btn-ghost btn-small" id="ren-admin-to-payments" type="button" title="نقل السيارات المحددة لتبويب «تحت الدفع»">📥 تحت الدفع</button>
+            <button class="btn btn-ghost btn-small" id="ren-admin-to-paid" type="button" title="نقل السيارات المحددة لتبويب «تم الدفع»">💵 تم الدفع</button>
+            <button class="btn btn-ghost btn-small" id="ren-admin-to-renewed" type="button" title="نقل السيارات المحددة لتبويب «تم التجديد»">✅ تم التجديد</button>
+          </div>
+        `:""}
         <button class="btn btn-ghost btn-small" id="ren-bulk-clear">إلغاء التحديد</button>
       </div>
     </div>`:''}
@@ -303,6 +311,65 @@ function renderRenewals(content, mode='inspection'){
     const today = new Date(); today.setHours(0,0,0,0);
     return d.getTime() < today.getTime() ? 'لم يفحص' : 'تم الفحص';
   }
+  async function adminMoveSelectedCars(targetTab){
+    if(typeof currentRole!=="undefined" && currentRole!=="admin"){
+      alert("هذا الإجراء متاح لمدير النظام فقط."); return;
+    }
+    const cars=[...selectedRenIds].map(id=>fleet.find(c=>String(c.id)===String(id))).filter(Boolean);
+    if(!cars.length){ alert("يرجى تحديد سيارة واحدة على الأقل."); return; }
+    const tabNames = { payments: "تحت الدفع", paid: "تم الدفع", renewed: "تم التجديد" };
+    const targetName = tabNames[targetTab] || targetTab;
+    if(!confirm("هل تريد بالتأكيد نقل " + cars.length + " سيارة إلى تبويب «" + targetName + "»؟")) return;
+    cars.forEach(function(c){ c.inspectionStatus = "تم الفحص"; });
+    try{ await saveData(cars.map(c=>c.id)); }catch(_){}
+    if(!window.YahmaPayments){ alert("تعذر الوصول لوحدة الدفع."); return; }
+    let moved=0; const failed=[];
+    for(const car of cars){
+      try{
+        if(targetTab==="payments"){
+          await window.YahmaPayments.requestPayment(car);
+        }else if(targetTab==="paid"){
+          var pendingList = window.YahmaPayments.localByStatus("pending");
+          var item = pendingList.find(function(p){ return String(p.carId)===String(car.id); });
+          if(!item){
+            await window.YahmaPayments.requestPayment(car);
+            pendingList = window.YahmaPayments.localByStatus("pending");
+            item = pendingList.find(function(p){ return String(p.carId)===String(car.id); });
+          }
+          if(window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.paid){
+            await window.PAY_ITEM_ACTION.paid(item || { id: car.id, carId: car.id }, car, true);
+          }
+        }else if(targetTab==="renewed"){
+          var pList = window.YahmaPayments.localByStatus("pending");
+          var pItem = pList.find(function(p){ return String(p.carId)===String(car.id); });
+          if(!pItem){
+            await window.YahmaPayments.requestPayment(car);
+            pList = window.YahmaPayments.localByStatus("pending");
+            pItem = pList.find(function(p){ return String(p.carId)===String(car.id); });
+          }
+          if(window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.paid){
+            await window.PAY_ITEM_ACTION.paid(pItem || { id: car.id, carId: car.id }, car, true);
+          }
+          var paidList = window.YahmaPayments.localByStatus("paid");
+          var paidItem = paidList.find(function(p){ return String(p.carId)===String(car.id); }) || pItem || { id: car.id, carId: car.id };
+          if(window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.renew){
+            await window.PAY_ITEM_ACTION.renew(paidItem, car, true);
+          }
+        }
+        moved++;
+      }catch(err){
+        console.error("Failed to move car:", car.plate, err);
+        failed.push(car.plate || car.id);
+      }
+    }
+    selectedRenIds.clear();
+    var msg = "✓ تم نقل " + moved + " سيارة بنجاح إلى تبويب «" + targetName + "».";
+    if(failed.length) msg += "\nفشل نقل: " + failed.join("، ");
+    alert(msg);
+    if(typeof log==="function"){ try{ log("نقل سيارات جماعي", moved + " سيارة إلى " + targetName); }catch(_){} }
+    if(typeof render==="function") render();
+  }
+
   async function bulkInspectionFromLicenses(){
     const cars = renSelectedCars();
     if(!cars.length) return;
@@ -656,6 +723,9 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
   $('ren-bulk-ins-ok')?.addEventListener('click',()=>bulkSetInsurance('ساري'));
   $('ren-bulk-ins-no')?.addEventListener('click',()=>bulkSetInsurance('لا يوجد'));
   $('ren-bulk-clear')?.addEventListener('click',()=>{selectedRenIds.clear();draw();});
+  $('ren-admin-to-payments')?.addEventListener('click',()=>adminMoveSelectedCars('payments'));
+  $('ren-admin-to-paid')?.addEventListener('click',()=>adminMoveSelectedCars('paid'));
+  $('ren-admin-to-renewed')?.addEventListener('click',()=>adminMoveSelectedCars('renewed'));
   /* حقول كل تبويب عند رفع الشيت.
      التأمين: المطلوب يحدّث بيانات السيارة الأساسية كمان — اللون
      والمدينة والرقم التسلسلي والمالك والفرع وحالة السيارة — مش
