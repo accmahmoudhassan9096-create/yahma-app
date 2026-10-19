@@ -8,11 +8,13 @@
 (function(){
  const AUDIT='fleet-audit-v1';
  function log(action,detail){
-  const record={at:new Date().toISOString(),displayAt:new Date().toLocaleString('ar-EG'),user:(window.currentUser&&window.currentUser.email)||'مستخدم محلي',role:window.currentRole||'view',action,detail};
+  const actorName = (typeof window !== 'undefined' && ((window.YahmaPayments && typeof window.YahmaPayments.getCurrentActorName === 'function' && window.YahmaPayments.getCurrentActorName()) || window.currentUserName || (window.currentUser && window.currentUser.email))) || 'مستخدم محلي';
+  const userEmail = (window.currentUser && window.currentUser.email) || '';
+  const record={at:new Date().toISOString(),displayAt:new Date().toLocaleString('ar-EG'),user:actorName,user_email:userEmail,user_name:actorName,role:window.currentRole||'view',action,detail};
   let a=[];try{a=JSON.parse(localStorage.getItem(AUDIT)||'[]')}catch(e){yahmaErr(e,'audit-theme.js:12');}
   a.unshift(record);localStorage.setItem(AUDIT,JSON.stringify(a.slice(0,500)));
   if(!window._demoMode&&window.supabaseReady&&window.supabaseClient&&window.currentUser?.id){
-    window.supabaseClient.from('audit_logs').insert({user_id:window.currentUser.id,user_email:record.user,role:record.role,action:record.action,detail:record.detail,created_at:record.at}).then(()=>{}).catch(()=>{});
+    window.supabaseClient.from('audit_logs').insert({user_id:window.currentUser.id,user_email:record.user_email||record.user,role:record.role,action:record.action,detail:record.detail,created_at:record.at}).then(()=>{}).catch(()=>{});
   }
  }
  /* نُصيّح window.log عند التحميل لا عند أول استدعاء — كان السطر داخل دالة log
@@ -23,15 +25,61 @@
  window.openAuditReport=async function(){
   if(window.currentRole!=='admin'){alert('سجل النشاط متاح للمدير فقط.');return;}
   let rows=[];
+  const userMap = new Map();
   if(window.supabaseReady&&window.supabaseClient){
-    const result=await window.supabaseClient.from('audit_logs').select('user_email,role,action,detail,created_at').order('created_at',{ascending:false}).limit(1000);
-    if(!result.error) rows=result.data||[];
+    try {
+      const [auditRes, profRes] = await Promise.all([
+        window.supabaseClient.from('audit_logs').select('id,user_id,user_email,role,action,detail,created_at').order('created_at',{ascending:false}).limit(1000),
+        window.supabaseClient.from('profiles').select('id,full_name,email')
+      ]);
+      if(!auditRes.error && auditRes.data) rows=auditRes.data;
+      if(!profRes.error && profRes.data){
+        profRes.data.forEach(p => {
+          const name = String(p.full_name || '').trim();
+          if(name){
+            if(p.id) userMap.set(String(p.id).trim(), name);
+            if(p.email) userMap.set(String(p.email).trim().toLowerCase(), name);
+          }
+        });
+      }
+    } catch (_) {}
   }
-  if(!rows.length){try{rows=JSON.parse(localStorage.getItem(AUDIT)||'[]').map(x=>({user_email:x.user,role:x.role,action:x.action,detail:x.detail,created_at:x.at}))}catch(e){rows=[]}}
-  
+  if(!rows.length){try{rows=JSON.parse(localStorage.getItem(AUDIT)||'[]').map(x=>({user_email:x.user_email||x.user,user_name:x.user_name||x.user,role:x.role,action:x.action,detail:x.detail,created_at:x.at}))}catch(e){rows=[]}}
+
+  try {
+    const curName = (window.currentUserName && window.currentUserName.trim()) ||
+      localStorage.getItem('yahma_last_user_name') ||
+      (window.YahmaPayments && typeof window.YahmaPayments.getCurrentActorName === 'function' && window.YahmaPayments.getCurrentActorName());
+    if (curName) {
+      if (window.currentUser?.id) userMap.set(String(window.currentUser.id).trim(), curName);
+      if (window.currentUser?.email) userMap.set(String(window.currentUser.email).trim().toLowerCase(), curName);
+    }
+  } catch (_) {}
+
+  const resolveName = (r) => {
+    if(r.user_name && String(r.user_name).trim()) return String(r.user_name).trim();
+    if(r.user_id && userMap.has(String(r.user_id).trim())) return userMap.get(String(r.user_id).trim());
+    const em = String(r.user_email || '').trim().toLowerCase();
+    if(em && userMap.has(em)) return userMap.get(em);
+    const u = String(r.user || '').trim();
+    if(u){
+      if(userMap.has(u.toLowerCase())) return userMap.get(u.toLowerCase());
+      if(!u.includes('@')) return u;
+    }
+    if(em && em.includes('@')){
+      const prefix = em.split('@')[0].replace(/[\._\-]+/g, ' ').trim();
+      return prefix || em;
+    }
+    return u || 'مستخدم';
+  };
+
+  rows.forEach(r => {
+    r.display_user = resolveName(r);
+  });
+
   const userCounts=new Map();
   rows.forEach(r=>{
-    const u=String(r.user_email||r.user||'—').trim();
+    const u=String(r.display_user||'—').trim();
     userCounts.set(u,(userCounts.get(u)||0)+1);
   });
   const sortedUsers=[...userCounts.keys()].sort((a,b)=>a.localeCompare(b,'ar'));
@@ -81,10 +129,10 @@
     const uSel = (ov.querySelector('#audit-modal-sel-user')?.value || '').trim().toLowerCase();
     const q = (ov.querySelector('#audit-modal-ipt-search')?.value || '').trim().toLowerCase();
     return rows.filter(r => {
-      const u = String(r.user_email || r.user || '').trim().toLowerCase();
+      const u = String(r.display_user || '').trim().toLowerCase();
       if (uSel && u !== uSel) return false;
       if (q) {
-        const hay = [u, r.action, r.detail, r.role].map(v => String(v || '').toLowerCase()).join(' ');
+        const hay = [u, r.user_email, r.action, r.detail, r.role].map(v => String(v || '').toLowerCase()).join(' ');
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -102,7 +150,7 @@
     if (tbody) {
       tbody.innerHTML = shown.length ? shown.map(r => `<tr>
         <td dir="ltr">${esc(new Date(r.created_at || r.at).toLocaleString('ar-EG'))}</td>
-        <td><b>${esc(r.user_email || r.user)}</b></td>
+        <td><b>${esc(r.display_user)}</b></td>
         <td>${esc(r.role)}</td>
         <td>${esc(r.action)}</td>
         <td>${esc(r.detail)}</td>
@@ -112,7 +160,7 @@
       title: 'سجل نشاط المستخدمين',
       subtitle: `عدد الحركات: ${filtered.length}`,
       headers: ['التاريخ والوقت', 'المستخدم', 'الدور', 'الحركة', 'التفاصيل'],
-      rows: filtered.map(r => [new Date(r.created_at || r.at).toLocaleString('ar-EG'), r.user_email || r.user || '—', r.role || '—', r.action || '—', r.detail || '—'])
+      rows: filtered.map(r => [new Date(r.created_at || r.at).toLocaleString('ar-EG'), r.display_user || '—', r.role || '—', r.action || '—', r.detail || '—'])
     });
   };
 

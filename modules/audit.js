@@ -3,12 +3,61 @@
 
   const AUDIT_KEY = 'fleet-audit-v1';
 
+  async function loadUserMap() {
+    const userMap = new Map();
+    if (global.supabaseReady && global.supabaseClient) {
+      try {
+        const res = await global.supabaseClient.from('profiles').select('id,full_name,email');
+        if (res && res.data) {
+          res.data.forEach(p => {
+            const name = String(p.full_name || '').trim();
+            if (name) {
+              if (p.id) userMap.set(String(p.id).trim(), name);
+              if (p.email) userMap.set(String(p.email).trim().toLowerCase(), name);
+            }
+          });
+        }
+      } catch (_) {}
+    }
+    try {
+      const curName = (global.currentUserName && global.currentUserName.trim()) ||
+        localStorage.getItem('yahma_last_user_name') ||
+        (global.YahmaPayments && typeof global.YahmaPayments.getCurrentActorName === 'function' && global.YahmaPayments.getCurrentActorName());
+      if (curName) {
+        if (global.currentUser?.id) userMap.set(String(global.currentUser.id).trim(), curName);
+        if (global.currentUser?.email) userMap.set(String(global.currentUser.email).trim().toLowerCase(), curName);
+      }
+    } catch (_) {}
+    return userMap;
+  }
+
+  function resolveDisplayName(r, userMap) {
+    if (r.user_name && String(r.user_name).trim()) return String(r.user_name).trim();
+    if (r.user_id && userMap && userMap.has(String(r.user_id).trim())) {
+      return userMap.get(String(r.user_id).trim());
+    }
+    const em = String(r.user_email || '').trim().toLowerCase();
+    if (em && userMap && userMap.has(em)) {
+      return userMap.get(em);
+    }
+    const u = String(r.user || '').trim();
+    if (u) {
+      if (userMap && userMap.has(u.toLowerCase())) return userMap.get(u.toLowerCase());
+      if (!u.includes('@')) return u;
+    }
+    if (em && em.includes('@')) {
+      const prefix = em.split('@')[0].replace(/[\._\-]+/g, ' ').trim();
+      return prefix || em;
+    }
+    return u || 'مستخدم';
+  }
+
   async function fetchAuditRows() {
     let rows = [];
     if (global.supabaseReady && global.supabaseClient) {
       try {
         const res = await global.supabaseClient.from('audit_logs')
-          .select('user_email,role,action,detail,created_at')
+          .select('id,user_id,user_email,role,action,detail,created_at')
           .order('created_at', { ascending: false })
           .limit(2000);
         if (!res.error && res.data) rows = res.data;
@@ -17,7 +66,9 @@
     if (!rows.length) {
       try {
         rows = JSON.parse(localStorage.getItem(AUDIT_KEY) || '[]').map(x => ({
-          user_email: x.user,
+          user: x.user || x.user_name || x.user_email,
+          user_email: x.user_email || x.user,
+          user_name: x.user_name || x.user,
           role: x.role,
           action: x.action,
           detail: x.detail,
@@ -146,12 +197,12 @@
       const q = (document.getElementById('audit-ipt-search')?.value || '').trim().toLowerCase();
 
       return allRows.filter(r => {
-        const u = String(r.user_email || r.user || '').trim().toLowerCase();
+        const u = String(r.display_user || '').trim().toLowerCase();
         if (userSel && u !== userSel) return false;
         const a = String(r.action || '').trim().toLowerCase();
         if (actionSel && a !== actionSel) return false;
         if (q) {
-          const hay = [u, a, r.detail, r.role, fmtDateTime(r.created_at || r.at)].map(v => String(v || '').toLowerCase()).join(' ');
+          const hay = [u, r.user_email, r.user, a, r.detail, r.role, fmtDateTime(r.created_at || r.at)].map(v => String(v || '').toLowerCase()).join(' ');
           if (!hay.includes(q)) return false;
         }
         return true;
@@ -193,7 +244,7 @@
       if (!tbody) return;
 
       tbody.innerHTML = paged.length ? paged.map(r => {
-        const u = r.user_email || r.user || '—';
+        const u = r.display_user || '—';
         const role = r.role || '—';
         const action = r.action || '—';
         const detail = r.detail || '—';
@@ -219,7 +270,7 @@
         headers: ['التاريخ والوقت', 'المستخدم', 'الدور', 'الحركة', 'التفاصيل'],
         rows: filtered.map(r => [
           fmtDateTime(r.created_at || r.at),
-          r.user_email || r.user || '—',
+          r.display_user || '—',
           r.role || '—',
           r.action || '—',
           r.detail || '—'
@@ -235,7 +286,7 @@
         const headers = ['التاريخ والوقت', 'المستخدم', 'الدور', 'الحركة', 'التفاصيل'];
         const data = rows.map(r => [
           fmtDateTime(r.created_at || r.at),
-          r.user_email || r.user || '—',
+          r.display_user || '—',
           r.role || '—',
           r.action || '—',
           r.detail || '—'
@@ -254,7 +305,7 @@
     function exportCsv(rows) {
       const lines = [
         ['التاريخ والوقت', 'المستخدم', 'الدور', 'الحركة', 'التفاصيل'],
-        ...rows.map(r => [fmtDateTime(r.created_at || r.at), r.user_email || r.user || '—', r.role || '—', r.action || '—', r.detail || '—'])
+        ...rows.map(r => [fmtDateTime(r.created_at || r.at), r.display_user || '—', r.role || '—', r.action || '—', r.detail || '—'])
       ];
       const csv = '\uFEFF' + lines.map(x => x.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
       const a = document.createElement('a');
@@ -272,7 +323,7 @@
       const headers = ['التاريخ والوقت', 'المستخدم', 'الدور', 'الحركة', 'التفاصيل'];
       const data = rows.map(r => [
         fmtDateTime(r.created_at || r.at),
-        r.user_email || r.user || '—',
+        r.display_user || '—',
         r.role || '—',
         r.action || '—',
         r.detail || '—'
@@ -285,12 +336,16 @@
     }
 
     async function loadData() {
+      const userMap = await loadUserMap();
       allRows = await fetchAuditRows();
+      allRows.forEach(r => {
+        r.display_user = resolveDisplayName(r, userMap);
+      });
 
       const userCounts = new Map();
       const actionCounts = new Map();
       allRows.forEach(r => {
-        const u = String(r.user_email || r.user || '—').trim();
+        const u = String(r.display_user || '—').trim();
         userCounts.set(u, (userCounts.get(u) || 0) + 1);
         const a = String(r.action || '—').trim();
         actionCounts.set(a, (actionCounts.get(a) || 0) + 1);
