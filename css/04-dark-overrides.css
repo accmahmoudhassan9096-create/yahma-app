@@ -1578,8 +1578,8 @@ body.dark-mode .rd-doc-cell.info{background:#193B43;color:#67E8F9}
 /* شارة نطاق الفرع — الوضع الليلي */
 body.dark-mode .branch-scope-chip{background:#193B43;color:#7FD1CC}
 /* حقل الملاحظات — الوضع الليلي */
-body.dark-mode .ren-note-input,body.dark-mode .fu-note-input,body.dark-mode .tr-note-input{background:#263442;border-color:#3A4A5E;color:#E7EEF5}
-body.dark-mode .ren-note-input[readonly],body.dark-mode .fu-note-input[readonly],body.dark-mode .tr-note-input[readonly]{background:transparent;border-color:transparent}
+body.dark-mode .ren-note-input,body.dark-mode .fu-note-input,body.dark-mode .tr-note-input,body.dark-mode .pay-note-input{background:#263442;border-color:#3A4A5E;color:#E7EEF5}
+body.dark-mode .ren-note-input[readonly],body.dark-mode .fu-note-input[readonly],body.dark-mode .tr-note-input[readonly],body.dark-mode .pay-note-input[readonly]{background:transparent;border-color:transparent}
 /* خلايا بيانات السيارة — الوضع الليلي. خلايا عرض فمافيش خلفية
    ولا حدود؛ inherited من خلية الجدول. */
 body.dark-mode .pay-cell,body.dark-mode .ren-data-cell{color:inherit}

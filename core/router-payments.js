@@ -174,6 +174,53 @@ function corePayCellsHtml(car) {
   }).join('');
 }
 
+function payNoteCell(car) {
+  if (!car) return '<td>—</td>';
+  const canEdit = (typeof window.YahmaPerms === 'object')
+    ? window.YahmaPerms.canEditNow()
+    : !(typeof currentRole !== 'undefined' && currentRole === 'view');
+  return `<td><input class="pay-note-input ren-note-input" data-note-id="${escapeHtml(car.id)}" value="${escapeHtml(car.notes || '')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(car.plate || '—')}"${canEdit ? '' : ' readonly'}></td>`;
+}
+
+function bindPayNotes(container) {
+  if (!container) return;
+  const tbody = container.querySelector('table.fleet-table tbody') || container.querySelector('tbody');
+  if (!tbody || tbody._payNoteDelegate) return;
+  tbody._payNoteDelegate = true;
+  tbody.addEventListener('change', async function (e) {
+    const inp = e.target.closest ? e.target.closest('input[data-note-id]') : null;
+    if (!inp || inp.hasAttribute('readonly')) return;
+    const fleetList = (typeof fleet !== 'undefined' && Array.isArray(fleet)) ? fleet : (window.fleet || []);
+    const car = fleetList.find(c => String(c.id) === String(inp.dataset.noteId));
+    if (!car) return;
+    if (typeof currentRole !== 'undefined' && currentRole === 'view') {
+      alert('ليس لديك صلاحية التعديل.');
+      inp.value = car.notes || '';
+      return;
+    }
+    const v = inp.value.trim();
+    if (String(car.notes || '') === v) return;
+    car.notes = v;
+    inp.classList.add('saving');
+    let ok = true;
+    try {
+      if (typeof saveData === 'function') ok = await saveData([car.id]);
+    } catch (_) {
+      ok = false;
+    }
+    inp.classList.remove('saving');
+    if (ok === false) {
+      alert('تعذر الحفظ — تحقق من الاتصال.');
+    } else {
+      try {
+        if (typeof window.log === 'function') window.log('ملاحظة فحص', 'السيارة ' + (car.plate || ''));
+      } catch (_) {
+        yahmaErr(_, 'router-payments.js:notes');
+      }
+    }
+  });
+}
+
 function resolveItemUserName(item) {
   var name = item.userName || (item.prevState && item.prevState.userName);
   if (!name && typeof window !== 'undefined') {
@@ -650,9 +697,10 @@ function renderInspectionPayments(content){
   ${paymentsSyncWarningHtml()}
   ${payBulkBarFor('payments')}
   <div class="table-scroll"><table class="fleet-table"><thead><tr>${payCheckHeader('payments',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th>${CORE_PAY_HEADERS}<th>تاريخ الطلب</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody>
-  ${rows.length?rows.map(({item,car})=>`<tr>${payCheckCell('payments',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td>${corePayCellsHtml(car)}<td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td><td class="pay-cell">${escapeHtml(car.notes||'—')}</td><td>${escapeHtml(resolveItemUserName(item))}</td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td class="empty-span"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
+  ${rows.length?rows.map(({item,car})=>`<tr>${payCheckCell('payments',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td>${corePayCellsHtml(car)}<td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td><span class="tag amber">تحت الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><button type="button" class="btn btn-primary btn-small" data-payment-done="${escapeHtml(item.id)}">تسجيل الدفع</button> <button type="button" class="btn btn-ghost btn-small" data-payment-cancel="${escapeHtml(item.id)}">إلغاء الطلب</button></td></tr>`).join(''):'<tr><td class="empty-span"><div class="empty">لا توجد طلبات تحت الدفع</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
+  bindPayNotes(content);
   bindPaySelection(content,'payments');
   fixPaySpans(content);
   window._yahmaCurrentPdfData=()=>({
@@ -721,12 +769,13 @@ function renderPaidInspections(content){
   <div class="table-scroll"><table class="fleet-table"><thead><tr>${payCheckHeader('paid',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody>
   ${rows.length?rows.map(({item,car})=>{
       const needs=needsLicense({car});
-      return `<tr>${payCheckCell('paid',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td><td class="pay-cell">${escapeHtml(car.notes||'—')}</td><td>${escapeHtml(resolveItemUserName(item))}</td><td><div class="row-actions">${needs
+      return `<tr>${payCheckCell('paid',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><div class="row-actions">${needs
         ? `<button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(item.id)}">تجديد الرخصة</button>`
         : `<span class="tag green">الرخصة سارية</span>`}<button type="button" class="btn btn-ghost btn-small row-del" data-stepback-payment="${escapeHtml(item.id)}" title="رجوع السيارة لقائمة «تحت الدفع»">↩ رجوع لِتحت الدفع</button></div></td></tr>`;
     }).join(''):'<tr><td class="empty-span"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
+  bindPayNotes(content);
   bindPaySelection(content,'paid');
   fixPaySpans(content);
   window._yahmaCurrentPdfData=()=>({
@@ -795,12 +844,13 @@ function renderRenewedInspections(content){
         <td><b>${escapeHtml(formatArabicDate(stamp))}</b></td>
         <td>${escapeHtml(car.licenseExpiry||'—')}</td>
         <td><span class="tag green">تم التجديد</span></td>
-        <td class="pay-cell">${escapeHtml(car.notes||'—')}</td>
+        ${payNoteCell(car)}
         <td>${escapeHtml(resolveItemUserName(item))}</td>
         <td><button type="button" class="btn btn-ghost btn-small" data-stepback-renewed="${escapeHtml(item.id)}" title="رجوع السيارة لِتبويب «تم الدفع»">↩ رجوع لِتم الدفع</button></td></tr>`;
     }).join(''):'<tr><td class="empty-span"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>'}
   </tbody></table></div>`;
   bindPaymentsDiagnostic(content);
+  bindPayNotes(content);
   bindPaySelection(content,'renewed');
   fixPaySpans(content);
   window._yahmaCurrentPdfData=()=>({
