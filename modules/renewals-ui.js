@@ -53,13 +53,13 @@ function renderRenewals(content, mode='inspection'){
   const pendingIds=new Set(readPaymentQueue().map(item=>String(item.carId)));
   /* نفس fleetForTab بالظبط — عشان الرقم في البطاقة يطابق عدد صفوف الجدول */
   const needInsp=typeof fleetForTab==='function'?fleetForTab('renewals', fleet).filter(car=>!pendingIds.has(String(car.id))).length:getUninspectedCars().filter(car=>!pendingIds.has(String(car.id))).length;
-  const needLic=typeof fleetForTab==='function'?fleetForTab('license-renewals', fleet).length:fleet.filter(c=>dateStatus(c.licenseExpiry).level!=='green').length;
-  const needInsurance=typeof fleetForTab==='function'?fleetForTab('insurance-renewals', fleet).length:fleet.filter(c=>textTag(c.insuranceStatus).level!=='green').length;
+  const needLic=typeof fleetForTab==='function'?fleetForTab('license-renewals', fleet).length:fleet.filter(c=>dateStatus(c.licenseExpiry).level==='red').length;
+  const needInsurance=typeof fleetForTab==='function'?fleetForTab('insurance-renewals', fleet).length:fleet.filter(c=>textTag(c.insuranceStatus).level==='red').length;
   const goodInsp=fleet.filter(car=>inspectionDisplayStatus(car.inspectionStatus).level==='green').length;
   const goodLic=fleet.length-needLic;
   content.innerHTML = `
     <div class="fleet-summary-strip module-summary-strip" aria-label="ملخص ${licenseMode?'الرخص':'الفحص'}">
-      ${insuranceMode?`<div class="fleet-summary-card attention"><span class="fleet-summary-icon">!</span><span><b>${needInsurance}</b><small>تأمين يحتاج متابعة</small></span></div>`:licenseMode?`<button type="button" class="fleet-summary-card attention" data-rq="lic_bad"><span class="fleet-summary-icon">!</span><span><b>${needLic}</b><small>رخص تحتاج متابعة</small></span></button><button type="button" class="fleet-summary-card ready" data-rq="lic_ok"><span class="fleet-summary-icon">✓</span><span><b>${goodLic}</b><small>رخص سارية</small></span></button>`:`
+      ${insuranceMode?`<div class="fleet-summary-card attention"><span class="fleet-summary-icon">!</span><span><b>${needInsurance}</b><small>تأمين منتهي</small></span></div>`:licenseMode?`<button type="button" class="fleet-summary-card attention" data-rq="lic_bad"><span class="fleet-summary-icon">!</span><span><b>${needLic}</b><small>رخص منتهية</small></span></button><button type="button" class="fleet-summary-card ready" data-rq="lic_ok"><span class="fleet-summary-icon">✓</span><span><b>${goodLic}</b><small>رخص سارية</small></span></button>`:`
       <button type="button" class="fleet-summary-card attention" data-rq="insp_bad"><span class="fleet-summary-icon">!</span><span><b>${needInsp}</b><small>تحتاج فحص</small></span></button>
       <div class="fleet-summary-card ready"><span class="fleet-summary-icon">✓</span><span><b>${goodInsp}</b><small>فحص سليم</small></span></div>
       `}
@@ -185,7 +185,15 @@ function renderRenewals(content, mode='inspection'){
          ولو|displayed المنتهي بس هنا؟ بيظهر تعارض زي «720 محتاجة
          تجديد» والجدول بيقول «438». الفلاتر السريعة تحت بتضيّق. */
       if(licenseMode && !activeRQ && !val('ren-lic-condition') && !val('ren-lic-status')){
-        if(dateStatus(c.licenseExpiry).level==='green') return false;
+        if(dateStatus(c.licenseExpiry).level!=='red') return false;
+      }
+      if(insuranceMode && !activeRQ && !val('ren-insurance-status')){
+        var _insSt = textTag(c.insuranceStatus).level;
+        var _expSt = c.insuranceExpiry && typeof dateStatus === 'function' ? dateStatus(c.insuranceExpiry).level : null;
+        if(_insSt !== 'red' && _expSt !== 'red') return false;
+      }
+      if(!licenseMode && !insuranceMode && !activeRQ && !val('ren-insp-status')){
+        if(inspectionDisplayStatus(c.inspectionStatus).level !== 'red') return false;
       }
       if(q){
         const hay=[c.plate,c.brand,c.model,c.owner,c.branch,c.carStatus,c.inspectionStatus,c.insuranceCompany].map(v=>String(v||'').toLowerCase()).join(' ');

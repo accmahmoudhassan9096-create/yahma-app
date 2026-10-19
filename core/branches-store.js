@@ -194,13 +194,18 @@ function fleetForTab(tab, list){
   function needsInspection(c){ return insp(c)!=='green' || licenseSoon(c); }
 
   switch(tab){
-    case 'renewals':      return all.filter(needsInspection);
+    case 'renewals':      return all.filter(function(c){ return insp(c) === 'red'; });
     case 'payments':      return window.YahmaPayments ? filterByPaymentIds(all,'pending') : all;
     case 'paid':          return window.YahmaPayments ? filterByPaymentIds(all,'paid') : all;
     case 'renewed':       return window.YahmaPayments ? filterByPaymentIds(all,'renewed') : all;
-    case 'license-renewals': return all.filter(function(c){ return lvl(c.licenseExpiry)!=='green'; });
-    case 'insurance-renewals': return all.filter(function(c){ return ins(c)!=='green'; });
-    case 'inspections':   return all.filter(function(c){ return card(c)!=='green'; });
+    case 'license-renewals': return all.filter(function(c){ return lvl(c.licenseExpiry) === 'red'; });
+    case 'insurance-renewals': return all.filter(function(c){
+      if(c.insuranceExpiry && typeof dateStatus === 'function'){
+        if(dateStatus(c.insuranceExpiry).level === 'red') return true;
+      }
+      return ins(c) === 'red';
+    });
+    case 'inspections':   return all.filter(function(c){ return card(c) === 'red'; });
     case 'transfers':     return all.filter(function(c){ return String(c.transferDone||'').trim()==='نعم'; });
     default: return all;
   }

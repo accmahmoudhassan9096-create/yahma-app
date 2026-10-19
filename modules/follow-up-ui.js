@@ -34,22 +34,22 @@ function renderFollowUp(content){
     return [...map.values()].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
   };
   const optionList=(items,placeholder)=>`<option value="">${placeholder}</option>${items.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('')}`;
-  const needCard=fleet.filter(c=>cardDisplayStatus(c.cardExpiry,c.cardStatus).level!=='green').length;
-  const needIns=fleet.filter(c=>textTag(c.insuranceStatus).level!=='green').length;
+  const needCard=typeof fleetForTab==='function'?fleetForTab('inspections', fleet).length:fleet.filter(c=>cardDisplayStatus(c.cardExpiry,c.cardStatus).level==='red').length;
+  const needIns=fleet.filter(c=>textTag(c.insuranceStatus).level==='red').length;
   const goodCard=fleet.length-needCard;
   const goodIns=fleet.length-needIns;
   content.innerHTML = `
     <div class="fleet-summary-strip module-summary-strip" aria-label="ملخص بطاقات التشغيل والتأمين">
-      <button type="button" class="fleet-summary-card attention" data-fq="card_bad"><span class="fleet-summary-icon">!</span><span><b>${needCard}</b><small>كارت يحتاج متابعة</small></span></button>
+      <button type="button" class="fleet-summary-card attention" data-fq="card_bad"><span class="fleet-summary-icon">!</span><span><b>${needCard}</b><small>كروت منتهية</small></span></button>
       <button type="button" class="fleet-summary-card ready" data-fq="card_ok"><span class="fleet-summary-icon">✓</span><span><b>${goodCard}</b><small>كارت ساري</small></span></button>
-      <button type="button" class="fleet-summary-card out" data-fq="ins_bad"><span class="fleet-summary-icon">!</span><span><b>${needIns}</b><small>تأمين غير ساري</small></span></button>
+      <button type="button" class="fleet-summary-card out" data-fq="ins_bad"><span class="fleet-summary-icon">!</span><span><b>${needIns}</b><small>تأمين منتهي</small></span></button>
       <button type="button" class="fleet-summary-card total" data-fq="ins_ok"><span class="fleet-summary-icon">✓</span><span><b>${goodIns}</b><small>تأمين ساري</small></span></button>
     </div>
     <div class="wa-toolbar">
       <div class="wa-toolbar-info">
-        <strong>كارت يحتاج متابعة:</strong> <span class="wa-count">${needCard}</span>
+        <strong>كروت منتهية:</strong> <span class="wa-count">${needCard}</span>
         &nbsp;|&nbsp;
-        <strong>تأمين غير ساري:</strong> <span class="wa-count">${needIns}</span>
+        <strong>تأمين منتهي:</strong> <span class="wa-count">${needIns}</span>
       </div>
       <div class="wa-toolbar-actions">
         <button class="btn btn-whatsapp" id="btn-wa-card">واتساب — الكارت</button>
@@ -223,6 +223,9 @@ function renderFollowUp(content){
         if(want.includes('ملغ') && !raw.includes('ملغ')) return false;
         else if(want.includes('موقوف') && !raw.includes('موقوف')) return false;
         else if(want==='نشط' && (raw.includes('ملغ')||raw.includes('موقوف'))) return false;
+      }
+      if(!activeFQ && !val('fu-card-condition') && !val('fu-card-status') && !val('fu-ins-status') && !q){
+        if(cardDisplayStatus(c.cardExpiry,c.cardStatus).level !== 'red') return false;
       }
       if(val('fu-card-condition') && cardDisplayStatus(c.cardExpiry,c.cardStatus).level!==val('fu-card-condition')) return false;
       if(val('fu-ins-status') && textTag(c.insuranceStatus).level!==val('fu-ins-status')) return false;
