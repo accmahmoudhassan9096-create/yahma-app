@@ -135,22 +135,22 @@
       return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
     }
     const text = String(value).trim();
-    let match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (match) return +match[1] < 1500 ? hijriToGregorianStr(+match[1], +match[2], +match[3]) : text;
-    match = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    let match = text.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
     if (match) {
-      const year = +match[3];
-      if (year < 1500) return hijriToGregorianStr(year, +match[2], +match[1]);
-      return `${year}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+      const year = +match[1];
+      if (year < 1500 && year >= 1300) return hijriToGregorianStr(year, +match[2], +match[3]);
+      return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
     }
-    match = text.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+    match = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
     if (match) {
       const year = +match[3];
-      if (year < 1500) return hijriToGregorianStr(year, +match[2], +match[1]);
+      if (year < 1500 && year >= 1300) return hijriToGregorianStr(year, +match[2], +match[1]);
       return `${year}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
     }
     const date = new Date(text);
     if (isNaN(date)) return '';
+    const y = date.getFullYear();
+    if (y < 1500 && y >= 1300) return hijriToGregorianStr(y, date.getMonth() + 1, date.getDate());
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
 

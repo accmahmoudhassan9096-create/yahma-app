@@ -192,7 +192,7 @@ function renderReports(content, context){
         if(!isNaN(d) && d>=start && d<=end) expSoon++;
       });
     });
-    const label = start.toLocaleDateString('ar-SA', {month:'numeric', day:'numeric'});
+    const label = start.toLocaleDateString('ar-SA-u-ca-gregory', {month:'numeric', day:'numeric'});
     weekStats.push({label, done, late, expSoon});
   }
   const maxWeek = Math.max(1, ...weekStats.map(w => w.done + w.late + w.expSoon));

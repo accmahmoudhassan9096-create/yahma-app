@@ -346,6 +346,7 @@ function activateAuthenticatedSession(user){
         try{ if(typeof migrateCarStatusValues==='function') await migrateCarStatusValues(); }catch(_){yahmaErr(_,'auth-boot.js:167');}
         try{ if(typeof migrateCarBrands==='function') await migrateCarBrands(); }catch(_){yahmaErr(_,'auth-boot.js:168');}
         try{ if(typeof migrateInspectionStatus==='function') await migrateInspectionStatus(); }catch(_){yahmaErr(_,'auth-boot.js:169');}
+        try{ if(typeof migrateHijriDatesToGregorian==='function') await migrateHijriDatesToGregorian(); }catch(_){yahmaErr(_,'auth-boot.js:hijri');}
         if(typeof render==='function') render();
       });
     }catch(error){

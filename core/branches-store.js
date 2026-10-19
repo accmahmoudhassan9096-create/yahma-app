@@ -471,4 +471,48 @@ async function migrateTypeModelConvention(){
   }catch(e){ return {error:String(e&&e.message||e)}; }
 }
 
-
+/* ===== ترحيل التواريخ الهجرية إلى ميلادي =====
+   يحول أي تواريخ هجرية مسجلة سابقًا في الأسطول (سنة بين 1300 و 1500) إلى تاريخ ميلادي معتمد. */
+async function migrateHijriDatesToGregorian(){
+  try{
+    if(!Array.isArray(fleet) || !fleet.length) return {skipped:true};
+    const dateFields = [
+      'licenseExpiry', 'insuranceExpiry', 'inspectionExpiry', 'cardExpiry',
+      'lastInspectionDate', 'insuranceStartDate', 'cardIssueDate',
+      'transferDate', 'handoverDate', 'returnDate', 'oilChangeDate',
+      'batteryChangeDate', 'tiresChangeDate', 'periodicMaintDate',
+      'operationCardExpiry'
+    ];
+    const isHijriStr = (val) => {
+      if(!val) return false;
+      const str = String(val).trim();
+      const m = str.match(/(?:^|[^\d])(1[34]\d{2})(?:[^\d]|$)/);
+      if(m) {
+        const y = parseInt(m[1], 10);
+        return y >= 1300 && y <= 1500;
+      }
+      return false;
+    };
+    const ids = [];
+    fleet.forEach(c => {
+      let changed = false;
+      dateFields.forEach(f => {
+        if(c[f] && isHijriStr(c[f])){
+          const norm = typeof YahmaUtils !== 'undefined' && typeof YahmaUtils.normalizeDateValue === 'function'
+            ? YahmaUtils.normalizeDateValue(c[f])
+            : c[f];
+          if(norm && norm !== c[f]){
+            c[f] = norm;
+            changed = true;
+          }
+        }
+      });
+      if(changed) ids.push(c.id);
+    });
+    if(ids.length && typeof saveData === 'function'){
+      try{ await saveData(ids); }catch(_){yahmaErr(_,'branches-store.js:hijriMig');}
+      try{ if(typeof window.log === 'function') window.log('ترحيل بيانات', 'تحويل التواريخ الهجرية إلى ميلادية: ' + ids.length + ' سيارة'); }catch(_){yahmaErr(_,'branches-store.js:hijriLog');}
+    }
+    return {migrated: ids.length};
+  }catch(e){ return {error: String(e && e.message || e)}; }
+}

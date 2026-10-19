@@ -38,8 +38,8 @@ function formatArabicDate(value){
   if(!value) return '—';
   var d=new Date(value);
   if(isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString('ar-EG',{year:'numeric',month:'short',day:'numeric'})+' — '+
-         d.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('ar-EG-u-ca-gregory',{year:'numeric',month:'short',day:'numeric'})+' — '+
+         d.toLocaleTimeString('ar-EG-u-ca-gregory',{hour:'2-digit',minute:'2-digit'});
 }
 /* تنبيه: المزامنة السحابية للدفعات معطّلة — الشغل محفوظ على الجهاز بس */
 function paymentsSyncWarningHtml(){
@@ -1182,7 +1182,7 @@ function renderRenewedInspections(content){
         <td>${escapeHtml(formatArabicDate(item.requestedAt))}</td>
         <td>${escapeHtml(formatArabicDate(item.paidAt))}</td>
         <td><b>${escapeHtml(formatArabicDate(stamp))}</b></td>
-        <td>${escapeHtml(car.licenseExpiry||'—')}</td>
+        <td>${fmtDate(car.licenseExpiry)}</td>
         <td><span class="tag green">تم التجديد</span></td>
         ${payNoteCell(car)}
         <td>${escapeHtml(resolveItemUserName(item))}</td>
@@ -1199,7 +1199,7 @@ function renderRenewedInspections(content){
       rows:list.map(({item,car})=>[
         car.plate||item.plate||'—', car.branch||item.branch||'—',
         formatArabicDate(item.requestedAt), formatArabicDate(item.paidAt),
-        formatArabicDate(stampOf(item)), car.licenseExpiry||'—', 'تم التجديد', car.notes||'—', resolveItemUserName(item)])
+        formatArabicDate(stampOf(item)), fmtDate(car.licenseExpiry), 'تم التجديد', car.notes||'—', resolveItemUserName(item)])
     });
 
     bindRowButtons();

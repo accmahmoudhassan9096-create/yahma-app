@@ -4,22 +4,49 @@
 
   function uid() { return 'c' + Date.now() + Math.floor(Math.random() * 10000); }
 
+  function islamicToJD(year, month, day) {
+    return day + Math.ceil(29.5 * (month - 1)) + (year - 1) * 354 + Math.floor((3 + 11 * year) / 30) + 1948440 - 1;
+  }
+
+  function hijriToGregorianStr(year, month, day) {
+    const jd = islamicToJD(year, month, day);
+    const date = new Date(Math.round((jd - 2440587.5) * 86400000));
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
   function normalizeDateValue(value) {
     if (!value && value !== 0) return '';
     if (value && typeof value.toDate === 'function') value = value.toDate();
     if (value && typeof value === 'object' && value.seconds !== undefined) value = new Date(value.seconds * 1000);
-    if (value instanceof Date && !isNaN(value)) return value.toISOString().slice(0, 10);
+    if (value instanceof Date && !isNaN(value)) {
+      const y = value.getFullYear();
+      if (y >= 1300 && y <= 1500) return hijriToGregorianStr(y, value.getMonth() + 1, value.getDate());
+      return value.toISOString().slice(0, 10);
+    }
     if (typeof value === 'number' && value > 20000 && value < 80000) {
       const excelDate = new Date(Date.UTC(1899, 11, 30) + value * 86400000);
       return excelDate.toISOString().slice(0, 10);
     }
     const s = String(value).trim();
     let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
-    if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    if (m) {
+      const y = +m[3];
+      if (y >= 1300 && y <= 1500) return hijriToGregorianStr(y, +m[2], +m[1]);
+      return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    }
     m = s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
-    if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    if (m) {
+      const y = +m[1];
+      if (y >= 1300 && y <= 1500) return hijriToGregorianStr(y, +m[2], +m[3]);
+      return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    }
     m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:T|\s)/);
-    return m ? `${m[1]}-${m[2]}-${m[3]}` : '';
+    if (m) {
+      const y = +m[1];
+      if (y >= 1300 && y <= 1500) return hijriToGregorianStr(y, +m[2], +m[3]);
+      return `${m[1]}-${m[2]}-${m[3]}`;
+    }
+    return '';
   }
 
   function daysFromNow(dateStr) {

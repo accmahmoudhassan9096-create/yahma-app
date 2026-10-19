@@ -15,7 +15,7 @@
 
   function formatDateTime(value) {
     if (!value) return '—';
-    try { return new Date(value).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' }); }
+    try { return new Date(value).toLocaleString('ar-EG-u-ca-gregory', { dateStyle: 'short', timeStyle: 'short' }); }
     catch (_) { return value; }
   }
 

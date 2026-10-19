@@ -412,7 +412,7 @@ function computeDashboardState(fleet) {
     try {
       const d = new Date(t);
       if (isNaN(d)) return String(t).slice(0, 16);
-      return d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+      return d.toLocaleTimeString('ar-SA-u-ca-gregory', { hour: '2-digit', minute: '2-digit' });
     } catch(e) { return String(t).slice(0, 10); }
   };
   const isToday = (t) => {

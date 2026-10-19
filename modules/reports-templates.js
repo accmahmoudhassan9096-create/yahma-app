@@ -33,7 +33,7 @@
     const lines = [
       '🏛 يهماء لتأجير السيارات — تقرير رسمي',
       '🗓 ' + periodLabel(),
-      '🕒 أُنشئ: ' + new Date().toLocaleString('ar-SA'),
+      '🕒 أُنشئ: ' + new Date().toLocaleString('ar-SA-u-ca-gregory'),
       '────────────────',
       '🚗 إجمالي السيارات: ' + report.total,
       '✅ جاهزة: ' + report.ready + ' (' + report.readyPct + '%)',
@@ -67,7 +67,7 @@
     const issueFilter = report.rf?.issue && report.rf.issue !== 'all' ? report.rf.issue : 'الكل';
     const reportNumber = 'YH-' + generated.getFullYear() + String(generated.getMonth() + 1).padStart(2, '0') + String(generated.getDate()).padStart(2, '0') + '-' + String(generated.getHours()).padStart(2, '0') + String(generated.getMinutes()).padStart(2, '0');
 
-    return '<div class="fr-head"><div class="fr-brand"><div class="fr-logo">يهماء</div><div><h1>يهماء لتأجير السيارات</h1><p>تقرير رسمي بمؤشرات الأسطول والجاهزية</p></div></div><div class="fr-head-date">رقم التقرير: ' + reportNumber + '<br>تاريخ الإنشاء: ' + generated.toLocaleString('ar-SA') + '</div></div>' +
+    return '<div class="fr-head"><div class="fr-brand"><div class="fr-logo">يهماء</div><div><h1>يهماء لتأجير السيارات</h1><p>تقرير رسمي بمؤشرات الأسطول والجاهزية</p></div></div><div class="fr-head-date">رقم التقرير: ' + reportNumber + '<br>تاريخ الإنشاء: ' + generated.toLocaleString('ar-SA-u-ca-gregory') + '</div></div>' +
       '<div class="fr-body"><div class="fr-meta"><div>فترة التقرير<b>' + range + (preset ? ' (' + preset + ')' : '') + '</b></div><div>نطاق الفلتر<b>الفرع: ' + escapeHtml(branchFilter) + ' · الموديل: ' + escapeHtml(modelFilter) + ' · المشكلات: ' + escapeHtml(issueFilter) + '</b></div><div>عدد السجلات المدروسة<b>' + report.total + ' سيارة</b></div></div>' +
       '<div class="fr-sec-title">أولًا: الملخص التنفيذي</div><div class="fr-kpis">' +
       kpi(report.total, 'إجمالي السيارات') + kpi(report.ready + ' (' + report.readyPct + '%)', 'جاهزة للتأجير', 'ok') + kpi(report.notReady, 'غير جاهزة', 'bad') + kpi(report.maint, 'تحت الصيانة', 'warn') + kpi(report.out, 'خارج الخدمة') + kpi(report.prepOpen, 'مهام تجهيز مفتوحة') + kpi(report.prepOverdue, 'مهام متأخرة', report.prepOverdue ? 'bad' : '') + kpi(report.readyPct + '%', 'نسبة الجاهزية العامة', report.readyPct >= 70 ? 'ok' : 'warn') + '</div>' +
@@ -82,15 +82,16 @@
         try{
           const rows=(report.fleetRows||[]).slice(0,300);
           if(!rows.length) return '';
+          const fmt = (d) => global.YahmaUtils ? global.YahmaUtils.fmtDate(d) : (d || '—');
           const head=['اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة','الرقم التسلسلي','حالة التأمين','انتهاء الرخصة','الفرع','المالك','الحالة','الجاهزية','سعر اليوم','أقل سعر','سعر الشهر','أقل شهري'];
-          const body=rows.map(c=>'<tr>'+[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.serial||'—',c.insuranceStatus||'—',c.licenseExpiry||'—',c.branch||'—',c.owner||'—',c.carStatus||'—',c.readyLabel||'—',c.dailyRate||'—',c.minDailyRate||'—',c.monthlyRate||'—',c.minMonthlyRate||'—']
+          const body=rows.map(c=>'<tr>'+[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—',c.serial||'—',c.insuranceStatus||'—',fmt(c.licenseExpiry),c.branch||'—',c.owner||'—',c.carStatus||'—',c.readyLabel||'—',c.dailyRate||'—',c.minDailyRate||'—',c.monthlyRate||'—',c.minMonthlyRate||'—']
             .map((v,i)=>'<td'+(i>=14?' class="num"':'')+'>'+escapeHtml(String(v))+'</td>').join('')+'</tr>').join('');
           return '<div class="fr-sec-title">سابعًا: جدول الأسطول التفصيلي (أعلى ' + rows.length + ' سيارة' + ((report.fleetRows||[]).length>300 ? ' من ' + report.fleetRows.length :'') + ')</div>' +
             '<table class="fr-table fr-dense"><thead><tr>' + head.map((h,i)=>'<th'+(i>=11?' class="num"':'')+'>'+escapeHtml(h)+'</th>').join('') + '</tr></thead><tbody>' + body + '</tbody></table>';
         }catch(e){ return ''; }
       })() +
       '<div class="fr-sign"><div><i></i>مسؤول الأسطول — الاسم والتوقيع</div><div><i></i>المدير المسؤول — الاسم والتوقيع</div></div><div class="fr-note">منهجية الإعداد: تُحتسب المؤشرات من بيانات المنصة ضمن الفترة المختارة (فلتر الفترة). المؤشرات المحاسبية تقديرية وتُحتسب من أسعار التأجير اليومية وأيام التأجير المسجلة وتكاليف الصيانة الفعلية المدخلة، والقيم غير المدخلة لا تُفترض. يُرجى مراجعة الأرقام قبل الاعتماد الرسمي.</div></div>' +
-      '<div class="fr-foot"><span>منصة يهماء لتأجير السيارات — تقرير مولّد آليًا</span><span>الإصدار v11</span><span>' + generated.toLocaleDateString('ar-SA') + '</span></div>';
+      '<div class="fr-foot"><span>منصة يهماء لتأجير السيارات — تقرير مولّد آليًا</span><span>الإصدار v11</span><span>' + generated.toLocaleDateString('ar-SA-u-ca-gregory') + '</span></div>';
   }
 
   const INFO_COLORS = { navy: '#152350', navy2: '#24356E', navyD: '#0D1836', gold: '#C6952E', goldL: '#E3B24E', goldSoft: '#FBF0D8', green: '#1E9C6B', teal: '#12AAA6', amber: '#D6952A', red: '#CE4B3D', ink: '#152350', muted: '#666E8C', paper: '#F7FBFA', line: '#E2E8F6' };
@@ -108,7 +109,7 @@
     const lines = [
       '📊 *يهماء — إنفوجرافيك مؤشرات الفترة*',
       '🗓 ' + periodLabel() + (global.periodRange?.preset ? ' (' + preset + ')' : ''),
-      '🕒 ' + new Date().toLocaleString('ar-SA'), '———',
+      '🕒 ' + new Date().toLocaleString('ar-SA-u-ca-gregory'), '———',
       '🚗 إجمالي: ' + report.total + ' سيارة · جاهز ' + report.ready + ' (' + report.readyPct + '%)',
       '✅ جاهز ' + report.ready + ' · ⚠️ غير جاهز ' + report.notReady + ' · 🔧 صيانة ' + report.maint + ' · 🚫 خارج ' + report.out,
       '💰 صافي تقديري: ' + formatCurrency(report.acc.netEst) + ' (الإيراد المتوقع ' + formatCurrency(report.acc.monthPotential) + ' − التكاليف ' + formatCurrency(report.acc.maintCost) + ')'
@@ -156,12 +157,12 @@
     const readyLabel = report.readyPct + '%';
     const file2 = buckets.d7 > 0 ? 'warn' : 'ok';
 
-    return '<div class="inf-head"><div><h1>يهماء لتأجير السيارات</h1><div class="ptag">إنفوجرافيك مؤشرات الأداء الرئيسية</div><div class="crumbline">' + escapeHtml(preset) + ' · ' + escapeHtml(range) + ' · الفرع: ' + escapeHtml(branchFilter) + escapeHtml(modelFilter) + '</div></div><div class="badges"><div class="inf-badge">رقم <b>I-' + String(generated.getFullYear()).slice(-2) + String(generated.getMonth() + 1).padStart(2, '0') + String(generated.getDate()).padStart(2, '0') + '-' + String(generated.getHours()).padStart(2, '0') + String(generated.getMinutes()).padStart(2, '0') + '</b></div><div class="inf-badge">' + generated.toLocaleDateString('ar-SA') + '</div></div></div>' +
+    return '<div class="inf-head"><div><h1>يهماء لتأجير السيارات</h1><div class="ptag">إنفوجرافيك مؤشرات الأداء الرئيسية</div><div class="crumbline">' + escapeHtml(preset) + ' · ' + escapeHtml(range) + ' · الفرع: ' + escapeHtml(branchFilter) + escapeHtml(modelFilter) + '</div></div><div class="badges"><div class="inf-badge">رقم <b>I-' + String(generated.getFullYear()).slice(-2) + String(generated.getMonth() + 1).padStart(2, '0') + String(generated.getDate()).padStart(2, '0') + '-' + String(generated.getHours()).padStart(2, '0') + String(generated.getMinutes()).padStart(2, '0') + '</b></div><div class="inf-badge">' + generated.toLocaleDateString('ar-SA-u-ca-gregory') + '</div></div></div>' +
       '<div class="inf-body"><div class="inf-hero"><div class="inf-hero-text"><h2>نسبة جاهزية الأسطول</h2><div class="big">' + readyLabel + '<small>جاهز فعليًا</small></div><div class="sub">من إجمالي ' + report.total + ' سيارة ضمن الفترة. ' + report.ready + ' عربية جاهزة للتأجير، ' + report.notReady + ' غير جاهزة، ' + report.maint + ' في الصيانة، ' + report.out + ' خارج الخدمة. مهام تجهيز مفتوحة: ' + report.prepOpen + '، منها ' + report.prepOverdue + ' متأخرة.</div></div><div><div style="display:flex;gap:14px;align-items:center">' + infographicDonut(report.total, report.ready, report.notReady, report.maint, report.out) + '<div style="display:flex;flex-direction:column;gap:6px;flex:1">' + infographicDonutLegend(report.ready, report.notReady, report.maint, report.out, report.total) + '</div></div></div></div>' +
       '<div class="inf-kpi-grid">' + tile('إيراد شهري متوقع', formatCurrency(acc.monthPotential), 'متوسط السعر اليومي × السيارات النشطة × 30 يوم', 'ok', '<span>تقديري</span>') + tile('إيراد فعلي مسجل', formatCurrency(acc.estMonthRev), 'مجموع (السعر × أيام التأجير الفعلية)', 'inf-tile-info', '<span>للفترة</span>') + tile('تكاليف صيانة', formatCurrency(acc.maintCost), 'مجموع تكاليف آخر صيانة المسجلة', 'bad') + tile('صافي تقديري', formatCurrency(acc.netEst), acc.netEst >= 0 ? 'إيراد − تكاليف' : 'انتبه: التكاليف أعلى من الإيراد', acc.netEst >= 0 ? 'ok' : 'bad') + tile('الإيراد لكل سيارة', formatCurrency(acc.revPerCar), 'شهريًا · ' + acc.active + ' نشطة', '') + tile('متوسط السعر اليومي', formatCurrency(acc.avgDaily), 'من أسعار السيارات المسجلة', 'warn') + tile('مهام متأخرة', report.prepOverdue, 'من إجمالي ' + report.prepOpen + ' مفتوحة', report.prepOverdue ? 'bad' : 'ok') + tile('مستندات منتهية', buckets.overdue, 'منتهي فعلًا', buckets.overdue ? 'bad' : 'ok') + '</div>' +
       '<div class="inf-row"><div class="inf-card"><div class="inf-section-title">أعلى أسباب عدم الجاهزية</div><div class="inf-fails">' + failBars + '</div></div><div class="inf-card"><div class="inf-section-title">أداء الفروع (أعلى 3)</div><div class="inf-fails">' + branchBars + '</div></div></div>' +
       '<div class="inf-card"><div class="inf-section-title">حالة المستندات</div><div class="inf-files"><div class="inf-file bad"><b>' + buckets.overdue + '</b><span>منتهية</span></div><div class="inf-file warn"><b>' + buckets.d7 + '</b><span>خلال 7 أيام</span></div><div class="inf-file ' + file2 + '"><b>' + buckets.d30 + '</b><span>خلال 30 يوم</span></div><div class="inf-file ok"><b>' + buckets.d90 + '</b><span>خلال 90 يوم</span></div></div></div></div>' +
-      '<div class="inf-foot"><span>منصة يهماء لتأجير السيارات — إنفوجرافيك مولّد آليًا</span><span>الإصدار v12</span><span>' + generated.toLocaleString('ar-SA') + '</span></div>';
+      '<div class="inf-foot"><span>منصة يهماء لتأجير السيارات — إنفوجرافيك مولّد آليًا</span><span>الإصدار v12</span><span>' + generated.toLocaleString('ar-SA-u-ca-gregory') + '</span></div>';
   }
 
 
