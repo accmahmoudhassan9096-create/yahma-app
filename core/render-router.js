@@ -28,7 +28,7 @@ function renderPreparation(content){
       <div style="overflow:auto"><table class="task-table"><thead><tr><th>السيارة</th><th>الفرع</th><th>المهمة</th><th>المسؤول</th><th>الاستحقاق</th><th>الحالة</th><th></th></tr></thead><tbody id="prep-task-body"></tbody></table></div>
     </div>`;
   const getPrepFiltered=()=>{
-    const q=(document.getElementById('prep-search').value||'').trim().toLowerCase(), st=document.getElementById('prep-status').value, type=document.getElementById('prep-type').value;
+    const q=(document.getElementById('prep-search')?.value||'').trim().toLowerCase(), st=document.getElementById('prep-status')?.value||'', type=document.getElementById('prep-type')?.value||'';
     return tasks.filter(t=>(!q||[t.plate,t.branch,t.title,t.assignee].join(' ').toLowerCase().includes(q))&&(!st||t.status===st)&&(!type||t.type===type));
   };
   const exportPrep=async (fmt)=>{

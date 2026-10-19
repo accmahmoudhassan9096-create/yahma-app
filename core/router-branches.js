@@ -229,14 +229,14 @@ function openBranchModal(id){
   overlay.querySelector('#br-cancel').onclick=()=>overlay.remove();
   overlay.onclick=e=>{ if(e.target===overlay) overlay.remove(); };
   overlay.querySelector('#br-save').onclick=()=>{
-    const n=(document.getElementById('br-f-name').value||'').trim();
+    const n=(document.getElementById('br-f-name')?.value||'').trim();
     if(!n){ alert('اسم الفرع مطلوب'); return; }
     const data={
       name:n,
-      manager:(document.getElementById('br-f-manager').value||'').trim(),
-      phone:(document.getElementById('br-f-phone').value||'').trim(),
-      email:(document.getElementById('br-f-email').value||'').trim(),
-      notes:(document.getElementById('br-f-notes').value||'').trim()
+      manager:(document.getElementById('br-f-manager')?.value||'').trim(),
+      phone:(document.getElementById('br-f-phone')?.value||'').trim(),
+      email:(document.getElementById('br-f-email')?.value||'').trim(),
+      notes:(document.getElementById('br-f-notes')?.value||'').trim()
     };
     if(editingBranchId){
       const b=branches.find(x=>x.id===editingBranchId);

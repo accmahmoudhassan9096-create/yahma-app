@@ -289,11 +289,11 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
       window.periodRange.to   = document.getElementById('rd-to')?.value || '';
     }
     window.reportFilters = {
-      branch: document.getElementById('rd-branch').value,
-      owner: document.getElementById('rd-owner').value,
-      status: document.getElementById('rd-status').value,
-      model: document.getElementById('rd-model')?.value||'all',
-      issue: document.getElementById('rd-issue').value,
+      branch: document.getElementById('rd-branch')?.value || 'all',
+      owner: document.getElementById('rd-owner')?.value || 'all',
+      status: document.getElementById('rd-status')?.value || 'all',
+      model: document.getElementById('rd-model')?.value || 'all',
+      issue: document.getElementById('rd-issue')?.value || 'all',
       range: rf.range||'30'
     };
     persistReportState();

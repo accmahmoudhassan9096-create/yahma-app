@@ -87,11 +87,13 @@
   }
 
   function renderFleet(content, cars){
-  /* الشريط نفسه ≠ زر الحذف. كان الاتنين نفس الشرط. */
-  const canBulk=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canBulk() : !(typeof currentRole!=='undefined'&&currentRole==='view');
-  /* الحذف للمدير بس — مطابق لـ yahma_is_admin() في القاعدة. */
-  const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canDelete() : currentRole==='admin';
-  const fleet = Array.isArray(cars) ? cars : [];
+    content = content || document.getElementById('content');
+    if (!content) return;
+    /* الشريط نفسه ≠ زر الحذف. كان الاتنين نفس الشرط. */
+    const canBulk=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canBulk() : !(typeof currentRole!=='undefined'&&currentRole==='view');
+    /* الحذف للمدير بس — مطابق لـ yahma_is_admin() في القاعدة. */
+    const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canDelete() : currentRole==='admin';
+    const fleet = Array.isArray(cars) ? cars : (typeof window.fleet !== 'undefined' && Array.isArray(window.fleet) ? window.fleet : []);
   document.getElementById('topbar-title').textContent='إدارة الأسطول';
   document.getElementById('topbar-sub').textContent = fleet.length + ' سيارة — إدارة الجاهزية للتأجير';
   const fleetStats=readinessStats();
@@ -284,7 +286,10 @@
     }catch(e){ return String(Date.now()); }
   }
   const selectedIds=new Set();
-  const val=id=>($(id).value||'').trim();
+  const val = id => {
+    const el = $(id);
+    return (el && el.value || '').trim();
+  };
   function updateBulkBar(){
     const bar=$('bulk-bar');
     const n=selectedIds.size;
@@ -448,7 +453,8 @@
     if(failed.length) msg += "\nفشل نقل: " + failed.join("، ");
     alert(msg);
     if(typeof log === "function"){ try{ log("نقل سيارات من الأسطول", moved + " سيارة إلى " + targetName); }catch(_){} }
-    if(typeof render === "function") render();
+    if(typeof global.render === "function") global.render();
+    else if(typeof window.render === "function") window.render();
   }
 
   const cardState=c=>cardDisplayStatus(c.cardExpiry,c.cardStatus);
@@ -482,7 +488,7 @@
     
     const _ck=_fleetFilterKey();
     if(_filterCacheKey===_ck && _filterCacheRows) return _filterCacheRows;
-const q=(search.value||'').trim().toLowerCase();
+    const q = ((search && search.value) || '').trim().toLowerCase();
     const fBrand=val('ff-brand'), fType=val('ff-type'), fModel=val('ff-model');
     const fCardSt=val('ff-card-status'), fCardCond=val('ff-card-condition');
     const fLicSt=val('ff-license-status'), fLicCond=val('ff-license-condition');
@@ -701,10 +707,10 @@ const q=(search.value||'').trim().toLowerCase();
     filterToggle.addEventListener('click',()=>setFiltersOpen(!window._fleetFiltersOpen));
     setFiltersOpen(window._fleetFiltersOpen===true);
   }
-  filters.forEach(el=>{el.addEventListener('change',resetAndDraw)});
+  filters.filter(Boolean).forEach(el=>{el.addEventListener('change',resetAndDraw)});
   (function(){
     let t=null;
-    search.addEventListener('input',function(){
+    if(search) search.addEventListener('input',function(){
       clearTimeout(t);
       t=setTimeout(resetAndDraw, 180);
     });
@@ -811,7 +817,7 @@ const q=(search.value||'').trim().toLowerCase();
   $('fleet-clean-duplicates')?.addEventListener('click', async () => {
     await handleDeduplicateFleet(cars);
   });
-  $('fleet-clear-filters').addEventListener('click',()=>{search.value='';filters.forEach(el=>el.value='');activeQuick='';selectedIds.clear();_filterCacheKey=null;_filterCacheRows=null;resetAndDraw();updateBulkBar();});
+  $('fleet-clear-filters')?.addEventListener('click',()=>{if(search) search.value='';filters.forEach(el=>{if(el) el.value='';});activeQuick='';selectedIds.clear();_filterCacheKey=null;_filterCacheRows=null;resetAndDraw();updateBulkBar();});
   window._yahmaModuleExport = function(fmt){
     const rows=getFilteredRows();
     if(!rows.length){alert('لا توجد نتائج مطابقة للفلاتر.');return;}

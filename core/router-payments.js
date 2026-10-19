@@ -755,6 +755,8 @@ function deduplicatePaymentRows(rows){
 }
 
 function renderInspectionPayments(content){
+  content = content || document.getElementById('content');
+  if(!content) return;
   document.getElementById('topbar-title').textContent='تحت الدفع';
   document.getElementById('topbar-sub').textContent='طلبات دفع تجديد فحص السيارات';
   const pending=loadInspectionPayments();
@@ -899,6 +901,8 @@ function renderInspectionPayments(content){
    السطور اللي اتجدّدت رخصتها بتتشال من هنا (بتسجّل في note)،
    عشان التبويب يبقى «اللي فاضل» بس — والتاريخ محفوظ في الأسطول وسجل النشاط. */
 function renderPaidInspections(content){
+  content = content || document.getElementById('content');
+  if(!content) return;
   document.getElementById('topbar-title').textContent='تم الدفع';
   document.getElementById('topbar-sub').textContent='طلبات تم دفع تجديد فحصها واعتمادها';
   const paid=loadPaidInspections();
@@ -1082,6 +1086,8 @@ function renderPaidInspections(content){
    الخطوة الأخيرة في الدورة: السيارة اتجدّدت رخصتها واتسجّل تاريخ التنفيذ.
    كل سطر بيعرض التواريخ الثلاثة: الطلب / الدفع / التجديد. */
 function renderRenewedInspections(content){
+  content = content || document.getElementById('content');
+  if(!content) return;
   document.getElementById('topbar-title').textContent='تم التجديد';
   document.getElementById('topbar-sub').textContent='سيارات اكتملت دورة تجديد الفحص والرخصة';
   const list=loadRenewedInspections();
