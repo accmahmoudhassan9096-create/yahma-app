@@ -39,9 +39,16 @@ function workbookRowsAllSheets(wb){
     try { rws = sheetRowsWithUniqueKeys(wb.Sheets[name]); } catch(e) { return; }
     let added = 0;
     rws.forEach(row => {
-      const plate = Object.keys(row).map(k => row[k]).find(v => typeof v === 'string' || typeof v === 'number') ?? '';
+      const plateKeyCol = Object.keys(row).find(k => {
+        const f = typeof findField === 'function' ? findField(k) : null;
+        return f === 'plate';
+      });
+      const plate = plateKeyCol ? row[plateKeyCol] : (Object.keys(row).map(k => row[k]).find(v => typeof v === 'string' || typeof v === 'number') ?? '');
       const key = normalizePlateKey(plate);
-      if (key) { if (seen.has(key)) return; seen.add(key); }
+      if (key && plateKeyCol) {
+        if (seen.has(key)) return;
+        seen.add(key);
+      }
       merged.push(row); added++;
     });
     sheets.push({ name, rows: rws.length, added, index: idx });
@@ -118,23 +125,70 @@ async function handleExcelFile(file){
   const affectedIds=[];
   for(const record of plan.active){
     const plateKey=normalizePlateKey(record.car.plate);
-    const idx=fleet.findIndex(car=>normalizePlateKey(car.plate)===plateKey);
-    if(idx>=0){
-      const merged=window.YahmaFleetExcel.mergeImportRecord(fleet[idx],record);
-      if(merged.changed){ fleet[idx]=merged.car; updated++; affectedIds.push(fleet[idx].id); }
+    const variants = (window.YahmaFleetExcel && typeof window.YahmaFleetExcel.transferPlateVariants === 'function')
+      ? window.YahmaFleetExcel.transferPlateVariants(record.car.plate)
+      : [plateKey];
+
+    // 1. مطابقة اللوحة بكل صيغها (عادي ومعكوس)
+    let idx = fleet.findIndex(car => {
+      const pVariants = (window.YahmaFleetExcel && typeof window.YahmaFleetExcel.transferPlateVariants === 'function')
+        ? window.YahmaFleetExcel.transferPlateVariants(car.plate)
+        : [normalizePlateKey(car.plate)];
+      return variants.some(v => pVariants.includes(v));
+    });
+
+    const car = record.car;
+    const serialKey = String(car.serial || '').trim();
+    const serialIsPlaceholder = !serialKey || serialKey === '0' || serialKey === 'بدون' || serialKey === 'لا يوجد';
+
+    // 2. إذا لم تتطابق اللوحة، نحاول المطابقة برقم الشاسيه/التسلسلي
+    if (idx < 0 && !serialIsPlaceholder) {
+      idx = fleet.findIndex(existing => String(existing.serial || '').trim() === serialKey);
+    }
+
+    // إذا وُجدت السيارة في الأسطول، ندمج كل الحقول المحدثة
+    if(idx >= 0){
+      const merged = window.YahmaFleetExcel.mergeImportRecord(fleet[idx], record);
+      if(merged.changed){ fleet[idx] = merged.car; updated++; affectedIds.push(fleet[idx].id); }
       continue;
     }
-    const car=record.car;
-    const serialKey=String(car.serial||'').trim();
-    const serialIsPlaceholder=!serialKey||serialKey==='0'||serialKey==='بدون'||serialKey==='لا يوجد';
-    const conflict=serialIsPlaceholder?-1:fleet.findIndex(existing=>String(existing.serial||'').trim()===serialKey);
-    if(conflict<0){ fleet.push(car); inserted++; affectedIds.push(car.id); }
-    else ignored++;
+
+    fleet.push(car); inserted++; affectedIds.push(car.id);
   }
 
   const deletion=plan.sold.length
     ? await removeSoldVehiclesByPlates(plan.sold.map(record=>record.car.plate),{skipConfirm:true,silent:true})
     : {matched:0,deletedCloud:0,failedCloud:0};
+
+  // 1. تحديث الفروع في دليل الفروع
+  try {
+    if (typeof ensureBranchName === 'function') {
+      [...new Set(fleet.map(c => String(c.branch || '').trim()).filter(Boolean))].forEach(ensureBranchName);
+      if (typeof saveBranches === 'function') await saveBranches();
+    }
+  } catch(_) {}
+
+  // 2. تحديث ومزامنة طوابير الدفع (تحت الدفع / تم الدفع / تم التجديد) للسيارات التي تجددت في الشيت
+  try {
+    if (window.YahmaPayments && typeof window.YahmaPayments.localAll === 'function') {
+      const allPayments = window.YahmaPayments.localAll();
+      const updatedCarsMap = new Map(affectedIds.map(id => [String(id), fleet.find(c => String(c.id) === String(id))]).filter(([, c]) => !!c));
+      for (const p of allPayments) {
+        const c = updatedCarsMap.get(String(p.carId));
+        if (!c) continue;
+        const inspOk = (typeof inspectionDisplayStatus === 'function')
+          ? inspectionDisplayStatus(c.inspectionStatus).level === 'green'
+          : c.inspectionStatus === 'تم الفحص';
+        const licOk = (typeof dateStatus === 'function')
+          ? dateStatus(c.licenseExpiry).level === 'green'
+          : false;
+        if (p.status !== 'done' && (inspOk || licOk) && typeof window.YahmaPayments.markLicenseRenewed === 'function') {
+          await window.YahmaPayments.markLicenseRenewed(p.id, p.carId);
+        }
+      }
+    }
+  } catch(_) {}
+
   if(affectedIds.length||deletion.matched){
     log('استيراد Excel',`جديد: ${inserted}، محدث: ${updated}، محذوف كمباع: ${deletion.matched}، مكرر: ${ignored}`);
     await saveData(affectedIds.length?affectedIds:undefined);

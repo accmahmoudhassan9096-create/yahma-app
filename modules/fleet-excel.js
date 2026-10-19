@@ -26,15 +26,15 @@
 
        اللي هنا واضح ومايلوش معنى تاني: «اسم الشركة» و«شركة التأجير» و«اسم المالك». */
     companyName: ['اسم الشركة','اسم شركة التأجير','شركة التأجير','اسم المالك','company name','companyname','rental company'],
-    cardNumber: ['رقم البطاقة','رقم الكارت','card number'],
-    cardStatus: ['حالة الكارت','حالة البطاقة','card status'],
-    cardExpiry: ['تاريخ انتهاء الكارت','انتهاء الكارت','تاريخ نهاية الكارت','نهاية الكارت','تاريخ نهاية البطاقة','نهاية البطاقة','انتهاء البطاقة','card expiry'],
-    licenseStatus: ['حالة الرخصة','license status'],
-    licenseExpiry: ['تاريخ انتهاء الرخصة','انتهاء الرخصة','تاريخ نهاية الرخصة','نهاية الرخصة','license expiry','تاريخ انتهاء الاستمارة'],
-    inspectionStatus: ['حالة الفحص','inspection status'],
-    insuranceStatus: ['حالة التامين','حالة التأمين','insurance status'],
+    cardNumber: ['رقم البطاقة','رقم الكارت','رقم كرت التشغيل','رقم بطاقة التشغيل','بطاقة التشغيل','كرت التشغيل','كارت التشغيل','card number'],
+    cardStatus: ['حالة الكارت','حالة البطاقة','حالة كرت التشغيل','حالة بطاقة التشغيل','card status'],
+    cardExpiry: ['تاريخ انتهاء الكارت','انتهاء الكارت','تاريخ نهاية الكارت','نهاية الكارت','تاريخ نهاية البطاقة','نهاية البطاقة','انتهاء البطاقة','تاريخ انتهاء كرت التشغيل','انتهاء كرت التشغيل','تاريخ انتهاء بطاقة التشغيل','انتهاء بطاقة التشغيل','card expiry'],
+    licenseStatus: ['حالة الرخصة','حالة الاستمارة','حالة الاستماره','حالة رخصة السير','license status'],
+    licenseExpiry: ['تاريخ انتهاء الرخصة','انتهاء الرخصة','تاريخ نهاية الرخصة','نهاية الرخصة','license expiry','تاريخ انتهاء الاستمارة','انتهاء الاستمارة','انتهاء الاستماره','تاريخ الاستمارة','تاريخ الاستماره','الاستمارة','الاستماره','تاريخ انتهاء رخصة السير','انتهاء رخصة السير','رخصة السير','رخصه السير'],
+    inspectionStatus: ['حالة الفحص','حالة الفحص الدوري','الفحص الدوري','فحص دوري','الفحص','inspection status'],
+    insuranceStatus: ['حالة التامين','حالة التأمين','التأمين','التامين','وثيقة التأمين','وثيقه التامين','نوع التأمين','insurance status'],
     insuranceCompany: ['شركة التأمين','شركة التامين','insurance company','insurer'],
-    insuranceExpiry: ['تاريخ انتهاء التأمين','انتهاء التأمين','تاريخ نهاية التأمين','نهاية التأمين','insurance expiry'],
+    insuranceExpiry: ['تاريخ انتهاء التأمين','انتهاء التأمين','تاريخ نهاية التأمين','نهاية التأمين','انتهاء التامين','تاريخ انتهاء التامين','insurance expiry'],
     owner: ['المالك','owner'],
     ownerNumber: ['رقم المالك','owner number'],
     odometer: ['العداد','كم الحالي','كم','الممشى','العداد الحالي','odometer','mileage'],
@@ -59,8 +59,8 @@
     maintenanceNotes: ['ملاحظات الصيانة','maintenance notes'],
     branch: ['اسم الفرع','الفرع','branch'],
     carStatus: ['حالة السيارة','car status'],
-    notes: ['ملاحظات','notes'],
-    transferDone: ['تنازل','نقل الملكية','تم التنازل','transfer'],
+    notes: ['ملاحظات','البيان','ملاحظة','notes'],
+    transferDone: ['تنازل','نقل الملكية','تم التنازل','نقل ملكية','منقولة','transfer'],
     transferDate: ['تاريخ التنازل','تاريخ النقل','transfer date'],
     transferFrom: ['المالك السابق','المتنازل','المالك القديم','previous owner'],
     transferStatus: ['حالة التنازل','حالة النقل','transfer status'],
@@ -79,18 +79,14 @@
       if (aliases.some(alias => normalizeHeader(alias) === normalized)) return field;
     }
     const has = keyword => normalized.includes(normalizeHeader(keyword));
-    if (has('كارت')) {
-      if (has('تاريخ') || has('انتهاء')) return 'cardExpiry';
-      if (has('حاله')) return 'cardStatus';
-      return 'cardNumber';
-    }
-    // صيغ «البطاقة» (ترويسة القالب نفسه: تاريخ نهاية البطاقة / حالة البطاقة)
-    if (has('بطاقه')) {
+    if (has('كارت') || has('بطاقه') || has('كرت')) {
       if (has('تاريخ') || has('انتهاء') || has('نهايه')) return 'cardExpiry';
       if (has('حاله')) return 'cardStatus';
       return 'cardNumber';
     }
-    if (has('رخصه')) return has('حاله') ? 'licenseStatus' : 'licenseExpiry';
+    if (has('رخصه') || has('استماره') || (has('سير') && (has('تاريخ') || has('انتهاء') || has('نهايه') || has('حاله') || has('رخص')))) {
+      return has('حاله') ? 'licenseStatus' : 'licenseExpiry';
+    }
     if (has('سياره') && has('حاله')) return 'carStatus';
     if (has('فحص')) return 'inspectionStatus';
     if (has('تامين')) {
@@ -98,6 +94,7 @@
       if (has('تاريخ') || has('انتهاء') || has('نهايه')) return 'insuranceExpiry';
       return 'insuranceStatus';
     }
+    if (has('تنازل') || has('نقل ملكيه')) return 'transferDone';
     if (has('فرع')) return 'branch';
     if (has('لوحه')) return 'plate';
     if (has('شركه') || has('ماركه')) return 'brand';
@@ -113,7 +110,7 @@
     if (has('وضع') && has('مركبه')) return 'vehicleCondition';
     if (has('المالك')) return has('رقم') ? 'ownerNumber' : 'owner';
     if (has('تسجيل')) return 'registrationType';
-    if (has('ملاحظات')) return 'notes';
+    if (has('ملاحظات') || has('بيان') || has('ملاحظه')) return 'notes';
     return null;
   }
 
@@ -178,15 +175,40 @@
     if (value === undefined || value === null) return '';
     if (typeof canonicalBrand === 'function' && field === 'brand') return canonicalBrand(value);
     if (field === 'insuranceStatus' && String(value).trim() === '0') return '';
-    /* توحيد الفحص ثنائيًا: تم الفحص، وغيره (بما فيه 0/فارغ) لم يفحص */
+    /* توحيد الفحص: تم الفحص، وغيره (بما فيه 0/فارغ) لم يفحص — مع دعم التواريخ وصيغ النجاح */
     if (field === 'inspectionStatus') {
       const t = String(value).trim();
-      return (t === 'تم الفحص' || t === 'سليم' || t === 'ساري' || t === 'ساري المفعول') ? 'تم الفحص' : 'لم يفحص';
+      if (!t || t === '0') return 'لم يفحص';
+      if (t === 'تم الفحص' || t === 'سليم' || t === 'ساري' || t === 'ساري المفعول' || t === 'مفحوص' || t === 'ناجح' || t === 'اجتاز' || t === 'تم' || t.toLowerCase() === 'passed' || t.toLowerCase() === 'valid') return 'تم الفحص';
+      const dateVal = toDateStr(value);
+      if (dateVal) {
+        const d = new Date(dateVal + 'T00:00:00');
+        if (!isNaN(d)) {
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          return d.getTime() >= today.getTime() ? 'تم الفحص' : 'لم يفحص';
+        }
+      }
+      return 'لم يفحص';
     }
-    /* التنازل: نعم صريحة فقط تُعتمد، وغيره فارغ */
+    /* توحيد التأمين: دعم التواريخ والصيغ الشائعة */
+    if (field === 'insuranceStatus') {
+      const t = String(value).trim();
+      if (!t || t === '0') return '';
+      if (t === 'ساري' || t === 'شامل' || t === 'ضد الغير' || t === 'نشط' || t === 'ساري المفعول' || t === 'مؤمن' || t === 'مؤمنة') return 'ساري';
+      const dateVal = toDateStr(value);
+      if (dateVal) {
+        const d = new Date(dateVal + 'T00:00:00');
+        if (!isNaN(d)) {
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          return d.getTime() >= today.getTime() ? 'ساري' : 'منتهي';
+        }
+      }
+      return t;
+    }
+    /* التنازل: نعم صريحة أو أي صيغة نقل ملكية */
     if (field === 'transferDone') {
       const t = String(value).trim();
-      return (t === 'نعم' || t === '✓' || t === 'تم' || t.toLowerCase() === 'yes' || t === '1') ? 'نعم' : '';
+      return (t === 'نعم' || t === '✓' || t === 'تم' || t.toLowerCase() === 'yes' || t === '1' || t.includes('منقول') || t.includes('تنازل')) ? 'نعم' : '';
     }
     return ['cardExpiry','licenseExpiry','insuranceExpiry','nextService','lastMaintenance','transferDate','lastMovementDate'].includes(field)
       ? toDateStr(value)
