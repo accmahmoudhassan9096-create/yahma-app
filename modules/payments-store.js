@@ -206,7 +206,7 @@ function diagnose() {
         var metaName = window.currentUser && window.currentUser.user_metadata && (window.currentUser.user_metadata.full_name || window.currentUser.user_metadata.name);
         if (metaName && String(metaName).trim()) return String(metaName).trim();
         var el = document.getElementById('topbar-user-name');
-        if (el && el.textContent && el.textContent.trim() && el.textContent.trim() !== 'أحمد محمد') {
+        if (el && el.textContent && el.textContent.trim() && el.textContent.trim() !== 'أحمد محمد' && el.textContent.trim() !== 'المدير') {
           return el.textContent.trim();
         }
         if (window.currentUser && window.currentUser.email) return String(window.currentUser.email).trim();

@@ -1,13 +1,52 @@
 (function(){
   'use strict';
+  function refreshUserChip(name){
+    var finalName = String(name || '').trim();
+    if(!finalName){
+      finalName = (window.currentUser && window.currentUser.email) ? window.currentUser.email.split('@')[0] : 'المدير';
+    }
+    window.currentUserName = finalName;
+    var uid = (window.currentUser && window.currentUser.id) || window._bootedUid;
+    if(uid){
+      try { localStorage.setItem('fleet-user-name:' + uid, finalName); } catch(_){}
+    }
+    try { localStorage.setItem('yahma_last_user_name', finalName); } catch(_){}
+
+    var topName = document.getElementById('topbar-user-name');
+    var dropName = document.getElementById('user-dropdown-name');
+    if(topName) topName.textContent = finalName;
+    if(dropName) dropName.textContent = finalName;
+
+    var letter = finalName.replace(/^[\s\.\-_]+/, '').charAt(0) || 'م';
+    var av = document.getElementById('topbar-user-avatar');
+    var dav = document.getElementById('user-dropdown-avatar');
+    if(av) av.textContent = letter;
+    if(dav) dav.textContent = letter;
+
+    var email = document.getElementById('user-dropdown-email');
+    if(email){
+      var em = (window.currentUser && window.currentUser.email) || '';
+      if(em){ email.textContent = em; email.style.display = 'block'; }
+      else { email.textContent = ''; email.style.display = 'none'; }
+    }
+  }
+  window.yahmaRefreshUserChip = refreshUserChip;
+
   function syncProfileMenu(){
     var name=document.getElementById('topbar-user-name'), role=document.getElementById('topbar-user-role'), email=document.getElementById('user-dropdown-email');
     var dn=document.getElementById('user-dropdown-name'), dr=document.getElementById('user-dropdown-role'), av=document.getElementById('topbar-user-avatar'), dav=document.getElementById('user-dropdown-avatar');
     if(!name) return;
-    if(dn) dn.textContent=name.textContent||'مستخدم';
-    if(dr) dr.textContent=role?role.textContent:'مدير النظام';
-    if(av && dav) dav.textContent=av.textContent||'م';
-    if(email){ email.textContent=''; email.style.display='none'; }
+    var currentName = (window.currentUserName && window.currentUserName.trim()) || name.textContent || 'المدير';
+    if(dn) dn.textContent = currentName;
+    if(dr) dr.textContent = role ? role.textContent : (window.YahmaPerms && window.YahmaPerms.label ? window.YahmaPerms.label(window.currentRole) : 'مدير النظام');
+    var letter = currentName.replace(/^[\s\.\-_]+/, '').charAt(0) || 'م';
+    if(av) av.textContent = letter;
+    if(dav) dav.textContent = letter;
+    if(email){
+      var em = (window.currentUser && window.currentUser.email) || '';
+      if(em){ email.textContent = em; email.style.display = 'block'; }
+      else { email.textContent = ''; email.style.display = 'none'; }
+    }
   }
   function closeMenu(){var menu=document.getElementById('user-dropdown'), trigger=document.getElementById('topbar-user'); if(menu){menu.hidden=true} if(trigger) trigger.setAttribute('aria-expanded','false');}
   document.addEventListener('click',function(e){

@@ -319,7 +319,10 @@ function activateAuthenticatedSession(user){
   window.currentUserPermissions=[];
   try {
     var cachedFullName = localStorage.getItem('fleet-user-name:' + uid) || localStorage.getItem('yahma_last_user_name') || (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || '';
-    if (cachedFullName) window.currentUserName = cachedFullName;
+    if (cachedFullName) {
+      window.currentUserName = cachedFullName;
+      if (typeof window.yahmaRefreshUserChip === 'function') window.yahmaRefreshUserChip(cachedFullName);
+    }
   } catch(_){}
   setTimeout(async function(){
     /* 🔒 كل تحميل البيانات معلّق لحد ما القفل يتفتح.
@@ -394,8 +397,15 @@ async function fetchUserRole(uid){
             localStorage.setItem('fleet-user-name:' + uid, data.full_name);
             localStorage.setItem('yahma_last_user_name', data.full_name);
           } catch(_){}
-          const userNameEl=document.getElementById('topbar-user-name');
-          if(userNameEl) userNameEl.textContent=data.full_name;
+          if(typeof window.yahmaRefreshUserChip === 'function'){
+            window.yahmaRefreshUserChip(data.full_name);
+          } else {
+            const userNameEl=document.getElementById('topbar-user-name');
+            if(userNameEl) userNameEl.textContent=data.full_name;
+          }
+        } else if(window.currentUser && window.currentUser.email){
+          var derived = (window.currentUserName && window.currentUserName.trim()) || window.currentUser.email.split('@')[0];
+          if(typeof window.yahmaRefreshUserChip === 'function') window.yahmaRefreshUserChip(derived);
         }
         setCachedRole(uid,data.role);
         return data.role;

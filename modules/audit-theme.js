@@ -420,7 +420,7 @@ function initTheme(){
      }else if(hint){ hint.remove(); }
    }
   const accountSettings=document.getElementById('btn-account-settings');
-  if(accountSettings) accountSettings.innerHTML='<span>⚙</span> '+(role==='admin'?'إدارة المستخدمين':'إعدادات الحساب');
+  if(accountSettings) accountSettings.style.display='none';
   const badge=document.getElementById('role-badge');
   if(badge){ badge.textContent = ({admin:'مدير',ops:'تشغيل',view:'مشاهدة فقط'})[role] || role; badge.className='role-badge '+role; }
   document.querySelectorAll('#btn-clear-all,#btn-delete').forEach(x=>{
