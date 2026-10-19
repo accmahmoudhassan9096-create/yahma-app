@@ -28,17 +28,116 @@
     if(!result.error) rows=result.data||[];
   }
   if(!rows.length){try{rows=JSON.parse(localStorage.getItem(AUDIT)||'[]').map(x=>({user_email:x.user,role:x.role,action:x.action,detail:x.detail,created_at:x.at}))}catch(e){rows=[]}}
-  window._yahmaCurrentPdfData=()=>({title:'سجل نشاط المستخدمين',subtitle:'آخر '+rows.length+' حركة مسجلة',headers:['التاريخ والوقت','المستخدم','الدور','الحركة','التفاصيل'],rows:rows.map(r=>[new Date(r.created_at||r.at).toLocaleString('ar-EG'),r.user_email||r.user||'—',r.role||'—',r.action||'—',r.detail||'—'])});
+  
+  const userCounts=new Map();
+  rows.forEach(r=>{
+    const u=String(r.user_email||r.user||'—').trim();
+    userCounts.set(u,(userCounts.get(u)||0)+1);
+  });
+  const sortedUsers=[...userCounts.keys()].sort((a,b)=>a.localeCompare(b,'ar'));
+  const userOptions=sortedUsers.map(u=>`<option value="${escapeHtml(u.toLowerCase())}">${escapeHtml(u)} (${userCounts.get(u)})</option>`).join('');
+
   const old=document.getElementById('audit-report-overlay');if(old)old.remove();
   const ov=document.createElement('div');ov.id='audit-report-overlay';ov.className='overlay';ov.style.display='flex';
   const esc=v=>escapeHtml(v||'—');
-  // عرض محدود: 1000 صف كعنصر DOM ثقيل جداً (نحو 5000 خلية) — النسخة الكاملة
-  // تبقى للتصدير CSV وللـ PDF عبر rows.
-  const shown=rows.slice(0,300);
-  const capNote=rows.length>shown.length?' — يُعرض آخر '+shown.length+' حركة، والتصدير يشمل كل الحركات.':'';
-  ov.innerHTML='<div class="modal audit-report-modal"><div class="audit-report-head"><div><h2>سجل نشاط المستخدمين</h2><p>آخر '+rows.length+' حركة مسجلة بالتاريخ والوقت.'+capNote+'</p></div><div class="modal-actions-right"><button type="button" class="btn btn-ghost btn-small" id="audit-export">تصدير CSV</button><button type="button" class="btn btn-ghost btn-small" id="audit-close">إغلاق</button></div></div><div class="audit-report-table"><table><thead><tr><th>التاريخ والوقت</th><th>المستخدم</th><th>الدور</th><th>الحركة</th><th>التفاصيل</th></tr></thead><tbody>'+(shown.map(r=>'<tr><td dir="ltr">'+esc(new Date(r.created_at||r.at).toLocaleString('ar-EG'))+'</td><td>'+esc(r.user_email||r.user)+'</td><td>'+esc(r.role)+'</td><td>'+esc(r.action)+'</td><td>'+esc(r.detail)+'</td></tr>').join('')||'<tr><td colspan="5" class="empty">لا توجد حركات مسجلة بعد.</td></tr>')+'</tbody></table></div></div>';
-  document.body.appendChild(ov);const close=()=>ov.remove();ov.querySelector('#audit-close').onclick=close;ov.onclick=e=>{if(e.target===ov)close()};
-  ov.querySelector('#audit-export').onclick=()=>{const lines=[['التاريخ والوقت','المستخدم','الدور','الحركة','التفاصيل'],...rows.map(r=>[new Date(r.created_at||r.at).toLocaleString('ar-EG'),r.user_email||r.user,r.role,r.action,r.detail])];const csv='\uFEFF'+lines.map(x=>x.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='yahma-audit-'+todayStr()+'.csv';a.click();};
+
+  ov.innerHTML=`<div class="modal audit-report-modal">
+    <div class="audit-report-head">
+      <div>
+        <h2>سجل نشاط المستخدمين</h2>
+        <p id="audit-modal-subtitle">آخر ${rows.length} حركة مسجلة بالتاريخ والوقت.</p>
+      </div>
+      <div class="modal-actions-right">
+        <button type="button" class="btn btn-ghost btn-small" id="audit-export">تصدير CSV</button>
+        <button type="button" class="btn btn-ghost btn-small" id="audit-close">إغلاق</button>
+      </div>
+    </div>
+    <div class="filter-panel" style="margin-bottom:12px;padding:10px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px">
+          <b>المستخدم:</b>
+          <select id="audit-modal-sel-user" style="padding:5px 8px;border-radius:6px;border:1px solid var(--line);font-size:12px;background:var(--paper,#fff);color:var(--text)">
+            <option value="">كل المستخدمين (${sortedUsers.length})</option>
+            ${userOptions}
+          </select>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;flex:1">
+          <b>بحث:</b>
+          <input id="audit-modal-ipt-search" placeholder="بحث بالحركة أو التفاصيل أو اللوحة..." style="padding:5px 8px;border-radius:6px;border:1px solid var(--line);font-size:12px;width:100%">
+        </label>
+        <button type="button" class="btn btn-ghost btn-small" id="audit-modal-clear">مسح</button>
+      </div>
+    </div>
+    <div class="audit-report-table">
+      <table>
+        <thead><tr><th>التاريخ والوقت</th><th>المستخدم</th><th>الدور</th><th>الحركة</th><th>التفاصيل</th></tr></thead>
+        <tbody id="audit-modal-tbody"></tbody>
+      </table>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+
+  const getFilteredModalRows = () => {
+    const uSel = (ov.querySelector('#audit-modal-sel-user')?.value || '').trim().toLowerCase();
+    const q = (ov.querySelector('#audit-modal-ipt-search')?.value || '').trim().toLowerCase();
+    return rows.filter(r => {
+      const u = String(r.user_email || r.user || '').trim().toLowerCase();
+      if (uSel && u !== uSel) return false;
+      if (q) {
+        const hay = [u, r.action, r.detail, r.role].map(v => String(v || '').toLowerCase()).join(' ');
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  };
+
+  const drawModal = () => {
+    const filtered = getFilteredModalRows();
+    const shown = filtered.slice(0, 300);
+    const sub = ov.querySelector('#audit-modal-subtitle');
+    if (sub) {
+      sub.textContent = `عرض ${shown.length} من أصل ${filtered.length} حركة مطابقة (إجمالي السجل: ${rows.length}).`;
+    }
+    const tbody = ov.querySelector('#audit-modal-tbody');
+    if (tbody) {
+      tbody.innerHTML = shown.length ? shown.map(r => `<tr>
+        <td dir="ltr">${esc(new Date(r.created_at || r.at).toLocaleString('ar-EG'))}</td>
+        <td><b>${esc(r.user_email || r.user)}</b></td>
+        <td>${esc(r.role)}</td>
+        <td>${esc(r.action)}</td>
+        <td>${esc(r.detail)}</td>
+      </tr>`).join('') : '<tr><td colspan="5" class="empty">لا توجد حركات مطابقة للفلاتر.</td></tr>';
+    }
+    window._yahmaCurrentPdfData = () => ({
+      title: 'سجل نشاط المستخدمين',
+      subtitle: `عدد الحركات: ${filtered.length}`,
+      headers: ['التاريخ والوقت', 'المستخدم', 'الدور', 'الحركة', 'التفاصيل'],
+      rows: filtered.map(r => [new Date(r.created_at || r.at).toLocaleString('ar-EG'), r.user_email || r.user || '—', r.role || '—', r.action || '—', r.detail || '—'])
+    });
+  };
+
+  ov.querySelector('#audit-modal-sel-user')?.addEventListener('change', drawModal);
+  ov.querySelector('#audit-modal-ipt-search')?.addEventListener('input', drawModal);
+  ov.querySelector('#audit-modal-clear')?.addEventListener('click', () => {
+    const u = ov.querySelector('#audit-modal-sel-user'); if (u) u.value = '';
+    const s = ov.querySelector('#audit-modal-ipt-search'); if (s) s.value = '';
+    drawModal();
+  });
+
+  drawModal();
+
+  const close = () => ov.remove();
+  ov.querySelector('#audit-close').onclick = close;
+  ov.onclick = e => { if (e.target === ov) close(); };
+  ov.querySelector('#audit-export').onclick = () => {
+    const filtered = getFilteredModalRows();
+    const lines = [['التاريخ والوقت', 'المستخدم', 'الدور', 'الحركة', 'التفاصيل'], ...filtered.map(r => [new Date(r.created_at || r.at).toLocaleString('ar-EG'), r.user_email || r.user, r.role, r.action, r.detail])];
+    const csv = '\uFEFF' + lines.map(x => x.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'yahma-audit-' + (typeof todayStr === 'function' ? todayStr() : new Date().toISOString().slice(0, 10)) + '.csv';
+    a.click();
+  };
  };
 
  function ensureRoleBadge(){
