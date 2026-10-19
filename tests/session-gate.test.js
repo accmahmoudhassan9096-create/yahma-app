@@ -1,21 +1,21 @@
-/* Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„Ø¬Ù„Ø³Ø©.
+/* اختبارات بوابة الجلسة.
 
-   Ø§Ù„Ù…Ø´ÙƒÙ„Ø©: Ø§Ù„Ø¯Ø§Ù„Ø© Ø±Ø¯Ù‘Øª Â«Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ§Ù„Ø­Ø©Â» ÙˆØ§Ù„ÙˆØ§Ø¬Ù‡Ø© ÙˆÙ‚Ù‘ÙØª Ø¹Ù†Ø¯
-   Ø§Ù„Ø±Ø³Ø§Ù„Ø©. Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ù‚Ø§Ø¹Ø¯ Ù‚Ø¯Ø§Ù… Ø²Ø± Ù…ÙŠØªØŒ ÙˆØ§Ù„Ø³Ø¨Ø¨ Ù…Ø¹Ø±ÙˆÙØŒ Ø¨Ø³ Ù…Ø§ÙÙŠØ´ Ø·Ø±ÙŠÙ‚
-   Ù„Ù„Ø®Ø±ÙˆØ¬ ØºÙŠØ± Ø¥Ù†Ù‡ ÙŠØ¯ÙˆØ± Ø¹Ù„Ù‰ Ø²Ø± ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ ÙÙŠ Ø§Ù„Ø±Ø§Ø³.
+   المشكلة: الدالة ردّت «جلسة الدخول غير صالحة» والواجهة وقّفت عند
+   الرسالة. المستخدم قاعد قدام زر ميت، والسبب معروف، بس مافيش طريق
+   للخروج غير إنه يدور على زر تسجيل الدخول في الراس.
 
-   Ø§Ù„Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„Ù„ÙŠ ÙÙŠ core/auth-boot.js Ø¨ØªØ¹Ù…Ù„ Ø§ØªÙ†ÙŠÙ†:
+   البوابة اللي في core/auth-boot.js بتعمل اتنين:
 
-   Ø§Ø³ØªØ¨Ø§Ù‚ÙŠ â€” Ø¨ØªØ¬Ø¯Ø¯ Ø§Ù„ØªÙˆÙƒÙ† Ù„Ùˆ Ø´Ø§Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ø§Ù†ØªÙ‡Ø§Ø¡ Ù‚Ø¨Ù„ Ù…Ø§ Ù†Ø¨Ø¹ØªÙ‡.
-              Ø¯ÙŠ Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù„ÙŠ ÙƒØ§Ù† Ù…Ù…ÙƒÙ† ØªØªØ­Ù„ Ù…Ù† ØºÙŠØ± Ù…Ø§ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…
-              ÙŠØ­Ø³: Ø§Ù„ØªÙˆÙƒÙ† ÙƒØ§Ù† Ù‡ÙŠØªØ­Ø¯Ø« ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ© Ø¨Ø³ Ù†Ø¨Ø¹ØªÙ‡ Ø§ÙˆÙ„Ø§Ù‹.
+   استباقي — بتجدد التوكن لو شارف على الانتهاء قبل ما نبعته.
+              دي الحالة اللي كان ممكن تتحل من غير ما المستخدم
+              يحس: التوكن كان هيتحدث في الخلفية بس نبعته اولاً.
 
-   ØªÙØ§Ø¹Ù„ÙŠ â€” Ù„Ùˆ Ø§Ù„Ø±Ø¯ Ù†ÙØ³Ù‡ Ù‚Ø§Ù„ Ø¥Ù† Ø§Ù„Ø¬Ù„Ø³Ø© Ù…Ø´ ØµØ§Ù„Ø­Ø©ØŒ Ø¨ØªØ¹Ø±Ø¶ Ø²Ø±
-              Â«ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„Â» Ø¬ÙˆÙ‘Ù‡ Ù†ÙØ³ Ø§Ù„Ø±Ø³Ø§Ù„Ø©.
+   تفاعلي — لو الرد نفسه قال إن الجلسة مش صالحة، بتعرض زر
+              «تسجيل دخول» جوّه نفس الرسالة.
 
-   Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª Ø¯ÙŠ Ø¨ØªØ­Ù…Ù‘Ù„ Ø§Ù„Ù…Ù„ÙÙŠÙ† ÙƒÙ…Ø§ Ù‡Ù…Ø§ ÙÙŠ node:vmØŒ ÙˆØ¨ØªØ­Ø§ÙƒÙŠ Ø¹Ù…ÙŠÙ„
-   Supabase Ø¨Ù€Ù€stub Ø¨ÙŠØªØ­ÙƒÙ… ÙÙŠÙ‡ â€” Ø¹Ø´Ø§Ù† Ù†Ù‚Ø¯Ø± Ù†Ø®ØªØ¨Ø± Ø§Ù„ØªØ¬Ø¯ÙŠØ¯ ÙˆØ§Ù„Ø±ÙØ¶
-   ÙˆØ§Ù„Ø¨Ø·Ø¡ ÙˆÙƒÙ„Ù‡Ù… Ù…Ù† ØºÙŠØ± Ø´Ø¨ÙƒØ©. */
+   الاختبارات دي بتحمّل الملفين كما هما في node:vm، وبتحاكي عميل
+   Supabase بــstub بيتحكم فيه — عشان نقدر نختبر التجديد والرفض
+   والبطء وكلهم من غير شبكة. */
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
@@ -24,9 +24,9 @@ const vm = require('vm');
 
 const ROOT = path.resolve(__dirname, '..');
 
-/* ===== Ø¹Ù…ÙŠÙ„ Supabase ÙˆÙ‡Ù…ÙŠ =====
-   Ø¨ÙŠØªØ­ÙƒÙ… ÙÙŠ: ÙˆØ¬ÙˆØ¯ Ø¬Ù„Ø³Ø©ØŒ Ù‚Ø±Ø¨ Ø§Ù†ØªÙ‡Ø§Ø¡ Ø§Ù„ØªÙˆÙƒÙ†ØŒ Ù†Ø¬Ø§Ø­/ÙØ´Ù„ Ø§Ù„ØªØ¬Ø¯ÙŠØ¯ØŒ
-   ÙˆØ§Ù„Ø±Ø¯ Ø§Ù„Ù„ÙŠ Ø§Ù„Ø¯Ø§Ù„Ø© Ù‡ØªØ±Ø¬Ù‘Ø¹Ù‡. */
+/* ===== عميل Supabase وهمي =====
+   بيتحكم في: وجود جلسة، قرب انتهاء التوكن، نجاح/فشل التجديد،
+   والرد اللي الدالة هترجّعه. */
 function fakeSupabase(opts) {
   const o = opts || {};
   const calls = { getSession: 0, refresh: 0, invoke: 0 };
@@ -68,10 +68,10 @@ function fakeSupabase(opts) {
   };
 }
 
-/* ===== ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù„ÙÙŠÙ† ÙÙŠ sandbox ÙˆØ§Ø­Ø¯ =====
-   order in index.html: auth-boot (504) Ø«Ù… topbar-ui (521)ØŒ
-   ÙØ¨Ù†Ø­Ù…Ù„Ù‡Ù… Ø¨Ù†ÙØ³ Ø§Ù„ØªØ±ØªÙŠØ¨ Ø¹Ø´Ø§Ù† ÙŠahmaEnsureFreshSession ÙŠØ¨Ù‚Ù‰ Ù…ÙˆØ¬ÙˆØ¯
-   ÙˆÙ‚Øª Ù…Ø§ topbar-ui ÙŠØ´ØºÙ‘Ù„. */
+/* ===== تحميل الملفين في sandbox واحد =====
+   order in index.html: auth-boot (504) ثم topbar-ui (521)،
+   فبنحملهم بنفس الترتيب عشان يahmaEnsureFreshSession يبقى موجود
+   وقت ما topbar-ui يشغّل. */
 function boot(opts) {
   const o = opts || {};
   const client = fakeSupabase(o);
@@ -91,12 +91,12 @@ function boot(opts) {
     yahmaErr: function () {},
     YahmaData: { markSessionExpired: function (m) { sandbox.__marked = m; } }
   };
-  /* auth-boot.js ÙÙŠÙ‡ IIFE Ø¨ÙŠØ¹Ù…Ù„ supabase.createClient ÙˆÙ‚Øª Ø§Ù„ØªØ­Ù…ÙŠÙ„
-     ÙˆØ¨ÙŠØ­Ø· window.supabaseClient / supabaseReady. ÙÙ„Ø§Ø²Ù… Ù†Ø¯ÙŠÙ‡
-     Â«SDKÂ» ÙˆØ¥Ù„Ø§ ØºÙŠØ± Ø¥Ù†Ù‡ Ù…Ø´ Ù‡ÙŠÙ„Ø§Ù‚ÙŠ Ø¹Ù…ÙŠÙ„ØŒ Ø§Ù„Ù€catch Ø¨ØªØ§Ø¹Ù‡ Ù‡ÙŠØ®Ù„ÙŠ
-     supabaseReady=false ÙˆÙŠØ¨Ù‚Ù‰ Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø± Ø¨ÙŠØ®ØªØ¨Ø± Ø­Ø§Ø¬Ø© ØªØ§Ù†ÙŠØ© Ø®Ø§Ù„Øµ.
+  /* auth-boot.js فيه IIFE بيعمل supabase.createClient وقت التحميل
+     وبيحط window.supabaseClient / supabaseReady. فلازم نديه
+     «SDK» وإلا غير إنه مش هيلاقي عميل، الـcatch بتاعه هيخلي
+     supabaseReady=false ويبقى الاختبار بيختبر حاجة تانية خالص.
 
-     createClient Ø¨ÙŠØ±Ø¬Ù‘Ø¹ Ù†ÙØ³ Ø§Ù„Ù€client Ø¹Ø´Ø§Ù† Ù†Ù‚Ø¯Ø± Ù†Ø¹Ø¯Ù‘ Ø¹Ù„ÙŠÙ‡. */
+     createClient بيرجّع نفس الـclient عشان نقدر نعدّ عليه. */
   if (!o.noClient) {
     sandbox.supabase = { createClient: function () { return client; } };
   }
@@ -105,9 +105,9 @@ function boot(opts) {
   sandbox.self = sandbox;
 
   const noop = function () {};
-  /* textContent Ù„Ø§Ø²Ù… ÙŠÙ…Ø³Ø­ Ø§Ù„Ø£Ø¨Ù†Ø§Ø¡ Ø²ÙŠ Ø§Ù„Ù…ØªØµÙØ­ Ø¨Ø§Ù„Ø¸Ø¨Ø·. Ù…Ù† ØºÙŠØ± Ø¯Ù‡
-     Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø± Â«Ù†Ø¯Ø§Ø¡ÙŠÙ† Ù…ØªØªØ§Ù„ÙŠÙŠÙ†Â» Ù‡ÙŠØ´ÙˆÙ Ø§ØªÙ†ÙŠÙ† Ø²Ø±Ø§Ø± Ø­ØªÙ‰ Ù„Ùˆ Ø§Ù„ÙƒÙˆØ¯
-     Ø³Ø§Ù„Ø¨ ÙˆØ§Ø­Ø¯ â€” ÙŠØ¹Ù†ÙŠ Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø± Ø¨ÙŠØ­ÙƒÙ… Ø¹Ù„Ù‰ ÙˆÙ‡Ù…ÙŠØ© Ù…Ø´ Ø¹Ù„Ù‰ Ø§Ù„ÙƒÙˆØ¯. */
+  /* textContent لازم يمسح الأبناء زي المتصفح بالظبط. من غير ده
+     الاختبار «نداءين متتاليين» هيشوف اتنين زرار حتى لو الكود
+     سالب واحد — يعني الاختبار بيحكم على وهمية مش على الكود. */
   const el = () => {
     const node = {
       _text: '', hidden: false, disabled: false, className: '',
@@ -156,40 +156,40 @@ function sessionReply(body, status) {
   };
 }
 
-/* ================= Ø§Ø³ØªØ¨Ø§Ù‚ÙŠ: ØªØ¬Ø¯ÙŠØ¯ Ø§Ù„ØªÙˆÙƒÙ† ================= */
+/* ================= استباقي: تجديد التوكن ================= */
 
-test('ØªÙˆÙƒÙ† ØµØ§Ù„Ø­ Ø¨Ø¹ÙŠØ¯ â€” Ù…ÙÙŠØ´ ØªØ¬Ø¯ÙŠØ¯ØŒ ÙˆØ§Ù„Ù†Ø¯Ø§Ø¡ Ø¨ÙŠØ­ØµÙ„', async () => {
+test('توكن صالح بعيد — مفيش تجديد، والنداء بيحصل', async () => {
   const s = boot({ expiresIn: 3600 });
   const gate = await s.yahmaEnsureFreshSession();
-  assert.strictEqual(gate.ok, true, 'Ø§Ù„Ø¨ÙˆØ§Ø¨Ø© Ø±ÙØ¶Øª Ø¬Ù„Ø³Ø© ØµØ§Ù„Ø­Ø©: ' + JSON.stringify(gate));
+  assert.strictEqual(gate.ok, true, 'البوابة رفضت جلسة صالحة: ' + JSON.stringify(gate));
   assert.strictEqual(gate.refreshed, false);
   const out = await s.yahmaInvokeFunction('admin-create-user', {}, s.__el);
-  assert.ok(out.result, 'Ø§Ù„Ù†Ø¯Ø§Ø¡ Ù…Ø§Ø¨ØµÙ„Ø´');
-  assert.strictEqual(s.supabaseClient.calls.refresh, 0, 'ØªØ¬Ø¯ÙŠØ¯ Ù…Ù† ØºÙŠØ± Ø¯Ø§Ø¹ÙŠ');
+  assert.ok(out.result, 'النداء مابصلش');
+  assert.strictEqual(s.supabaseClient.calls.refresh, 0, 'تجديد من غير داعي');
   assert.strictEqual(s.supabaseClient.calls.invoke, 1);
 });
 
-test('ØªÙˆÙƒÙ† Ø´Ø§Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ø§Ù†ØªÙ‡Ø§Ø¡ â€” Ø¨Ù†Ø¬Ø¯Ù‘Ø¯Ù‡ Ù‚Ø¨Ù„ Ù…Ø§ Ù†Ø¨Ø¹ØªÙ‡', async () => {
-  /* 20 Ø«Ø§Ù†ÙŠØ©: Ø§Ù„Ø¯Ø§Ù„Ø© Ù‡ØªØ±ÙØ¶Ù‡ ÙÙˆØ±Ø§Ù‹. Ø¯Ù‡ Ø§Ù„Ù„ÙŠ ÙƒØ§Ù† Ø¨ÙŠØ­ØµÙ„ ÙˆØ§Ù„Ù…Ø³ØªØ®Ø¯Ù…
-     ÙƒØ§Ù† Ø¨ÙŠØ´ÙˆÙ Â«Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ§Ù„Ø­Ø©Â» Ù…Ù† ØºÙŠØ± Ø³Ø¨Ø¨ ÙŠÙ‚Ø¯Ø± ÙŠØªØµØ±Ù Ø¨ÙŠÙ‡. */
+test('توكن شارف على الانتهاء — بنجدّده قبل ما نبعته', async () => {
+  /* 20 ثانية: الدالة هترفضه فوراً. ده اللي كان بيحصل والمستخدم
+     كان بيشوف «جلسة الدخول غير صالحة» من غير سبب يقدر يتصرف بيه. */
   const s = boot({ expiresIn: 20 });
   const gate = await s.yahmaEnsureFreshSession();
-  assert.strictEqual(gate.ok, true, 'Ø§Ù„Ø¨ÙˆØ§Ø¨Ø© Ø±ÙØ¶Øª Ø¬Ù„Ø³Ø© Ù‚Ø§Ø¨Ù„Ø© Ù„Ù„ØªØ¬Ø¯ÙŠØ¯');
-  assert.strictEqual(gate.refreshed, true, 'Ø§Ù„ØªØ¬Ø¯ÙŠØ¯ Ù…ØªÙ†ÙÙ‘Ø°Ø´');
+  assert.strictEqual(gate.ok, true, 'البوابة رفضت جلسة قابلة للتجديد');
+  assert.strictEqual(gate.refreshed, true, 'التجديد متنفّذش');
   assert.strictEqual(s.supabaseClient.calls.refresh, 1);
 });
 
-test('Ø§Ù„ØªØ¬Ø¯ÙŠØ¯ Ø¨ÙŠÙØ´Ù„ â€” Ø±Ø³Ø§Ù„Ø© ÙˆØ§Ø¶Ø­Ø© ÙˆÙ…ÙÙŠØ´ Ù†Ø¯Ø§Ø¡ Ù„Ù„Ø¯Ø§Ù„Ø©', async () => {
+test('التجديد بيفشل — رسالة واضحة ومفيش نداء للدالة', async () => {
   const s = boot({ expiresIn: 20, refreshFails: true });
   const gate = await s.yahmaEnsureFreshSession();
-  assert.strictEqual(gate.ok, false, 'Ø§Ù„Ø¨ÙˆØ§Ø¨Ø© Ù‚Ø¨Ù„Øª Ø¬Ù„Ø³Ø© Ù…ÙŠØªØ©');
-  assert.match(gate.message, /Ø§Ù†ØªÙ‡Øª ØµÙ„Ø§Ø­ÙŠØ© Ø§Ù„Ø¬Ù„Ø³Ø©/);
+  assert.strictEqual(gate.ok, false, 'البوابة قبلت جلسة ميتة');
+  assert.match(gate.message, /انتهت صلاحية الجلسة/);
   const out = await s.yahmaInvokeFunction('admin-create-user', {}, s.__el);
-  assert.strictEqual(out.skipped, 'session', 'Ù…Ø§Ø¨ÙŠÙ„Ù†Ø§Ø´-sdkit ØªÙ…Ø³ÙƒÙ‡');
-  assert.strictEqual(s.supabaseClient.calls.invoke, 0, 'Ù†Ø§Ø¯ÙŠÙ†Ø§ Ø§Ù„Ø¯Ø§Ù„Ø© Ø¨ØªÙˆÙƒÙ† Ù…ÙŠØª');
+  assert.strictEqual(out.skipped, 'session', 'مابيلناش-sdkit تمسكه');
+  assert.strictEqual(s.supabaseClient.calls.invoke, 0, 'نادينا الدالة بتوكن ميت');
 });
 
-test('Ù…ÙÙŠØ´ Ø¬Ù„Ø³Ø© â€” Ù…ÙÙŠØ´ Ù†Ø¯Ø§Ø¡ Ù„Ù„Ø¯Ø§Ù„Ø©', async () => {
+test('مفيش جلسة — مفيش نداء للدالة', async () => {
   const s = boot({ noSession: true });
   const out = await s.yahmaInvokeFunction('admin-create-user', {}, s.__el);
   assert.strictEqual(out.skipped, 'session');
@@ -197,112 +197,112 @@ test('Ù…ÙÙŠØ´ Ø¬Ù„Ø³Ø© â€” Ù…ÙÙŠØ´ Ù†Ø¯Ø
   assert.match(out.reason, /no-session/);
 });
 
-test('Supabase Ù…Ø´ Ù…ØªØ§Ø­ â€” Ø±Ø³Ø§Ù„Ø© ØªÙˆØ¬Ù‘Ù‡ Ù„ØªØ­Ø¯ÙŠØ« Ø§Ù„ØªØ·Ø¨ÙŠÙ‚', async () => {
+test('Supabase مش متاح — رسالة توجّه لتحديث التطبيق', async () => {
   const s = boot({ noClient: true });
   const out = await s.yahmaInvokeFunction('admin-create-user', {}, s.__el);
   assert.strictEqual(out.skipped, 'session');
-  assert.strictEqual(s.__client.calls.invoke, 0, 'Ù†Ø§Ø¯ÙŠÙ†Ø§ Ø§Ù„Ø¯Ø§Ù„Ø© Ù…Ù† ØºÙŠØ± Ø¹Ù…ÙŠÙ„');
+  assert.strictEqual(s.__client.calls.invoke, 0, 'نادينا الدالة من غير عميل');
 });
 
-/* Ø§Ù„Ø´Ø¨ÙƒØ© ØªØ¹Ø·Ù‘Ù„Øª Ù…Ø´ Ø¯Ù„ÙŠÙ„ Ø¥Ù† Ø§Ù„Ø¬Ù„Ø³Ø© Ù…ÙŠØªØ© â€” Ù„Ø§Ø²Ù… Ù†Ø¬Ø±Ù‘Ø¨ Ø¹Ø§Ø¯ÙŠ.
-   ØºÙŠØ± ÙƒØ¯Ù‡ Ø£ÙŠ Ø´Ø¨ÙƒØ© Ø¶Ø¹ÙŠÙØ© Ù‡ØªØ·Ù„Ù‘Ø¹ Â«Ø³Ø¬Ù‘Ù„ Ø¯Ø®ÙˆÙ„Â» ÙˆØ§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ù…ÙˆØ¬ÙˆØ¯. */
-test('ÙØ´Ù„ Ø§Ù„Ø´Ø¨ÙƒØ© Ù…Ø§Ø¨ÙŠÙ†ÙØ¹Ø´ ÙŠØ³Ø¬Ù‘Ù„ Ø§Ù„Ø¬Ù„Ø³Ø© Ù…Ù†ØªÙ‡ÙŠØ©', async () => {
+/* الشبكة تعطّلت مش دليل إن الجلسة ميتة — لازم نجرّب عادي.
+   غير كده أي شبكة ضعيفة هتطلّع «سجّل دخول» والمستخدم موجود. */
+test('فشل الشبكة مابينفعش يسجّل الجلسة منتهية', async () => {
   const s = boot({ getSessionThrows: 'Failed to fetch' });
   const gate = await s.yahmaEnsureFreshSession();
-  assert.strictEqual(gate.ok, true, 'Ø®Ø·Ø£ Ø´Ø¨ÙƒØ© Ø§ØªØ¹Ø§Ù…Ù„ Ù…Ø¹Ø§Ù‡ ÙƒØ£Ù† Ø§Ù„Ø¬Ù„Ø³Ø© Ù…ÙŠØªØ©');
+  assert.strictEqual(gate.ok, true, 'خطأ شبكة اتعامل معاه كأن الجلسة ميتة');
   assert.strictEqual(gate.unknown, true);
   const out = await s.yahmaInvokeFunction('admin-create-user', {}, s.__el);
-  assert.ok(out.result, 'Ø§ØªÙ…Ù†Ø¹ Ø§Ù„Ù†Ø¯Ø§Ø¡ Ø¨Ø³Ø¨Ø¨ Ø´Ø¨ÙƒØ©');
+  assert.ok(out.result, 'اتمنع النداء بسبب شبكة');
   assert.strictEqual(s.supabaseClient.calls.invoke, 1);
 });
 
-/* ================= ØªÙØ§Ø¹Ù„ÙŠ: Ø§Ù„Ø±Ø¯ Ù†ÙØ³Ù‡ Ø¨ÙŠÙ‚ÙˆÙ„ ================= */
+/* ================= تفاعلي: الرد نفسه بيقول ================= */
 
-test('Ø±Ø¯ Ø§Ù„Ø¯Ø§Ù„Ø© Â«Ø¬Ù„Ø³Ø© ØºÙŠØ± ØµØ§Ù„Ø­Ø©Â» â€” Ø¨ØªØ¹Ø±Ø¶ Ø²Ø± ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„', async () => {
+test('رد الدالة «جلسة غير صالحة» — بتعرض زر تسجيل دخول', async () => {
   const s = boot({
     expiresIn: 3600,
-    invokeResult: sessionReply({ error: 'Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ§Ù„Ø­Ø©' }, 400)
+    invokeResult: sessionReply({ error: 'جلسة الدخول غير صالحة' }, 400)
   });
   const out = await s.yahmaInvokeFunction('admin-create-user', {}, s.__el);
-  assert.strictEqual(out.skipped, 'session', 'Ø§Ù„Ø±Ø¯ Ø§ØªØ¹Ø§Ù…Ù„ Ù…Ø¹Ø§Ù‡ ÙƒØ£Ù†Ù‡ Ø¹Ø§Ø¯ÙŠ');
+  assert.strictEqual(out.skipped, 'session', 'الرد اتعامل معاه كأنه عادي');
   assert.strictEqual(out.reason, 'server-rejected');
-  assert.match(s.__el.textContent, /Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„/);
-  assert.strictEqual(s.__marked, s.__el.textContent, 'Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø¹Ù„Ù‘Ù…Ø© Ù…Ø´ Ø§Ù„Ù„ÙŠ Ø§ØªØ¹Ø±Ø¶Øª');
+  assert.match(s.__el.textContent, /انتهت جلسة الدخول/);
+  assert.strictEqual(s.__marked, s.__el.textContent, 'الحالة المعلّمة مش اللي اتعرضت');
 });
 
-test('401 Ù…Ù† Ø§Ù„Ø¯Ø§Ù„Ø© â€” Ù†ÙØ³ Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø©', async () => {
-  const s = boot({ expiresIn: 3600, invokeResult: sessionReply({ error: 'Ù…ÙÙŠØ´ ØªÙˆÙƒÙ†' }, 401) });
+test('401 من الدالة — نفس المعالجة', async () => {
+  const s = boot({ expiresIn: 3600, invokeResult: sessionReply({ error: 'مفيش توكن' }, 401) });
   const out = await s.yahmaInvokeFunction('admin-create-user', {}, s.__el);
   assert.strictEqual(out.skipped, 'session');
 });
 
-test('Ø®Ø·Ø£ Ù…Ø´ Ù…ØªØ¹Ù„Ù‚ Ø¨Ø§Ù„Ø¬Ù„Ø³Ø© â€” Ù…Ø§ÙŠÙ†ÙØ¹Ø´ ÙŠØ¹Ø±Ø¶ Ø²Ø± ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„', async () => {
-  /* Ø¯Ù‡ Ù…Ù‡Ù…: Â«Ø§Ù„Ø¨Ø±ÙŠØ¯ Ù…Ø³Ø¬Ù‘Ù„ Ø¨Ø§Ù„ÙØ¹Ù„Â» Ø®Ø·Ø£ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙŠÙ‚Ø¯Ø± ÙŠØªØµØ±Ù Ø¨ÙŠÙ‡.
-     Ù„Ùˆ Ø§Ù„Ø¨ÙˆØ§Ø¨Ø© Ø¨ØªØ§Ø®Ø¯Ù‡ ÙƒØ¬Ù„Ø³Ø© Ù…Ù†ØªÙ‡ÙŠØ©ØŒ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¨ÙŠØ¹Ù…Ù„ ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„
-     ÙˆØ¨ÙŠØ­Ø§ÙˆÙ„ ØªØ§Ù†ÙŠ ÙˆØ§Ù„Ø­Ø§Ø¬Ø© Ù‡ØªÙØ´Ù„ ØªØ§Ù†ÙŠ. */
-  const s = boot({ expiresIn: 3600, invokeResult: sessionReply({ error: 'Ø§Ù„Ø¨Ø±ÙŠØ¯ Ù…Ø³Ø¬Ù‘Ù„ Ø¨Ø§Ù„ÙØ¹Ù„' }, 409) });
+test('خطأ مش متعلق بالجلسة — ماينفعش يعرض زر تسجيل دخول', async () => {
+  /* ده مهم: «البريد مسجّل بالفعل» خطأ المستخدم يقدر يتصرف بيه.
+     لو البوابة بتاخده كجلسة منتهية، المستخدم بيعمل تسجيل دخول
+     وبيحاول تاني والحاجة هتفشل تاني. */
+  const s = boot({ expiresIn: 3600, invokeResult: sessionReply({ error: 'البريد مسجّل بالفعل' }, 409) });
   const out = await s.yahmaInvokeFunction('admin-create-user', {}, s.__el);
-  assert.ok(!out.skipped, 'Ø§ØªØ¹Ø§Ù…Ù„ Ù…Ø¹ Ø®Ø·Ø£ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙƒØ£Ù†Ù‡ Ø¬Ù„Ø³Ø© Ù…Ù†ØªÙ‡ÙŠØ©');
+  assert.ok(!out.skipped, 'اتعامل مع خطأ المستخدم كأنه جلسة منتهية');
   assert.strictEqual(out.result.error.context.status, 409);
-  assert.ok(!/Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø©/.test(s.__el.textContent), 'Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§ØªØºÙŠÙ‘Ø±Øª Ù„Ø­Ø§Ø¬Ø© Ù…Ø´ Ù…Ø±ØªØ¨Ø·Ø©: ' + s.__el.textContent);
+  assert.ok(!/انتهت جلسة/.test(s.__el.textContent), 'الرسالة اتغيّرت لحاجة مش مرتبطة: ' + s.__el.textContent);
 });
 
-test('ÙƒÙˆØ¯ 500 Ù…Ù† Ø§Ù„Ø¯Ø§Ù„Ø© â€” Ù…Ø§ÙŠÙ†ÙØ¹Ø´ ÙŠØ¹Ø±Ø¶ Ø²Ø± ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„', async () => {
-  const s = boot({ expiresIn: 3600, invokeResult: sessionReply({ error: 'Ø®Ø·Ø£ Ø¯Ø§Ø®Ù„ÙŠ' }, 500) });
+test('كود 500 من الدالة — ماينفعش يعرض زر تسجيل دخول', async () => {
+  const s = boot({ expiresIn: 3600, invokeResult: sessionReply({ error: 'خطأ داخلي' }, 500) });
   const out = await s.yahmaInvokeFunction('admin-create-user', {}, s.__el);
   assert.ok(!out.skipped);
 });
 
-/* ================= ÙƒØ§Ø´Ù Ø§Ù„Ø£Ø®Ø·Ø§Ø¡ ================= */
+/* ================= كاشف الأخطاء ================= */
 
-/* Ø§Ù„ØªØ´ÙƒÙŠÙ„: Ù†ÙØ³ Ø§Ù„Ø¬Ù…Ù„Ø© Ø¨Ø´Ø¯Ù‘Ø© ÙˆÙ…Ù† ØºÙŠØ±Ù‡Ø§ Ù„Ø§Ø²Ù… ØªØªØªØ¹Ø±Ù Ø²ÙŠ Ø¨Ø¹Ø¶.
-   Ø¯Ù‡ Ù…Ø´ ØªÙØµÙŠÙ„ ØªØ¬Ù…ÙŠÙ„ÙŠ â€” Â«Ø³Ø¬Ù‘Ù„Â» ÙÙŠ ÙƒÙˆØ¯Ù†Ø§ ÙƒØ§Ù†Øª Ù…Ù† ØºÙŠØ± U+0651
-   ÙˆØ§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù„ÙŠ Ø¨ØªÙˆØµÙ„ Ù…Ù† Ø§Ù„Ù€SDK ÙÙŠÙ‡Ø§ØŒ ÙØ§Ù„Ù…Ø·Ø§Ø¨Ù‚Ø© ÙƒØ§Ù†Øª ÙØ§Ø´Ù„Ø©
-   Ø¹Ù„Ù‰ Ù†Øµ Ø¨Ù†Ø³Ù„Ù‘Ù…Ù‡ Ø¨Ù†Ø³Ù†Ø§. */
-test('Ø§Ù„ØªØ´ÙƒÙŠÙ„ Ù…Ø§Ø¨ÙŠÙØ±Ù‚Ø´ â€” Ø§Ù„Ø¬Ù…Ù„Ø© Ø¨ØªØªØ¹Ø±Ù Ø¨ÙƒÙ„ ØµÙŠØºØ©', () => {
+/* التشكيل: نفس الجملة بشدّة ومن غيرها لازم تتتعرف زي بعض.
+   ده مش تفصيل تجميلي — «سجّل» في كودنا كانت من غير U+0651
+   والرسالة اللي بتوصل من الـSDK فيها، فالمطابقة كانت فاشلة
+   على نص بنسلّمه بنسنا. */
+test('التشكيل مابيفرقش — الجملة بتتعرف بكل صيغة', () => {
   const s = boot({});
   const f = s.yahmaIsSessionError;
   const pairs = [
-    ['Ø³Ø¬Ù‘Ù„ Ø¯Ø®ÙˆÙ„ ØªØ§Ù†ÙŠ', 'Ø³Ø¬Ù„ Ø¯Ø®ÙˆÙ„ ØªØ§Ù†ÙŠ'],
-    ['ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø£ÙˆÙ„Ù‹Ø§', 'ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø§ÙˆÙ„Ø§'],
-    ['Ø§Ù„Ø¬Ù„Ø³Ø© Ù…ÙÙ†ØªÙ‡ÙŠØ©', 'Ø§Ù„Ø¬Ù„Ø³Ø© Ù…Ù†ØªÙ‡ÙŠØ©']
+    ['سجّل دخول تاني', 'سجل دخول تاني'],
+    ['تسجيل الدخول أولًا', 'تسجيل الدخول اولا'],
+    ['الجلسة مُنتهية', 'الجلسة منتهية']
   ];
   pairs.forEach((pair) => {
-    /* Ù†ØªØ­Ù‚Ù‚ Ø¥Ù† Ø§Ù„ÙƒÙ„Ù…Ø§Øª ÙØ¹Ù„Ø§Ù‹ Ù…Ø®ØªÙ„ÙØ© â€” ÙˆØ¥Ù„Ø§ Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø± ÙˆÙ‡Ù…ÙŠØ© */
-    assert.notStrictEqual(pair[0], pair[1], 'Ø§Ù„ÙƒÙ„Ù…ØªÙŠÙ† ÙˆØ§Ø­Ø¯Ø©: ' + pair[0]);
+    /* نتحقق إن الكلمات فعلاً مختلفة — وإلا الاختبار وهمية */
+    assert.notStrictEqual(pair[0], pair[1], 'الكلمتين واحدة: ' + pair[0]);
     assert.strictEqual(f(400, pair[0]), f(400, pair[1]),
-      'Ø§Ù„ØªØ´ÙƒÙŠÙ„ ØºÙŠÙ‘Ø± Ø§Ù„Ù†ØªÙŠØ¬Ø©: ' + pair[0] + ' â†’ ' + f(400, pair[0])
-      + ' / ' + pair[1] + ' â†’ ' + f(400, pair[1]));
+      'التشكيل غيّر النتيجة: ' + pair[0] + ' → ' + f(400, pair[0])
+      + ' / ' + pair[1] + ' → ' + f(400, pair[1]));
   });
-  assert.strictEqual(f(400, 'Ø³Ø¬Ù‘Ù„ Ø¯Ø®ÙˆÙ„ ØªØ§Ù†ÙŠ'), true, 'Ø§Ù„Ø¬Ù…Ù„Ø© Ø¯ÙŠ Ù„Ø§Ø²Ù… ØªØªØ¹Ø±Ù');
-  assert.strictEqual(f(400, 'ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø£ÙˆÙ„Ù‹Ø§'), true, 'ÙˆØ¨Ø§Ù„ØªØ´ÙƒÙŠÙ„ Ø§Ù„ÙƒØ§Ù…Ù„ Ø¨Ø±Ø¶Ù‡');
+  assert.strictEqual(f(400, 'سجّل دخول تاني'), true, 'الجملة دي لازم تتعرف');
+  assert.strictEqual(f(400, 'تسجيل الدخول أولًا'), true, 'وبالتشكيل الكامل برضه');
 });
 
-test('yahmaIsSessionError Ø¨ÙŠØ¹Ø±Ù Ø§Ù„Ø­Ø§Ù„Ø§Øª Ø§Ù„ØµØ­', () => {
+test('yahmaIsSessionError بيعرف الحالات الصح', () => {
   const s = boot({});
   const f = s.yahmaIsSessionError;
-  /* Ø§Ù„Ø£ÙƒÙˆØ§Ø¯ */
+  /* الأكواد */
   assert.strictEqual(f(401, ''), true, '401');
   assert.strictEqual(f(403, ''), true, '403');
-  assert.strictEqual(f(400, ''), false, '400 Ù…Ø´ Ø¬Ù„Ø³Ø©');
+  assert.strictEqual(f(400, ''), false, '400 مش جلسة');
   assert.strictEqual(f(500, ''), false, '500');
-  /* Ø§Ù„Ù†ØµÙˆØµ Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© Ø¨ØªØ§Ø¹Ø© Ø¯ÙˆØ§Ù„Ù†Ø§ â€” ÙƒÙ„ ÙˆØ§Ø­Ø¯Ø© Ù„Ø§Ø²Ù… ØªØªØ¹Ø±Ù.
-     Â«Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø©â€¦Â» ÙˆÂ«â€¦Ø§Ù„Ø¬Ù„Ø³Ø©Â» Ø¯ÙˆÙ„ Ø§Ù„Ù„ÙŠ Ø§Ù„ÙƒØ§Ø´Ù Ø§Ù„Ø£ÙˆÙ„ ÙƒØ§Ù†
-     Ø¨ÙŠÙÙˆÙ‘ØªÙ‡Ù…ØŒ ÙˆØ¯ÙŠ Ø¨Ø§Ù„Ø¸Ø¨Ø· Ø±Ø³Ø§ÙŠÙ„ Ø¨ÙˆØ§Ø¨ØªÙ†Ø§. */
-  assert.strictEqual(f(400, 'Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ§Ù„Ø­Ø©'), true);
-  assert.strictEqual(f(400, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø¹Ù„Ù‰ Ù‡Ø°Ø§ Ø§Ù„Ø¬Ù‡Ø§Ø²'), true);
-  assert.strictEqual(f(400, 'Ø§Ù†ØªÙ‡Øª ØµÙ„Ø§Ø­ÙŠØ© Ø§Ù„Ø¬Ù„Ø³Ø© Ø¹Ù„Ù‰ Ù‡Ø°Ø§ Ø§Ù„Ø¬Ù‡Ø§Ø². Ø³Ø¬Ù‘Ù„ Ø¯Ø®ÙˆÙ„ ØªØ§Ù†ÙŠ.'), true);
-  assert.strictEqual(f(400, 'Ù…ÙÙŠØ´ Ø¬Ù„Ø³Ø© Ø¯Ø®ÙˆÙ„ Ø¹Ù„Ù‰ Ù‡Ø°Ø§ Ø§Ù„Ø¬Ù‡Ø§Ø². Ø³Ø¬Ù‘Ù„ Ø¯Ø®ÙˆÙ„ ØªØ§Ù†ÙŠ.'), true);
-  assert.strictEqual(f(400, 'Ø¬Ù„Ø³Ø© Ù…Ù†ØªÙ‡ÙŠØ©'), true);
-  assert.strictEqual(f(400, 'Ø§Ù„Ø¬Ù„Ø³Ø© ØºÙŠØ± ØµØ§Ù„Ø­Ø©'), true, 'Ø¨Ù€Ø§Ù„Ù€Â«Ø§Ù„Â»');
-  /* Â«Ø§Ù„Â» Ø§Ø®ØªÙŠØ§Ø±ÙŠØ© â€” Ø§Ù„Ø¹Ø±Ø¨ÙŠ Ø¨ÙŠÙƒØªØ¨ Â«ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„Â» ÙˆÂ«Ø³Ø¬Ù„ Ø¯Ø®ÙˆÙ„Â» */
-  assert.strictEqual(f(400, 'Ø³Ø¬Ù„ Ø¯Ø®ÙˆÙ„ ØªØ§Ù†ÙŠ'), true, 'Ù…Ù† ØºÙŠØ± Â«Ø§Ù„Â»');
-  assert.strictEqual(f(400, 'Ø³Ø¬Ù‘Ù„ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ù…Ù† Ø¬Ø¯ÙŠØ¯'), true, 'Ø§Ù„Ø´ÙƒÙ„ Ø§Ù„Ù…Ø·ÙˆÙ‘Ù„');
-  assert.strictEqual(f(400, 'Ø§Ù„Ø¬Ù„Ø³Ø© Ù…Ù†ØªÙ‡ÙŠØ©. Ø³Ø¬Ù‘Ù„ Ø®Ø±ÙˆØ¬.'), true);
-  assert.strictEqual(f(400, 'ÙŠØ¬Ø¨ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø£ÙˆÙ„Ù‹Ø§'), true);
-  assert.strictEqual(f(400, 'Ø³Ø¬Ù‘Ù„ Ø®Ø±ÙˆØ¬'), true);
-  /* Ø§Ù„Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠ Ù…Ù† Ø§Ù„Ø¨ÙˆØ§Ø¨Ø© ÙˆÙ…Ù† Ø§Ù„Ù€SDK */
-  assert.strictEqual(f(400, 'Missing authorization header'), false, 'Ù…Ø´ Ù…Ù† Ø§Ù„Ø¨ÙˆØ§Ø¨Ø© â€” ÙˆØ¯Ù‡ 401 Ø§Ù„Ù„ÙŠ Ø¨ÙŠØ±Ø¯Ù‡Ø§');
+  /* النصوص العربية بتاعة دوالنا — كل واحدة لازم تتعرف.
+     «انتهت جلسة…» و«…الجلسة» دول اللي الكاشف الأول كان
+     بيفوّتهم، ودي بالظبط رسايل بوابتنا. */
+  assert.strictEqual(f(400, 'جلسة الدخول غير صالحة'), true);
+  assert.strictEqual(f(400, 'انتهت جلسة الدخول على هذا الجهاز'), true);
+  assert.strictEqual(f(400, 'انتهت صلاحية الجلسة على هذا الجهاز. سجّل دخول تاني.'), true);
+  assert.strictEqual(f(400, 'مفيش جلسة دخول على هذا الجهاز. سجّل دخول تاني.'), true);
+  assert.strictEqual(f(400, 'جلسة منتهية'), true);
+  assert.strictEqual(f(400, 'الجلسة غير صالحة'), true, 'بـالـ«ال»');
+  /* «ال» اختيارية — العربي بيكتب «تسجيل الدخول» و«سجل دخول» */
+  assert.strictEqual(f(400, 'سجل دخول تاني'), true, 'من غير «ال»');
+  assert.strictEqual(f(400, 'سجّل تسجيل الدخول من جديد'), true, 'الشكل المطوّل');
+  assert.strictEqual(f(400, 'الجلسة منتهية. سجّل خروج.'), true);
+  assert.strictEqual(f(400, 'يجب تسجيل الدخول أولًا'), true);
+  assert.strictEqual(f(400, 'سجّل خروج'), true);
+  /* الإنجليزي من البوابة ومن الـSDK */
+  assert.strictEqual(f(400, 'Missing authorization header'), false, 'مش من البوابة — وده 401 اللي بيردها');
   assert.strictEqual(f(401, 'Missing authorization header'), true);
   assert.strictEqual(f(400, '{"code":"UNAUTHORIZED_NO_AUTH_HEADER"}'), true);
   assert.strictEqual(f(400, 'JWT expired'), true);
@@ -311,126 +311,124 @@ test('yahmaIsSessionError Ø¨ÙŠØ¹Ø±Ù Ø§Ù„Ø­Ø§Ù„Ø§Øª Ø
   assert.strictEqual(f(400, 'JWT has expired'), true);
   assert.strictEqual(f(400, 'invalid JWT token'), true);
   assert.strictEqual(f(400, 'Auth session missing'), true);
-  /* Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠ Ø¹Ø§Ø¯ÙŠ Ù…Ø§Ù„Ù‡Ø§Ø´ Ø¹Ù„Ø§Ù‚Ø© Ø¨Ø¬Ù„Ø³Ø© */
-  assert.strictEqual(f(400, 'Tokenization failed'), false, 'ÙƒÙ„Ù…Ø© ÙÙŠÙ‡Ø§ token Ù…Ø´ Ù…Ø¹Ù†Ø§Ù‡Ø§ Ø¬Ù„Ø³Ø©');
-  /* Ø£Ø®Ø·Ø§Ø¡ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… â€” Ù„Ø§Ø²Ù… ØªØ¹Ø¯Ù‘ÙŠ */
-  assert.strictEqual(f(400, 'Ø§Ù„Ø¨Ø±ÙŠØ¯ Ù…Ø³Ø¬Ù‘Ù„ Ø¨Ø§Ù„ÙØ¹Ù„'), false);
-  assert.strictEqual(f(400, 'ØªØ¹Ø°Ø± Ø­ÙØ¸ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…'), false);
-  assert.strictEqual(f(400, 'ØµÙŠØºØ© Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ ØºÙŠØ± ØµØ­ÙŠØ­Ø©'), false);
+  /* إنجليزي عادي مالهاش علاقة بجلسة */
+  assert.strictEqual(f(400, 'Tokenization failed'), false, 'كلمة فيها token مش معناها جلسة');
+  /* أخطاء المستخدم — لازم تعدّي */
+  assert.strictEqual(f(400, 'البريد مسجّل بالفعل'), false);
+  assert.strictEqual(f(400, 'تعذر حفظ بيانات المستخدم'), false);
+  assert.strictEqual(f(400, 'صيغة البريد الإلكتروني غير صحيحة'), false);
   assert.strictEqual(f(400, ''), false);
   assert.strictEqual(f(0, ''), false);
-  assert.strictEqual(f(null, null), false, 'Ù…ÙÙŠØ´ status ÙˆÙ†Øµ â€” Ù…ÙÙŠØ´ crash');
+  assert.strictEqual(f(null, null), false, 'مفيش status ونص — مفيش crash');
   assert.strictEqual(f(undefined, undefined), false);
 });
 
-/* ================= Ø²Ø± Ø§Ù„Ø®Ø±ÙˆØ¬ ================= */
+/* ================= زر الخروج ================= */
 
-test('yahmaSessionGate Ø¨ØªØ¹Ù…Ù„ Ù†Øµ + Ø²Ø±', () => {
+test('yahmaSessionGate بتعمل نص + زر', () => {
   const s = boot({});
   const el = s.__el;
-  s.yahmaSessionGate(el, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„');
-  assert.strictEqual(el.textContent, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„');
+  s.yahmaSessionGate(el, 'انتهت جلسة الدخول');
+  assert.strictEqual(el.textContent, 'انتهت جلسة الدخول');
   const bar = el.children[el.children.length - 1];
-  assert.ok(bar, 'Ù…ÙÙŠØ´ Ø¹Ù†ØµØ± Ù„Ù„Ø²Ø±');
+  assert.ok(bar, 'مفيش عنصر للزر');
   assert.strictEqual(bar.className, 'yahma-session-gate');
   const btn = bar.children[0];
-  assert.ok(btn, 'Ù…ÙÙŠØ´ Ø²Ø±');
-  assert.strictEqual(btn.textContent, 'ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„', 'Ø§Ù„Ø²Ø± Ù…Ø§Ù„Ù‡ Ù†Øµ Ù…Ù‚Ø±ÙˆØ¡');
-  assert.strictEqual(s.__marked, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„', 'Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø¹Ù„Ù‘Ù…Ø© Ø¶Ø§ÙŠØ¹Ø©');
+  assert.ok(btn, 'مفيش زر');
+  assert.strictEqual(btn.textContent, 'تسجيل دخول', 'الزر ماله نص مقروء');
+  assert.strictEqual(s.__marked, 'انتهت جلسة الدخول', 'الحالة المعلّمة ضايعة');
 });
 
-test('Ø§Ù„Ø²Ø± Ø¬ÙˆÙ‘Ù‡ Ø¹Ù†ØµØ± Ø§Ù„Ø±Ø³Ø§Ù„Ø© â€” Ù…Ø´ Ø¬ÙˆÙ‡ Ø£Ø¨ÙˆÙ‡', () => {
-  /* Ù„Ùˆ climbedÙ†Ø§ Ù„Ù„Ø£Ø¨ ÙƒÙ†Ø§ Ù‡Ù†Ù…Ø³Ø­ Ø¹Ù†Ø§ØµØ± ØªØ§Ù†ÙŠØ© Ù…Ù† Ø§Ù„Ø´Ø§Ø´Ø©.
-     Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø± Ø¯Ù‡ Ø¨ÙŠÙ‚ÙÙ„ Ø§Ù„Ø³Ù„ÙˆÙƒ Ø¯Ù‡. */
+test('الزر جوّه عنصر الرسالة — مش جوه أبوه', () => {
+  /* لو climbedنا للأب كنا هنمسح عناصر تانية من الشاشة.
+     الاختبار ده بيقفل السلوك ده. */
   const s = boot({});
-  const sibling = { textContent: 'Ø¹Ù†ØµØ± ØªØ§Ù†ÙŠ', tagName: 'INPUT' };
+  const sibling = { textContent: 'عنصر تاني', tagName: 'INPUT' };
   const parent = { children: [], appendChild(c) { this.children.push(c); return c; } };
   const el = { textContent: '', children: [], parentNode: parent, appendChild(c) { this.children.push(c); return c; } };
   parent.children.push(sibling);
   parent.children.push(el);
-  s.yahmaSessionGate(el, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø©');
-  assert.ok(el.children.length > 0, 'Ø§Ù„Ø²Ø± Ù…Ø§Ø§ØªØ¶Ø§ÙØ´ Ø¬ÙˆÙ‡ Ø¹Ù†ØµØ± Ø§Ù„Ø±Ø³Ø§Ù„Ø©');
-  assert.strictEqual(parent.children.length, 2, 'Ø§Ù„Ø£Ø¨ Ø§ØªÙ…Ø³Ø­ â€” Ø¹Ù†ØµØ± ØªØ§Ù†ÙŠ Ø§ØªØ´Ø§Ù„ Ù…Ù† Ø§Ù„Ø´Ø§Ø´Ø©');
-  assert.strictEqual(sibling.textContent, 'Ø¹Ù†ØµØ± ØªØ§Ù†ÙŠ', 'Ø§Ù„Ø£Ø® ØªØºÙŠÙ‘Ø±');
+  s.yahmaSessionGate(el, 'انتهت جلسة');
+  assert.ok(el.children.length > 0, 'الزر مااتضافش جوه عنصر الرسالة');
+  assert.strictEqual(parent.children.length, 2, 'الأب اتمسح — عنصر تاني اتشال من الشاشة');
+  assert.strictEqual(sibling.textContent, 'عنصر تاني', 'الأخ تغيّر');
 });
 
-test('Ù†Ø¯Ø§Ø¡ÙŠÙ† Ù…ØªØªØ§Ù„ÙŠÙŠÙ† â€” Ø²Ø± ÙˆØ§Ø­Ø¯ Ù…Ø´ Ø§ØªÙ†ÙŠÙ†', () => {
+test('نداءين متتاليين — زر واحد مش اتنين', () => {
   const s = boot({});
   const el = s.__el;
-  s.yahmaSessionGate(el, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø©');
-  s.yahmaSessionGate(el, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø© ØªØ§Ù†ÙŠ');
+  s.yahmaSessionGate(el, 'انتهت جلسة');
+  s.yahmaSessionGate(el, 'انتهت جلسة تاني');
   const bars = el.children.filter((c) => c.className === 'yahma-session-gate');
-  assert.strictEqual(bars.length, 1, 'Ø§ØªØ²Ø±Ø§Ø±: ' + bars.length);
-  assert.strictEqual(el.textContent, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø© ØªØ§Ù†ÙŠ');
+  assert.strictEqual(bars.length, 1, 'اتزرار: ' + bars.length);
+  assert.strictEqual(el.textContent, 'انتهت جلسة تاني');
 });
 
-test('yahmaSessionGate Ø¨Ø¹Ù†ØµØ± Ù…Ø§Ù„Ù‡ÙˆØ´ appendChild â€” Ù…Ø§ØªØ±Ø³Ù…ÙŠØ´', () => {
+test('yahmaSessionGate بعنصر مالهوش appendChild — ماترسميش', () => {
   const s = boot({});
   const bare = { textContent: '', parentNode: null };
-  assert.doesNotThrow(() => s.yahmaSessionGate(bare, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø©'));
-  assert.strictEqual(bare.textContent, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø©', 'Ø§Ù„Ù†Øµ Ù„Ø³Ù‡ Ø§ØªÙƒØªØ¨');
+  assert.doesNotThrow(() => s.yahmaSessionGate(bare, 'انتهت جلسة'));
+  assert.strictEqual(bare.textContent, 'انتهت جلسة', 'النص لسه اتكتب');
 });
 
-test('Ø§Ù„Ø²Ø± Ø¨ÙŠØ®Ø±Ø¬ Ù…Ù† Ø§Ù„Ø¬Ù‡Ø§Ø² Ø­ØªÙ‰ Ù„Ùˆ Ø§Ù„Ø´Ø¨ÙƒØ© Ù…Ù‚ÙÙˆÙ„Ø©', async () => {
+test('الزر بيخرج من الجهاز حتى لو الشبكة مقفولة', async () => {
   const s = boot({});
   let signedOut = false;
   s.yahmaSignOut = async () => { signedOut = true; };
   const el = s.__el;
-  s.yahmaSessionGate(el, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„');
+  s.yahmaSessionGate(el, 'انتهت جلسة الدخول');
   const bar = el.children[el.children.length - 1];
   const btn = bar.children[0];
   btn.onclick();
   await new Promise((r) => setImmediate(r));
-  assert.strictEqual(signedOut, true, 'Ø§Ù„Ø²Ø± Ù…Ø¹Ù…Ù„Ø´ Ø­Ø§Ø¬Ø©');
+  assert.strictEqual(signedOut, true, 'الزر معملش حاجة');
 });
 
-test('yahmaSessionGate Ø¨nil Ù…Ø§ÙŠØ±Ù…ÙŠØ´', () => {
+test('yahmaSessionGate بnil مايرميش', () => {
   const s = boot({});
-  assert.doesNotThrow(() => s.yahmaSessionGate(null, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø©'));
-  assert.doesNotThrow(() => s.yahmaSessionGate(undefined, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø©'));
+  assert.doesNotThrow(() => s.yahmaSessionGate(null, 'انتهت جلسة'));
+  assert.doesNotThrow(() => s.yahmaSessionGate(undefined, 'انتهت جلسة'));
 });
 
-/* Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø¹Ù„Ù‘Ø§Ù…Ø© Ù„Ø§Ø²Ù… ØªÙˆØµÙ„ Ù„Ù„Ø¨Ù†Ø± Ø§Ù„ØªØ§Ù†ÙŠ ÙƒÙ…Ø§Ù†ØŒ Ù…Ø´ Ø¨Ø³ Ù„Ù„Ø±Ø³Ø§Ù„Ø©.
-   Ù…Ù† ØºÙŠØ± ÙƒØ¯Ù‡ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙŠØ¯ÙˆØ³ Ø²Ø± ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„ Ù…Ù† ØºÙŠØ± Ø³Ø¨Ø¨ Ø¸Ø§Ù‡Ø±. */
-test(' YahmaData.markSessionExpired Ø¨ØªØªÙ†Ø¯Ø§Ø¡ (Ù„Ù„Ø¨Ù†Ø± Ø§Ù„ØªØ§Ù†ÙŠ ÙƒÙ…Ø§Ù†)', () => {
+/* الحالة المعلّامة لازم توصل للبنر التاني كمان، مش بس للرسالة.
+   من غير كده المستخدم يدوس زر تسجيل دخول من غير سبب ظاهر. */
+test(' YahmaData.markSessionExpired بتتنداء (للبنر التاني كمان)', () => {
   const s = boot({});
   let called = 0;
   s.YahmaData.markSessionExpired = function (m) { called++; s.__marked = m; };
-  s.yahmaSessionGate(s.__el, 'Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø©');
-  assert.strictEqual(called, 1, 'Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø¹Ù„Ù‘Ø§Ù…Ø© Ù…Ø§ØªØ¨Ø¹ØªØªØ´ Ù„Ù„Ø¨Ù†Ø±');
+  s.yahmaSessionGate(s.__el, 'انتهت جلسة');
+  assert.strictEqual(called, 1, 'الحالة المعلّامة ماتبعتتش للبنر');
 });
 
-/* ================= Ø§Ù„Ø£Ø³Ù„Ø§Ùƒ ================= */
+/* ================= الأسلاك ================= */
 
-test('ÙƒÙ„ Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ Ø¯Ø§Ù„Ø© ÙÙŠ Ø§Ù„Ù„ÙˆØ­Ø© Ø¨ÙŠØ¹Ø¯Ù‘ÙŠ Ø¹Ù„Ù‰ Ø§Ù„Ø¨ÙˆØ§Ø¨Ø©', () => {
-  const top = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-invoke.js'), 'utf8') + '\n' +
-    fs.readFileSync(path.join(ROOT, 'modules', 'topbar-user.js'), 'utf8');
+test('كل استدعاء دالة في اللوحة بيعدّي على البوابة', () => {
+  const top = fs.readFileSync(path.join(ROOT, 'modules', 'topbar-invoke.js'), 'utf8') + '\n' + fs.readFileSync(path.join(ROOT, 'modules', 'topbar-user.js'), 'utf8');
   const code = top.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
-  /* Ø§Ù„Ù†Ø¯Ø§Ø¡ Ø§Ù„Ù…Ø¨Ø§Ø´Ø± Ù…Ø³Ù…ÙˆØ­ ÙÙŠ Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯ Ø¨Ø³: Ø¬ÙˆÙ‘Ù‡ invokeYahmaFunction.
-     ÙÙ„Ùˆ Ø²Ø§Ø¯ Ø¹Ù† ÙƒØ¯Ù‡ ÙŠØ¨Ù‚Ù‰ ÙÙŠÙ‡ Ù…Ø³Ø§Ø± Ø¨ÙŠØ¨Ø¹Ø« ØªÙˆÙƒÙ† Ù…Ù† ØºÙŠØ± ØªØ¬Ø¯ÙŠØ¯. */
+  /* النداء المباشر مسموح في مكان واحد بس: جوّه invokeYahmaFunction.
+     فلو زاد عن كده يبقى فيه مسار بيبعث توكن من غير تجديد. */
   const invokes = [...code.matchAll(/supabaseClient\.functions\.invoke\(/g)];
   assert.strictEqual(invokes.length, 1,
-    'Ø¹Ø¯Ø¯ Ø§Ù„Ù†Ø¯Ø§Ø¡Ø§Øª Ø§Ù„Ù…Ø¨Ø§Ø´Ø±Ø© ' + invokes.length + ' â€” Ø§Ù„Ù…ÙØ±ÙˆØ¶ 1 (Ø¯Ø§Ø®Ù„ Ø§Ù„Ø¨ÙˆØ§Ø¨Ø© Ø¨Ø³)');
+    'عدد النداءات المباشرة ' + invokes.length + ' — المفروض 1 (داخل البوابة بس)');
 
-  /* ÙˆØ§Ù„Ø£Ù‡Ù…: Ø§Ù„Ù…ÙˆØ§Ø¶Ø¹ Ø§Ù„ØªÙ„Ø§ØªØ© ÙƒÙ„Ù‡Ø§ Ø¨ØªØ³ØªØ¹Ù…Ù„ Ø§Ù„Ø¨ÙˆØ§Ø¨Ø©. */
-  assert.ok(/invokeYahmaFunction\('admin-create-user'/.test(code), 'Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡ Ù…Ø´ ÙˆØ§ØµÙ„ Ø¨Ø§Ù„Ø¨ÙˆØ§Ø¨Ø©');
-  assert.ok(/invokeYahmaFunction\('admin-delete-user'/.test(code), 'Ø§Ù„Ø­Ø°Ù Ù…Ø´ ÙˆØ§ØµÙ„ Ø¨Ø§Ù„Ø¨ÙˆØ§Ø¨Ø©');
-  assert.ok(/invokeYahmaFunction\('send-user-email'/.test(code), 'Ø­ÙØ¸ Ø±Ø³Ø§Ù„Ø© Ø§Ù„ØªØ±Ø­ÙŠØ¨ Ù…Ø´ ÙˆØ§ØµÙ„ Ø¨Ø§Ù„Ø¨ÙˆØ§Ø¨Ø©');
-  assert.ok(/async function invokeYahmaFunction/.test(code), 'Ø§Ù„Ø¨ÙˆØ§Ø¨Ø© Ù…Ø´ Ù…Ø¹Ø±Ù‘ÙØ©');
+  /* والأهم: المواضع التلاتة كلها بتستعمل البوابة. */
+  assert.ok(/invokeYahmaFunction\('admin-create-user'/.test(code), 'الإنشاء مش واصل بالبوابة');
+  assert.ok(/invokeYahmaFunction\('admin-delete-user'/.test(code), 'الحذف مش واصل بالبوابة');
+  assert.ok(/invokeYahmaFunction\('send-user-email'/.test(code), 'حفظ رسالة الترحيب مش واصل بالبوابة');
+  assert.ok(/async function invokeYahmaFunction/.test(code), 'البوابة مش معرّفة');
 });
 
-test('Ø§Ù„Ø¨ÙˆØ§Ø¨Ø© Ù…Ø¹Ø±Ù‘ÙØ© Ù‚Ø¨Ù„ Ù…Ø§ topbar-ui ÙŠØ³ØªØ®Ø¯Ù…Ù‡Ø§', () => {
+test('البوابة معرّفة قبل ما topbar-ui يستخدمها', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const a = html.indexOf('core/auth-boot.js');
   const b = html.indexOf('modules/topbar-ui.js');
-  assert.ok(a > -1 && b > -1, 'ÙˆØ§Ø­Ø¯ Ù…Ù† Ø§Ù„Ù…Ù„ÙÙŠÙ† Ù…Ø´ Ù…ØªØ­Ù…Ù‘Ù„');
-  assert.ok(a < b, 'auth-boot Ù„Ø§Ø²Ù… ÙŠØªØ­Ù…Ù‘Ù„ Ù‚Ø¨Ù„ topbar-ui');
+  assert.ok(a > -1 && b > -1, 'واحد من الملفين مش متحمّل');
+  assert.ok(a < b, 'auth-boot لازم يتحمّل قبل topbar-ui');
 });
 
-test('Ø§Ù„ØªÙ†Ø³ÙŠÙ‚ Ù…ÙˆØ¬ÙˆØ¯ ÙÙŠ CSS (ÙˆØ§Ù„Ø²Ø± ÙŠØ¨Ø§Ù† Ù…Ø´ Ù†Øµ Ù…Ø®ÙÙŠ)', () => {
+test('التنسيق موجود في CSS (والزر يبان مش نص مخفي)', () => {
   const css = fs.readFileSync(path.join(ROOT, 'css', '04-dark-overrides.css'), 'utf8');
-  assert.ok(/\.yahma-session-gate/.test(css), 'Ù…ÙÙŠØ´ ØªÙ†Ø³ÙŠÙ‚ Ù„Ù„Ø²Ø±');
-  assert.ok(/body\.dark-mode \.yahma-session-gate/.test(css), 'Ù…ÙÙŠØ´ Ù†Ø³Ø®Ø© Ù„Ù„ÙˆØ¶Ø¹ Ø§Ù„Ù„ÙŠÙ„ÙŠ');
+  assert.ok(/\.yahma-session-gate/.test(css), 'مفيش تنسيق للزر');
+  assert.ok(/body\.dark-mode \.yahma-session-gate/.test(css), 'مفيش نسخة للوضع الليلي');
 });
-
