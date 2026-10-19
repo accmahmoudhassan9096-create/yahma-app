@@ -21,10 +21,36 @@ function computeDashboardState(fleet) {
   const outStatus = c => { const s = String(c.carStatus || ''); return s.includes('خارج') || s.includes('مسروق') || s.includes('محول') || s.includes('مفقود'); };
   const maintStatus = c => String(c.carStatus || '').includes('صيانة');
   const inPrepExcl = fleet.filter(c => docFailing(c) && !maintStatus(c) && !outStatus(c)).length;
-  // بطاقات التجديد لكل وثيقة (قد تتداخل: السيارة الواحدة تُعد في كل وثيقة ناقصة)
-  const renInsp = fleet.filter(c => inspectionDisplayStatus(c.inspectionStatus).level !== 'green').length;
-  const renLic = fleet.filter(c => dateStatus(c.licenseExpiry).level !== 'green').length;
-  const renIns = fleet.filter(c => textTag(c.insuranceStatus).level !== 'green').length;
+  // بطاقات التجديد لكل وثيقة — مطابقة تمامًا للتبويبات والأرقام في الشريط الجانبي
+  let pendingInspIds = new Set();
+  try {
+    if (typeof loadInspectionPayments === 'function') {
+      pendingInspIds = new Set(loadInspectionPayments().map(item => String(item.carId)));
+    }
+  } catch(_) {}
+  const tabCount = (tab, extra) => {
+    try {
+      const fn = typeof fleetForTab === 'function' ? fleetForTab : (typeof window !== 'undefined' ? window.fleetForTab : null);
+      if (typeof fn === 'function') {
+        const list = fn(tab, fleet);
+        return extra ? list.filter(extra).length : list.length;
+      }
+    } catch(_) {}
+    return null;
+  };
+  const countRenInsp = tabCount('renewals', c => !pendingInspIds.has(String(c.id)));
+  const renInsp = countRenInsp !== null ? countRenInsp : fleet.filter(c => (typeof inspectionDisplayStatus === 'function' ? inspectionDisplayStatus(c.inspectionStatus).level === 'red' : c.inspectionStatus !== 'تم الفحص')).length;
+
+  const countRenLic = tabCount('license-renewals');
+  const renLic = countRenLic !== null ? countRenLic : fleet.filter(c => (typeof dateStatus === 'function' ? dateStatus(c.licenseExpiry).level === 'red' : false)).length;
+
+  const countRenIns = tabCount('insurance-renewals');
+  const renIns = countRenIns !== null ? countRenIns : fleet.filter(c => {
+    if (c.insuranceExpiry && typeof dateStatus === 'function') {
+      if (dateStatus(c.insuranceExpiry).level === 'red') return true;
+    }
+    return typeof textTag === 'function' ? textTag(c.insuranceStatus).level === 'red' : false;
+  }).length;
 
   /* ===== تصدير الرئيسية =====
      مفيش جدول في الشاشة، فبن export مُلخّص تنفيذي + توزيع الفروع.
@@ -68,7 +94,8 @@ function computeDashboardState(fleet) {
       rows: rows
     };
   };
-  const renCard = fleet.filter(c => cardDisplayStatus(c.cardExpiry, c.cardStatus).level !== 'green').length;
+  const countRenCard = tabCount('inspections');
+  const renCard = countRenCard !== null ? countRenCard : fleet.filter(c => (typeof cardDisplayStatus === 'function' ? cardDisplayStatus(c.cardExpiry, c.cardStatus).level === 'red' : false)).length;
   let finalReview = 0;
   // مراجعة نهائية
   try {
@@ -307,15 +334,15 @@ function computeDashboardState(fleet) {
   const today = typeof todayStr === 'function' ? todayStr() : new Date().toISOString().slice(0, 10);
   let todayTasks = [];
   try {
-    const tasks = getPrepTasks();
-    const needInsp = fleet.filter(c => vehicleReadiness(c).label === 'تحتاج فحص').length;
-    const cardSoon = fleet.filter(c => dateStatus(c.cardExpiry).level !== 'green').length;
-    const licSoon = fleet.filter(c => dateStatus(c.licenseExpiry).level !== 'green').length;
+    const tasks = typeof getPrepTasks === 'function' ? getPrepTasks() : [];
+    const needInsp = renInsp;
+    const cardSoon = renCard;
+    const licSoon = renLic;
     const overdue = tasks.filter(t => t.status !== 'done' && t.dueDate && t.dueDate < today).length;
     todayTasks = [
-      { n: needInsp, label: 'سيارات تحتاج فحص', go: 'inspections', alert: false },
-      { n: cardSoon, label: 'تجديد كارت قريب الانتهاء', go: 'inspections', alert: false },
-      { n: licSoon, label: 'تجديد رخصة قريب الانتهاء', go: 'license-renewals', alert: false },
+      { n: needInsp, label: 'سيارات تحتاج فحص', go: 'renewals', alert: false },
+      { n: cardSoon, label: 'بطاقات تشغيل منتهية', go: 'inspections', alert: false },
+      { n: licSoon, label: 'رخص سير منتهية', go: 'license-renewals', alert: false },
       { n: overdue, label: 'مهام متأخرة', go: 'preparation', alert: true }
     ].filter(x => x.n > 0);
     if (!todayTasks.length) {

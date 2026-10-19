@@ -61,10 +61,10 @@ function renderReports(content, context){
   const issueMatch = (c, issue) => {
     if(!issue || issue==='all') return true;
     try{
-      if(issue==='card') return (typeof dateStatus==='function' ? dateStatus(c.cardExpiry).level!=='green' : false) || ['ملغى','موقوف'].includes(String(c.cardStatus||'').trim());
-      if(issue==='license') return typeof dateStatus==='function' && dateStatus(c.licenseExpiry).level!=='green';
-      if(issue==='inspection') return typeof inspectionDisplayStatus==='function' && inspectionDisplayStatus(c.inspectionStatus).level!=='green';
-      if(issue==='insurance') return typeof textTag==='function' && textTag(c.insuranceStatus).level!=='green';
+      if(issue==='card') return (typeof fleetForTab==='function') ? fleetForTab('inspections', [c]).length > 0 : ((typeof dateStatus==='function' ? dateStatus(c.cardExpiry).level==='red' : false) || ['ملغى','موقوف'].includes(String(c.cardStatus||'').trim()));
+      if(issue==='license') return (typeof fleetForTab==='function') ? fleetForTab('license-renewals', [c]).length > 0 : (typeof dateStatus==='function' && dateStatus(c.licenseExpiry).level==='red');
+      if(issue==='inspection') return (typeof fleetForTab==='function') ? fleetForTab('renewals', [c]).length > 0 : (typeof inspectionDisplayStatus==='function' && inspectionDisplayStatus(c.inspectionStatus).level==='red');
+      if(issue==='insurance') return (typeof fleetForTab==='function') ? fleetForTab('insurance-renewals', [c]).length > 0 : (typeof textTag==='function' && textTag(c.insuranceStatus).level==='red');
       if(issue==='maintenance') return String(c.carStatus||'').includes('صيانة');
       if(issue==='out') return carStatusOut(String(c.carStatus||''));
       if(issue==='notready') return typeof vehicleReadiness==='function' ? !vehicleReadiness(c).ready : false;
