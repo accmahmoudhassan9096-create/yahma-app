@@ -684,12 +684,34 @@ async function runPayBulk(tab, action) {
   render();
 }
 
+function deduplicatePaymentRows(rows){
+  var seen = new Set();
+  var out = [];
+  var norm = typeof normalizePlateKey === 'function' ? normalizePlateKey : (function(p){
+    return String(p || '').replace(/\s+/g, '').toLowerCase();
+  });
+  var sorted = (Array.isArray(rows) ? rows : []).slice().sort(function(a, b){
+    var ta = new Date((a.item && (a.item.requestedAt || a.item.paidAt || a.item.renewedAt)) || 0).getTime();
+    var tb = new Date((b.item && (b.item.requestedAt || b.item.paidAt || b.item.renewedAt)) || 0).getTime();
+    return tb - ta;
+  });
+  for (var i = 0; i < sorted.length; i++) {
+    var r = sorted[i];
+    var pKey = (r.car && r.car.plate && norm(r.car.plate)) || (r.item && r.item.plate && norm(r.item.plate)) || (r.car && r.car.id) || (r.item && r.item.carId);
+    if (!pKey || seen.has(pKey)) continue;
+    seen.add(pKey);
+    out.push(r);
+  }
+  return out;
+}
+
 function renderInspectionPayments(content){
   document.getElementById('topbar-title').textContent='تحت الدفع';
   document.getElementById('topbar-sub').textContent='طلبات دفع تجديد فحص السيارات';
   const pending=loadInspectionPayments();
   const byId=new Map(fleet.map(car=>[String(car.id),car]));
-  const rows=pending.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
+  const rawRows=pending.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
+  const rows=deduplicatePaymentRows(rawRows);
   PAY_ROW_INDEX.payments=Object.create(null);
   rows.forEach(function(r){ PAY_ROW_INDEX.payments[String(r.item.id)]=r; });
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip"><div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>طلبات تحت الدفع</small></span></div></div>
@@ -746,7 +768,8 @@ function renderPaidInspections(content){
     ? window.YahmaPayments.localByStatus('paid') : paid;
   const doneCount=allPaid.filter(function(p){ return String(p.note||'')===doneNote; }).length;
   const byId=new Map(fleet.map(car=>[String(car.id),car]));
-  const rows=paid.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
+  const rawRows=paid.map(item=>({item,car:byId.get(String(item.carId))})).filter(row=>row.car);
+  const rows=deduplicatePaymentRows(rawRows);
   PAY_ROW_INDEX.paid=Object.create(null);
   rows.forEach(function(r){ PAY_ROW_INDEX.paid[String(r.item.id)]=r; });
   const today=new Date(); today.setHours(0,0,0,0);
@@ -818,7 +841,8 @@ function renderRenewedInspections(content){
   document.getElementById('topbar-sub').textContent='سيارات اكتملت دورة تجديد الفحص والرخصة';
   const list=loadRenewedInspections();
   const byId=new Map(fleet.map(car=>[String(car.id),car]));
-  const rows=list.map(item=>({item,car:byId.get(String(item.carId))})).filter(r=>r.car);
+  const rawRows=list.map(item=>({item,car:byId.get(String(item.carId))})).filter(r=>r.car);
+  const rows=deduplicatePaymentRows(rawRows);
   PAY_ROW_INDEX.renewed=Object.create(null);
   rows.forEach(function(r){ PAY_ROW_INDEX.renewed[String(r.item.id)]=r; });
   const today=new Date(); today.setHours(0,0,0,0);

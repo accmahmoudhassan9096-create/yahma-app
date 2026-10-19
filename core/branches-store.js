@@ -35,11 +35,67 @@ function userBranchScope(){
   const b=String(window.currentUserBranch||'').trim();
   return b||null;
 }
+function deduplicateFleetList(list){
+  const arr = Array.isArray(list) ? list : [];
+  if (arr.length <= 1) return arr;
+  const normPlate = typeof normalizePlateKey === 'function'
+    ? normalizePlateKey
+    : (p => String(p || '')
+        .replace(/[ً-ْ]/g, '')
+        .replace(/[إأآٱ]/g, 'ا')
+        .replace(/ة/g, 'ه')
+        .replace(/ى/g, 'ي')
+        .replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])
+        .replace(/[۰-۹]/g, d => '0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
+        .replace(/\\s+/g, '')
+        .replace(/[-_]/g, '')
+        .trim()
+        .toLowerCase());
+
+  const seenPlate = new Map();
+  const seenSerial = new Map();
+  const result = [];
+
+  for (const car of arr) {
+    if (!car) continue;
+    const pKey = normPlate(car.plate);
+    const sKey = String(car.serial || '').trim().toLowerCase();
+    const isPlaceholderSerial = !sKey || sKey === '0' || sKey === 'بدون' || sKey === 'لا يوجد' || sKey === '-';
+
+    let existing = null;
+    if (pKey && seenPlate.has(pKey)) {
+      existing = seenPlate.get(pKey);
+    } else if (!isPlaceholderSerial && seenSerial.has(sKey)) {
+      existing = seenSerial.get(sKey);
+    }
+
+    if (existing) {
+      ['serial', 'cardNumber', 'accountNo', 'companyName', 'licenseExpiry', 'cardExpiry',
+       'inspectionStatus', 'insuranceStatus', 'odometer', 'owner', 'ownerNumber', 'notes'].forEach(f => {
+        if ((!existing[f] || String(existing[f]).trim() === '') && car[f]) {
+          existing[f] = car[f];
+        }
+      });
+      if (car.updatedAt && String(car.updatedAt) > String(existing.updatedAt || '')) {
+        existing.updatedAt = car.updatedAt;
+      }
+      continue;
+    }
+
+    if (pKey) seenPlate.set(pKey, car);
+    if (!isPlaceholderSerial) seenSerial.set(sKey, car);
+    result.push(car);
+  }
+
+  return result;
+}
+
 function scopeFleetToUser(list){
   const b=userBranchScope();
   const arr=Array.isArray(list)?list:[];
-  if(!b) return arr;
-  return arr.filter(c=>String((c&&c.branch)||'').trim()===b);
+  const deduped=deduplicateFleetList(arr);
+  if(!b) return deduped;
+  return deduped.filter(c=>String((c&&c.branch)||'').trim()===b);
 }
 /* قفل فلاتر الفروع على فرع المستخدم + شارة الفرع — تُستدعى في نهاية render() */
 function applyBranchScopeUI(){
