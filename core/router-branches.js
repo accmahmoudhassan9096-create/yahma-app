@@ -100,7 +100,7 @@ function buildBranchMessage(branchName, kind){
   const title=kind==='insp'?'السيارات غير المفحوصة':kind==='card'?'الكروت التي تحتاج متابعة':kind==='lic'?'الرخص التي تحتاج متابعة':'ملخص جاهزية الفرع';
   lines.push('📋 *'+title+'*');
   lines.push('الفرع: *'+branchName+'*');
-  lines.push('التاريخ: '+new Date().toLocaleDateString('ar-EG'));
+  lines.push('التاريخ: '+(typeof fmtDate==='function'?fmtDate(new Date()):new Date().toISOString().slice(0,10)));
   lines.push('————————————');
   let list=st.cars;
   if(kind==='insp') list=st.cars.filter(c=>inspectionDisplayStatus(c.inspectionStatus).level!=='green');

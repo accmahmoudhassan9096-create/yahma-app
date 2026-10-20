@@ -7,10 +7,26 @@
 
 (function(){
  const AUDIT='fleet-audit-v1';
+ function formatAuditDateTime(v){
+  if(!v) return '—';
+  try{
+    const d=new Date(v);
+    if(isNaN(d.getTime())) return String(v);
+    const day=String(d.getDate()).padStart(2,'0');
+    const month=String(d.getMonth()+1).padStart(2,'0');
+    const year=d.getFullYear();
+    const hours=d.getHours();
+    const minutes=String(d.getMinutes()).padStart(2,'0');
+    const ampm=hours>=12?'م':'ص';
+    const h12=String(hours%12||12).padStart(2,'0');
+    return `${day}/${month}/${year} — ${h12}:${minutes} ${ampm}`;
+  }catch(_){ return String(v); }
+ }
+
  function log(action,detail){
   const actorName = (typeof window !== 'undefined' && ((window.YahmaPayments && typeof window.YahmaPayments.getCurrentActorName === 'function' && window.YahmaPayments.getCurrentActorName()) || window.currentUserName || (window.currentUser && window.currentUser.email))) || 'مستخدم محلي';
   const userEmail = (window.currentUser && window.currentUser.email) || '';
-  const record={at:new Date().toISOString(),displayAt:new Date().toLocaleString('ar-EG'),user:actorName,user_email:userEmail,user_name:actorName,role:window.currentRole||'view',action,detail};
+  const record={at:new Date().toISOString(),displayAt:formatAuditDateTime(new Date()),user:actorName,user_email:userEmail,user_name:actorName,role:window.currentRole||'view',action,detail};
   let a=[];try{a=JSON.parse(localStorage.getItem(AUDIT)||'[]')}catch(e){yahmaErr(e,'audit-theme.js:12');}
   a.unshift(record);localStorage.setItem(AUDIT,JSON.stringify(a.slice(0,500)));
   if(!window._demoMode&&window.supabaseReady&&window.supabaseClient&&window.currentUser?.id){
@@ -149,7 +165,7 @@
     const tbody = ov.querySelector('#audit-modal-tbody');
     if (tbody) {
       tbody.innerHTML = shown.length ? shown.map(r => `<tr>
-        <td dir="ltr">${esc(new Date(r.created_at || r.at).toLocaleString('ar-EG'))}</td>
+        <td dir="ltr">${esc(formatAuditDateTime(r.created_at || r.at))}</td>
         <td><b>${esc(r.display_user)}</b></td>
         <td>${esc(r.role)}</td>
         <td>${esc(r.action)}</td>
@@ -160,7 +176,7 @@
       title: 'سجل نشاط المستخدمين',
       subtitle: `عدد الحركات: ${filtered.length}`,
       headers: ['التاريخ والوقت', 'المستخدم', 'الدور', 'الحركة', 'التفاصيل'],
-      rows: filtered.map(r => [new Date(r.created_at || r.at).toLocaleString('ar-EG'), r.display_user || '—', r.role || '—', r.action || '—', r.detail || '—'])
+      rows: filtered.map(r => [formatAuditDateTime(r.created_at || r.at), r.display_user || '—', r.role || '—', r.action || '—', r.detail || '—'])
     });
   };
 
@@ -179,7 +195,7 @@
   ov.onclick = e => { if (e.target === ov) close(); };
   ov.querySelector('#audit-export').onclick = () => {
     const filtered = getFilteredModalRows();
-    const lines = [['التاريخ والوقت', 'المستخدم', 'الدور', 'الحركة', 'التفاصيل'], ...filtered.map(r => [new Date(r.created_at || r.at).toLocaleString('ar-EG'), r.user_email || r.user, r.role, r.action, r.detail])];
+    const lines = [['التاريخ والوقت', 'المستخدم', 'الدور', 'الحركة', 'التفاصيل'], ...filtered.map(r => [formatAuditDateTime(r.created_at || r.at), r.user_email || r.user, r.role, r.action, r.detail])];
     const csv = '\uFEFF' + lines.map(x => x.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));

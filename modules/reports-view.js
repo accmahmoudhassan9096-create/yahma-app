@@ -224,7 +224,7 @@
     <div class="rd-card rd-3d rd-summary" id="rd-summary-card">
       <div class="rd-card-h"><h3>ملخص تنفيذي للمشاركة</h3><span class="rd-chip">واتساب / إيميل / PDF</span></div>
       <pre class="rd-summary-text" id="rd-summary-text">تقرير يهماء — منصة تحضير الأسطول
-التاريخ: ${new Date().toLocaleString('ar-SA-u-ca-gregory')}
+التاريخ: ${new Date().toLocaleString('ar-SA-u-nu-latn-ca-gregory')}
 الفترة: ${periodLabel()}
 ────────────────
 إجمالي السيارات ضمن الفترة: ${total}

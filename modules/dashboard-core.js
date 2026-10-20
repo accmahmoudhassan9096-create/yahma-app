@@ -89,7 +89,7 @@ function computeDashboardState(fleet) {
 
     return {
       title: 'الملخص التنفيذي للأسطول',
-      subtitle: 'إجمالي ' + total + ' سيارة — جاهزة ' + ready + ' — ' + new Date().toLocaleDateString('ar-EG'),
+      subtitle: 'إجمالي ' + total + ' سيارة — جاهزة ' + ready + ' — ' + (typeof fmtDate === 'function' ? fmtDate(new Date()) : new Date().toISOString().slice(0, 10)),
       headers: ['البند / الفرع', 'الإجمالي', 'جاهزة', 'غير جاهزة'],
       rows: rows
     };
@@ -412,7 +412,7 @@ function computeDashboardState(fleet) {
     try {
       const d = new Date(t);
       if (isNaN(d)) return String(t).slice(0, 16);
-      return d.toLocaleTimeString('ar-SA-u-ca-gregory', { hour: '2-digit', minute: '2-digit' });
+      return d.toLocaleTimeString('ar-SA-u-nu-latn-ca-gregory', { hour: '2-digit', minute: '2-digit' });
     } catch(e) { return String(t).slice(0, 10); }
   };
   const isToday = (t) => {

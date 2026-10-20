@@ -33,13 +33,23 @@ function loadRenewedInspections(){
   }
   return [];
 }
-/* تنسيق تاريخ عربي موحّد يتعامل مع نصوص ISO وتوقيت المتصفح معًا */
+/* تنسيق تاريخ عربي موحّد بالأرقام يتعامل مع نصوص ISO وتوقيت المتصفح معًا */
 function formatArabicDate(value){
   if(!value) return '—';
+  if(typeof value === 'string' && /^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/.test(value.trim())){
+    var parts = value.trim().split(/[-\/]/);
+    return String(parts[2]).padStart(2, '0') + '/' + String(parts[1]).padStart(2, '0') + '/' + parts[0];
+  }
   var d=new Date(value);
   if(isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString('ar-EG-u-ca-gregory',{year:'numeric',month:'short',day:'numeric'})+' — '+
-         d.toLocaleTimeString('ar-EG-u-ca-gregory',{hour:'2-digit',minute:'2-digit'});
+  var day = String(d.getDate()).padStart(2, '0');
+  var month = String(d.getMonth() + 1).padStart(2, '0');
+  var year = d.getFullYear();
+  var hours = d.getHours();
+  var minutes = String(d.getMinutes()).padStart(2, '0');
+  var ampm = hours >= 12 ? 'م' : 'ص';
+  var h12 = String(hours % 12 || 12).padStart(2, '0');
+  return day + '/' + month + '/' + year + ' — ' + h12 + ':' + minutes + ' ' + ampm;
 }
 /* تنبيه: المزامنة السحابية للدفعات معطّلة — الشغل محفوظ على الجهاز بس */
 function paymentsSyncWarningHtml(){

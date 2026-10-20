@@ -11,7 +11,7 @@
     const list = cars || [];
     const lines = [
       '📋 *تقرير السيارات غير المفحوصة*',
-      'التاريخ: ' + new Date().toLocaleDateString('ar-EG'),
+      'التاريخ: ' + (global.YahmaUtils ? global.YahmaUtils.fmtDate(new Date()) : new Date().toISOString().slice(0, 10)),
       'العدد: *' + list.length + '* سيارة',
       '————————————'
     ];

@@ -142,7 +142,7 @@ function renderFollowUp(content){
   function buildCardWAMessage(){
     const list=fleet.filter(c=>cardDisplayStatus(c.cardExpiry,c.cardStatus).level!=='green')
       .sort((a,b)=> (daysFromNow(a.cardExpiry)??9999)-(daysFromNow(b.cardExpiry)??9999));
-    const lines=['🪪 *تقرير الكروت التي تحتاج متابعة*', 'التاريخ: '+new Date().toLocaleDateString('ar-EG'), 'العدد: *'+list.length+'* سيارة', '————————————'];
+    const lines=['🪪 *تقرير الكروت التي تحتاج متابعة*', 'التاريخ: '+fmtDate(new Date()), 'العدد: *'+list.length+'* سيارة', '————————————'];
     if(!list.length) lines.push('✅ لا توجد كروت تحتاج متابعة.');
     else list.forEach((c,i)=>{
       const st=cardDisplayStatus(c.cardExpiry,c.cardStatus);
@@ -154,7 +154,7 @@ function renderFollowUp(content){
   }
   function buildInsWAMessage(){
     const list=fleet.filter(c=>textTag(c.insuranceStatus).level!=='green');
-    const lines=['🛡️ *تقرير التأمين غير الساري*', 'التاريخ: '+new Date().toLocaleDateString('ar-EG'), 'العدد: *'+list.length+'* سيارة', '————————————'];
+    const lines=['🛡️ *تقرير التأمين غير الساري*', 'التاريخ: '+fmtDate(new Date()), 'العدد: *'+list.length+'* سيارة', '————————————'];
     if(!list.length) lines.push('✅ كل السيارات تأمينها ساري.');
     else list.forEach((c,i)=>{
       const st=textTag(c.insuranceStatus);

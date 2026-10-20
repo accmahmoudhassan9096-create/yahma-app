@@ -69,7 +69,7 @@ ${d.accLine}
   const buildWaData = () => {
     const acc2 = accountingIndicators(list);
     return {
-      date: new Date().toLocaleDateString('ar-SA-u-ca-gregory'),
+      date: new Date().toLocaleDateString('ar-SA-u-nu-latn-ca-gregory'),
       periodLabel: periodLabel(),
       total, ready, readyPct, notReady, maint, out, prepOpen, prepOverdue,
       overdue: expBuckets.overdue, d7: expBuckets.d7, d30: expBuckets.d30, d90: expBuckets.d90,
@@ -219,7 +219,7 @@ ${d.accLine}
     }
     const logEl=document.getElementById('snd-log-rows');
     if(logEl){
-      logEl.innerHTML = lg.length ? lg.slice(0,20).map(e=>`<div class="snd-log-row"><span>${esc(e.name)} — ${SND_KIND_LABEL[e.kind]||e.kind} · ${e.channel==='mail'?'إيميل':'واتساب'}</span><time>${new Date(e.at).toLocaleString('ar-SA-u-ca-gregory')}</time></div>`).join('') : '<div class="snd-empty">لا إرساليات مسجلة بعد — كل رسالة تُرسل ستُوثّق هنا تلقائيًا.</div>';
+      logEl.innerHTML = lg.length ? lg.slice(0,20).map(e=>`<div class="snd-log-row"><span>${esc(e.name)} — ${SND_KIND_LABEL[e.kind]||e.kind} · ${e.channel==='mail'?'إيميل':'واتساب'}</span><time>${new Date(e.at).toLocaleString('ar-SA-u-nu-latn-ca-gregory')}</time></div>`).join('') : '<div class="snd-empty">لا إرساليات مسجلة بعد — كل رسالة تُرسل ستُوثّق هنا تلقائيًا.</div>';
     }
     const batchEl=document.getElementById('snd-batch');
     if(batchEl && !batchEl.dataset.keep) batchEl.innerHTML='';
@@ -229,7 +229,7 @@ ${d.accLine}
     const wd=document.getElementById('snd-weekly-day'); if(wd) wd.value=String(sc.weeklyDay);
     const status=document.getElementById('snd-schedule-status');
     if(status && sc.enabled){
-      const fmtD=d=>{ try{ return d?new Date(d+'T00:00:00').toLocaleDateString('ar-SA-u-ca-gregory'):'—'; }catch(_){ return d||'—'; } };
+      const fmtD=d=>{ try{ return d?new Date(d+'T00:00:00').toLocaleDateString('ar-SA-u-nu-latn-ca-gregory'):'—'; }catch(_){ return d||'—'; } };
       status.textContent='الجدولة السحابية مفعّلة: تقرير يومي '+sc.dailyTime+'، وتنبيه مستندات أسبوعي يوم '+['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][sc.weeklyDay]+' '+sc.weeklyTime+' بتوقيت الرياض.'
         +' آخر إرسال تلقائي — يومي: '+fmtD(sc.lastDaily)+' · أسبوعي: '+fmtD(sc.lastWeekly)+'.';
     }

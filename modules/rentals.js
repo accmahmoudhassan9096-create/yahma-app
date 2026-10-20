@@ -36,7 +36,7 @@
     var d = new Date(s);
     if (isNaN(d.getTime())) return s;
     try {
-      return d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
+      return d.toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
     } catch (_) { return s; }
   }
   function fmtDate(v) { return fmtDay(v); }

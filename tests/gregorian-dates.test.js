@@ -80,3 +80,22 @@ test('FleetExcel toDateStr handles both Gregorian and Hijri dates', () => {
   const parsedHyphen = excel.toDateStr('1446-08-15');
   assert.strictEqual(parsedHyphen, parsed);
 });
+
+test('formatArabicDate outputs numeric dates without Arabic month names', () => {
+  const env = loadUtilsAndExcel();
+  // Stub needed DOM / globals for router-payments
+  env.document = { getElementById: () => null, querySelectorAll: () => [] };
+  env.localStorage = { getItem: () => null, setItem: () => null };
+  vm.runInNewContext(read('core/router-payments.js'), env, { filename: 'core/router-payments.js' });
+  const formatArabicDate = env.formatArabicDate;
+
+  // With timestamp (e.g. user screenshot 19 أكتوبر 2026)
+  const formatted = formatArabicDate('2026-10-19T16:15:00');
+  assert.ok(formatted.includes('19/10/2026'), `Expected 19/10/2026 in ${formatted}`);
+  assert.ok(!formatted.includes('أكتوبر'), `Should not contain Arabic month name: ${formatted}`);
+  assert.ok(formatted.includes('04:15') || formatted.includes('4:15'), `Expected time in ${formatted}`);
+
+  // Date only string
+  const dateOnly = formatArabicDate('2026-10-19');
+  assert.strictEqual(dateOnly, '19/10/2026');
+});
