@@ -54,6 +54,8 @@ window.currentUser = null;
 window._authResolved = false;
 
 function renderEmergencyFleet(content){
+  content = content || document.getElementById('content');
+  if(!content) return;
   const rows=Array.isArray(fleet)?fleet:[];
   content.innerHTML='<div class="panel"><h3>بيانات الأسطول</h3><div class="muted-small">تم فتح النسخة المحلية — عدد السيارات: '+rows.length+'</div><div class="table-scroll" style="margin-top:12px"><table><thead><tr><th>رقم اللوحة</th><th>الماركة</th><th>الفرع</th><th>الحالة</th></tr></thead><tbody>'+rows.slice(0,200).map(c=>'<tr><td>'+escapeHtml(c.plate||'—')+'</td><td>'+escapeHtml(c.brand||'—')+'</td><td>'+escapeHtml(c.branch||'—')+'</td><td>'+escapeHtml(c.carStatus||'—')+'</td></tr>').join('')+'</tbody></table></div></div>';
 }

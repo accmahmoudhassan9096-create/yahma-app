@@ -309,14 +309,16 @@ ${d.accLine}
   if(frBtn) frBtn.onclick = () => {
     if(!window.__lastReportAgg){ alert('افتح شاشة التقارير أولًا لتوليد المؤشرات.'); return; }
     frEnsureRoot();
-    document.getElementById('fr-sheet').innerHTML = frSheetHTML();
+    const frSheet = document.getElementById('fr-sheet');
+    if(frSheet) frSheet.innerHTML = frSheetHTML();
     document.getElementById('fr-root').style.display = 'flex';
   };
   const infBtn=document.getElementById('rd-infog');
   if(infBtn) infBtn.onclick = () => {
     if(!window.__lastReportAgg){ alert('افتح شاشة التقارير أولًا لتوليد المؤشرات.'); return; }
     infEnsureRoot();
-    document.getElementById('inf-sheet').innerHTML = infSheetHTML();
+    const infSheet = document.getElementById('inf-sheet');
+    if(infSheet) infSheet.innerHTML = infSheetHTML();
     document.getElementById('inf-root').style.display = 'flex';
   };
   }

@@ -54,7 +54,9 @@ function renderPreparation(content){
   window._yahmaCurrentPdfData=()=>({title:'مهام التجهيز المفلترة',subtitle:'عدد المهام: '+getPrepFiltered().length,headers:['رقم اللوحة','الفرع','المهمة','المسؤول','الاستحقاق','الحالة'],rows:getPrepFiltered().map(t=>[t.plate||'',t.branch||'',t.title||'',t.assignee||'',t.dueDate||'',t.status==='done'?'مكتملة':t.status==='progress'?'قيد التنفيذ':'مفتوحة'])});
   const draw=()=>{
     const list=getPrepFiltered();
-    document.getElementById('prep-task-body').innerHTML=list.length?list.map(t=>{const cls=t.status==='done'?'task-done':t.status==='progress'?'task-progress':'task-open';const label=t.status==='done'?'مكتملة':t.status==='progress'?'قيد التنفيذ':'مفتوحة';return `<tr><td class="plate">${escapeHtml(t.plate)}</td><td>${escapeHtml(t.branch)}</td><td>${escapeHtml(t.title)}</td><td>${escapeHtml(t.assignee||'—')}</td><td>${escapeHtml(t.dueDate||'—')}</td><td><span class="task-status ${cls}">${label}</span></td><td><button class="btn btn-ghost btn-small" data-prep-edit="${escapeHtml(t.carId)}">فتح السيارة</button></td></tr>`}).join(''):'<tr><td colspan="7"><div class="empty">لا توجد مهام حسب الفلاتر الحالية</div></td></tr>';
+    const tb = document.getElementById('prep-task-body');
+    if(!tb) return;
+    tb.innerHTML=list.length?list.map(t=>{const cls=t.status==='done'?'task-done':t.status==='progress'?'task-progress':'task-open';const label=t.status==='done'?'مكتملة':t.status==='progress'?'قيد التنفيذ':'مفتوحة';return `<tr><td class="plate">${escapeHtml(t.plate)}</td><td>${escapeHtml(t.branch)}</td><td>${escapeHtml(t.title)}</td><td>${escapeHtml(t.assignee||'—')}</td><td>${escapeHtml(t.dueDate||'—')}</td><td><span class="task-status ${cls}">${label}</span></td><td><button class="btn btn-ghost btn-small" data-prep-edit="${escapeHtml(t.carId)}">فتح السيارة</button></td></tr>`}).join(''):'<tr><td colspan="7"><div class="empty">لا توجد مهام حسب الفلاتر الحالية</div></td></tr>';
     document.querySelectorAll('[data-prep-edit]').forEach(b=>b.onclick=()=>openModal(b.dataset.prepEdit));
   };
   ['prep-search','prep-status','prep-type'].forEach(id=>{
@@ -130,10 +132,10 @@ function render(){
   const insuranceAlerts = tabCount('insurance-renewals');
   // تاب "بطاقات التشغيل": تنبيهات الكارت (بطاقة التشغيل)
   const followUpAlerts = tabCount('inspections');
-    document.getElementById('count-renewals').textContent = renewalAlerts;
+    const cr=document.getElementById('count-renewals'); if(cr) cr.textContent = renewalAlerts;
     const licenseCount=document.getElementById('count-license-renewals'); if(licenseCount) licenseCount.textContent=licenseAlerts;
     const insuranceCount=document.getElementById('count-insurance-renewals'); if(insuranceCount) insuranceCount.textContent=insuranceAlerts;
-    document.getElementById('count-inspections').textContent = followUpAlerts;
+    const ci=document.getElementById('count-inspections'); if(ci) ci.textContent = followUpAlerts;
     const transfersCount=fleet.filter(c=>String(c.transferDone||'').trim()==='نعم').length;
     const transfersBadge=document.getElementById('count-transfers'); if(transfersBadge) transfersBadge.textContent=transfersCount;
     /* ⚠️ العداد = عدد الاستئجارات الشغّالة، زي «تم الدفع» بيعدّ

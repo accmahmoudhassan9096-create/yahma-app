@@ -543,6 +543,7 @@
   function draw(){
     const allRows=getFilteredRows(),tb=$('fleet-tbody');
     const cardsEl=$('fleet-cards');
+    if(!tb && !cardsEl) return;
     const total=allRows.length;
     const size=pageSize>0?pageSize:total||1;
     const totalPages=Math.max(1, Math.ceil((total||1)/size));

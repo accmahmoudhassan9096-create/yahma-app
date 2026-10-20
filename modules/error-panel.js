@@ -53,6 +53,7 @@
   }
 
   function renderBody(host, list) {
+    if (!host) return;
     if (!list.length) {
       host.innerHTML = '<div class="err-panel-empty">'
         + '<b>لا توجد أخطاء مسجّلة</b>'

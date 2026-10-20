@@ -974,7 +974,7 @@ function renderPaidInspections(content){
   </div>
   ${paymentsSyncWarningHtml()}
   ${payBulkBarFor('paid')}
-  <div class="table-scroll"><table class="fleet-table" id="pay-table-paid"><thead><tr>${payCheckHeader('paid',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody id="pay-tbody-paid">
+  <div class="table-scroll"><table class="fleet-table" id="pay-table-paid"><thead><tr>${payCheckHeader('paid',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th><th>الرقم التسلسلي</th><th>رقم الحاسب</th><th>اسم المالك</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody id="pay-tbody-paid">
   </tbody></table></div>`;
 
   let activePQ = 'all';
@@ -995,7 +995,7 @@ function renderPaidInspections(content){
       if (licSt === 'valid' && needs) return false;
 
       if (q) {
-        const hay = [car.plate, item.plate, car.branch, item.branch, car.notes, resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
+        const hay = [car.plate, item.plate, car.branch, item.branch, car.serial, car.accountNo, car.ownerNumber, car.owner, car.notes, resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
         if (!hay.includes(q)) return false;
       }
       if (branch && String((car && car.branch) || (item && item.branch) || '').trim() !== branch) return false;
@@ -1019,7 +1019,7 @@ function renderPaidInspections(content){
 
     tbody.innerHTML = list.length ? list.map(({item,car})=>{
       const needs = needsLicense({car});
-      return `<tr>${payCheckCell('paid',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><div class="row-actions"><button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(item.id)}">تجديد الرخصة</button>${!needs ? '<span class="tag green" style="margin:0 2px">الرخصة سارية</span>' : ''}<button type="button" class="btn btn-ghost btn-small row-del" data-stepback-payment="${escapeHtml(item.id)}" title="رجوع السيارة لقائمة «تحت الدفع»">↩ رجوع لِتحت الدفع</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</div></td></tr>`;
+      return `<tr>${payCheckCell('paid',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td><td>${escapeHtml(car.branch||item.branch||'—')}</td><td class="serial-cell">${escapeHtml(car.serial||'—')}</td><td>${escapeHtml(car.accountNo||car.ownerNumber||'—')}</td><td>${escapeHtml(car.owner||car.companyName||'—')}</td><td>${escapeHtml(formatArabicDate(item.requestedAt))}</td><td>${escapeHtml(formatArabicDate(item.paidAt))}</td><td><span class="tag green">تم الدفع</span></td>${payNoteCell(car)}<td>${escapeHtml(resolveItemUserName(item))}</td><td><div class="row-actions"><button type="button" class="btn btn-primary btn-small" data-renew-license="${escapeHtml(item.id)}">تجديد الرخصة</button>${!needs ? '<span class="tag green" style="margin:0 2px">الرخصة سارية</span>' : ''}<button type="button" class="btn btn-ghost btn-small row-del" data-stepback-payment="${escapeHtml(item.id)}" title="رجوع السيارة لقائمة «تحت الدفع»">↩ رجوع لِتحت الدفع</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</div></td></tr>`;
     }).join('') : '<tr><td class="empty-span"><div class="empty">لا توجد طلبات مدفوعة بعد</div></td></tr>';
 
     const countLabel = document.getElementById('pay-count-paid');
@@ -1028,9 +1028,10 @@ function renderPaidInspections(content){
     window._yahmaCurrentPdfData=()=>({
       title:'طلبات تم الدفع',
       subtitle:'عدد الطلبات: '+list.length,
-      headers:['رقم اللوحة','الفرع','تاريخ الطلب','تاريخ الدفع','حالة الدفع','ملاحظات','المستخدم'],
+      headers:['رقم اللوحة','الفرع','الرقم التسلسلي','رقم الحاسب','اسم المالك','تاريخ الطلب','تاريخ الدفع','حالة الدفع','ملاحظات','المستخدم'],
       rows:list.map(({item,car})=>[
         car.plate||item.plate||'—', car.branch||item.branch||'—',
+        car.serial||'—', car.accountNo||car.ownerNumber||'—', car.owner||car.companyName||'—',
         formatArabicDate(item.requestedAt), formatArabicDate(item.paidAt),
         'تم الدفع', car.notes||'—', resolveItemUserName(item)])
     });
@@ -1147,7 +1148,7 @@ function renderRenewedInspections(content){
   ${paymentsSyncWarningHtml()}
   ${payBulkBarFor('renewed')}
   <div class="table-scroll"><table class="fleet-table" id="pay-table-renewed"><thead><tr>
-    ${payCheckHeader('renewed',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>تاريخ التجديد</th><th>الرخصة الجديدة</th><th>الحالة</th><th>ملاحظات</th><th>المستخدم</th><th>إجراء</th>
+    ${payCheckHeader('renewed',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th><th>الرقم التسلسلي</th><th>رقم الحاسب</th><th>اسم المالك</th><th>تاريخ الطلب</th><th>تاريخ الدفع</th><th>تاريخ التجديد</th><th>الرخصة الجديدة</th><th>الحالة</th><th>ملاحظات</th><th>المستخدم</th><th>إجراء</th>
   </tr></thead><tbody id="pay-tbody-renewed">
   </tbody></table></div>`;
 
@@ -1163,7 +1164,7 @@ function renderRenewedInspections(content){
       if (activeRQ === 'today' && (!stamp || new Date(stamp) < today)) return false;
 
       if (q) {
-        const hay = [car.plate, item.plate, car.branch, item.branch, car.licenseExpiry, car.notes, formatArabicDate(stamp), resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
+        const hay = [car.plate, item.plate, car.branch, item.branch, car.serial, car.accountNo, car.ownerNumber, car.owner, car.licenseExpiry, car.notes, formatArabicDate(stamp), resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
         if (!hay.includes(q)) return false;
       }
       if (branch && String((car && car.branch) || (item && item.branch) || '').trim() !== branch) return false;
@@ -1189,6 +1190,9 @@ function renderRenewedInspections(content){
       const stamp=stampOf(item);
       return `<tr>${payCheckCell('renewed',item.id,car.plate)}<td class="plate">${escapeHtml(car.plate||item.plate||'—')}</td>
         <td>${escapeHtml(car.branch||item.branch||'—')}</td>
+        <td class="serial-cell">${escapeHtml(car.serial||'—')}</td>
+        <td>${escapeHtml(car.accountNo||car.ownerNumber||'—')}</td>
+        <td>${escapeHtml(car.owner||car.companyName||'—')}</td>
         <td>${escapeHtml(formatArabicDate(item.requestedAt))}</td>
         <td>${escapeHtml(formatArabicDate(item.paidAt))}</td>
         <td><b>${escapeHtml(formatArabicDate(stamp))}</b></td>
@@ -1205,9 +1209,10 @@ function renderRenewedInspections(content){
     window._yahmaCurrentPdfData=()=>({
       title:'سجل تجديد الرخص',
       subtitle:'عدد العمليات: '+list.length,
-      headers:['رقم اللوحة','الفرع','تاريخ الطلب','تاريخ الدفع','تاريخ التجديد','الرخصة الجديدة','الحالة','ملاحظات','المستخدم'],
+      headers:['رقم اللوحة','الفرع','الرقم التسلسلي','رقم الحاسب','اسم المالك','تاريخ الطلب','تاريخ الدفع','تاريخ التجديد','الرخصة الجديدة','الحالة','ملاحظات','المستخدم'],
       rows:list.map(({item,car})=>[
         car.plate||item.plate||'—', car.branch||item.branch||'—',
+        car.serial||'—', car.accountNo||car.ownerNumber||'—', car.owner||car.companyName||'—',
         formatArabicDate(item.requestedAt), formatArabicDate(item.paidAt),
         formatArabicDate(stampOf(item)), fmtDate(car.licenseExpiry), 'تم التجديد', car.notes||'—', resolveItemUserName(item)])
     });
