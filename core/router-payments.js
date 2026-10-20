@@ -944,7 +944,16 @@ function renderPaidInspections(content){
     rows.forEach(r => { const u = resolveItemUserName(r.item); if (u && u !== '—') s.add(u); });
     return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
   };
+  const getOwners = () => {
+    const s = new Set();
+    rows.forEach(r => {
+      const o = (r.car && (r.car.owner || r.car.companyName)) || '';
+      if (o && String(o).trim() && String(o).trim() !== '—') s.add(String(o).trim());
+    });
+    return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
+  };
   const branchOpts = '<option value="">كل الفروع</option>' + getBranches().map(b => '<option value="' + escapeHtml(b) + '">' + escapeHtml(b) + '</option>').join('');
+  const ownerOpts = '<option value="">كل المُلّاك</option>' + getOwners().map(o => '<option value="' + escapeHtml(o) + '">' + escapeHtml(o) + '</option>').join('');
   const userOpts = '<option value="">كل المستخدمين</option>' + getUsers().map(u => '<option value="' + escapeHtml(u) + '">' + escapeHtml(u) + '</option>').join('');
 
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip">
@@ -961,9 +970,10 @@ function renderPaidInspections(content){
       <button type="button" class="quick-filter" data-pq="has_lic">✅ الرخصة سارية</button>
       <button type="button" class="quick-filter" data-pq="today">📅 مدفوع اليوم</button>
     </div>
-    <div class="fleet-filter-grid">
-      <label>بحث<input id="pay-search-paid" placeholder="رقم اللوحة، الفرع، المستخدم، الملاحظات..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
+    <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <label>بحث<input id="pay-search-paid" placeholder="رقم اللوحة، الفرع، المالك، المستخدم، الملاحظات..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
       <label>الفرع<select id="pay-branch-paid">${branchOpts}</select></label>
+      <label>اسم المالك<select id="pay-owner-paid">${ownerOpts}</select></label>
       <label>حالة الرخصة<select id="pay-lic-status-paid"><option value="">كل الحالات</option><option value="need">بانتظار تجديد الرخصة</option><option value="valid">الرخصة سارية</option></select></label>
       <label>المستخدم<select id="pay-user-paid">${userOpts}</select></label>
     </div>
@@ -982,6 +992,7 @@ function renderPaidInspections(content){
   function getFiltered() {
     const q = (document.getElementById('pay-search-paid')?.value || '').trim().toLowerCase();
     const branch = (document.getElementById('pay-branch-paid')?.value || '').trim();
+    const owner = (document.getElementById('pay-owner-paid')?.value || '').trim();
     const licSt = (document.getElementById('pay-lic-status-paid')?.value || '').trim();
     const user = (document.getElementById('pay-user-paid')?.value || '').trim();
 
@@ -995,10 +1006,11 @@ function renderPaidInspections(content){
       if (licSt === 'valid' && needs) return false;
 
       if (q) {
-        const hay = [car.plate, item.plate, car.branch, item.branch, car.serial, car.accountNo, car.ownerNumber, car.owner, car.notes, resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
+        const hay = [car.plate, item.plate, car.branch, item.branch, car.serial, car.accountNo, car.ownerNumber, car.owner, car.companyName, car.notes, resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
         if (!hay.includes(q)) return false;
       }
       if (branch && String((car && car.branch) || (item && item.branch) || '').trim() !== branch) return false;
+      if (owner && String((car && (car.owner || car.companyName)) || '').trim() !== owner) return false;
       if (user && resolveItemUserName(item) !== user) return false;
       return true;
     });
@@ -1071,7 +1083,7 @@ function renderPaidInspections(content){
     };
   });
 
-  ['pay-search-paid', 'pay-branch-paid', 'pay-lic-status-paid', 'pay-user-paid'].forEach(id => {
+  ['pay-search-paid', 'pay-branch-paid', 'pay-owner-paid', 'pay-lic-status-paid', 'pay-user-paid'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('input', draw);
@@ -1080,7 +1092,7 @@ function renderPaidInspections(content){
   });
 
   document.getElementById('pay-clear-paid')?.addEventListener('click', function(){
-    ['pay-search-paid', 'pay-branch-paid', 'pay-lic-status-paid', 'pay-user-paid'].forEach(id => {
+    ['pay-search-paid', 'pay-branch-paid', 'pay-owner-paid', 'pay-lic-status-paid', 'pay-user-paid'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
@@ -1122,7 +1134,16 @@ function renderRenewedInspections(content){
     rows.forEach(r => { const u = resolveItemUserName(r.item); if (u && u !== '—') s.add(u); });
     return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
   };
+  const getOwners = () => {
+    const s = new Set();
+    rows.forEach(r => {
+      const o = (r.car && (r.car.owner || r.car.companyName)) || '';
+      if (o && String(o).trim() && String(o).trim() !== '—') s.add(String(o).trim());
+    });
+    return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
+  };
   const branchOpts = '<option value="">كل الفروع</option>' + getBranches().map(b => '<option value="' + escapeHtml(b) + '">' + escapeHtml(b) + '</option>').join('');
+  const ownerOpts = '<option value="">كل المُلّاك</option>' + getOwners().map(o => '<option value="' + escapeHtml(o) + '">' + escapeHtml(o) + '</option>').join('');
   const userOpts = '<option value="">كل المستخدمين</option>' + getUsers().map(u => '<option value="' + escapeHtml(u) + '">' + escapeHtml(u) + '</option>').join('');
 
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip">
@@ -1135,9 +1156,10 @@ function renderRenewedInspections(content){
       <button type="button" class="quick-filter active" data-rq="all">الكل</button>
       <button type="button" class="quick-filter" data-rq="today">📅 تم تجديدها اليوم</button>
     </div>
-    <div class="fleet-filter-grid">
-      <label>بحث<input id="pay-search-renewed" placeholder="رقم اللوحة، الفرع، المستخدم، الملاحظات..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
+    <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <label>بحث<input id="pay-search-renewed" placeholder="رقم اللوحة، الفرع، المالك، المستخدم، الملاحظات..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
       <label>الفرع<select id="pay-branch-renewed">${branchOpts}</select></label>
+      <label>اسم المالك<select id="pay-owner-renewed">${ownerOpts}</select></label>
       <label>المستخدم<select id="pay-user-renewed">${userOpts}</select></label>
     </div>
     <div class="filter-footer">
@@ -1157,6 +1179,7 @@ function renderRenewedInspections(content){
   function getFiltered() {
     const q = (document.getElementById('pay-search-renewed')?.value || '').trim().toLowerCase();
     const branch = (document.getElementById('pay-branch-renewed')?.value || '').trim();
+    const owner = (document.getElementById('pay-owner-renewed')?.value || '').trim();
     const user = (document.getElementById('pay-user-renewed')?.value || '').trim();
 
     return rows.filter(({item, car}) => {
@@ -1164,10 +1187,11 @@ function renderRenewedInspections(content){
       if (activeRQ === 'today' && (!stamp || new Date(stamp) < today)) return false;
 
       if (q) {
-        const hay = [car.plate, item.plate, car.branch, item.branch, car.serial, car.accountNo, car.ownerNumber, car.owner, car.licenseExpiry, car.notes, formatArabicDate(stamp), resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
+        const hay = [car.plate, item.plate, car.branch, item.branch, car.serial, car.accountNo, car.ownerNumber, car.owner, car.companyName, car.licenseExpiry, car.notes, formatArabicDate(stamp), resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
         if (!hay.includes(q)) return false;
       }
       if (branch && String((car && car.branch) || (item && item.branch) || '').trim() !== branch) return false;
+      if (owner && String((car && (car.owner || car.companyName)) || '').trim() !== owner) return false;
       if (user && resolveItemUserName(item) !== user) return false;
       return true;
     });
@@ -1243,7 +1267,7 @@ function renderRenewedInspections(content){
     };
   });
 
-  ['pay-search-renewed', 'pay-branch-renewed', 'pay-user-renewed'].forEach(id => {
+  ['pay-search-renewed', 'pay-branch-renewed', 'pay-owner-renewed', 'pay-user-renewed'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('input', draw);
@@ -1252,7 +1276,7 @@ function renderRenewedInspections(content){
   });
 
   document.getElementById('pay-clear-renewed')?.addEventListener('click', function(){
-    ['pay-search-renewed', 'pay-branch-renewed', 'pay-user-renewed'].forEach(id => {
+    ['pay-search-renewed', 'pay-branch-renewed', 'pay-owner-renewed', 'pay-user-renewed'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
