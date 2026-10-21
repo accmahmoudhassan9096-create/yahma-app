@@ -528,3 +528,43 @@ test('السجل المرحَّل لسه موجود لو مفيش استئجار
   assert.strictEqual(S.localAll()[0].note.indexOf('ترحيل تلقائي'), 0,
     'السجل المرحَّل لازم يفضل موجود — هو ده اللي بيغذّي التقارير');
 });
+
+/* ===== pagination جلب السجلات ===== */
+
+/* حدّ 2,000 كان بيقصّ السجلات (2,859) فالتقارير كانت بتحسب جزء
+   بس. الاختبار ده بيقفل إن كل الصفحات بتتحمّل. */
+test('كل صفحات سجلات الاستئجارات بتتحمّل — مش أول 2,000 بس', async () => {
+  const { S, ctx } = loadStore();
+  const wait = (ms) => new Promise(r => ctx.setTimeout(r, ms));
+  /* supabase وهمي: كل range بيرجّع صفحة، وبعدين صفحة أقصر (خلاص) */
+  const pages = [1000, 1000, 859];   /* 2,859 سجل */
+  let call = 0;
+  const ranges = [];
+  ctx.supabaseReady = true;
+  ctx.supabaseClient = {
+    from(table) {
+      return {
+        select() { return this; },
+        order() { return this; },
+        range(a, b) {
+          ranges.push([a, b]);
+          const size = pages[call] || 0;
+          call++;
+          const data = [];
+          for (let i = 0; i < size; i++) {
+            data.push({ id: 'r' + a + i, car_id: 'c' + a + i, plate: 'P' + a,
+              branch: 'B', start_date: '2026-10-05', end_date: '2026-11-03',
+              daily_rate: 100, note: '', prev_status: 'مؤجرة', created_at: '2026-10-05' });
+          }
+          return Promise.resolve({ data: data, error: null });
+        }
+      };
+    }
+  };
+  const got = await S.fetchRemote();
+  assert.ok(got, 'fetchRemote رجّع null');
+  assert.strictEqual(got.length, 2859,
+    'لازم تجيب كل السجلات — جابت ' + got.length);
+  assert.ok(ranges.length >= 3,
+    'لازم تطلب أكتر من صفحة — طلبت ' + ranges.length);
+});

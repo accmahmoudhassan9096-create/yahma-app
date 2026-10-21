@@ -384,12 +384,22 @@
   async function fetchRemote() {
     if (!tableReady()) return null;
     try {
-      var res = await global.supabaseClient.from('rentals')
-        .select('id,car_id,plate,branch,start_date,end_date,daily_rate,note,prev_status,created_at')
-        .order('start_date', { ascending: false })
-        .limit(2000);
-      if (res.error) return null;
-      return (res.data || []).map(function (r) {
+      /* ⚠️ pagination زي data.js: حدّ 2,000 كان بيقصّ السجلات (2,859
+         سجل) فالتقارير كانت بتحسب جزء بس. بنجيب كل الصفحات. */
+      const PAGE = 1000;
+      const rows = [];
+      for (let from = 0; ; from += PAGE) {
+        const res = await global.supabaseClient.from('rentals')
+          .select('id,car_id,plate,branch,start_date,end_date,daily_rate,note,prev_status,created_at')
+          .order('start_date', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (res.error) return rows.length ? rows : null;
+        const batch = res.data || [];
+        rows.push.apply(rows, batch);
+        if (batch.length < PAGE) break;
+        if (rows.length > 20000) break;   /* حدّ أمان */
+      }
+      return rows.map(function (r) {
         return {
           id: r.id,
           carId: String(r.car_id),
@@ -540,6 +550,7 @@
     removeRental: removeRental,
     revenueBetween: revenueBetween,
     rentalDaysForCar: rentalDaysForCar,
+    fetchRemote: fetchRemote,
     sync: sync
   };
 

@@ -330,6 +330,7 @@
   "byCar",
   "daysBetween",
   "endRental",
+  "fetchRemote",
   "isOpen",
   "localAll",
   "localOpen",
