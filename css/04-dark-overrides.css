@@ -574,7 +574,19 @@ td.plate{font-size:11.5px;}
 .user-dropdown[hidden],
 .notify-panel:not(.open){
   content-visibility: visible !important;
-}html.yahma-lite .vehicle360-overlay,html.yahma-lite .modern-popover,html.yahma-lite .shortcut-help {
+}
+
+
+
+/* أُزيل: قواعد الجدول الافتراضي (.vt-active / .vt-spacer) — لم يعد أي كود
+   يولّد صفوف .vt-spacer بعد حذف محرك yahma-vtable الميت من app-core.js. */
+
+
+
+html.yahma-lite .overlay,
+html.yahma-lite .vehicle360-overlay,
+html.yahma-lite .modern-popover,
+html.yahma-lite .shortcut-help{
   backdrop-filter:none !important;
   -webkit-backdrop-filter:none !important;
 }
