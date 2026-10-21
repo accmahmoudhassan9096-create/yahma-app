@@ -33,8 +33,10 @@
   "hardRefresh",
   "init",
   "readVersion",
+  "runningVersion",
   "setBadge",
-  "showUpdateBanner"
+  "showUpdateBanner",
+  "versionNumber"
  ],
  "YahmaAudit": [
   "render"

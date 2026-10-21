@@ -124,10 +124,46 @@
     }, 12000);
   }
 
+  /* ⭐ النسخة اللي شغالة فعلياً.
+
+     المشكلة: readVersion() بتجيب sw.js من السيرفر — وده **دايماً**
+     أحدث نسخة. فالشارة كانت بتقول «v269» حتى لو الكود اللي شغال
+     على الجهاز v264! والمستخدم مبيعرفش إنه على نسخة قديمة.
+
+     الصح: نقرا sw.js من Cache Storage — دي النسخة اللي متخزّنة
+     وشغالة فعلاً على الجهاز. */
+  async function runningVersion() {
+    try {
+      if (!global.caches || !global.caches.keys) return '';
+      var keys = await global.caches.keys();
+      for (var i = 0; i < keys.length; i++) {
+        try {
+          var c = await global.caches.open(keys[i]);
+          var res = await c.match('sw.js');
+          if (!res) continue;
+          var txt = await res.text();
+          var m = txt.match(/yahma-shell-v\d+/);
+          if (m) return m[0];
+        } catch (_) { /* cache مش دي */ }
+      }
+    } catch (_) { }
+    return '';
+  }
+
+  /* ⭐ مقارنة الإصدارات.
+     كان فيها bug: الكود كان بيحذف كل الأرقام غير الصفرى من نص
+     الإصدار، فـ 'yahma-shell-v269' كانت بتتحوّل لـ نص فاضي →
+     parseInt فاضي = NaN → 0. يعني **كل الإصدارات بتصير 0**
+     والمقارنة دايمًا false — فلافتة «فيه تحديث جديد» عمرها ما ظهرت.
+
+     الصح: ناخد الرقم اللي بعد الـv مباشرة. */
+  function versionNumber(v) {
+    var m = String(v || '').match(/v(\d+)/);
+    return m ? (parseInt(m[1], 10) || 0) : 0;
+  }
+
   function compareVersions(a, b) {
-    var na = parseInt(String(a).replace(/\D+/g, ''), 10) || 0;
-    var nb = parseInt(String(b).replace(/\D+/g, ''), 10) || 0;
-    return nb > na;
+    return versionNumber(b) > versionNumber(a);
   }
 
   function watch(reg) {
@@ -148,7 +184,16 @@
   async function init() {
     if (typeof location === 'undefined' || location.protocol === 'file:') return;
     const latest = await readVersion();
-    if (latest) setBadge(latest);
+    /* ⭐ الشارة بتعرض النسخة اللي **شغالة** على الجهاز، مش اللي على
+       السيرفر. فرق مهم: كده المستخدم يشوف بعينه إنه على نسخة قديمة
+       ويعرف إنه محتاج تحديث. */
+    const running = await runningVersion();
+    if (running) setBadge(running);
+    else if (latest) setBadge(latest);
+    if (latest && running && compareVersions(running, latest)) {
+      /* فيه نسخة أحدث على السيرفر — نعرض اللافتة فوراً */
+      try { showUpdateBanner(); } catch (_) { }
+    }
     if (!('serviceWorker' in navigator)) return;
 
     try {
@@ -192,10 +237,12 @@
     init: init,
     setBadge: setBadge,
     readVersion: readVersion,
+    runningVersion: runningVersion,
     showUpdateBanner: showUpdateBanner,
     hardRefresh: hardRefresh,
     askHardRefresh: askHardRefresh,
     compareVersions: compareVersions,
+    versionNumber: versionNumber,
     get current() { return CURRENT; }
   };
   global.yahmaHardRefresh = hardRefresh;
