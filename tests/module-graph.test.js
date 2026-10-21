@@ -840,3 +840,40 @@ test('زر الأخطاء العائم موجود ويشتغل', () => {
   assert.ok(/btn\.style\.display\s*=\s*'flex'/.test(ep),
     'syncFab لازم تحط display=flex — الـinline الفاضي بيسيبه مخفي');
 });
+
+/* ===== حارس: تبويب «الاستئجارات» و«المستحقات» لازم يفضلوا موجودين =====
+
+   حصل إن agent بيشيل التابيبات دي بالكامل (2,820 سطر محذوف):
+   من الـnav والـdispatch وصلاحيات الأقسام وملفات المتجر وملفات
+   SQL والاختبارات. ده عكس المطلب صراحةً:
+     · التقارير لازم تقرأ سجل الاستئجارات (2,859 سجل مرحَّل)،
+       ونسبة الاستغلال المفروض تظهر 70% مش 0%
+     · «الاستئجارات» لازم يبقى جدول حقيقي بتاريخات، مش عمود مصقول
+     · «المستحقات» جدول قائم وشغّال
+
+   الاختبار ده بيقفل الميزة: أي حذف لازم يعدّي من هنا الأول. */
+test('حارس: تبويب «الاستئجارات» و«المستحقات» موجودين ومش بيتشالوش', () => {
+  const html = read('index.html');
+  assert.ok(/data-tab="rentals"/.test(html), 'زر «الاستئجارات» مفقود من الـnav');
+  assert.ok(/data-tab="dues"/.test(html), 'زر «المستحقات» مفقود من الـnav');
+  assert.ok(/modules\/rentals-store\.js/.test(html), 'متجر الاستئجارات مش محمَّل');
+  assert.ok(/modules\/rentals\.js/.test(html), 'واجهة الاستئجارات مش محمَّلة');
+  assert.ok(/modules\/dues\.js/.test(html), 'واجهة المستحقات مش محمَّلة');
+
+  const rr = read('core/render-router.js');
+  assert.ok(/currentTab === 'rentals'/.test(rr), 'مفيش عرض لتبويب الاستئجارات');
+  assert.ok(/currentTab === 'dues'/.test(rr), 'مفيش عرض لتبويب المستحقات');
+
+  const bs = read('core/branches-store.js');
+  assert.ok(/id:'rentals'/.test(bs), 'الاستئجارات ناقصة من صلاحيات الأقسام');
+  assert.ok(/id:'dues'/.test(bs), 'المستحقات ناقصة من صلاحيات الأقسام');
+
+  const rc = read('modules/reports-core.js');
+  assert.ok(/rentals/i.test(rc), 'التقارير لازم تقرأ سجل الاستئجارات');
+
+  ['modules/rentals-store.js', 'modules/rentals.js', 'modules/dues.js',
+   'tests/rentals.test.js', 'tests/dues.test.js', 'supabase/rentals.sql']
+    .forEach((f) => {
+      assert.ok(fs.existsSync(path.join(ROOT, f)), 'الملف «' + f + '» مفقود');
+    });
+});
