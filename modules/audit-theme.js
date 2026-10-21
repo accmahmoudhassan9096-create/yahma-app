@@ -525,6 +525,11 @@ function initTheme(){
  if(oldRender) window.render=function(){ oldRender(); setTimeout(initUI,0); };
  const oldSave=window.saveData || (typeof saveData==='function' ? saveData : null);
  if(oldSave) window.saveData=async function(){ log('حفظ','تحديث بيانات الأسطول'); return oldSave.apply(this,arguments); };
+ /* ⭐ applyRole لازم تكون متاحة خارجياً: هي اللي بتحدد أي تبويبات
+    تظهر حسب الدور. قبل كنا بناديها من auth-boot بعد ما الدور
+    يتحدّث — بس كانت محبوسة جوه الـIIFE فوالنداء كان بيسقط،
+    والتبويبات (المستخدمين / سجل النشاط) فاضلوا مخفيين. */
+ window.yahmaApplyRole = applyRole;
  document.addEventListener('DOMContentLoaded', initUI);
  setTimeout(initUI, 300);
 })();

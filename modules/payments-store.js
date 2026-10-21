@@ -1,4 +1,4 @@
-/* ===== تشخيص المزامنة (يرجع وعد بنتيجة واضحة) =====
+﻿/* ===== تشخيص المزامنة (يرجع وعد بنتيجة واضحة) =====
    بنجرّب INSERT ثم DELETE على نفس السجل عشان نعرف إن السياسات شغالة،
    من غير ما نأثر على أي بيانات حقيقية. */
 function yahmaPaymentsTableReady() {
@@ -126,12 +126,23 @@ function diagnose() {
 
   /* ---------- محلي (يعمل دايمًا) ---------- */
   function localAll() {
-    var pending = readJSON(PENDING_KEY, []);
-    var paid = readJSON(PAID_KEY, []);
-    return pending
-      .filter(function (p) { return p.status !== 'cancelled'; })
-      .concat(paid.filter(function (p) { return p.status === 'paid'; }))
-      .sort(function (a, b) { return String(b.requestedAt || '').localeCompare(String(a.requestedAt || '')); });
+    var pending = readJSON(PENDING_KEY, []).filter(function (p) { return p.status === 'pending'; });
+    var paid = readJSON(PAID_KEY, []).filter(function (p) { return p.status === 'paid'; });
+    var all = pending.concat(paid).sort(function (a, b) {
+      var ta = new Date(b.paidAt || b.requestedAt || 0).getTime();
+      var tb = new Date(a.paidAt || a.requestedAt || 0).getTime();
+      return ta - tb;
+    });
+    var seenCarIds = new Set();
+    var out = [];
+    all.forEach(function (p) {
+      var cid = String(p.carId || '');
+      if (cid && !seenCarIds.has(cid)) {
+        seenCarIds.add(cid);
+        out.push(p);
+      }
+    });
+    return out;
   }
 
   function localByStatus(status) {
@@ -247,17 +258,26 @@ function diagnose() {
       } catch(_){}
     }
 
+    // ⭐ إزالة التكرار: نأخذ أحدث سجل فقط لكل سيارة لمنع ظهور السيارة في أكثر من تبويب
+    // remote مرتب تنازلياً بـ requested_at من fetchRemote
+    var latestByCar = new Map();
     remote.forEach(function (r) {
-      if (!r.userName) {
-        r.userName = localMap.get(String(r.id)) || localMap.get('car-' + String(r.carId)) || '';
+      var cid = String(r.carId || '');
+      if (!cid) return;
+      if (!latestByCar.has(cid)) {
+        if (!r.userName) {
+          r.userName = localMap.get(String(r.id)) || localMap.get('car-' + cid) || '';
+        }
+        latestByCar.set(cid, r);
       }
     });
 
-    var pending = remote.filter(function (p) { return p.status === 'pending'; });
-    var paid = remote.filter(function (p) { return p.status === 'paid'; });
+    var deduped = Array.from(latestByCar.values());
+    var pending = deduped.filter(function (p) { return p.status === 'pending'; });
+    var paid = deduped.filter(function (p) { return p.status === 'paid'; });
     writeJSON(PENDING_KEY, pending);
     writeJSON(PAID_KEY, paid);
-    return remote;
+    return deduped;
   }
 
   function getCurrentActorName() {
@@ -289,16 +309,15 @@ function diagnose() {
   async function requestPaymentBatch(cars) {
     if (!Array.isArray(cars) || !cars.length) return { ok: true, moved: 0 };
     var activeUser = getCurrentActorName();
-    var pending = readJSON(PENDING_KEY, []);
-    var existingCarIds = new Set(pending.map(function(p){ return String(p.carId); }));
+    var toAddCids = new Set(cars.map(function(c){ return String(c.id); }));
+    var pending = readJSON(PENDING_KEY, []).filter(function(p){ return !toAddCids.has(String(p.carId)); });
+    var paid = readJSON(PAID_KEY, []).filter(function(p){ return !toAddCids.has(String(p.carId)); });
     var newEntries = [];
     var payloads = [];
 
     cars.forEach(function(car) {
       if (!car) return;
       var cid = String(car.id);
-      if (existingCarIds.has(cid)) return;
-      existingCarIds.add(cid);
       var entry = {
         id: 'req-' + cid + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
         carId: cid,
@@ -322,11 +341,11 @@ function diagnose() {
 
     if (!newEntries.length) return { ok: true, moved: 0 };
 
-    // تحديث التخزين المحلي دفعة واحدة بطلب واحد
     for (var i = newEntries.length - 1; i >= 0; i--) {
       pending.unshift(newEntries[i]);
     }
     writeJSON(PENDING_KEY, pending);
+    writeJSON(PAID_KEY, paid);
 
     if (!tableReady()) return { ok: true, local: true, moved: newEntries.length };
 
@@ -362,9 +381,10 @@ function diagnose() {
     if (Array.isArray(car)) return requestPaymentBatch(car);
     if (!car) return { ok: false, error: 'السيارة غير موجودة' };
     var activeUser = getCurrentActorName();
+    var cid = String(car.id);
     var entry = {
-      id: 'req-' + String(car.id) + '-' + Date.now(),
-      carId: String(car.id),
+      id: 'req-' + cid + '-' + Date.now(),
+      carId: cid,
       plate: car.plate || '',
       branch: car.branch || '',
       status: 'pending',
@@ -372,12 +392,12 @@ function diagnose() {
       paidAt: null,
       userName: activeUser
     };
-    /* محلي أولاً عشانً يشتغل حتى لو الشبكة ضعيفة */
-    var pending = readJSON(PENDING_KEY, []);
-    if (!pending.some(function (p) { return String(p.carId) === entry.carId; })) {
-      pending.unshift(entry);
-      writeJSON(PENDING_KEY, pending);
-    }
+    /* محلي أولاً — نضمن عدم تكرار السيارة في pending أو paid */
+    var pending = readJSON(PENDING_KEY, []).filter(function (p) { return String(p.carId) !== cid; });
+    var paid = readJSON(PAID_KEY, []).filter(function (p) { return String(p.carId) !== cid; });
+    pending.unshift(entry);
+    writeJSON(PENDING_KEY, pending);
+    writeJSON(PAID_KEY, paid);
     if (!tableReady()) return { ok: true, local: true };
     try {
       var payload = {
@@ -479,7 +499,8 @@ function diagnose() {
         .from('inspection_payments')
         .select('id')
         .eq('car_id', String(fallbackCarId || ''))
-        .eq('status', 'pending')
+        .in('status', ['pending', 'paid'])
+        .order('requested_at', { ascending: false })
         .limit(1);
       if (q.error || !q.data || !q.data.length) return null;
       var realId = q.data[0].id;
@@ -488,7 +509,7 @@ function diagnose() {
         var list = readJSON(key, []);
         var changed = false;
         list.forEach(function (p) {
-          if (String(p.id) === String(id) && String(p.carId) === String(fallbackCarId)) {
+          if ((String(p.id) === String(id) || String(p.carId) === String(fallbackCarId)) && p.id !== realId) {
             p.id = realId; changed = true;
           }
         });
@@ -505,18 +526,33 @@ function diagnose() {
     var paid = readJSON(PAID_KEY, []);
     var found = null;
     for (var i = 0; i < pending.length; i++) {
-      if (String(pending[i].id) === String(id)) { found = pending.splice(i, 1)[0]; break; }
+      if (String(pending[i].id) === String(id) || (carId && String(pending[i].carId) === String(carId))) {
+        found = pending.splice(i, 1)[0]; break;
+      }
+    }
+    var targetCid = carId || (found && found.carId);
+    if (targetCid) {
+      pending = pending.filter(function (p) { return String(p.carId) !== String(targetCid); });
+      paid = paid.filter(function (p) { return String(p.carId) !== String(targetCid); });
     }
     if (found) {
       found.status = 'paid';
       found.paidAt = stamp;
       paid.unshift(found);
+    } else if (targetCid) {
+      paid.unshift({
+        id: id || ('paid-' + targetCid + '-' + Date.now()),
+        carId: String(targetCid),
+        status: 'paid',
+        paidAt: stamp,
+        requestedAt: stamp
+      });
     }
     writeJSON(PENDING_KEY, pending);
     writeJSON(PAID_KEY, paid);
     if (!tableReady()) return { ok: true, local: true };
     /* لو المفتاح نصي (سجل قديم) نجيب الـ UUID الحقيقي الأول */
-    var cloudId = isCloudId(id) ? id : await resolveCloudId(id, carId || (found && found.carId));
+    var cloudId = isCloudId(id) ? id : await resolveCloudId(id, targetCid);
     if (!cloudId) {
       global.__yahmaPaymentsCloudError = '';
       return { ok: true, local: true };

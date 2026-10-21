@@ -715,3 +715,25 @@ test('مفيش متغير module-level مستخدم ومش معرّف', () => {
   });
   assert.deepStrictEqual(bad, [], 'متغيرات module-level مستخدمة ومش معرّفة:\n  ' + bad.join('\n  '));
 });
+
+/* ===== applyRole لازم تكون متاحة خارجياً =====
+
+   ⚠️ العطل: applyRole هي اللي بتحدد أي تبويبات تظهر حسب الدور، وكانت
+   محبوسة جوه الـIIFE في audit-theme.js. auth-boot.js كان بيناديها بعد
+   ما الدور يتحدّث — والنداء كان بيسقط بصمت، فالتبويبات (المستخدمين /
+   سجل النشاط) فاضلت مخفية حتى للمدير.
+
+   الاختبار ده بيقفل العقد: applyRole متاحة على window، وauth-boot
+   بيناديها بعد ما الدور يتحدّث. */
+test('applyRole متاحة خارجياً وبتتحمل على الدور', () => {
+  const at = read('modules/audit-theme.js');
+  assert.ok(/window\.yahmaApplyRole\s*=\s*applyRole/.test(at),
+    'applyRole مش متاحة على window — التبويبات مش هتظهر حسب الدور');
+
+  const ab = read('core/auth-boot.js');
+  const roleAt = ab.indexOf('window.currentRole=role;');
+  assert.ok(roleAt > -1, 'مش لاقي سطر تحديد الدور في auth-boot.js');
+  const after = ab.slice(roleAt, roleAt + 400);
+  assert.ok(/yahmaApplyRole/.test(after),
+    'auth-boot.js مش بيطبّق الصلاحيات بعد ما الدور يتحدّث');
+});

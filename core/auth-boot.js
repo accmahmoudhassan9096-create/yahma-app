@@ -338,6 +338,10 @@ function activateAuthenticatedSession(user){
       const role=await fetchUserRole(uid);
       if(!window.currentUser||window.currentUser.id!==uid) return;
       window.currentRole=role;
+      /* ⭐ طبّق الصلاحيات على التبويبات فوراً. applyRole كانت محبوسة
+         جوه الـIIFE في audit-theme.js، فالنداء كان بيسقط والتبويبات
+         (المستخدمين / سجل النشاط) فاضلت مخفية للأدمن. */
+      try{ if(typeof window.yahmaApplyRole==='function') window.yahmaApplyRole(); }catch(_){yahmaErr(_,'auth-boot.js:applyRole');}
       // نطاق الفرع: صفِّ أي بيانات متبقية من جلسة سابقة قبل العرض والتحميل
       try{ if(typeof scopeFleetToUser==='function' && typeof fleet!=='undefined' && Array.isArray(fleet)) fleet=scopeFleetToUser(fleet); }catch(_){yahmaErr(_,'auth-boot.js:161');}
       putBoot(async function(){

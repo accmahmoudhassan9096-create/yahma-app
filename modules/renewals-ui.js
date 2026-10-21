@@ -1,4 +1,4 @@
-(function(global){
+﻿(function(global){
   'use strict';
 
 const _persistentSelectedRenIds = new Set();
@@ -54,7 +54,7 @@ function renderRenewals(content, mode='inspection'){
     return [...map.values()].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
   };
   const optionList=(items,placeholder)=>`<option value="">${placeholder}</option>${items.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('')}`;
-  const readPaymentQueue=()=>{try{const items=JSON.parse(localStorage.getItem('yahma-inspection-payments-v1')||'[]');return Array.isArray(items)?items:[]}catch(_){return [];}};
+  const readPaymentQueue=()=>{try{if(window.YahmaPayments&&typeof window.YahmaPayments.localAll==='function')return window.YahmaPayments.localAll();if(typeof loadInspectionPayments==='function')return loadInspectionPayments();const items=JSON.parse(localStorage.getItem('yahma-inspection-payments-v1')||'[]');return Array.isArray(items)?items:[];}catch(_){return [];}};
   const pendingIds=new Set(readPaymentQueue().map(item=>String(item.carId)));
   /* نفس fleetForTab بالظبط — عشان الرقم في البطاقة يطابق عدد صفوف الجدول */
   const needInsp=typeof fleetForTab==='function'?fleetForTab('renewals', fleet).filter(car=>!pendingIds.has(String(car.id))).length:getUninspectedCars().filter(car=>!pendingIds.has(String(car.id))).length;
