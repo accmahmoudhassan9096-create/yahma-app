@@ -1,6 +1,9 @@
 (function(global){
   'use strict';
 
+const _persistentSelectedRenIds = new Set();
+let _currentRenMode = null;
+
 /* ===== أعمدة بيانات بتتمشى مع السيارة عبر دورة الفحص =====
 
    الطلب: الأعمدة في «الفحص» وتوصل مع السيارة لـ«تحت الدفع» ←
@@ -177,7 +180,8 @@ function renderRenewals(content, mode='inspection'){
 
   const $=id=>document.getElementById(id);
   let activeRQ='', page=1, pageSize=25;
-  const selectedRenIds=new Set();
+  if(_currentRenMode !== mode){ _persistentSelectedRenIds.clear(); _currentRenMode = mode; }
+  const selectedRenIds = _persistentSelectedRenIds;
   const rank={red:0,amber:1,grey:2,green:3};
   const val=id=>($(id)?.value||'').trim();
   const norm=s=>String(s??'').trim();
@@ -282,13 +286,6 @@ function renderRenewals(content, mode='inspection'){
     tbody.querySelectorAll('.row-check').forEach(cb=>{
       const id = String(cb.dataset.id);
       cb.checked=selectedRenIds.has(id);
-      const onToggle = ()=>{
-        if(cb.checked) selectedRenIds.add(id);
-        else selectedRenIds.delete(id);
-        updateRenBulkBar();
-      };
-      cb.onchange=onToggle;
-      cb.onclick=(e)=>{ e.stopPropagation(); onToggle(); };
     });
     const head=$('ren-head-check');
     if(head && !head._bound){
@@ -302,6 +299,17 @@ function renderRenewals(content, mode='inspection'){
         }
         wireRenChecks(); updateRenBulkBar();
       };
+    }
+    const thCheck = document.querySelector('#ren-table thead .th-check');
+    if(thCheck && !thCheck._bound){
+      thCheck._bound=true;
+      thCheck.addEventListener('click', function(e){
+        if(e.target === head) return;
+        if(head){
+          head.checked = !head.checked;
+          head.dispatchEvent(new Event('change'));
+        }
+      });
     }
     updateRenBulkBar();
   }
@@ -547,7 +555,7 @@ function renderRenewals(content, mode='inspection'){
         /* الملاحظات بيانات تشغيلية — مفتوحة لكل من يعدّل، مش بس للإداري. */
 const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPerms.canEditNow():!(typeof currentRole!=='undefined'&&currentRole==='view'));
         return `<tr data-id="${escapeHtml(c.id)}">
-        ${canBulk?`<td class="td-check"><label class="td-check-wrap"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" ${selectedRenIds.has(String(c.id))?'checked':''} aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></label></td>`:''}
+        ${canBulk?`<td class="td-check"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" ${selectedRenIds.has(String(c.id))?'checked':''} aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td>`: ''}
         <td class="plate">${escapeHtml(c.plate||'—')}</td>
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>
@@ -594,6 +602,17 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
         tbody.innerHTML=rows.length?rows.map(renderRenRow).join(''):`<tr><td colspan="${colCount}"><div class="empty">لا توجد نتائج مطابقة</div></td></tr>`;
       }
       wireRenChecks();
+      if(!tbody._renCheckChangeBound){
+        tbody._renCheckChangeBound = true;
+        tbody.addEventListener('change', function(e){
+          const cb = e.target.closest ? e.target.closest('.row-check') : null;
+          if(!cb) return;
+          const id = String(cb.dataset.id);
+          if(cb.checked) selectedRenIds.add(id);
+          else selectedRenIds.delete(id);
+          updateRenBulkBar();
+        });
+      }
       // تفويض أحداث الأزرار مرة واحدة (متوافق مع Virtualization)
       if(!tbody._renDelegate){
         tbody._renDelegate = true;
@@ -652,12 +671,18 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
             return;
           }
 
-          /* تحديد فوري للسيارة عند الضغط على السطر (تسهيل الاختيار من أول ضغطة) */
-          if(canBulk && !e.target.closest('input, button, a, select, textarea, label, .td-check')){
+          /* تجاهل النقر على عناصر التحكم الأخرى */
+          if(e.target.closest('button, a, select, textarea, input:not(.row-check)')) return;
+
+          /* إذا كان النقر مباشرة على المربع، يتولاه حدث change */
+          if(e.target.matches && e.target.matches('.row-check')) return;
+
+          /* تحديد فوري للسيارة من أول نقرة عند الضغط في خلية التحديد (.td-check) أو في أي مكان على السطر */
+          if(canBulk){
             const tr = e.target.closest('tr[data-id]');
             if(tr){
               const cb = tr.querySelector('.row-check');
-              if(cb){
+              if(cb && !cb.disabled){
                 cb.checked = !cb.checked;
                 const id = String(cb.dataset.id);
                 if(cb.checked) selectedRenIds.add(id);

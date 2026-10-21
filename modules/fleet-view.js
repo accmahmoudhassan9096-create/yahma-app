@@ -587,10 +587,26 @@
       const scrollEl = document.getElementById('fleet-scroll');
       function renderFleetRow(c){
         const card=cardState(c),lic=licenseState(c),insp=inspectionState(c),carTag=textTag(c.carStatus),prepTag=prepStatusForCar(c),rdy=vehicleReadiness(c);
-        return `<tr data-id="${escapeHtml(c.id)}"><td class="td-check"><label class="td-check-wrap"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" ${selectedIds.has(String(c.id))?'checked':''} aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></label></td><td class="plate">${escapeHtml(c.plate||'—')}</td><td>${escapeHtml(c.brand||'—')}</td><td>${escapeHtml(c.type||'—')}</td><td>${escapeHtml(c.model||'—')}</td><td>${escapeHtml(String(c.odometer??'').trim()||'\u2014')}</td><td>${escapeHtml(c.color||'—')}</td><td class="serial-cell">${escapeHtml(c.serial||'—')}</td><td>${escapeHtml((typeof fmtCardNumber==='function'?fmtCardNumber(c.cardNumber):c.cardNumber)||'—')}</td><td><span class="tag ${card.level}">${escapeHtml(card.label)}</span></td><td>${fmtDate(c.cardExpiry)}</td><td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td><td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td><td><span class="tag ${textTag(c.insuranceStatus).level}">${escapeHtml(textTag(c.insuranceStatus).label)}</span></td><td>${escapeHtml(c.owner||'—')}</td><td>${escapeHtml(c.branch||'—')}</td><td>${escapeHtml(c.city||'—')}</td><td><span class="tag ${carTag.level}">${escapeHtml(carTag.label)}</span></td><td><span class="readiness-pill ${rdy.level}" title="${escapeHtml(rdy.label)}">${escapeHtml(rdy.label)}</span></td><td><span class="readiness-pill prep-pill ${prepTag.level}">${escapeHtml(prepTag.label)}</span></td><td><button type="button" class="btn btn-ghost btn-small fleet-view-btn" data-view-car="${escapeHtml(c.id)}">عرض الملف</button>${canDelete?` <button type="button" class="btn btn-danger btn-small fleet-del-btn" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة ${escapeHtml(c.plate||'')}">🗑</button>`:''}</td></tr>`;
+        return `<tr data-id="${escapeHtml(c.id)}"><td class="td-check"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" ${selectedIds.has(String(c.id))?'checked':''} aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td><td class="plate">${escapeHtml(c.plate||'—')}</td><td>${escapeHtml(c.brand||'—')}</td><td>${escapeHtml(c.type||'—')}</td><td>${escapeHtml(c.model||'—')}</td><td>${escapeHtml(String(c.odometer??'').trim()||'\u2014')}</td><td>${escapeHtml(c.color||'—')}</td><td class="serial-cell">${escapeHtml(c.serial||'—')}</td><td>${escapeHtml((typeof fmtCardNumber==='function'?fmtCardNumber(c.cardNumber):c.cardNumber)||'—')}</td><td><span class="tag ${card.level}">${escapeHtml(card.label)}</span></td><td>${fmtDate(c.cardExpiry)}</td><td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td><td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td><td><span class="tag ${textTag(c.insuranceStatus).level}">${escapeHtml(textTag(c.insuranceStatus).label)}</span></td><td>${escapeHtml(c.owner||'—')}</td><td>${escapeHtml(c.branch||'—')}</td><td>${escapeHtml(c.city||'—')}</td><td><span class="tag ${carTag.level}">${escapeHtml(carTag.label)}</span></td><td><span class="readiness-pill ${rdy.level}" title="${escapeHtml(rdy.label)}">${escapeHtml(rdy.label)}</span></td><td><span class="readiness-pill prep-pill ${prepTag.level}">${escapeHtml(prepTag.label)}</span></td><td><button type="button" class="btn btn-ghost btn-small fleet-view-btn" data-view-car="${escapeHtml(c.id)}">عرض الملف</button>${canDelete?` <button type="button" class="btn btn-danger btn-small fleet-del-btn" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة ${escapeHtml(c.plate||'')}">🗑</button>`:''}</td></tr>`;
       }
       function bindFleetRows(tbody){
-        tbody.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openModal(tr.dataset.id));
+        tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+          tr.onclick = (e) => {
+            if (e.target.closest('.td-check, button, a, input, select, textarea')) return;
+            openModal(tr.dataset.id);
+          };
+        });
+        tbody.querySelectorAll('.td-check').forEach(td => {
+          td.onclick = (e) => {
+            e.stopPropagation();
+            if (e.target.matches && e.target.matches('.row-check')) return;
+            const cb = td.querySelector('.row-check');
+            if (cb && !cb.disabled) {
+              cb.checked = !cb.checked;
+              cb.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          };
+        });
         tbody.querySelectorAll('[data-view-car]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openVehicle360(btn.dataset.viewCar)}));
         tbody.querySelectorAll('[data-del-car]').forEach(btn=>btn.addEventListener('click',async e=>{
           e.stopPropagation();
@@ -657,7 +673,23 @@
           </div><div style="margin-top:12px;display:flex;justify-content:flex-start;gap:8px"><button type="button" class="btn btn-ghost btn-small fleet-view-btn" data-view-car="${escapeHtml(c.id)}">عرض الملف الكامل</button>${canDelete?`<button type="button" class="btn btn-danger btn-small fleet-del-btn" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة">🗑</button>`:''}</div>
         </div>`;
       }).join(''):'<div class="empty">لا توجد نتائج مطابقة للفلاتر الحالية</div>';
-      cardsEl.querySelectorAll('.fleet-card[data-id]').forEach(el=>el.onclick=()=>openModal(el.dataset.id));
+      cardsEl.querySelectorAll('.fleet-card[data-id]').forEach(el => {
+        el.onclick = (e) => {
+          if (e.target.closest('.card-check, button, a, input, select, textarea')) return;
+          openModal(el.dataset.id);
+        };
+      });
+      cardsEl.querySelectorAll('.card-check').forEach(lbl => {
+        lbl.onclick = (e) => {
+          e.stopPropagation();
+          if (e.target.matches && e.target.matches('.row-check')) return;
+          const cb = lbl.querySelector('.row-check');
+          if (cb && !cb.disabled) {
+            cb.checked = !cb.checked;
+            cb.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        };
+      });
       cardsEl.querySelectorAll('[data-view-car]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openVehicle360(btn.dataset.viewCar)}));
       cardsEl.querySelectorAll('[data-del-car]').forEach(btn=>btn.addEventListener('click',async e=>{
         e.stopPropagation();

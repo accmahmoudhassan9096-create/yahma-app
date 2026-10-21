@@ -503,10 +503,10 @@ function payCheckCell(tab, itemId, plate) {
   if (!canBulkHere()) return '';
   const set = PAY_SELECTIONS[tab];
   const on = set ? set.has(String(itemId)) : false;
-  return '<td class="td-check"><label class="td-check-wrap"><input type="checkbox" class="row-check" data-pay-check="'
+  return '<td class="td-check"><input type="checkbox" class="row-check" data-pay-check="'
     + escapeHtml(String(itemId)) + '" data-pay-tab="' + tab + '"'
     + (on ? ' checked' : '')
-    + ' aria-label="تحديد السيارة ' + escapeHtml(plate || '—') + '"></label></td>';
+    + ' aria-label="تحديد السيارة ' + escapeHtml(plate || '—') + '"></td>';
 }
 
 /* ⭐ الشريط بياخد نفس التركيب بالظبط لشريط «الفحص»:
@@ -648,24 +648,19 @@ function bindPaySelection(content, tab) {
       payBulkBarHtml(t);
     });
     tbody.addEventListener('click', function (e) {
-      const box = e.target.closest ? e.target.closest('input[data-pay-check]') : null;
-      if (box) {
-        e.stopPropagation();
-        return;
-      }
-      /* تحديد السيارة عند الضغط على السطر خارج الأزرار والروابط */
-      if (canBulkHere() && !e.target.closest('input, button, a, select, textarea, label, .td-check, .row-actions')) {
-        const tr = e.target.closest('tr');
-        if (tr) {
-          const cb = tr.querySelector('input[data-pay-check]');
-          if (cb) {
-            cb.checked = !cb.checked;
-            const t = cb.dataset.payTab;
-            const id = String(cb.dataset.payCheck);
-            const set = PAY_SELECTIONS[t] || (PAY_SELECTIONS[t] = new Set());
-            if (cb.checked) set.add(id); else set.delete(id);
-            payBulkBarHtml(t);
-          }
+      if (e.target.closest('button, a, select, textarea, input:not([data-pay-check]), .row-actions')) return;
+      if (e.target.matches && e.target.matches('input[data-pay-check]')) return;
+      if (!canBulkHere()) return;
+      const tr = e.target.closest('tr');
+      if (tr) {
+        const cb = tr.querySelector('input[data-pay-check]');
+        if (cb && !cb.disabled) {
+          cb.checked = !cb.checked;
+          const t = cb.dataset.payTab;
+          const id = String(cb.dataset.payCheck);
+          const set = PAY_SELECTIONS[t] || (PAY_SELECTIONS[t] = new Set());
+          if (cb.checked) set.add(id); else set.delete(id);
+          payBulkBarHtml(t);
         }
       }
     });
@@ -674,6 +669,15 @@ function bindPaySelection(content, tab) {
   const head = content.querySelector('input[data-pay-head="' + tab + '"]');
   if (head) {
     head.onclick = null;
+    const headTh = head.closest('th');
+    if (headTh && !headTh._bound) {
+      headTh._bound = true;
+      headTh.addEventListener('click', function(e) {
+        if (e.target === head) return;
+        head.checked = !head.checked;
+        head.dispatchEvent(new Event('change'));
+      });
+    }
     head.onchange = function () {
       const all = Object.keys(PAY_ROW_INDEX[tab] || {});
       PAY_SELECTIONS[tab] = head.checked ? new Set(all) : new Set();
