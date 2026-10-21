@@ -793,6 +793,25 @@ test('مقارنة الإصدارات شغالة — والشارة بتعرض �
   assert.ok(/showUpdateBanner\(\)/.test(av), 'لافتة التحديث لازم تظهر');
 });
 
+/* ===== Leaflet: الخريطة ممكن تتشال قبل ما تتحجّ =====
+
+   ⚠️ العطل (من تقرير المستخدم): 75 مرة
+      TypeError: Cannot read properties of undefined (reading '_leaflet_pos')
+
+   السبب: بعد 200ms بنعمل invalidateSize() — بس الـdashboard بيترسم
+   تاني أحياناً، فـcontainer بيتشال والـmap بيبقى ميت. */
+test('Leaflet: invalidateSize بيتحقق إن الخريطة لسه حيّة', () => {
+  const dv = read('modules/dashboard-view.js');
+  const start = dv.indexOf('setTimeout(()=>{');
+  assert.ok(start > -1, 'الـsetTimeout بتاع الخريطة مفقود');
+  const body = dv.slice(start, start + 700);
+  assert.ok(/invalidateSize/.test(body), 'invalidateSize مفقودة من البلوك');
+  assert.ok(/isConnected/.test(body),
+    'لازم نتحقق إن الـcontainer لسه في الـDOM قبل invalidateSize');
+  assert.ok(/_regionMap\s*!==\s*map/.test(body),
+    'لازم نتحقق إن الـmap لسه هو الحالي (مش خريطة قديمة اتشالت)');
+});
+
 /* ===== زر الأخطاء العائم =====
 
    «سجل الأخطاء» جوه قائمة المستخدم، والقائمة على الديسكتوب بتتخصرق

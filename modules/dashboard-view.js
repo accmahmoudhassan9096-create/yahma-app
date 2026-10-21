@@ -384,7 +384,21 @@ function bindDashboardEvents(content, context, state) {
           c.bindPopup('<b>'+escapeHtml(r.label)+' ('+r.total+')</b><br>'+r.topBranches.map(([b,n])=>escapeHtml(b)+': '+n).join('<br>'));
         });
         }
-        setTimeout(()=>{ try{ map.invalidateSize(); }catch(_){yahmaErr(_,'dashboard.js:757');} }, 200);
+        /* ⭐ invalidateSize بعد 200ms عشان الخريطة تاخد مقاسها الصح.
+           بس لازم نتحقق إن الـmap لسه حي — الـdashboard بيترسم تاني
+           أحياناً (سحب Fleet أو مزامنة)، وساعتها الـcontainer بتتشال
+           والـmap بيبقى في حالة نص ميتة. invalidateSize على خريطة
+           مش موجودة كان بيرمي «Cannot read properties of undefined
+           (reading '_leaflet_pos')» — 75 مرة! */
+        setTimeout(()=>{
+          try{
+            /* لسه متعلق بالـDOM؟ */
+            if(!el.isConnected) return;
+            /* الـmap لسه هو الحالي؟ (يبقى قديمة لو اترسم تاني) */
+            if(window._regionMap && window._regionMap !== map) return;
+            map.invalidateSize();
+          }catch(_){ /* الخريطة اتشالت — مفيش حاجة نعملها */ }
+        }, 200);
         window._regionMap = map;
       }catch(e){
         el.innerHTML = '<div class="empty">تعذر تحميل الخريطة (تحقق من الإنترنت) — الأرقام بجانبها محدثة.</div>';
