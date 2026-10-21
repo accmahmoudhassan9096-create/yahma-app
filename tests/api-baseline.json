@@ -114,6 +114,7 @@
   "install",
   "open",
   "quickReport",
+  "syncFab",
   "syncVisibility"
  ],
  "YahmaErrors": [

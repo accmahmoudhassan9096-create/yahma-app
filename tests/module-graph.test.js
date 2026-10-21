@@ -759,3 +759,27 @@ test('تقرير سريع عن الأخطاء — متاح لكل الأدوار
   assert.ok(/quickReport/.test(read('modules/topbar-menu.js')),
     'الزر مش مربوط في topbar-menu.js');
 });
+
+/* ===== زر الأخطاء العائم =====
+
+   «سجل الأخطاء» جوه قائمة المستخدم، والقائمة على الديسكتوب بتتخصرق
+   (أدوات البيانات بتنتقل لمكان تاني) وعلى الموبايل مفيش «سجل الأخطاء»
+   أصلاً — فالمستخدم اللي شايف مشكلة مبيعرفش يدور عليها.
+
+   الحل: زر ثابت في الزاوية، بيظهر بس لو فيه أخطاء. */
+test('زر الأخطاء العائم موجود ويشتغل', () => {
+  const ep = read('modules/error-panel.js');
+  assert.ok(/function floatingButton\s*\(/.test(ep), 'floatingButton مفقودة');
+  assert.ok(/function syncFab\s*\(/.test(ep), 'syncFab مفقودة');
+  assert.ok(/yh-err-fab/.test(ep), 'معرف الزر yh-err-fab مفقود');
+
+  /* الـCSS لازم يكون موجود */
+  const cssFiles = fs.readdirSync(path.join(ROOT, 'css')).filter((f) => f.endsWith('.css'));
+  const allCss = cssFiles.map((f) => read(path.join('css', f))).join('\n');
+  assert.ok(/\.yh-err-fab\{/.test(allCss), 'الـCSS بتاع الزر العائم مفقود');
+
+  /* وبيربط بالنافذة */
+  assert.ok(/quickReport\(\)/.test(
+    /btn\.addEventListener\('click'[\s\S]{0,200}?\}\);/.exec(ep)[0]
+  ), 'الزر العائم مش مربوط بالنافذة');
+});

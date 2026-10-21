@@ -37,3 +37,47 @@ body.dark-mode .sync-status.is-offline{
   color:#FECACA;
   border-color:#EF4444;
 }
+
+/* ===== زر الأخطاء العائم =====
+   زر ثابت في الزاوية يظهر بس لو فيه أخطاء مسجّلة. بيخلّي المستخدم
+   يلاقي التقرير من غير ما يدور في قائمة المستخدم (اللي على
+   الديسكتوب بتتخصرق، وعلى الموبايل مفيش «سجل الأخطاء» أصلاً). */
+.yh-err-fab{
+  position:fixed;
+  inset-inline-end:14px;
+  bottom:14px;
+  z-index:10070;
+  display:none;
+  align-items:center;
+  gap:6px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid #EF4444;
+  background:#fff;
+  color:#B91C1C;
+  font:inherit;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow:0 10px 28px rgba(15,25,60,.22);
+}
+.yh-err-fab:hover{background:#FEF2F2;}
+.yh-err-fab-ico{font-size:15px;line-height:1;}
+.yh-err-fab-n{
+  min-width:20px;
+  padding:1px 6px;
+  border-radius:999px;
+  background:#DC2626;
+  color:#fff;
+  font-size:11px;
+  text-align:center;
+}
+body.dark-mode .yh-err-fab{
+  background:#1B2437;
+  color:#FCA5A5;
+  border-color:#7F1D1D;
+}
+body.dark-mode .yh-err-fab:hover{background:#2A1B1B;}
+@media (max-width:700px){
+  .yh-err-fab{bottom:calc(12px + env(safe-area-inset-bottom,0px));}
+}

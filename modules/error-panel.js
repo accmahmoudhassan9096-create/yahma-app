@@ -162,14 +162,58 @@
     });
   }
 
+  /* ⭐ زر عائم ثابت — لو فيه أخطاء، بتلاقيها فوراً.
+
+     المشكلة: «سجل الأخطاء» جوه قائمة المستخدم، والقائمة دي على
+     الديسكتوب بترجع مختصرة (أدوات البيانات بتنتقل لمكان تاني)،
+     وعلى الموبايل مفيش «سجل الأخطاء» أصلاً. فالمستخدم اللي شايف
+     مشكلة مبيعرفش يدور عليها.
+
+     الحل: زر صغير ثابت في الزاوية، بيظهر بس لو فيه أخطاء، وبيفتح
+     نفس نافذة «تقرير سريع». */
+  function floatingButton() {
+    var doc = global.document;
+    if (!doc) return;
+    var btn = doc.getElementById('yh-err-fab');
+    if (!btn) {
+      btn = doc.createElement('button');
+      btn.id = 'yh-err-fab';
+      btn.type = 'button';
+      btn.className = 'yh-err-fab';
+      btn.title = 'تقرير سريع عن الأخطاء';
+      btn.setAttribute('aria-label', 'تقرير سريع عن الأخطاء');
+      btn.innerHTML = '<span class="yh-err-fab-ico">🩺</span><span class="yh-err-fab-n"></span>';
+      btn.addEventListener('click', function () { quickReport(); });
+      if (doc.body) doc.body.appendChild(btn);
+    }
+    return btn;
+  }
+
+  function syncFab() {
+    var bus = S();
+    if (!bus) return;
+    var btn = floatingButton();
+    if (!btn) return;
+    var sum = bus.summary();
+    if (!sum || !sum.total) { btn.style.display = 'none'; return; }
+    btn.style.display = '';
+    var n = btn.querySelector('.yh-err-fab-n');
+    if (n) n.textContent = sum.total > 99 ? '99+' : String(sum.total);
+  }
+
   /* بتتصلّص مرة واحدة عند الإقلاع وبتتحدّث مع كل خطأ جديد */
   function install() {
     var bus = S();
     if (!bus) return;
-    bus.on(function () { badge(); });
-    global.setInterval(function () { badge(); syncVisibility(); }, 2500);
+    bus.on(function () { badge(); syncFab(); });
+    global.setInterval(function () { badge(); syncVisibility(); syncFab(); }, 2500);
     badge();
     syncVisibility();
+    syncFab();
+    /* الـDOM جاهز بس بعدين */
+    if (global.document && global.document.readyState === 'loading') {
+      global.document.addEventListener('DOMContentLoaded', function () { syncFab(); });
+    }
   }
 
   /* ===== تقرير سريع — متاح لكل الأدوار =====
@@ -267,7 +311,7 @@
     else badge();
   }
 
-  global.YahmaErrorPanel = { open: open, quickReport: quickReport, badge: badge, syncVisibility: syncVisibility, install: install };
+  global.YahmaErrorPanel = { open: open, quickReport: quickReport, badge: badge, syncFab: syncFab, syncVisibility: syncVisibility, install: install };
 
   if (global.document) {
     if (global.document.readyState === 'loading') {
