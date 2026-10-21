@@ -35,6 +35,8 @@ function renderRenewals(content, mode='inspection'){
   const canDelete=(typeof window.YahmaPerms==='object') ? window.YahmaPerms.canDelete() : currentRole==='admin';
   const licenseMode=mode==='license';
   const insuranceMode=mode==='insurance';
+  const isAdmin=(typeof currentRole!=='undefined'?currentRole==='admin':(typeof window!=='undefined'&&window.currentRole==='admin'));
+  const isOpsInspection=(!licenseMode && !insuranceMode && !isAdmin);
   document.getElementById('topbar-title').textContent = insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص';
   document.getElementById('topbar-sub').textContent = insuranceMode?'متابعة وتجديد تأمين السيارات':licenseMode?'كل رخص محتاجة متابعة — منتهية وقاربت الانتهاء ومفيش لها تاريخ':'متابعة السيارات المطلوب فحصها';
   const uniq=(field)=>{
@@ -76,7 +78,8 @@ function renderRenewals(content, mode='inspection'){
       </div>
     </div>`}
     <div class="filter-panel">
-      <div class="filter-panel-title"><strong>🔎 فلاتر ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</strong><span>صفِّ النتائج حسب أي بند — ثم صدّر Excel أو PDF</span></div>
+      <div class="filter-panel-title"><strong>🔎 فلاتر ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</strong><span>${isOpsInspection?'البحث في سيارات الفحص':'صفِّ النتائج حسب أي بند — ثم صدّر Excel أو PDF'}</span></div>
+      ${isOpsInspection ? '' : `
       <div class="quick-filters" id="ren-quick">
         ${insuranceMode?`<button type="button" class="quick-filter" data-rq="insurance_bad">🛡️ يحتاج متابعة</button>`:licenseMode?`<button type="button" class="quick-filter" data-rq="lic_expired">🔴 منتهية</button><button type="button" class="quick-filter" data-rq="lic_soon">🟡 قريبة الانتهاء</button><button type="button" class="quick-filter" data-rq="lic_unknown">⚪ مفيش تاريخ</button>`:`<button type="button" class="quick-filter" data-rq="insp_bad">🔍 تحتاج فحص</button>`}
         ${licenseMode||insuranceMode?'':`
@@ -84,9 +87,10 @@ function renderRenewals(content, mode='inspection'){
         <button type="button" class="quick-filter" data-rq="maintenance">🔧 تحت الصيانة</button>
         <button type="button" class="quick-filter" data-rq="out">⛔ خارج الخدمة</button>
         `}
-      </div>
-      <div class="fleet-filter-grid">
-        <label>بحث<input id="ren-search" placeholder="لوحة، مالك، فرع..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
+      </div>`}
+      <div class="fleet-filter-grid"${isOpsInspection ? ' style="grid-template-columns:1fr;"' : ''}>
+        <label${isOpsInspection ? ' style="grid-column:1/-1;width:100%;"' : ''}>بحث<input id="ren-search" placeholder="لوحة، مالك، فرع..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px${isOpsInspection?';width:100%':''}"></label>
+        ${isOpsInspection ? '' : `
         <label>الفرع<select id="ren-branch">${optionList(uniq('branch'),'كل الفروع')}</select></label>
         <label>حالة السيارة<select id="ren-car-status"><option value="">كل الحالات</option><option>تحت الصيانة</option><option>حجز</option><option>متاحة للايجار</option><option>محولة غير مستلمة</option><option>مسروقة</option><option>للبيع</option><option>مؤجرة</option><option>خدمة</option><option>مفقودة</option></select></label>
         <label>المالك<select id="ren-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
@@ -96,6 +100,7 @@ function renderRenewals(content, mode='inspection'){
         ${licenseMode?`<label>صلاحية الرخصة<select id="ren-lic-condition"><option value="">كل الحالات</option><option value="green">سارية</option><option value="amber">قريبة الانتهاء</option><option value="red">منتهية</option><option value="grey">غير محددة</option></select></label>
         <label>حالة الرخصة (سجل)<select id="ren-lic-status"><option value="">كل الحالات</option><option>نشط</option><option>ملغى</option><option>موقوف</option><option>منتهي</option></select></label>`:''}
         ${insuranceMode?`<label>حالة التأمين<select id="ren-insurance-status"><option value="">كل الحالات</option><option value="green">ساري</option><option value="red">منتهي / لا يوجد</option><option value="grey">غير محدد</option></select></label>`:''}
+        `}
       </div>
       <div class="filter-footer">
         <span id="ren-filter-count">عرض 0 من ${fleet.length}</span>
@@ -108,10 +113,14 @@ function renderRenewals(content, mode='inspection'){
       <div class="bulk-bar-info"><span id="ren-bulk-count">0 محددة</span></div>
       <div class="bulk-bar-actions">
         ${insuranceMode?'<button class="btn btn-primary btn-small" id="ren-bulk-ins-ok">🛡️ تعيين «ساري»</button><button class="btn btn-ghost btn-small" id="ren-bulk-ins-no">تعيين «لا يوجد»</button>':''}
-        ${(!licenseMode&&!insuranceMode)?'<button class="btn btn-ghost btn-small" id="ren-insp-from-lic" title="يضبط حالة الفحص من تاريخ الرخصة: منتهية ⇐ لم يفحص، سارية ⇐ تم الفحص">🔄 فحص من الرخص</button><button class="btn btn-primary btn-small" id="ren-bulk-insp-yes" title="يضبط الحالة «تم الفحص» وينقل المحددة لِتبويب «تحت الدفع» — الخطوة التالية في الدورة">✅ تم الفحص ← تحت الدفع</button><button class="btn btn-ghost btn-small" id="ren-bulk-insp-no" title="يضبط الحالة «لم يفحص» بدون نقل — السيارة بتفضل في «الفحص»">لم يُفحص</button>':''}
+        ${(!licenseMode&&!insuranceMode)?(
+          isAdmin
+            ? '<button class="btn btn-ghost btn-small" id="ren-insp-from-lic" title="يضبط حالة الفحص من تاريخ الرخصة: منتهية ⇐ لم يفحص، سارية ⇐ تم الفحص">🔄 فحص من الرخص</button><button class="btn btn-primary btn-small" id="ren-bulk-insp-yes" title="يضبط الحالة «تم الفحص» وينقل المحددة لِتبويب «تحت الدفع» — الخطوة التالية في الدورة">✅ تم الفحص ← تحت الدفع</button><button class="btn btn-ghost btn-small" id="ren-bulk-insp-no" title="يضبط الحالة «لم يفحص» بدون نقل — السيارة بتفضل في «الفحص»">لم يُفحص</button>'
+            : '<button class="btn btn-primary btn-small" id="ren-bulk-insp-yes" title="يضبط الحالة «تم الفحص» وينقل المحددة لِتبويب «تحت الدفع»">✅ تم الفحص ← تحت الدفع</button>'
+        ):''}
         ${licenseMode?'<button class="btn btn-primary btn-small" id="ren-bulk-lic-renew">📅 تجديد الرخصة (سنة)</button><button class="btn btn-ghost btn-small" id="ren-bulk-lic-status">ضبط حالة الرخصة</button>':''}
         <button class="btn btn-danger btn-small" id="ren-bulk-delete">🗑 حذف المحددة</button>
-        ${canDelete?`
+        ${(canDelete && isAdmin)?`
           <div class="admin-transfer-group" style="display:inline-flex;gap:4px;align-items:center;background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:6px;">
             <span style="font-size:11px;font-weight:bold;color:var(--accent,#008080)">نقل المحددة (للمدير):</span>
             <button class="btn btn-ghost btn-small" id="ren-admin-to-payments" type="button" title="نقل السيارات المحددة لتبويب «تحت الدفع»">📥 تحت الدفع</button>
@@ -134,7 +143,7 @@ function renderRenewals(content, mode='inspection'){
           <th>اللون</th>
           <th>المدينة</th>
           ${(!licenseMode&&!insuranceMode)?REN_DATA_HEADERS:'<th>الرقم التسلسلي</th>'}
-          ${(!licenseMode&&!insuranceMode)?'<th>انتهاء الرخصة</th><th>حالة الفحص</th>':''}
+          ${(!licenseMode&&!insuranceMode)?'<th>انتهاء الرخصة</th><th>حالة الرخصة</th><th>حالة الفحص</th>':''}
           ${licenseMode?'<th>تاريخ انتهاء الرخصة</th><th>حالة الرخصة</th>':''}
           ${insuranceMode?'<th>حالة التأمين</th><th>تاريخ الانتهاء</th><th>شركة التأمين</th><th>المالك</th>':''}
           <th>الفرع</th>
@@ -248,10 +257,10 @@ function renderRenewals(content, mode='inspection'){
        تطلع في التصدير كمان — وإلا اللي بيبعت الملف للفوترة ناقصه. */
     return {title:'الفحص المفلتر',subtitle:'عدد السيارات: '+getRows().length,
       headers:['رقم اللوحة','الماركة','النوع','الموديل','كم الحالي','اللون','المدينة']
-        .concat(REN_DATA_LABELS,['انتهاء الرخصة','حالة الفحص','حالة الرخصة','الفرع','حالة السيارة','ملاحظات']),
+        .concat(REN_DATA_LABELS,['انتهاء الرخصة','حالة الرخصة','حالة الفحص','الفرع','حالة السيارة','ملاحظات']),
       rows:getRows().map(c=>[c.plate||'—',c.brand||'—',c.type||'—',c.model||'—',c.odometer||'—',c.color||'—',c.city||'—']
         .concat(REN_DATA_FIELDS.map(d=>c[d.field]||'—'))
-        .concat([c.licenseExpiry||'—',inspectionDisplayStatus(c.inspectionStatus).label,dateStatus(c.licenseExpiry).label,c.branch||'—',c.carStatus||'—',c.notes||'—']))};
+        .concat([c.licenseExpiry||'—',dateStatus(c.licenseExpiry).label,inspectionDisplayStatus(c.inspectionStatus).label,c.branch||'—',c.carStatus||'—',c.notes||'—']))};
   };
 
   /* تحديد جماعي + حذف (إداريون فقط) */
@@ -535,7 +544,7 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
         <td>${escapeHtml(c.color||'—')}</td>
         <td>${escapeHtml(c.city||'—')}</td>
         ${(!licenseMode&&!insuranceMode)?renDataCells(c):`<td>${escapeHtml(c.serial||'—')}</td>`}
-        ${(!licenseMode&&!insuranceMode)?`<td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>`:''}
+        ${(!licenseMode&&!insuranceMode)?`<td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>`:''}
         ${licenseMode?`<td>${fmtDate(c.licenseExpiry)}</td>
         <td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td>`:''}
         ${insuranceMode?`<td><span class="tag ${ins.level}">${escapeHtml(ins.label)}</span></td><td>${fmtDate(c.insuranceExpiry)}</td><td>${escapeHtml(c.insuranceCompany||'—')}</td><td>${escapeHtml(c.owner||'—')}</td>`:''}
@@ -690,15 +699,15 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
   async function exportRen(fmt){
     const rows=getRows();
     if(!rows.length){alert('لا توجد نتائج مطابقة للفلاتر.');return;}
-    const headers=insuranceMode?['رقم اللوحة','الماركة','النوع','الموديل','حالة التأمين','انتهاء التأمين','شركة التأمين','المالك','الفرع','حالة السيارة']:['رقم اللوحة','الماركة','النوع','الموديل','الفرع','المالك','حالة السيارة','حالة الفحص','انتهاء الرخصة','حالة الرخصة'];
+    const headers=insuranceMode?['رقم اللوحة','الماركة','النوع','الموديل','حالة التأمين','انتهاء التأمين','شركة التأمين','المالك','الفرع','حالة السيارة']:['رقم اللوحة','الماركة','النوع','الموديل','الفرع','المالك','حالة السيارة','انتهاء الرخصة','حالة الرخصة','حالة الفحص'];
     const data=rows.map(c=>insuranceMode?[
       c.plate||'',c.brand||'',c.type||'',c.model||'',
       (typeof textTag==='function'?textTag(c.insuranceStatus).label:(c.insuranceStatus||'')),
       c.insuranceExpiry||'',c.insuranceCompany||'',c.owner||'',c.branch||'',c.carStatus||''
     ]:[
       c.plate||'',c.brand||'',c.type||'',c.model||'',c.branch||'',c.owner||'',c.carStatus||'',
-      (typeof inspectionDisplayStatus==='function'?inspectionDisplayStatus(c.inspectionStatus).label:(c.inspectionStatus||'')),
-      c.licenseExpiry||'',c.licenseStatus||''
+      c.licenseExpiry||'',(typeof dateStatus==='function'?dateStatus(c.licenseExpiry).label:(c.licenseStatus||'')),
+      (typeof inspectionDisplayStatus==='function'?inspectionDisplayStatus(c.inspectionStatus).label:(c.inspectionStatus||''))
     ]);
     window._yahmaGetFilteredCars = getRows;
     if(fmt==='pdf'){

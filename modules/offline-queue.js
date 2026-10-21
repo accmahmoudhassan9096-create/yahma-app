@@ -258,6 +258,20 @@
     el.className = cls + (clickable ? ' is-clickable' : '');
     el.title = title;
     el.style.cursor = clickable ? 'pointer' : '';
+    try {
+      var dashBadge = global.document && global.document.getElementById('dash-cloud-badge');
+      if (dashBadge) {
+        if (!s.online) {
+          dashBadge.classList.add('offline');
+          var txt = dashBadge.querySelector('.dash-cloud-text');
+          if (txt) txt.textContent = 'غير متصل بـ Supabase';
+        } else {
+          dashBadge.classList.remove('offline');
+          var txt = dashBadge.querySelector('.dash-cloud-text');
+          if (txt) txt.textContent = 'متصل بـ Supabase';
+        }
+      }
+    } catch (_) {}
     if (clickable) {
       el.setAttribute('role', 'button');
       el.setAttribute('tabindex', '0');

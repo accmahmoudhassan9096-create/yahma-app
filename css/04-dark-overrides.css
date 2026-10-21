@@ -1045,9 +1045,7 @@ body.dark-mode .yx-perm-hint{background:#332808;border-color:#7A5B1E;border-inli
    is the right-hand side - we want the opposite, hence the physical
    left/right properties. */
 .yx-bar{
-  position:sticky;
-  top:0;
-  z-index:60;
+  position:static !important;
   width:fit-content;
   /* 🇬🇧 Physical LEFT. The app is RTL, so margin-right is the inline-START
      side - an auto margin there pushes the box toward the inline-END,
@@ -1112,7 +1110,7 @@ body.dark-mode .yx-perm-hint{background:#332808;border-color:#7A5B1E;border-inli
   transition:transform .16s ease, box-shadow .18s ease, filter .18s ease;
   box-shadow:0 4px 14px rgba(0,0,0,.16);
 }
-.yx-btn:hover:not(:disabled){transform:translateY(-2px);filter:saturate(1.15);}
+.yx-btn:hover:not(:disabled){transform:none !important;filter:brightness(1.08);}
 .yx-btn:active:not(:disabled){transform:translateY(0);}
 .yx-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;}
 .yx-btn:focus-visible{outline:2px solid #12AAA6;outline-offset:2px;}
@@ -1135,7 +1133,8 @@ body.dark-mode .yx-perm-hint{background:#332808;border-color:#7A5B1E;border-inli
   transform:translateX(-120%);
   pointer-events:none;
 }
-.yx-btn:hover:not(:disabled) .yx-shine{animation:yx-sweep .85s ease;}
+.yx-shine{display:none !important;}
+.yx-btn:hover:not(:disabled) .yx-shine{display:none !important;}
 @keyframes yx-sweep{to{transform:translateX(120%);}}
 
 /* لمعة دايمة خفيفة على الزرار */
@@ -1588,3 +1587,151 @@ body.dark-mode .tr-status-sel,body.dark-mode .tr-date-input{background:#263442;b
 body.dark-mode .home-avail{background:#1E2A38;border-color:#2E3D4F}
 body.dark-mode .home-avail-total{background:#193B43;color:#7FD1CC}
 body.dark-mode .home-avail-bar{background:#263442}
+
+/* ===== تحسينات نسخة الجوال وحالة Supabase ===== */
+.topbar-titles{display:flex !important;flex-direction:column;min-width:0;}
+.topbar-statuses{display:flex !important;align-items:center;gap:6px;flex-wrap:wrap;margin:4px 0 0;}
+.dash-cloud-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:5px 12px;
+  border-radius:999px;
+  font-size:11.5px;
+  font-weight:700;
+  background:#E6F7F2;
+  color:#047857;
+  border:1px solid #A7F3D0;
+  box-shadow:0 1px 3px rgba(6,78,59,.08);
+}
+.dash-cloud-badge.offline{
+  background:#FEE2E2;
+  color:#B91C1C;
+  border-color:#FCA5A5;
+}
+.dash-cloud-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#10B981;
+  box-shadow:0 0 0 2px rgba(16,185,129,.3);
+  animation:dashPulse 2s infinite;
+}
+.dash-cloud-badge.offline .dash-cloud-dot{
+  background:#EF4444;
+  box-shadow:0 0 0 2px rgba(239,68,68,.3);
+  animation:none;
+}
+@keyframes dashPulse{
+  0%,100%{transform:scale(1);opacity:1;}
+  50%{transform:scale(1.2);opacity:.75;}
+}
+body.dark-mode .dash-cloud-badge{
+  background:#064E3B;
+  color:#A7F3D0;
+  border-color:#059669;
+}
+body.dark-mode .dash-cloud-badge.offline{
+  background:#7F1D1D;
+  color:#FECACA;
+  border-color:#DC2626;
+}
+
+/* قائمة نتائج البحث الموحد */
+.global-search-results{
+  position:absolute;
+  top:calc(100% + 6px);
+  right:0;
+  left:0;
+  background:#fff;
+  border:1px solid var(--line,#D5E3E3);
+  border-radius:12px;
+  box-shadow:0 12px 32px rgba(0,0,0,.15);
+  max-height:380px;
+  overflow-y:auto;
+  z-index:99999;
+  padding:6px;
+  direction:rtl;
+}
+body.dark-mode .global-search-results{
+  background:#1E293B;
+  border-color:#334155;
+  box-shadow:0 12px 32px rgba(0,0,0,.45);
+}
+.gs-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 12px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:background .12s;
+  text-decoration:none;
+  color:inherit;
+}
+.gs-item:hover, .gs-item.is-selected{
+  background:#F1F5F9;
+}
+body.dark-mode .gs-item:hover, body.dark-mode .gs-item.is-selected{
+  background:#334155;
+}
+.gs-car-meta{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+}
+.gs-plate{
+  font-weight:800;
+  font-size:13px;
+  color:var(--ink,#0F172A);
+}
+body.dark-mode .gs-plate{color:#F8FAFC;}
+.gs-sub{
+  font-size:11px;
+  color:var(--muted,#64748B);
+}
+.gs-tab-badge{
+  padding:3px 9px;
+  border-radius:999px;
+  font-size:10.5px;
+  font-weight:700;
+  white-space:nowrap;
+}
+.gs-tab-renewed{background:#DCFCE7;color:#166534;}
+.gs-tab-paid{background:#CCFBF1;color:#115E59;}
+.gs-tab-payments{background:#FEF3C7;color:#92400E;}
+.gs-tab-renewals{background:#FEE2E2;color:#991B1B;}
+.gs-tab-license-renewals{background:#FFEDD5;color:#9A3412;}
+.gs-tab-insurance-renewals{background:#EDE9FE;color:#5B21B6;}
+.gs-tab-fleet{background:#F1F5F9;color:#334155;}
+
+@media(max-width:700px){
+  .topbar.topbar-v43{
+    padding:6px 10px !important;
+  }
+  .topbar-statuses .sync-status{
+    font-size:10px;
+    padding:2px 7px;
+  }
+  .table-scroll{
+    -webkit-overflow-scrolling:touch;
+  }
+  .fleet-table th, .fleet-table td{
+    padding:8px 6px;
+    font-size:11.5px;
+  }
+  .fleet-filter-grid{
+    grid-template-columns:1fr !important;
+  }
+  .bulk-bar{
+    flex-direction:column;
+    gap:8px;
+    align-items:stretch;
+  }
+  .bulk-bar-actions{
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+}

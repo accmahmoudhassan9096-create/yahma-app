@@ -17,7 +17,13 @@ function dashboardTemplate(state) {
     <div class="home-hero hero-executive">
       <div class="home-hero-skyline" aria-hidden="true"></div>
       <div class="home-hero-text hero-welcome-card">
-        <div class="hero-welcome-kicker"><span class="hero-live-dot"></span> لوحة التحكم التنفيذية</div>
+        <div class="hero-welcome-kicker" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div><span class="hero-live-dot"></span> لوحة التحكم التنفيذية</div>
+          <div class="dash-cloud-badge" id="dash-cloud-badge" title="حالة الاتصال السحابي">
+            <span class="dash-cloud-dot"></span>
+            <span class="dash-cloud-text">متصل بـ Supabase</span>
+          </div>
+        </div>
         <div class="home-hero-title-row">
           <span class="home-hero-accent" aria-hidden="true"></span>
           <div class="home-hero-title-copy">
@@ -596,21 +602,235 @@ function bindDashboardEvents(content, context, state) {
     el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
   });
 
-  // Global search -> fleet
+  // ===== نظام البحث الموحد المتقدم وتحديد التبويب لكل سيارة =====
+  function getCarTabInfo(car) {
+    if (!car) return { tab: 'fleet', label: 'الأسطول', tagClass: 'gs-tab-fleet' };
+    const cid = String(car.id || '');
+    try {
+      if (typeof window.loadRenewedInspections === 'function') {
+        const ren = window.loadRenewedInspections();
+        if (ren && ren.some(p => String(p.carId) === cid)) {
+          return { tab: 'renewed', label: 'تم التجديد', tagClass: 'gs-tab-renewed' };
+        }
+      }
+    } catch (_) {}
+    try {
+      if (typeof window.loadPaidInspections === 'function') {
+        const paid = window.loadPaidInspections();
+        if (paid && paid.some(p => String(p.carId) === cid)) {
+          return { tab: 'paid', label: 'تم الدفع', tagClass: 'gs-tab-paid' };
+        }
+      }
+    } catch (_) {}
+    try {
+      if (typeof window.loadInspectionPayments === 'function') {
+        const pay = window.loadInspectionPayments();
+        if (pay && pay.some(p => String(p.carId) === cid)) {
+          return { tab: 'payments', label: 'تحت الدفع', tagClass: 'gs-tab-payments' };
+        }
+      }
+    } catch (_) {}
+    try {
+      if (typeof window.inspectionDisplayStatus === 'function') {
+        const st = window.inspectionDisplayStatus(car.inspectionStatus);
+        if (st && st.level === 'red') {
+          return { tab: 'renewals', label: 'الفحص', tagClass: 'gs-tab-renewals' };
+        }
+      }
+    } catch (_) {}
+    try {
+      if (typeof window.dateStatus === 'function') {
+        const lic = window.dateStatus(car.licenseExpiry);
+        if (lic && lic.level === 'red') {
+          return { tab: 'license-renewals', label: 'رخص منتهية', tagClass: 'gs-tab-license-renewals' };
+        }
+      }
+    } catch (_) {}
+    try {
+      if (typeof window.textTag === 'function') {
+        const ins = window.textTag(car.insuranceStatus);
+        if (ins && ins.level === 'red') {
+          return { tab: 'insurance-renewals', label: 'التأمين', tagClass: 'gs-tab-insurance-renewals' };
+        }
+      }
+    } catch (_) {}
+    return { tab: 'fleet', label: 'الأسطول', tagClass: 'gs-tab-fleet' };
+  }
+
+  function navigateToCarTab(tab, plate) {
+    const nav = document.querySelector('.nav-item[data-tab="' + tab + '"]');
+    if (nav) nav.click();
+    setTimeout(() => {
+      const inputMap = {
+        'fleet': 'fleet-search',
+        'renewals': 'ren-search',
+        'license-renewals': 'ren-search',
+        'insurance-renewals': 'ren-search',
+        'payments': 'pay-search-payments',
+        'paid': 'pay-search-paid',
+        'renewed': 'pay-search-renewed'
+      };
+      const inpId = inputMap[tab];
+      const targetInp = inpId ? document.getElementById(inpId) : null;
+      if (targetInp) {
+        targetInp.value = plate || '';
+        targetInp.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }, 80);
+  }
+
+  // إعداد حقل البحث الموحد
   const gs = document.getElementById('global-search');
-  if (gs && !gs._bound) {
-    gs._bound = true;
+  if (gs && !gs._boundAdvanced) {
+    gs._boundAdvanced = true;
+    const wrap = gs.closest('.topbar-search-wrap') || gs.parentElement;
+    let resBox = document.getElementById('global-search-results');
+    if (!resBox && wrap) {
+      resBox = document.createElement('div');
+      resBox.id = 'global-search-results';
+      resBox.className = 'global-search-results';
+      resBox.style.display = 'none';
+      wrap.appendChild(resBox);
+    }
+
+    function doSearch() {
+      const q = (gs.value || '').trim().toLowerCase();
+      if (!q || q.length < 1) {
+        if (resBox) resBox.style.display = 'none';
+        return;
+      }
+      const allCars = (typeof getFleet === 'function' ? getFleet() : window.fleet) || [];
+      const matches = allCars.filter(c => {
+        const hay = [c.plate, c.brand, c.model, c.owner, c.branch, c.serial, c.accountNo].map(v => String(v || '').toLowerCase()).join(' ');
+        return hay.includes(q);
+      }).slice(0, 12);
+
+      if (!matches.length) {
+        if (resBox) {
+          resBox.innerHTML = '<div style="padding:10px;text-align:center;color:var(--muted);font-size:12px;">لا توجد سيارات مطابقة</div>';
+          resBox.style.display = 'block';
+        }
+        return;
+      }
+
+      let html = '';
+      matches.forEach(c => {
+        const info = getCarTabInfo(c);
+        const plateEsc = (c.plate || '—').replace(/"/g, '&quot;');
+        html += '<div class="gs-item" data-tab="' + info.tab + '" data-plate="' + plateEsc + '">' +
+          '<div class="gs-car-meta">' +
+            '<span class="gs-plate">🚗 ' + plateEsc + '</span>' +
+            '<span class="gs-sub">' + (c.brand || '') + ' ' + (c.model || '') + ' • فرع: ' + (c.branch || '—') + (c.owner ? (' • ' + c.owner) : '') + '</span>' +
+          '</div>' +
+          '<span class="gs-tab-badge ' + info.tagClass + '">' + info.label + '</span>' +
+        '</div>';
+      });
+
+      if (resBox) {
+        resBox.innerHTML = html;
+        resBox.style.display = 'block';
+        resBox.querySelectorAll('.gs-item').forEach(item => {
+          item.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const tab = item.dataset.tab;
+            const plate = item.dataset.plate;
+            resBox.style.display = 'none';
+            navigateToCarTab(tab, plate);
+          };
+        });
+      }
+    }
+
+    let searchTimer = null;
+    gs.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(doSearch, 150);
+    });
+
+    gs.addEventListener('focus', () => {
+      if ((gs.value || '').trim()) doSearch();
+    });
+
     gs.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
-        const q = gs.value.trim();
-        if (!q) return;
-        window.pendingFleetSearch = q;
-        // التنقل لازم يعدي على نفس مسار النقر العادي (حدّث currentTab داخل
-        // معالج nav-item ثم render) — الدالة goTab() اللي كانت هنا مش موجودة
-        // أصلًا في الكود، فكان الضغط على Enter يرمي ReferenceError والبحث يضيع.
-        const nav = document.querySelector('.nav-item[data-tab="fleet"]');
-        if (nav) nav.click();
+        e.preventDefault();
+        const first = resBox?.querySelector('.gs-item');
+        if (first) {
+          first.click();
+        } else {
+          const q = (gs.value || '').trim();
+          if (q) {
+            window.pendingFleetSearch = q;
+            const nav = document.querySelector('.nav-item[data-tab="fleet"]');
+            if (nav) nav.click();
+            if (resBox) resBox.style.display = 'none';
+          }
+        }
+      } else if (e.key === 'Escape') {
+        if (resBox) resBox.style.display = 'none';
       }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!wrap.contains(e.target) && resBox) {
+        resBox.style.display = 'none';
+      }
+    });
+  }
+
+  // تحديث شارة Supabase والتنبيه عند فقدان الاتصال
+  function updateCloudStatus() {
+    const badge = document.getElementById('dash-cloud-badge');
+    const isOnline = navigator.onLine && (!window.syncMessage || !/تعذر|محلي|لا يوجد/i.test(window.syncMessage));
+    if (badge) {
+      if (isOnline) {
+        badge.classList.remove('offline');
+        badge.querySelector('.dash-cloud-text').textContent = 'متصل بـ Supabase';
+        badge.title = 'السحابة متصلة وتعمل بصورة سليمة';
+      } else {
+        badge.classList.add('offline');
+        badge.querySelector('.dash-cloud-text').textContent = 'غير متصل بـ Supabase';
+        badge.title = 'انقطع الاتصال بالسحابة أو تعمل بالوضع المحلي';
+      }
+    }
+  }
+  updateCloudStatus();
+
+  // إشعار عائم فوري عند انقطاع أو عودة الاتصال
+  function showConnectionNotice(online, msg) {
+    let toast = document.getElementById('yahma-conn-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'yahma-conn-toast';
+      toast.style.cssText = 'position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:999999;padding:11px 18px;border-radius:12px;font-family:inherit;font-size:12.5px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.22);display:flex;align-items:center;gap:10px;direction:rtl;transition:opacity 0.3s ease;';
+      document.body.appendChild(toast);
+    }
+    if (!online) {
+      toast.style.background = '#DC2626';
+      toast.style.color = '#fff';
+      toast.innerHTML = '<span>⚠️</span> <span>' + (msg || 'انقطع الاتصال بالسحابة (Supabase) — يعمل التطبيق محلياً وسيتم المزامنة فور عودة الاتصال') + '</span>';
+      toast.style.display = 'flex';
+      toast.style.opacity = '1';
+    } else {
+      toast.style.background = '#059669';
+      toast.style.color = '#fff';
+      toast.innerHTML = '<span>🟢</span> <span>' + (msg || 'تم استعادة الاتصال بـ Supabase بنجاح — البيانات متزامنة') + '</span>';
+      toast.style.display = 'flex';
+      toast.style.opacity = '1';
+      setTimeout(() => { if (toast) { toast.style.opacity = '0'; setTimeout(() => { toast.style.display = 'none'; }, 300); } }, 4500);
+    }
+  }
+
+  if (!window._cloudNoticeBound) {
+    window._cloudNoticeBound = true;
+    window.addEventListener('offline', () => {
+      updateCloudStatus();
+      showConnectionNotice(false);
+    });
+    window.addEventListener('online', () => {
+      updateCloudStatus();
+      showConnectionNotice(true);
     });
   }
 
