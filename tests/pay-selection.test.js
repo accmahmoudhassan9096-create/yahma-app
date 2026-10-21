@@ -114,3 +114,31 @@ test('التحديدات بتتبقى بعد البحث (الفلتر ما بي�
   assert.ok(!/PAY_SELECTIONS\[[^\]]+\]\s*=\s*new Set\(\)/.test(draw[0]),
     'draw() ما بتمسحش التحديدات');
 });
+
+/* ===== سبب «ضغطتين» الحقيقي: الضغط على الخلية مش على الـcheckbox =====
+
+   المتصفح بيقلب الـchecked بس لما تضغط **على الـcheckbox نفسه**
+   (pre-click activation). لو ضغطت على **الخلية** (الـtd) — وده
+   اللي بيحصل على الموبايل لما الـcheckbox صغير — المتصفح **ما
+   بيقلبش** خالص. فالـhandler لو قرا القيمة بعدين لقيها قديمة وبيعمل
+   delete.
+
+   الحل: نفرّق. ضغط على الـcheckbox → نقرأ بعد التحويل. ضغط على
+   الخلية → نقلب بنفسنا. */
+test('الضغط على الخلية يقلب التحديد — مش بس الضغط على الـcheckbox', () => {
+  const src = read('core/router-payments.js');
+  const clickHandler = /content\.addEventListener\('click'[\s\S]*?\n  \}\);/.exec(src);
+  assert.ok(clickHandler, 'الـclick handler مفقود');
+  const body = clickHandler[0];
+
+  assert.ok(/if \(e\.target === box\)/.test(body),
+    'لازم نفرّق: ضغط على الـcheckbox نفسه (e.target === box)');
+
+  const boxBranch = /if \(e\.target === box\) \{[\s\S]*?\}\s*else \{[\s\S]*?\}\s*return;/.exec(body);
+  assert.ok(boxBranch, 'التفرقة بين الـcheckbox والخلية مفقودة');
+
+  assert.ok(/box\.checked\s*=\s*!box\.checked/.test(boxBranch[0]),
+    'الضغط على الخلية لازم يقلب الـchecked بنفسنا — المتصفح ما بيقلبش');
+  assert.ok(/applyPayCheck\(box\)/.test(boxBranch[0]),
+    'بعد ما نقلب لازم نطبّق التحديد');
+});

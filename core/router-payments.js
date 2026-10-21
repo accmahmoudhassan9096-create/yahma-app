@@ -686,10 +686,21 @@ function bindPaySelection(content, tab) {
 
       const box = e.target.closest ? e.target.closest('input[data-pay-check]') : null;
       if (box) {
-        /* الضغطة مباشرة على الـcheckbox:
-           نقرأ الحالة بعد ما المتصفح يقلبها. */
         if (box.disabled) return;
-        applyPayCheckSoon(box);
+        /* ⭐ التفرقة مهمة:
+           - ضغط على الـcheckbox **نفسه**: المتصفح قلب الـchecked
+             (pre-click activation) — نقرأ القيمة بعدين بـsetTimeout.
+           - ضغط على **الخلية** (الـtd): المتصفح **ما بيقلبش** الـcheckbox
+             خالص! فلازم نقلبه بنفسنا. من غير التفرقة دي، الضغط على
+             الخلية كان بيقرأ قيمة قديمة وبيعمل delete — فالضغط
+             على الخلية كان بيلغي التحديد بدل ما يزيد (والدور
+             كان بيلزم ضغطتين). */
+        if (e.target === box) {
+          applyPayCheckSoon(box);
+        } else {
+          box.checked = !box.checked;
+          applyPayCheck(box);
+        }
         return;
       }
 
