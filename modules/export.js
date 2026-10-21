@@ -4,17 +4,21 @@
 (function (global) {
   'use strict';
 
-  /* المكتبات محلية أولًا (vendor/) والـCDN احتياط.
-     السبب: على شبكات بتحجب الـCDN، التصدير كان بيفشل بصمت. */
+  /* المكتبات محلية أولًا (vendor/) والنسخة الثانية (vendor/fallback/) احتياط.
+     السبب: على شبكات بتحجب ملفاتنا، التصدير كان بيفشل بصمت.
+
+     ⚠️ مفيش CDN هنا عن قصد: التبعية على شبكة خارجية كانت بتخلّي
+     التصدير يفشل صامت على أي شبكة بتقطع jsdelivr/cdnjs. البديل
+     كله local — النسخة الأولى، ولو فشلت النسخة التانية. */
   const CDN = {
     xlsx: 'vendor/xlsx.full.min.js',
     html2canvas: 'vendor/html2canvas.min.js',
     jspdf: 'vendor/jspdf.umd.min.js',
   };
   const CDN_FALLBACK = {
-    xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-    html2canvas: 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
-    jspdf: 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+    xlsx: 'vendor/fallback/xlsx.full.min.js',
+    html2canvas: 'vendor/fallback/html2canvas.min.js',
+    jspdf: 'vendor/fallback/jspdf.umd.min.js',
   };
 
   const loaded = Object.create(null);
@@ -40,12 +44,12 @@
     return loaded[url];
   }
 
-  /* بنجرب المحلي الأول، ولو فشل (شبكة بتقطع ملفاتنا) نرجع للـCDN */
+  /* بنجرب المحلي الأول، ولو فشل (شبكة بتقطع ملفاتنا) نرجع للنسخة المحلية التانية */
   async function loadLib(key) {
     try {
       await loadScript(CDN[key]);
     } catch (e) {
-      console.warn('تعذر تحميل ' + key + ' محليًا، بنجرب CDN:', e);
+      console.warn('تعذر تحميل ' + key + ' محليًا، بنجرب النسخة الاحتياطية:', e);
       await loadScript(CDN_FALLBACK[key]);
     }
   }

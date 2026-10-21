@@ -547,6 +547,51 @@ test('مفيش كود مكرر بين الملفات المتخصصة والـro
   });
 });
 
+/* ⭐ مفيش اعتماد على CDN خارجي.
+
+   الاعتماد على jsdelivr/unpkg/cdnjs كان بيعني إن المنصة ممكن تفشل
+   في الإقلاع على أي شبكة بتقطعهم — وده عكسشرط إن كل المكتبات محلية.
+   البديل: نسخة ثانية في vendor/fallback/ تُحمّل لو الأولى فشلت. */
+test('مفيش CDN خارجي — كل المكتبات محلية', () => {
+  const CDN_RE = /https?:\/\/(cdn\.|unpkg\.|cdnjs\.|jsdelivr\.|fonts\.googleapis)/;
+  const files = [];
+  const walk = (dir) => {
+    fs.readdirSync(dir, { withFileTypes: true }).forEach((e) => {
+      if (e.name === 'node_modules' || e.name === '.git' || e.name === 'vendor') return;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (/\.(js|html|css)$/.test(e.name)) files.push(full);
+    });
+  };
+  walk(ROOT);
+  const offenders = [];
+  files.forEach((f) => {
+    const hits = read(path.relative(ROOT, f)).split('\n');
+    hits.forEach((line, i) => {
+      if (CDN_RE.test(line)) offenders.push(path.relative(ROOT, f) + ':' + (i + 1) + '  ' + line.trim().slice(0, 70));
+    });
+  });
+  assert.deepStrictEqual(offenders, [], 'في CDN خارجي:\n  ' + offenders.join('\n  '));
+});
+
+/* ⭐ النسخة الاحتياطية للمكتبات موجودة فعلاً على القرص.
+
+   من غيرها، فشل التحميل المحلي هيخلّي التصدير/الخريطة يفشلوا صامتين. */
+test('النسخة الاحتياطية للمكتبات موجودة في vendor/fallback', () => {
+  const NEEDED = [
+    'supabase.min.js', 'dexie.min.js', 'xlsx.full.min.js',
+    'html2canvas.min.js', 'jspdf.umd.min.js', 'leaflet.js', 'leaflet.css'
+  ];
+  const sw = read('sw.js');
+  NEEDED.forEach((f) => {
+    const p = path.join(ROOT, 'vendor', 'fallback', f);
+    assert.ok(fs.existsSync(p), 'vendor/fallback/' + f + ' مش موجود');
+    assert.ok(fs.statSync(p).size > 1000, 'vendor/fallback/' + f + ' فاضي أو ناقص');
+    assert.ok(sw.indexOf("'./vendor/fallback/" + f + "'") > -1,
+      'vendor/fallback/' + f + ' مش في precache الـSW');
+  });
+});
+
 test('مفيش اسم عمومي معرّف في أكتر من ملف', () => {
   /* استثناءات مقصودة ومراجعة:
      - supabaseClient: cloud.js بيعمل `window.supabaseClient || createClient(...)`

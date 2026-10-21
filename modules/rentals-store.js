@@ -121,6 +121,39 @@
     return 'rent-' + String(carId) + '-' + Date.now();
   }
 
+  /* ===== السجلات المرحَّلة =====
+
+     ترحيل 2026-10: 2,859 سيارة حالتها «مؤجرة» ماكانش عندها أي سجل
+     تأجير، فبنينا لها سجل من الحالة + السعر + 30 يوم. السجل ده
+     **مش تاريخ حقيقي** — لازم يتمسح أول ما المستخدم يسجّل استئجار
+     حقيقي لنفس السيارة، عشان ماتفوتش عليه أيام مرتين. */
+  var MIGRATED_MARK = 'ترحيل تلقائي';
+
+  function isMigrated(r) {
+    return !!(r && typeof r.note === 'string' && r.note.indexOf(MIGRATED_MARK) === 0);
+  }
+
+  /* حذف السجل المرحَّل من المحلي + السحابة (بصمت — لو فشل السحابة
+     السجل بيفضل محلي ويتشال في المزامنة الجاية) */
+  function removeMigrated(r) {
+    try {
+      writeJSON(KEY, localAll().filter(function (x) { return String(x.id) !== String(r.id); }));
+    } catch (e) { if (typeof yahmaErr === 'function') yahmaErr(e, 'rentals-store.js:removeMigrated:local'); }
+    if (!tableReady()) return;
+    try {
+      var del = global.supabaseClient.from('rentals').delete().eq('id', r.id);
+      if (del && typeof del.then === 'function') {
+        del.then(function (res) {
+          if (res && res.error) {
+            global.__yahmaRentalsCloudError = String(res.error.message || res.error);
+          }
+        }, function (err) {
+          global.__yahmaRentalsCloudError = String((err && err.message) || err);
+        });
+      }
+    } catch (e) { if (typeof yahmaErr === 'function') yahmaErr(e, 'rentals-store.js:removeMigrated:cloud'); }
+  }
+
   /* ===== حارس الصلاحية جوّه الوحدة نفسها =====
 
      نفس الفكرة في payments-store: الأزرار محمية في الواجهة،
@@ -169,6 +202,19 @@
     var clash = openForCar(car.id);
     if (clash) {
       return { ok: false, error: 'في استئجار شغّال بالفعل لهذه السيارة (بدأ ' + clash.startDate + ')' };
+    }
+
+    /* ⭐ السجلات المرحَّلة (note يبدأ بـ «ترحيل تلقائي») استنتجناها
+       من حالة «مؤجرة» — مش تاريخ حقيقي. أول ما المستخدم يسجّل استئجار
+       حقيقي لنفس السيارة، لازم نمسح السجل التلقائي عشان ماتفوتش
+       عليه أيام مرتين (double-count في التقارير).
+       ملاحظة: السجل المرحَّل ليه end_date، فمش هيعمل clash — فالفحص
+       هنا ضروري ومش بديل عن فحص openForCar. */
+    var migrated = localAll().filter(function (r) {
+      return String(r.carId) === String(car.id) && isMigrated(r);
+    });
+    if (migrated.length) {
+      migrated.forEach(function (r) { removeMigrated(r); });
     }
 
     var entry = {
@@ -385,11 +431,50 @@
       }
     });
     remote.forEach(function (r) { if (!seen[String(r.id)]) merged.push(r); });
+
+    /* ⭐ تنظيف السجلات المرحَّلة لما المستخدم يسجّل استئجاراً حقيقياً
+       لنفس السيارة. لو سجّل استئجاراً يدوي، السجل التلقائي لازم
+       يتشال من السحابة كمان — مش بس من المحلي — وإلا countdown
+       اتحسب مرتين في التقارير.
+
+       القاعدة: لو فيه سيارة عندها سجل حقيقي (مش مرحَّل)، امسح كل
+       السجلات المرحَّلة ليها. */
+    var carsWithReal = Object.create(null);
+    merged.forEach(function (r) {
+      if (!isMigrated(r)) carsWithReal[String(r.carId)] = true;
+    });
+    var toDelete = merged.filter(function (r) {
+      return isMigrated(r) && carsWithReal[String(r.carId)];
+    });
+    if (toDelete.length) {
+      merged = merged.filter(function (r) {
+        return toDelete.indexOf(r) === -1;
+      });
+      toDelete.forEach(function (r) { deleteMigratedCloud(r); });
+    }
+
     merged.sort(function (a, b) {
       return String(b.startDate || '').localeCompare(String(a.startDate || ''));
     });
     writeJSON(KEY, merged);
     return merged;
+  }
+
+  /* حذف سجل مرحَّل من السحابة (best-effort) */
+  function deleteMigratedCloud(r) {
+    if (!tableReady() || !r || !r.id) return;
+    try {
+      var del = global.supabaseClient.from('rentals').delete().eq('id', r.id);
+      if (del && typeof del.then === 'function') {
+        del.then(function (res) {
+          if (res && res.error) {
+            global.__yahmaRentalsCloudError = String(res.error.message || res.error);
+          }
+        }, function (err) {
+          global.__yahmaRentalsCloudError = String((err && err.message) || err);
+        });
+      }
+    } catch (e) { if (typeof yahmaErr === 'function') yahmaErr(e, 'rentals-store.js:deleteMigratedCloud'); }
   }
 
   /* ===== تجميع للتقارير =====

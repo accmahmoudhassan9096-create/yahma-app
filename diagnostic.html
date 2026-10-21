@@ -4,7 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>تشخيص المنصة — يهماء</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="vendor/supabase.min.js"></script>
+<script>
+/* شبكة أمان محلية — لو vendor/fallback موجود بنستخدمه، ومفيش CDN. */
+if (typeof supabase === 'undefined') {
+  document.write('<script src="vendor/fallback/supabase.min.js"><\/script>');
+}
+</script>
 <style>
   :root{color-scheme:light}
   *{box-sizing:border-box}

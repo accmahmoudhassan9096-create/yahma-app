@@ -482,3 +482,49 @@ test('مفيش استعلام متبقٍ في التقرير على rentedDaysMo
   assert.ok(exportBlock[1].indexOf('rentedDaysMonth') < 0,
     'التصدير لسه بيقرأ العمود القديم');
 });
+/* ===== السجلات المرحَّلة ===== */
+
+/* ترحيل 2026-10: 2,859 سيارة حالتها «مؤجرة» ماكانش عندها سجل تأجير،
+   فبنينا لها سجل من الحالة + السعر + 30 يوم. السجل ده استنتاج مش
+   تاريخ حقيقي — أول ما المستخدم يسجّل استئجار حقيقي لنفس السيارة،
+   السجل التلقائي لازم يتشال، وإلا الأيام بتتحسب مرتين في التقارير. */
+test('السجل المرحَّل بيتشال أول ما المستخدم يسجّل استئجار حقيقي لنفس السيارة', async () => {
+  const { S, ctx } = loadStore();
+  /* السجل المرحَّل: له end_date، فمش هيعمل clash — وده بالظبط
+     اللي كان هيسمح بإضافة سجل حقيقي فوقه من غير ما نلاحظ. */
+  const store = ctx.localStorage;
+  const KEY = 'yahma-rentals-v1';
+  const seeded = [{
+    id: 'rent-migrated-1', carId: 'c1', plate: 'ABC-123', branch: 'فرع الرياض',
+    startDate: '2026-09-01', endDate: '2026-09-30', dailyRate: 200,
+    note: 'ترحيل تلقائي من حالة «مؤجرة» (30 يوم) — راجعه',
+    prevStatus: 'مؤجرة', createdAt: '2026-09-01T00:00:00.000Z'
+  }];
+  store.setItem(KEY, JSON.stringify(seeded));
+  assert.strictEqual(S.localAll().length, 1, 'التأسيس غلط');
+  /* المستخدم يسجّل استئجاراً حقيقياً لنفس السيارة */
+  const res = await S.startRental(car({ carStatus: 'متاحة للايجار' }), {
+    startDate: '2026-10-01', endDate: '2026-10-05', dailyRate: 200
+  });
+  assert.ok(res.ok, 'التسجيل الحقيقي فشل: ' + (res.error || ''));
+  const rows = S.localAll();
+  assert.strictEqual(rows.length, 1,
+    'لازم يبقى سجل واحد بس (التلقائي اتشال) — عدّادنا: ' + rows.length);
+  assert.ok(!/ترحيل تلقائي/.test(rows[0].note || ''),
+    'السجل المتبقي هو التلقائي — السجل الحقيقي ما اتسجّلش');
+});
+
+test('السجل المرحَّل لسه موجود لو مفيش استئجار حقيقي — يعني بيفضل للتقارير', () => {
+  const { S, ctx } = loadStore();
+  const store = ctx.localStorage;
+  const KEY = 'yahma-rentals-v1';
+  store.setItem(KEY, JSON.stringify([{
+    id: 'rent-migrated-1', carId: 'c1', plate: 'ABC-123', branch: 'فرع الرياض',
+    startDate: '2026-09-01', endDate: '2026-09-30', dailyRate: 200,
+    note: 'ترحيل تلقائي من حالة «مؤجرة» (30 يوم) — راجعه',
+    prevStatus: 'مؤجرة', createdAt: '2026-09-01T00:00:00.000Z'
+  }]));
+  assert.strictEqual(S.localAll().length, 1);
+  assert.strictEqual(S.localAll()[0].note.indexOf('ترحيل تلقائي'), 0,
+    'السجل المرحَّل لازم يفضل موجود — هو ده اللي بيغذّي التقارير');
+});

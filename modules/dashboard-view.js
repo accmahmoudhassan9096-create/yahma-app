@@ -406,8 +406,10 @@ function bindDashboardEvents(content, context, state) {
         s.onload=drawMap;
         s.onerror=()=>{
           try{
+            /* النسخة الاحتياطية المحلية — مفيش CDN. الاعتماد على شبكة
+               خارجية كان بيخلّي الخريطة تفشل على أي شبكة بتقطع unpkg. */
             const f=document.createElement('script');
-            f.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; f.async=true;
+            f.src='vendor/fallback/leaflet.js'; f.async=true;
             f.onload=drawMap; f.onerror=fail;
             document.head.appendChild(f);
           }catch(_){ yahmaErr(_,'dashboard.js:leaflet-fallback'); }

@@ -34,13 +34,16 @@
 <!-- Supabase JS -->
 <script src="vendor/supabase.min.js"></script>
 <script>
-  /* شبكة أمان: لو الملفات المحلية فشلت لأي سبب، نرجع للـCDN. */
+  /* شبكة أمان: لو الملفات المحلية فشلت لأي سبب، نرجع للنسخة المحلية
+     التانية في vendor/fallback/.
+     ⚠️ مفيش CDN هنا عن قصد — الاعتماد على شبكة خارجية كان بيعني إن
+     المنصة ممكن تفشل في الإقلاع أصلاً على شبكة ضعيفة. */
   (function () {
     if (typeof supabase === 'undefined') {
-      document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"><\/script>');
+      document.write('<script src="vendor/fallback/supabase.min.js"><\/script>');
     }
     if (typeof Dexie === 'undefined') {
-      document.write('<script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"><\/script>');
+      document.write('<script src="vendor/fallback/dexie.min.js"><\/script>');
     }
   })();
 </script>
