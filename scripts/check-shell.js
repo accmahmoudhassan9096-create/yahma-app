@@ -34,7 +34,10 @@ function readRequiredList() {
   let m;
   while ((m = re.exec(body))) {
     if (!m[1].startsWith('./')) continue;
-    items.push(m[1].slice(2));
+    const rel = m[1].slice(2);
+    /* ملفات المصدر ما بتتحطّش في الـprecache — المشحون هو .min بس */
+    if (/\.css$/i.test(rel) && !/\.min\.css$/i.test(rel)) continue;
+    items.push(rel);
   }
   return items;
 }
@@ -46,7 +49,12 @@ function walk(dir, out, depth) {
         entry.name === 'tests' || entry.name === 'scripts') continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full, out, depth + 1);
-    else if (/\.(js|css|html|woff2|png|webmanifest)$/i.test(entry.name)) out.push(full);
+    else if (/\.(js|css|html|woff2|png|webmanifest)$/i.test(entry.name)) {
+      /* ⭐ ملفات CSS المصدر (من غير .min) موجودة في المستودع للصيانة
+         بس هي مش مشحونة — المشحون هو النسخة المضغوطة بس. */
+      if (/\.css$/i.test(entry.name) && !/\.min\.css$/i.test(entry.name)) return;
+      out.push(full);
+    }
   }
   return out;
 }

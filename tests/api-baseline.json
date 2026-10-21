@@ -460,5 +460,30 @@
   "YahmaVehicleOperations": [
     "archiveEditing",
     "saveFromForm"
+  ],
+  "YahmaRenewalsBulk": [
+    "adminMoveSelectedCars",
+    "bulkAdvanceToPayment",
+    "bulkInspectionFromLicenses",
+    "bulkRenewLicense",
+    "bulkSetInspection",
+    "bulkSetInsurance",
+    "bulkSetLicenseStatus",
+    "deleteRenCars",
+    "inspectionFromLicense",
+    "pendingCarIds",
+    "renBulkApply",
+    "renPlates",
+    "renSelectedCars"
+  ],
+  "YahmaFleetViewBulk": [
+    "bulkExportSelected",
+    "bulkRenewCard",
+    "bulkRenewLicense",
+    "bulkSetInspection",
+    "bulkSetStatus",
+    "fleetAdminMoveSelectedCars",
+    "getSelectedCars",
+    "updateBulkBar"
   ]
 }

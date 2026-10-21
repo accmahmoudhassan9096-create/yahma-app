@@ -18,14 +18,17 @@
 <link rel="dns-prefetch" href="https://dzildqysxdlnfsmjttjg.supabase.co">
 <link rel="preload" href="fonts/cairo-060006.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/cairo-010002.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="css/fonts.css">
-<link rel="stylesheet" href="css/01-base.css">
-<link rel="stylesheet" href="css/02-components.css">
-<link rel="stylesheet" href="css/03-motion-layout.css">
-<link rel="stylesheet" href="css/04-dark-overrides.css"><!-- لاحقًا: التراكبات المتأخرة والوضع الليلي يجب أن تبقى آخر ملف -->
+<link rel="stylesheet" href="css/fonts.min.css">
+<link rel="stylesheet" href="css/01-base.min.css">
+<link rel="stylesheet" href="css/02-components.min.css">
+<link rel="stylesheet" href="css/03-motion-layout.min.css">
+<link rel="stylesheet" href="css/04-dark-overrides.min.css"><!-- لاحقًا: التراكبات المتأخرة والوضع الليلي يجب أن تبقى آخر ملف -->
 <!-- شارة حالة الشبكة — لازم بعد 04 عشان تعديلاته على .sync-status
      تتغلّب على الأساس. متربطش قبله وإلا التعديلات متطبّقتش. -->
-<link rel="stylesheet" href="css/05-offline-badge.css">
+<link rel="stylesheet" href="css/05-offline-badge.min.css">
+<!-- ⭐ الأصول المشحونة هي النسخ المضغوطة (min). المصدر المقروء (بالتعليقات)
+     موجود في نفس المجلد، وبينتج من scripts/minify-css.js — واختبار
+     «النسخ المضغوطة متSynchronize مع المصدر» بيمنع أي اختلاف. -->
 <!-- ⭐ المكتبات محلية مش من CDN.
      كان Supabase بيتحمّل من jsdelivr، وأي شبكة بتحجبه أو بتبطّئه
      كانت بتخلي التطبيق يفتح «وضع محلي» ويطلع 0 سيارة — وده اللي
@@ -474,6 +477,7 @@
   <script src="modules/export-bar.js"></script>
 <script src="modules/my-account.js"></script>
 <script src="modules/fleet-core.js"></script>
+<script src="modules/fleet-view-bulk.js"></script>
 <script src="modules/fleet-view.js"></script>
 <script src="modules/fleet.js"></script>
 <script src="modules/reports-core.js"></script>
@@ -499,6 +503,7 @@
 <script src="modules/preparation-data.js"></script>
 <script src="modules/preparation-history.js"></script>
 <script src="modules/renewals.js"></script>
+<script src="modules/renewals-ui-bulk.js"></script>
 <script src="modules/renewals-ui.js"></script>
 <script src="modules/follow-up-ui.js"></script>
 <script src="modules/transfers-ui.js"></script>

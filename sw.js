@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v281';
+const CACHE_NAME = 'yahma-shell-v282';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -18,10 +18,10 @@ const LOCAL_APP_SHELL = [
   './vendor/jspdf.umd.min.js',
   /* النسخة الاحتياطية: لو الأولى فشلت (شبكة بتقطع ملفاتنا) بنرجع
      ليها بدل ما نرجع لـCDN — عشان المنصة تفتح حتى مع شبكة ضعيفة. */
-  './css/01-base.css',
-  './css/02-components.css',
-  './css/03-motion-layout.css',
-  './css/04-dark-overrides.css',
+  './css/01-base.min.css',
+  './css/02-components.min.css',
+  './css/03-motion-layout.min.css',
+  './css/04-dark-overrides.min.css',
   './assets/dashboard-hero.png',
   './app.js',
   './core/permissions.js',
@@ -73,6 +73,7 @@ const LOCAL_APP_SHELL = [
   './modules/export-bar.js',
   './modules/my-account.js',
   './modules/fleet-core.js',
+  './modules/fleet-view-bulk.js',
   './modules/fleet-view.js',
   './modules/fleet.js',
   './modules/reports.js',
@@ -88,6 +89,7 @@ const LOCAL_APP_SHELL = [
   './modules/preparation-data.js',
   './modules/preparation-history.js',
   './modules/renewals.js',
+  './modules/renewals-ui-bulk.js',
   './modules/renewals-ui.js',
   './modules/follow-up-ui.js',
   './modules/transfers-ui.js',
@@ -102,8 +104,8 @@ const LOCAL_APP_SHELL = [
   './vendor/images/layers.png',
   './vendor/images/layers-2x.png',
   './vendor/images/marker-icon.png',
-  './css/fonts.css',
-  './css/05-offline-badge.css',
+  './css/fonts.min.css',
+  './css/05-offline-badge.min.css',
   './fonts/cairo-000000.woff2',
   './fonts/cairo-010002.woff2',
   './fonts/cairo-060006.woff2',

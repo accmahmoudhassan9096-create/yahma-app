@@ -949,3 +949,52 @@ test('التطبيق مش بيعتمد على عمود vehicles.data (JSON)', ()
   assert.ok(/Object\.assign\(\{\}, extra, base\)/.test(d),
     'ترتيب الدمج لازم يفضل: العمود (base) هو المرجع');
 });
+
+/* ===== النسخة المضغوطة من الـCSS لازم تكون متSynchronize مع المصدر =====
+
+   ⭐ المشحون هو css/*.min.css (المضغوط)، والمصدر المقروء موجود
+   في نفس المجلد للصيانة. الاختبار ده بيولّد المضغوط من المصدر
+   ويقارنه — فلو عدّلنا المصدر من غير ما نعيد التوليد، بيقع هنا
+   بدل ما المستخدم يشوف صفحة من غير تنسيق. */
+test('النسخ المضغوطة من الـCSS متSynchronize مع المصدر', () => {
+  const { execFileSync } = require('child_process');
+  const cssDir = path.join(ROOT, 'css');
+  const sources = fs.readdirSync(cssDir).filter(n => n.endsWith('.css') && !n.endsWith('.min.css'));
+  assert.ok(sources.length >= 5, 'ملفات CSS المصدر مفقودة');
+
+  /* نولّد في مجلد مؤقت ونقارن */
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'yahma-css-'))
+  const script = path.join(ROOT, 'scripts', 'minify-css.js');
+  assert.ok(fs.existsSync(script), 'scripts/minify-css.js مفقود');
+  execFileSync(process.execPath, [script, tmp], {
+    cwd: ROOT, encoding: 'utf8', maxBuffer: 20e6
+  });
+
+  /* نقارن كل ملف */
+  sources.forEach((name) => {
+    const minName = name.replace(/\.css$/, '.min.css');
+    const onDisk = fs.readFileSync(path.join(cssDir, minName), 'utf8');
+    const fresh = fs.readFileSync(path.join(tmp, minName), 'utf8');
+    assert.equal(onDisk, fresh,
+      'نسخة ' + minName + ' مش متSynchronize مع المصدر — أعد توليدها بـ node scripts/minify-css.js');
+  });
+
+  /* index.html لازم يحمّل المضغوط مش المصدر */
+  const html = read('index.html');
+  sources.forEach((name) => {
+    const minName = name.replace(/\.css$/, '.min.css');
+    assert.ok(html.indexOf('css/' + minName) > -1, 'index.html لازم يحمّل ' + minName);
+    assert.ok(html.indexOf('href="css/' + name + '"') === -1,
+      'index.html لسه بيحمّل المصدر ' + name + ' بدل المضغوط');
+  });
+
+  /* الـSW لازم يخزّن المضغوط */
+  const sw = read('sw.js');
+  sources.forEach((name) => {
+    const minName = name.replace(/\.css$/, '.min.css');
+    assert.ok(sw.indexOf("'./css/" + minName + "'") > -1,
+      'الـSW لازم يخزّن ' + minName);
+  });
+
+  fs.rmSync(tmp, { recursive: true, force: true });
+});

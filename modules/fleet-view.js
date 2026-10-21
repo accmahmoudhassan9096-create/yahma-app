@@ -291,178 +291,19 @@
      (والمستخدم يشوف السيارات بتتنقل بين التبويبات من غير سبب).
      التحديد المتعدد شغّال بـSet عادي — الـset بينبقى جوّه الدالة
      وبيتمسح لما الدالة تخلص (وهو المطلوب: تختفي لما تغيّر التبويب). */
-  const selectedIds=new Set();
-  const val = id => {
-    const el = $(id);
-    return (el && el.value || '').trim();
-  };
-  function updateBulkBar(){
-    const bar=$('bulk-bar');
-    const n=selectedIds.size;
-    if(!bar) return;
-    bar.style.display = n>0 ? 'flex' : 'none';
-    const cnt=$('bulk-count');
-    if(cnt) cnt.textContent = n + ' محددة';
-    const head=$('bulk-head-check');
-    const allVisible=getFilteredRows();
-    if(head){
-      head.checked = allVisible.length>0 && allVisible.every(c=>selectedIds.has(String(c.id)));
-      head.indeterminate = selectedIds.size>0 && !head.checked;
-    }
-    const selAll=$('bulk-select-all');
-    if(selAll) selAll.checked = head ? head.checked : false;
-  }
-  function getSelectedCars(){
-    return fleet.filter(c=>selectedIds.has(String(c.id)));
-  }
-  async function bulkRenewLicense(){
-    const cars=getSelectedCars();
-    if(!cars.length) return;
-    const defaultDate=defaultLicenseExpiry();
-    const newDate=prompt('تاريخ انتهاء الرخصة الجديد لـ '+cars.length+' سيارة (YYYY-MM-DD):', defaultDate);
-    if(!newDate) return;
-    const normalized=normalizeDateValue(newDate)||newDate;
-    cars.forEach(c=>{ c.licenseExpiry=normalized; if(!c.licenseStatus||c.licenseStatus==='منتهي') c.licenseStatus='نشط'; });
-    const ids=cars.map(c=>c.id);
-    selectedIds.clear();
-    await saveData(ids); draw(); updateBulkBar();
-    alert('تم تجديد رخصة '+cars.length+' سيارة');
-  }
-  async function bulkRenewCard(){
-    const cars=getSelectedCars();
-    if(!cars.length) return;
-    const defaultDate=addDays(todayStr(),365);
-    const newDate=prompt('تاريخ انتهاء الكارت الجديد لـ '+cars.length+' سيارة (YYYY-MM-DD):', defaultDate);
-    if(!newDate) return;
-    const normalized=normalizeDateValue(newDate)||newDate;
-    cars.forEach(c=>{ c.cardExpiry=normalized; if(!c.cardStatus||c.cardStatus.includes('ملغ')||c.cardStatus.includes('موقوف')) c.cardStatus='نشط'; });
-    const ids=cars.map(c=>c.id);
-    selectedIds.clear();
-    await saveData(ids); draw(); updateBulkBar();
-    alert('تم تجديد كارت '+cars.length+' سيارة');
-  }
-  async function bulkSetStatus(){
-    const cars=getSelectedCars();
-    if(!cars.length) return;
-    const status=prompt('الحالة الجديدة (نشط / تحت الصيانة / خارج الخدمة):', 'نشط');
-    if(!status) return;
-    const allowed=['نشط','تحت الصيانة','خارج الخدمة'];
-    const s=status.trim();
-    if(!allowed.includes(s)){ alert('الحالة يجب أن تكون: نشط أو تحت الصيانة أو خارج الخدمة'); return; }
-    cars.forEach(c=>{ c.carStatus=s; });
-    const ids=cars.map(c=>c.id);
-    selectedIds.clear();
-    await saveData(ids); draw(); updateBulkBar();
-    alert('تم تحديث حالة '+cars.length+' سيارة');
-  }
-  async function bulkSetInspection(){
-    const cars=getSelectedCars();
-    if(!cars.length) return;
-    const status=prompt('حالة الفحص الجديدة (تم الفحص / لم يفحص):', 'تم الفحص');
-    if(!status) return;
-    const allowed=['تم الفحص','لم يفحص'];
-    const s=status.trim();
-    if(!allowed.includes(s)){ alert('القيمة يجب أن تكون: تم الفحص أو لم يفحص'); return; }
-    cars.forEach(c=>{ c.inspectionStatus=s; });
-    const ids=cars.map(c=>c.id);
-    selectedIds.clear();
-    await saveData(ids); draw(); updateBulkBar();
-    alert('تم تحديث فحص '+cars.length+' سيارة');
-  }
-  function bulkExportSelected(){
-    const cars=getSelectedCars();
-    if(!cars.length){ alert('لا توجد سيارات محددة'); return; }
-    exportRows(cars);
-  }
-
-  async function fleetAdminMoveSelectedCars(targetTab){
-    if(typeof currentRole !== "undefined" && currentRole !== "admin"){
-      alert("هذا الإجراء متاح لمدير النظام فقط.");
-      return;
-    }
-    const cars = getSelectedCars();
-    if(!cars.length){ alert("يرجى تحديد سيارة واحدة على الأقل."); return; }
-    const tabNames = { renewals: "الفحص", payments: "تحت الدفع", paid: "تم الدفع", renewed: "تم التجديد" };
-    const targetName = tabNames[targetTab] || targetTab;
-    if(!confirm("هل تريد بالتأكيد نقل " + cars.length + " سيارة إلى تبويب «" + targetName + "»؟")) return;
-
-    let moved = 0;
-    const failed = [];
-
-    if(targetTab === "renewals"){
-      cars.forEach(function(c){ c.inspectionStatus = "لم يفحص"; });
-      try{ await saveData(cars.map(c=>c.id)); }catch(_){}
-      for(const car of cars){
-        try{
-          if(window.YahmaPayments && typeof window.YahmaPayments.localAll === 'function'){
-            const allP = window.YahmaPayments.localAll().filter(p => String(p.carId) === String(car.id) && (p.status === 'pending' || p.status === 'paid'));
-            for(const p of allP){
-              if(typeof window.YahmaPayments.cancel === 'function'){
-                await window.YahmaPayments.cancel(p.id, car.id);
-              }
-            }
-          }
-          moved++;
-        }catch(err){
-          console.error("Failed to move car to renewals:", car.plate, err);
-          failed.push(car.plate || car.id);
-        }
-      }
-    } else {
-      cars.forEach(function(c){ c.inspectionStatus = "تم الفحص"; });
-      try{ await saveData(cars.map(c=>c.id)); }catch(_){}
-      if(!window.YahmaPayments){ alert("تعذر الوصول لوحدة الدفع."); return; }
-      for(const car of cars){
-        try{
-          if(targetTab === "payments"){
-            await window.YahmaPayments.requestPayment(car);
-          } else if(targetTab === "paid"){
-            var pendingList = window.YahmaPayments.localByStatus("pending");
-            var item = pendingList.find(function(p){ return String(p.carId)===String(car.id); });
-            if(!item){
-              await window.YahmaPayments.requestPayment(car);
-              pendingList = window.YahmaPayments.localByStatus("pending");
-              item = pendingList.find(function(p){ return String(p.carId)===String(car.id); });
-            }
-            if(window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.paid){
-              await window.PAY_ITEM_ACTION.paid(item || { id: car.id, carId: car.id }, car, true);
-            }
-          } else if(targetTab === "renewed"){
-            var pList = window.YahmaPayments.localByStatus("pending");
-            var pItem = pList.find(function(p){ return String(p.carId)===String(car.id); });
-            if(!pItem){
-              await window.YahmaPayments.requestPayment(car);
-              pList = window.YahmaPayments.localByStatus("pending");
-              pItem = pList.find(function(p){ return String(p.carId)===String(car.id); });
-            }
-            if(window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.paid){
-              await window.PAY_ITEM_ACTION.paid(pItem || { id: car.id, carId: car.id }, car, true);
-            }
-            var paidList = window.YahmaPayments.localByStatus("paid");
-            var paidItem = paidList.find(function(p){ return String(p.carId)===String(car.id); }) || pItem || { id: car.id, carId: car.id };
-            if(window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.renew){
-              await window.PAY_ITEM_ACTION.renew(paidItem, car, true);
-            }
-          }
-          moved++;
-        }catch(err){
-          console.error("Failed to move car:", car.plate, err);
-          failed.push(car.plate || car.id);
-        }
-      }
-    }
-
-    selectedIds.clear();
-    draw();
-    updateBulkBar();
-    var msg = "✓ تم نقل " + moved + " سيارة بنجاح إلى تبويب «" + targetName + "».";
-    if(failed.length) msg += "\nفشل نقل: " + failed.join("، ");
-    alert(msg);
-    if(typeof log === "function"){ try{ log("نقل سيارات من الأسطول", moved + " سيارة إلى " + targetName); }catch(_){} }
-    if(typeof global.render === "function") global.render();
-    else if(typeof window.render === "function") window.render();
-  }
-
+  /* ⭐ الإجراءات الجماعية اتنقلت لملفها: modules/fleet-view-bulk.js
+     (نفس الدوال — بتاخد Set التحديد وسياق الرسم من الـctx). */
+  const selectedIds = new Set();
+  const FleetBulk = window.YahmaFleetViewBulk;
+  const bulkCtx = { selectedIds, draw: () => draw(), exportRows: (r) => exportRows(r), getFilteredRows: () => getFilteredRows() };
+  const updateBulkBar = () => FleetBulk.updateBulkBar(bulkCtx);
+  const getSelectedCars = () => FleetBulk.getSelectedCars(bulkCtx);
+  const bulkRenewLicense = () => FleetBulk.bulkRenewLicense(bulkCtx);
+  const bulkRenewCard = () => FleetBulk.bulkRenewCard(bulkCtx);
+  const bulkSetStatus = (v) => FleetBulk.bulkSetStatus(bulkCtx, v);
+  const bulkSetInspection = (v) => FleetBulk.bulkSetInspection(bulkCtx, v);
+  const bulkExportSelected = () => FleetBulk.bulkExportSelected(bulkCtx);
+  const fleetAdminMoveSelectedCars = (t) => FleetBulk.fleetAdminMoveSelectedCars(bulkCtx, t);
   const cardState=c=>cardDisplayStatus(c.cardExpiry,c.cardStatus);
   const licenseState=c=>licenseDisplayStatus(c.licenseExpiry);
   const inspectionState=c=>inspectionDisplayStatus(c.inspectionStatus);
