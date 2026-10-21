@@ -195,12 +195,23 @@ test('كل التبويبات بترسم من غير استثناء', () => {
   const { ctx } = loadApp();
   ctx.currentRole = 'admin';
   ctx._demoMode = false;
-  ctx.fleet = [];
+  /* ⭐ أسطول صغير لكن حقيقي — الـrender لازم يمشي على الكود اللي
+     بيDisclosure فعلاً (الفلترة والرسم والإجراءات الجماعية).
+     بأسطول فاضي المسار ده مش بيتنفّذ خالص، فأي خطأ جوه بيعدّي. */
+  ctx.fleet = [
+    { id: 'c1', plate: 'ر ن و 5251', brand: 'هيونداي', type: 'sedan', model: 'أكسنت', year: 2022, branch: 'فرع 1', owner: 'عميل', ownerNumber: '0500000000', carStatus: 'متاحة للإيجار', odometer: 1000, nextService: '2027-01-01', dailyRate: 200, rentedDaysMonth: 20, maintenanceCost: 500, lastMaintenance: '2026-01-01', workshop: 'ورشة 1', notes: '', cardExpiry: '2028-01-01', cardNumber: '1', licenseExpiry: '2028-01-01', inspectionExpiry: '2027-06-01', insuranceStatus: 'ساري', cardStatus: 'ساري', licenseStatus: 'ساري', inspectionStatus: 'تم الفحص', companyName: 'شركة', minDailyRate: 150, minMonthlyRate: 3000, monthlyRate: 6000, serial: 'S1', chassisNo: 'C1', color: 'أبيض', city: 'الرياض', prepTasks: [], prepChecklist: { finalReview: false, finalNote: '' } },
+    { id: 'c2', plate: 'ر ن ط 5546', brand: 'تويوتا', type: 'suv', model: 'RAV4', year: 2023, branch: 'فرع 2', owner: 'عميل 2', ownerNumber: '0500000001', carStatus: 'تحت الصيانة', odometer: 2000, nextService: '2026-11-01', dailyRate: 250, rentedDaysMonth: 15, maintenanceCost: 800, lastMaintenance: '2026-02-01', workshop: 'ورشة 2', notes: '', cardExpiry: '2027-05-01', cardNumber: '2', licenseExpiry: '2027-05-01', inspectionExpiry: '2026-12-01', insuranceStatus: 'لا يوجد', cardStatus: 'منتهية', licenseStatus: 'منتهية', inspectionStatus: 'لم يفحص', companyName: 'شركة', minDailyRate: 200, minMonthlyRate: 4000, monthlyRate: 7000, serial: 'S2', chassisNo: 'C2', color: 'أسود', city: 'جدة', prepTasks: [], prepChecklist: { finalReview: false, finalNote: '' } },
+    { id: 'c3', plate: 'س ص ه 2488', brand: 'نيسان', type: 'pickup', model: 'باترول', year: 2021, branch: 'فرع 3', owner: 'عميل 3', ownerNumber: '0500000002', carStatus: 'مؤجرة', odometer: 3000, nextService: '2026-10-30', dailyRate: 300, rentedDaysMonth: 25, maintenanceCost: 0, lastMaintenance: '2026-03-01', workshop: 'غير محددة', notes: '', cardExpiry: '2026-12-01', cardNumber: '3', licenseExpiry: '2026-11-01', inspectionExpiry: '2026-10-25', insuranceStatus: 'ساري', cardStatus: 'ساري', licenseStatus: 'ساري', inspectionStatus: 'تم الفحص', companyName: 'شركة', minDailyRate: 250, minMonthlyRate: 5000, monthlyRate: 8000, serial: 'S3', chassisNo: 'C3', color: 'أخضر', city: 'الدمام', prepTasks: [], prepChecklist: { finalReview: true, finalNote: 'تم' } }
+  ];
   const tabs = ctx.ALL_YAHMA_TABS || [];
   assert.ok(tabs.length >= 10, 'التبويبات مش محمّلة — ALL_YAHMA_TABS فاضي');
 
   const errors = [];
   tabs.forEach((tab) => {
+    /* ⭐ لازم نمسح الخطأ القديم — render() بيخزّن الـstack في
+       __lastError لما يبلع استثناء ويرجع للـemergency view، فلو
+       ما مسحناهوش هنحسب خطأ التبويب اللي فات كأنه خطأ الجديد. */
+    try { ctx.__lastError = null; } catch (_) {}
     try {
       ctx.yahmaSetTab(tab);
       ctx.currentTab = tab;
@@ -208,6 +219,12 @@ test('كل التبويبات بترسم من غير استثناء', () => {
     } catch (e) {
       errors.push(tab + ' → ' + (e && e.message ? e.message : String(e)).slice(0, 120));
     }
+    /* ⭐ الاستثناء اللي render() ببلعه — لازم يبقى واضح */
+    try {
+      if (ctx.__lastError) {
+        errors.push(tab + ' → (مبلع جوّه render) ' + String(ctx.__lastError).slice(0, 160));
+      }
+    } catch (_) {}
   });
   assert.deepStrictEqual(errors, [], 'تبويبات رمت استثناء:\n  ' + errors.join('\n  '));
 });
@@ -998,3 +1015,5 @@ test('النسخ المضغوطة من الـCSS متSynchronize مع المصد
 
   fs.rmSync(tmp, { recursive: true, force: true });
 });
+
+

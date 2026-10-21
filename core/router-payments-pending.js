@@ -94,7 +94,7 @@ function renderInspectionPayments(content){
     window._yahmaCurrentPdfData=()=>({
       title:'طلبات فحص تحت الدفع',
       subtitle:'عدد الطلبات: '+list.length,
-      headers:['رقم اللوحة','الفرع'].concat(PAY_CELL_LABELS,['تاريخ الطلب','حالة الدفع','المستخدم']),
+      headers:['رقم اللوحة','الفرع'].concat(window.PAY_CELL_LABELS,['تاريخ الطلب','حالة الدفع','المستخدم']),
       rows:list.map(({item,car})=>[
         car.plate||item.plate||'—', car.branch||item.branch||'—']
           .concat(PAY_CELL_FIELDS.map(d=>car[d.field]||'—'))

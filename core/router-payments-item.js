@@ -291,4 +291,6 @@ const PAY_ITEM_ACTION = {
   }
 };
 if (typeof window !== 'undefined') window.PAY_ITEM_ACTION = PAY_ITEM_ACTION;
+  /* ⭐ بيتستخدم في ملف تاني (تصدير «تحت الدفع») — لازم يتصدَّر. */
+  if (typeof window !== 'undefined') window.PAY_CELL_LABELS = PAY_CELL_LABELS;
 

@@ -11,10 +11,6 @@
  */
 (function (global) {
   'use strict';
-  const val = id => {
-    const el = $(id);
-    return (el && el.value || '').trim();
-  };
   function updateBulkBar(ctx){
     const bar=$('bulk-bar');
     const n=ctx.selectedIds.size;
