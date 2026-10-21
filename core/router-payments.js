@@ -639,9 +639,18 @@ function bindPaySelection(content, tab) {
   if (!tbody) return;
   payBulkBarHtml(tab);
 
-  /* ⭐ الإصلاح الجذري: بنربط الـlisteners على content (اللي بيفضل موجود)
-     مش على tbody (اللي بيتدمر ويتعاد إنشاؤه كل render).
-     الـguard بيتحط على content مش على tbody. */
+  /* ⭐ الإصلاح الجذري: بنربط الـlisteners على content (بيفضل موجود)
+     مش على tbody (بيتدمر ويتعاد إنشاؤه كل render).
+     الـguard بيتحط على content مش على tbody.
+
+     ⚠️ سبب «ضغطتين» على الموبايل:
+     - المتصفح على موبایل بيطلق click → handler كان يقول return
+       لو الهدف checkbox → فالضغطة الأولى ما بتعملش حاجة.
+     - change بيطلق بعد click بتأخير (أو مش بيطلق في بعض الحالات).
+
+     الحل: click handler يشتغل على الـcheckbox برضو — لكن نقرأ
+     checked *بعد* ما المتصفح يقلبها (setTimeout 0).
+     مش بنقلبها يدويًا عشان نتجنب double-flip. */
   if (!content._paySelectDelegate) {
     content._paySelectDelegate = true;
 
@@ -655,19 +664,21 @@ function bindPaySelection(content, tab) {
       payBulkBarHtml(t);
     }
 
-    /* change: المتصفح بيقلب checked قبل ما يطلق change — فنقرأ الحالة الصح. */
-    content.addEventListener('change', function (e) {
-      const box = e.target.closest ? e.target.closest('input[data-pay-check]') : null;
-      if (!box) return;
-      applyPayCheck(box);
-    });
-
-    /* click: لو الهدف هو الـcheckbox نفسه — نسيبه للـchange.
-       لو الهدف مكان تاني في الصف — نقلب checked يدويًا ثم نطبّق. */
     content.addEventListener('click', function (e) {
-      if (e.target.closest && e.target.closest('input[data-pay-check]')) return;
-      if (e.target.closest('button, a, select, textarea, input:not([data-pay-check]), .row-actions')) return;
+      /* زر أو لينك أو input تاني — نتجاهل */
+      if (e.target.closest('button, a, select, textarea, .row-actions')) return;
       if (!canBulkHere()) return;
+
+      const box = e.target.closest ? e.target.closest('input[data-pay-check]') : null;
+      if (box) {
+        /* الضغطة مباشرة على الـcheckbox:
+           المتصفح بيقلب checked قبل ما يطلق click — نقرأها هنا. */
+        if (box.disabled) return;
+        applyPayCheck(box);
+        return;
+      }
+
+      /* الضغطة على مكان تاني في الصف — نقلب checked يدويًا */
       const tr = e.target.closest('tr');
       if (!tr) return;
       const cb = tr.querySelector('input[data-pay-check]');
