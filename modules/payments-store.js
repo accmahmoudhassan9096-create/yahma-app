@@ -454,23 +454,28 @@ function diagnose() {
     var note = DONE_NOTE + '|' + stamp;
     var pending = readJSON(PENDING_KEY, []);
     var paid = readJSON(PAID_KEY, []);
+    var targetCid = carId;
     [pending, paid].forEach(function (list) {
       list.forEach(function (p) {
         if (String(p.id) === String(id) || (carId && String(p.carId) === String(carId))) {
           p.note = note;
           p.licenseRenewedAt = stamp;
+          if (!targetCid && p.carId) targetCid = p.carId;
         }
       });
     });
     writeJSON(PENDING_KEY, pending);
     writeJSON(PAID_KEY, paid);
     if (!tableReady()) return { ok: true, local: true };
-    var cloudId = isCloudId(id) ? id : await resolveCloudId(id, carId);
-    if (!cloudId) { window.__yahmaPaymentsCloudError = ''; return { ok: true, local: true }; }
     try {
-      var res = await window.supabaseClient.from('inspection_payments')
-        .update({ note: note })
-        .eq('id', cloudId);
+      var cloudId = isCloudId(id) ? id : await resolveCloudId(id, targetCid);
+      var query = window.supabaseClient.from('inspection_payments').update({ note: note });
+      if (targetCid) {
+        query = query.eq('car_id', String(targetCid)).in('status', ['pending', 'paid']);
+      } else if (cloudId) {
+        query = query.eq('id', cloudId);
+      }
+      var res = await query;
       if (res && res.error) {
         window.__yahmaPaymentsCloudError = String(res.error.message || res.error);
         return { ok: true, local: true, error: res.error.message };
@@ -551,17 +556,16 @@ function diagnose() {
     writeJSON(PENDING_KEY, pending);
     writeJSON(PAID_KEY, paid);
     if (!tableReady()) return { ok: true, local: true };
-    /* لو المفتاح نصي (سجل قديم) نجيب الـ UUID الحقيقي الأول */
-    var cloudId = isCloudId(id) ? id : await resolveCloudId(id, targetCid);
-    if (!cloudId) {
-      global.__yahmaPaymentsCloudError = '';
-      return { ok: true, local: true };
-    }
     try {
-      var res = await window.supabaseClient
-        .from('inspection_payments')
-        .update({ status: 'paid', paid_at: stamp })
-        .eq('id', cloudId);
+      var cloudId = isCloudId(id) ? id : await resolveCloudId(id, targetCid);
+      var query = window.supabaseClient.from('inspection_payments')
+        .update({ status: 'paid', paid_at: stamp });
+      if (targetCid) {
+        query = query.eq('car_id', String(targetCid)).in('status', ['pending', 'paid']);
+      } else if (cloudId) {
+        query = query.eq('id', cloudId);
+      }
+      var res = await query;
       if (res.error) {
         global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
         return { ok: true, local: true, error: res.error.message };
@@ -579,23 +583,23 @@ function diagnose() {
     var pending = readJSON(PENDING_KEY, []);
     var paidList = readJSON(PAID_KEY, []);
     /* الطلب ممكن يكون في القائمتين — لازم نشوفهم كلهم */
-    var matchInPending = pending.find(function (p) { return String(p.id) === String(id); });
-    var matchInPaid = paidList.find(function (p) { return String(p.id) === String(id); });
+    var matchInPending = pending.find(function (p) { return String(p.id) === String(id) || (carId && String(p.carId) === String(carId)); });
+    var matchInPaid = paidList.find(function (p) { return String(p.id) === String(id) || (carId && String(p.carId) === String(carId)); });
     var carOfRequest = carId || (matchInPending || matchInPaid || {}).carId;
-    pending = pending.filter(function (p) { return String(p.id) !== String(id); });
-    paidList = paidList.filter(function (p) { return String(p.id) !== String(id); });
+    pending = pending.filter(function (p) { return String(p.id) !== String(id) && !(carOfRequest && String(p.carId) === String(carOfRequest)); });
+    paidList = paidList.filter(function (p) { return String(p.id) !== String(id) && !(carOfRequest && String(p.carId) === String(carOfRequest)); });
     writeJSON(PENDING_KEY, pending);
     writeJSON(PAID_KEY, paidList);
     if (!tableReady()) return { ok: true, local: true };
-    var cloudId = isCloudId(id) ? id : await resolveCloudId(id, carOfRequest);
-    if (!cloudId) {
-      global.__yahmaPaymentsCloudError = '';
-      return { ok: true, local: true };
-    }
     try {
-      var res = await window.supabaseClient.from('inspection_payments')
-        .update({ status: 'cancelled' })
-        .eq('id', cloudId);
+      var cloudId = isCloudId(id) ? id : await resolveCloudId(id, carOfRequest);
+      var query = window.supabaseClient.from('inspection_payments').update({ status: 'cancelled' });
+      if (carOfRequest) {
+        query = query.eq('car_id', String(carOfRequest)).in('status', ['pending', 'paid']);
+      } else if (cloudId) {
+        query = query.eq('id', cloudId);
+      }
+      var res = await query;
       if (res && res.error) {
         global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
         return { ok: true, local: true, error: res.error.message };
@@ -650,15 +654,15 @@ function diagnose() {
      وكتابة الخطأ في نفس الرسالة اللي الواجهة بتقراها. */
   async function patchCloud(id, carId, fields) {
     if (!tableReady()) return { ok: true, local: true };
-    var cloudId = await resolveAnyCloudId(id, carId);
-    if (!cloudId) {
-      global.__yahmaPaymentsCloudError = '';
-      return { ok: true, local: true };
-    }
     try {
-      var res = await global.supabaseClient.from('inspection_payments')
-        .update(fields)
-        .eq('id', cloudId);
+      var cloudId = await resolveAnyCloudId(id, carId);
+      var query = global.supabaseClient.from('inspection_payments').update(fields);
+      if (carId) {
+        query = query.eq('car_id', String(carId)).in('status', ['pending', 'paid']);
+      } else if (cloudId) {
+        query = query.eq('id', cloudId);
+      }
+      var res = await query;
       if (res && res.error) {
         global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
         return { ok: true, local: true, error: res.error.message };

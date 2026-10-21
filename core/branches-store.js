@@ -1,4 +1,4 @@
-/* ===== التخزين المحلي والفروع والبذور ===== */
+﻿/* ===== التخزين المحلي والفروع والبذور ===== */
 /* استُخرج من app-core.js (السطور 415-604) ضمن تقسيم الملفات.
    يُحمَّل بنفس الترتيب السابق بالضبط ضمن كتلة core/* قبل الوحدات المُستخرجة من الذيل. */
 
@@ -203,7 +203,17 @@ function fleetForTab(tab, list){
   function needsInspection(c){ return insp(c)!=='green' || licenseSoon(c); }
 
   switch(tab){
-    case 'renewals':      return all.filter(function(c){ return insp(c) === 'red'; });
+    case 'renewals': {
+      var inPayment = new Set();
+      try {
+        if (typeof loadInspectionPayments === 'function') {
+          loadInspectionPayments().forEach(function(p){ inPayment.add(String(p.carId)); });
+        } else if (typeof window !== 'undefined' && window.YahmaPayments && typeof window.YahmaPayments.localByStatus === 'function') {
+          window.YahmaPayments.localByStatus('pending').forEach(function(p){ inPayment.add(String(p.carId)); });
+        }
+      } catch(_) {}
+      return all.filter(function(c){ return insp(c) === 'red' && (!inPayment.size || !inPayment.has(String(c.id))); });
+    }
     case 'payments':      return window.YahmaPayments ? filterByPaymentIds(all,'pending') : all;
     case 'paid':          return window.YahmaPayments ? filterByPaymentIds(all,'paid') : all;
     case 'renewed':       return window.YahmaPayments ? filterByPaymentIds(all,'renewed') : all;
