@@ -186,9 +186,11 @@ function corePayCellsHtml(car) {
 
 function payNoteCell(car) {
   if (!car) return '<td>—</td>';
+  const tab = (typeof window.yahmaGetTab === 'function') ? window.yahmaGetTab() : '';
+  const isOpsInNonOpsTab = (typeof currentRole !== 'undefined' && currentRole === 'ops' && tab !== 'renewals');
   const canEdit = (typeof window.YahmaPerms === 'object')
     ? window.YahmaPerms.canEditNow()
-    : !(typeof currentRole !== 'undefined' && currentRole === 'view');
+    : (!(typeof currentRole !== 'undefined' && currentRole === 'view') && !isOpsInNonOpsTab);
   return `<td><input class="pay-note-input ren-note-input" data-note-id="${escapeHtml(car.id)}" value="${escapeHtml(car.notes || '')}" placeholder="اكتب ملاحظة…" aria-label="ملاحظات السيارة ${escapeHtml(car.plate || '—')}"${canEdit ? '' : ' readonly'}></td>`;
 }
 
@@ -203,7 +205,12 @@ function bindPayNotes(container) {
     const fleetList = (typeof fleet !== 'undefined' && Array.isArray(fleet)) ? fleet : (window.fleet || []);
     const car = fleetList.find(c => String(c.id) === String(inp.dataset.noteId));
     if (!car) return;
-    if (typeof currentRole !== 'undefined' && currentRole === 'view') {
+    if (typeof window.YahmaPerms === 'object' && !window.YahmaPerms.canEditNow()) {
+      alert(window.YahmaPerms.denyMessage('تعديل الملاحظات'));
+      inp.value = car.notes || '';
+      return;
+    }
+    if (typeof currentRole !== 'undefined' && (currentRole === 'view' || (currentRole === 'ops' && (typeof window.yahmaGetTab === 'function' ? window.yahmaGetTab() : '') !== 'renewals'))) {
       alert('ليس لديك صلاحية التعديل.');
       inp.value = car.notes || '';
       return;
@@ -1257,7 +1264,7 @@ function renderRenewedInspections(content){
         <td><span class="tag green">تم التجديد</span></td>
         ${payNoteCell(car)}
         <td>${escapeHtml(resolveItemUserName(item))}</td>
-        <td><button type="button" class="btn btn-ghost btn-small" data-stepback-renewed="${escapeHtml(item.id)}" title="رجوع السيارة لِتبويب «تم الدفع»">↩ رجوع لِتم الدفع</button>${canDeleteHere()?` <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>`:''}</td></tr>`;
+        <td>${canDeleteHere() ? `<button type="button" class="btn btn-ghost btn-small" data-stepback-renewed="${escapeHtml(item.id)}" title="رجوع السيارة لِتبويب «تم الدفع»">↩ رجوع لِتم الدفع</button> <button type="button" class="btn btn-danger btn-small" data-del-car="${escapeHtml(car.id)}" data-plate="${escapeHtml(car.plate||'')}" title="حذف السيارة نهائيًا">🗑</button>` : '<span class="tag grey" style="opacity:0.75">عرض فقط</span>'}</td></tr>`;
     }).join('') : '<tr><td class="empty-span"><div class="empty">لم يتم تسجيل أي تجديد بعد</div></td></tr>';
 
     const countLabel = document.getElementById('pay-count-renewed');
@@ -1283,6 +1290,10 @@ function renderRenewedInspections(content){
   function bindRowButtons() {
     content.querySelectorAll('[data-stepback-renewed]').forEach(function(button){
       button.onclick = async function(){
+        if(!canDeleteHere()){
+          alert('هذا الإجراء متاح لمدير النظام فقط.');
+          return;
+        }
         if(!canRunPayments('إدارة طلبات الدفع')) return;
         const item=loadRenewedInspections().find(p=>String(p.id)===String(button.dataset.stepbackRenewed));
         if(!item) return;

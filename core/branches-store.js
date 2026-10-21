@@ -140,11 +140,20 @@ window.defaultYahmaTabsForRole=function(role){
   return all.filter(function(id){ return id!=='audit' && id!=='users'; });
 };
 window.resolveYahmaPermissions=function(allowed, role){
-  if(Array.isArray(allowed) && allowed.length) return allowed.slice();
+  if(Array.isArray(allowed) && allowed.length) {
+    var list = allowed.slice();
+    /* مستخدمو التشغيل يشوفون قسم «تم التجديد» دائمًا */
+    if((role === 'ops' || role === 'manager') && !list.includes('renewed')){
+      list.push('renewed');
+    }
+    return list;
+  }
   return window.defaultYahmaTabsForRole(role);
 };
 window.canAccessYahmaTab=function(tab){
   if(tab==='dashboard'||window.currentRole==='admin'||window._demoMode)return true;
+  /* دور التشغيل والإداري مسموح لهما دائمًا برؤية قسم «تم التجديد» */
+  if(tab==='renewed' && (window.currentRole==='ops' || window.currentRole==='manager')) return true;
   if(Array.isArray(window.currentUserPermissions)&&window.currentUserPermissions.includes(tab))return true;
   /* أمان: لو اللPermissions اتقرت فاضية لسبب ما، اسمح بكل التبويبات عدا الإداري */
   if(!Array.isArray(window.currentUserPermissions)||!window.currentUserPermissions.length){
