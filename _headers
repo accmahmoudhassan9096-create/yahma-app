@@ -1,8 +1,32 @@
+# ===== Cloudflare Pages headers =====
+#
+# ⚠️ ليش الـJS مش بتتخزّن سنة كاملة:
+# كل ملفات الـJS كانت متserve بـ max-age=31536000 — وده كان
+# بيمنع الـService Worker من التحديث خالص عند المستخدمين، لأن المتصفح
+# بيخزّن sw.js في كاش الـHTTP، فما بيلفّش. والنتيجة: المستخدم
+# بيضل على نسخة قديمة من التطبيق لأسابيع، ومن غير أي رسالة.
+#
+# الحل: max-age قصير (5 دقايق) مع must-revalidate. الملفات الجوة
+# بتتغيّر نادر، والـSW بيعمل الـprecache بنفسه — فمفيش ضرر على الأداء.
+
 /
   Cache-Control: no-cache, no-store, must-revalidate
   Pragma: no-cache
   Expires: 0
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
 /*.js
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=300, must-revalidate
+
 /*.css
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=300, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/vendor/*
+  Cache-Control: public, max-age=86400, must-revalidate

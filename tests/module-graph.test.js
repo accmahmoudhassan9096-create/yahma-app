@@ -627,3 +627,35 @@ test('مفيش دالة معرّفة مرتين جوّه نفس الملف', () 
     assert.deepStrictEqual(dupes, [], f + ': دوال معرّفة مرتين: ' + dupes.join(', '));
   });
 });
+
+/* ===== _headers: الـJS ما يتخدمش immutable =====
+
+   ⚠️ العطل: كل ملفات الـJS كانت max-age=31536000, immutable — فالمتصفح
+   كان بيخزّن sw.js في كاش الـHTTP وما بيلفّش. النتيجة: المستخدم بيضل على
+   نسخة قديمة من التطبيق لأسابيع، من غير أي رسالة. يعني إصلاح في الكود
+   بيوصل بس لما يمر وقت طويل (أو hard refresh).
+
+   الحل: max-age قصير (5 دقايق) مع must-revalidate — والـSW بيعمل الـprecache
+   بنفسه، فمفيش ضرر على الأداء. */
+test('_headers: الـJS و الـsw.js ما يتخدمش immutable', () => {
+  const h = read('_headers');
+  assert.ok(h.length > 0, '_headers مفقود');
+
+  /* مفيش immutable على أي حاجة */
+  assert.ok(!/immutable/.test(h),
+    'في immutable في _headers — المتصفح مش هيلفّ sw.js أبداً');
+
+  /* الـsw.js لازم no-store صراحة */
+  const swRule = /\/sw\.js[\s\S]*?Cache-Control:\s*([^\n]+)/.exec(h);
+  assert.ok(swRule, 'مفيش قاعدة لـ /sw.js');
+  assert.ok(/no-cache|no-store/.test(swRule[1]),
+    '/sw.js لازم no-cache/no-store — غيره مش هيتحدث');
+
+  /* والـJS العام max-age قصير */
+  const jsRule = /\/\*\.js[\s\S]*?Cache-Control:\s*([^\n]+)/.exec(h);
+  assert.ok(jsRule, 'مفيش قاعدة لـ /*.js');
+  const maxAge = /max-age=(\d+)/.exec(jsRule[1]);
+  assert.ok(maxAge, 'قاعدة /*.js مفيش فيها max-age');
+  assert.ok(Number(maxAge[1]) <= 900,
+    'قاعدة /*.js max-age=' + maxAge[1] + ' — طويل أوي، التعديلات مش هتوصل');
+});
