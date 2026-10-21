@@ -106,7 +106,26 @@ function readyCar(overrides) {
   }, overrides || {});
 }
 
+
+/* ===== ملفات دورة الدفع (منقولة من ملف واحد) =====
+   core/router-payments.js اتقسم 6 ملفات. الاختبارات بتفحص
+   السلوك مش ترتيب الملفات، فبنتجمّعهم في نص واحد. */
+const ROUTER_PAYMENTS_PARTS = [
+  'core/router-payments.js',
+  'core/router-payments-item.js',
+  'core/router-payments-bulk.js',
+  'core/router-payments-pending.js',
+  'core/router-payments-paid.js',
+  'core/router-payments-renewed.js',
+];
+function readRouterPayments() {
+  return ROUTER_PAYMENTS_PARTS
+    .map((rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+    .join('\n');
+}
 module.exports = {
+  readRouterPayments,
+  ROUTER_PAYMENTS_PARTS,
   app,
   utils: app.utils,
   /* readiness.js بيصدّر stats وreasons جوّه YahmaReadiness بس،

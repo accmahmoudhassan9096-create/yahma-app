@@ -15,9 +15,13 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+/* دورة الدفع اتقسمت 6 ملفات — بنقرأهم كلهم */
+const readRouter = () => ['core/router-payments.js','core/router-payments-item.js','core/router-payments-bulk.js',
+ 'core/router-payments-pending.js','core/router-payments-paid.js','core/router-payments-renewed.js']
+  .map((rel) => read(rel)).join('\n');
 const noComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
-const SRC = noComments(read('core/router-payments.js'));
+const SRC = noComments(readRouter());
 
 test('منطق التحديد في دالة واحدة بس — applyPayCheck', () => {
   /* الـSet بيتحدّث في مكان واحد فقط: applyPayCheck */
@@ -126,7 +130,7 @@ test('التحديدات بتتبقى بعد البحث (الفلتر ما بي�
    الحل: نفرّق. ضغط على الـcheckbox → نقرأ بعد التحويل. ضغط على
    الخلية → نقلب بنفسنا. */
 test('الضغط على الخلية يقلب التحديد — مش بس الضغط على الـcheckbox', () => {
-  const src = read('core/router-payments.js');
+  const src = readRouter();
   const clickHandler = /content\.addEventListener\('click'[\s\S]*?\n  \}\);/.exec(src);
   assert.ok(clickHandler, 'الـclick handler مفقود');
   const body = clickHandler[0];

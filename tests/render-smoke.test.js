@@ -93,6 +93,11 @@ const BROWSER_GLOBALS = new Set([
 const RENDER_FILES = [
   'core/render-router.js',
   'core/router-payments.js',
+    'core/router-payments-item.js',
+    'core/router-payments-bulk.js',
+    'core/router-payments-pending.js',
+    'core/router-payments-paid.js',
+    'core/router-payments-renewed.js',
   'core/router-branches.js',
   'core/router-charts.js',
   'modules/fleet-view.js',

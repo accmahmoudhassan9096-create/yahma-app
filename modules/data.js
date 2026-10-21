@@ -16,7 +16,6 @@
   const dateOrNull = value => normalizeDateValue(value) || null;
 
   function toVehicleRow(car) {
-    const full = JSON.parse(JSON.stringify(car));
     const checklist = car.prepChecklist || {};
     return {
       car_id: String(car.id),
@@ -36,7 +35,13 @@
       notes: nullable(car.notes),
       prep_final: !!checklist.finalReview, prep_final_note: nullable(checklist.finalNote),
       prep_tasks: Array.isArray(car.prepTasks) ? car.prepTasks : [],
-      data: full
+      /* ⭐ عمود `data` (JSON) كان نسخة قديمة من كل حقول السيارة —
+         4.9 MB على 3,960 صف. الـ20 مفتاح اللي جواه كلهم موجودين
+         أصلاً كأعمدة حقيقية، والدمج كان بيخلي العمود هو المرجع
+         (Object.assign({}, extra, base)) يعني الـJSON ما كانش
+         بيساهم في حاجة. اتمسح عشان المساحة، والعمود بتفضل
+         null من غير أي فقد. */
+      data: null
     };
   }
 

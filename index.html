@@ -33,20 +33,11 @@
 <script src="vendor/dexie.min.js"></script>
 <!-- Supabase JS -->
 <script src="vendor/supabase.min.js"></script>
-<script>
-  /* شبكة أمان: لو الملفات المحلية فشلت لأي سبب، نرجع للنسخة المحلية
-     التانية في vendor/fallback/.
-     ⚠️ مفيش CDN هنا عن قصد — الاعتماد على شبكة خارجية كان بيعني إن
-     المنصة ممكن تفشل في الإقلاع أصلاً على شبكة ضعيفة. */
-  (function () {
-    if (typeof supabase === 'undefined') {
-      document.write('<script src="vendor/fallback/supabase.min.js"><\/script>');
-    }
-    if (typeof Dexie === 'undefined') {
-      document.write('<script src="vendor/fallback/dexie.min.js"><\/script>');
-    }
-  })();
-</script>
+<!-- أمان الإقلاع: المكتبات الأساسية (supabase + dexie) متحمّلة من
+     نطاقنا مباشرة، ومتحطّطة في precache الـservice worker — يعني
+     لو الشبكة قطعت بتتفتح من الكاش عادي. النسخة المزدوجة اللي كانت
+     في vendor/fallback/ اتشالت عشان كانت بتضاعف حجم التحميل على
+     كل جهاز من غير فايدة حقيقية. -->
 <!-- مكتبات التصدير (Excel / PDF) — محلية كمان، وبيتحمّلوا أول مرة
      عند الاستخدام. modules/export.js بينتظرها عبر ensureXlsxReady(). -->
 </head>
@@ -523,6 +514,11 @@
 <script src="core/sync.js"></script>
 <script src="core/report-glue.js"></script>
 <script src="core/router-payments.js"></script>
+<script src="core/router-payments-item.js"></script>
+<script src="core/router-payments-bulk.js"></script>
+<script src="core/router-payments-pending.js"></script>
+<script src="core/router-payments-paid.js"></script>
+<script src="core/router-payments-renewed.js"></script>
 <script src="core/router-charts.js"></script>
 <script src="core/router-branches.js"></script>
 <script src="core/render-router.js"></script>

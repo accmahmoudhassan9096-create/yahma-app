@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v278';
+const CACHE_NAME = 'yahma-shell-v279';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -18,13 +18,6 @@ const LOCAL_APP_SHELL = [
   './vendor/jspdf.umd.min.js',
   /* النسخة الاحتياطية: لو الأولى فشلت (شبكة بتقطع ملفاتنا) بنرجع
      ليها بدل ما نرجع لـCDN — عشان المنصة تفتح حتى مع شبكة ضعيفة. */
-  './vendor/fallback/supabase.min.js',
-  './vendor/fallback/dexie.min.js',
-  './vendor/fallback/xlsx.full.min.js',
-  './vendor/fallback/html2canvas.min.js',
-  './vendor/fallback/jspdf.umd.min.js',
-  './vendor/fallback/leaflet.js',
-  './vendor/fallback/leaflet.css',
   './css/01-base.css',
   './css/02-components.css',
   './css/03-motion-layout.css',
@@ -39,6 +32,11 @@ const LOCAL_APP_SHELL = [
   './core/report-glue.js',
   './core/render-router.js',
   './core/router-payments.js',
+  './core/router-payments-item.js',
+  './core/router-payments-bulk.js',
+  './core/router-payments-pending.js',
+  './core/router-payments-paid.js',
+  './core/router-payments-renewed.js',
   './core/router-charts.js',
   './core/router-branches.js',
   './core/pdf-share.js',

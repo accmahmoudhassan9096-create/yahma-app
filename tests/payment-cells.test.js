@@ -22,6 +22,9 @@ const vm = require('vm');
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+const readRouter = () => ['core/router-payments.js','core/router-payments-item.js','core/router-payments-bulk.js',
+ 'core/router-payments-pending.js','core/router-payments-paid.js','core/router-payments-renewed.js']
+  .map((rel) => read(rel)).join('\n');
 const noComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--[^\n]*/g, '');
 
 /* ===== تحميل modules/fleet-excel.js كما هو =====
@@ -255,7 +258,7 @@ test('الأعمدة خلايا عرض مش inputs — في التبويبين',
 /* ⚠️ كود خلايا العرض في دورة الدفع اتنقل من core/render-router.js
    لـcore/router-payments.js وقت تقسيم الملفات الكبيرة. الاختبارات
    دي بتقرا كودcycle، فبتقرأ الملفين مع بعض. */
-const PAYCODE = () => noComments(read('core/router-payments.js'))
+const PAYCODE = () => noComments(readRouter())
                   + '\n' + noComments(read('core/render-router.js'));
 
 test('مفيش أي input أو تفويض حفظ للأعمدة دي في التبويبين', () => {
@@ -304,7 +307,7 @@ test('الأعمدة متطابقة في التبويبين — نفس التر�
 test('الأعمدة بتتقرا من كائن السيارة لا من الطلب', () => {
   /* عشان تنتقل مع السيارة: القراءة لازم تكون car[...]. لو بقت
      item[...] من الطلب، بتنتهي مع الطلب وبتضيع. */
-  [['core/router-payments.js', 'PAY_CELL_FIELDS'], ['modules/renewals-ui.js', 'REN_DATA_FIELDS']]
+  [['core/router-payments-item.js', 'PAY_CELL_FIELDS'], ['modules/renewals-ui.js', 'REN_DATA_FIELDS']]
     .forEach(([rel, name]) => {
       const src = noComments(read(rel));
       const start = src.indexOf('const ' + name);

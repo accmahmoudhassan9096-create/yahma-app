@@ -514,7 +514,9 @@ test('الملفات المتخصصة مسجّلة في index.html والـpreca
   const html = read('index.html');
   const sw = read('sw.js');
   const SPECIAL = [
-    'core/router-payments.js', 'core/router-charts.js', 'core/router-branches.js'
+    'core/router-payments.js', 'core/router-payments-item.js', 'core/router-payments-bulk.js',
+    'core/router-payments-pending.js', 'core/router-payments-paid.js', 'core/router-payments-renewed.js',
+    'core/router-charts.js', 'core/router-branches.js'
   ];
   SPECIAL.forEach((f) => {
     assert.ok(html.indexOf('"' + f + '"') > -1, f + ' مش محمّل في index.html');
@@ -537,7 +539,9 @@ test('مفيش كود مكرر بين الملفات المتخصصة والـro
   const router = read('core/render-router.js');
   const routerFns = new Set(
     [...router.matchAll(/^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]));
-  ['core/router-payments.js', 'core/router-charts.js', 'core/router-branches.js'].forEach((f) => {
+  ['core/router-payments.js', 'core/router-payments-item.js', 'core/router-payments-bulk.js',
+    'core/router-payments-pending.js', 'core/router-payments-paid.js', 'core/router-payments-renewed.js',
+    'core/router-charts.js', 'core/router-branches.js'].forEach((f) => {
     const code = read(f);
     const fns = [...code.matchAll(/^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
     const dup = fns.filter((n) => routerFns.has(n));
@@ -572,22 +576,27 @@ test('مفيش CDN خارجي — كل المكتبات محلية', () => {
   assert.deepStrictEqual(offenders, [], 'في CDN خارجي:\n  ' + offenders.join('\n  '));
 });
 
-/* ⭐ النسخة الاحتياطية للمكتبات موجودة فعلاً على القرص.
+/* ===== مكتبات التصدير: النسخة المحلية في precache الـSW =====
 
-   من غيرها، فشل التحميل المحلي هيخلّي التصدير/الخريطة يفشلوا صامتين. */
-test('النسخة الاحتياطية للمكتبات موجودة في vendor/fallback', () => {
-  const NEEDED = [
-    'supabase.min.js', 'dexie.min.js', 'xlsx.full.min.js',
-    'html2canvas.min.js', 'jspdf.umd.min.js', 'leaflet.js', 'leaflet.css'
-  ];
+   ⭐ كان في نسخة مزدوجة لكل مكتبة في vendor/fallback/ (1.76 MB)،
+   والـfallback بيشتغل بس لو الملف الرئيسي تالف. النسخة الرئيسية
+   نفسها متحطّطة في precache الـservice worker — يعني الـSW هو
+   خط الأمان الحقيقي. النسخة المزدوجة كانت بتضاعف حجم التحميل
+   على كل جهاز من غير فايدة. اتشالت. */
+test('مكتبات التصدير في precache الـSW — من غير نسخة مزدوجة', () => {
   const sw = read('sw.js');
-  NEEDED.forEach((f) => {
-    const p = path.join(ROOT, 'vendor', 'fallback', f);
-    assert.ok(fs.existsSync(p), 'vendor/fallback/' + f + ' مش موجود');
-    assert.ok(fs.statSync(p).size > 1000, 'vendor/fallback/' + f + ' فاضي أو ناقص');
-    assert.ok(sw.indexOf("'./vendor/fallback/" + f + "'") > -1,
-      'vendor/fallback/' + f + ' مش في precache الـSW');
+  ['supabase.min.js', 'dexie.min.js', 'xlsx.full.min.js',
+   'html2canvas.min.js', 'jspdf.umd.min.js'].forEach((f) => {
+    assert.ok(sw.indexOf("'./vendor/" + f + "'") > -1,
+      'vendor/' + f + ' لازم يكون في precache الـSW');
+    const p = path.join(ROOT, 'vendor', f);
+    assert.ok(fs.existsSync(p), 'vendor/' + f + ' مفقود');
+    assert.ok(fs.statSync(p).size > 1000, 'vendor/' + f + ' ملف فاضي');
   });
+  assert.ok(!fs.existsSync(path.join(ROOT, 'vendor', 'fallback')),
+    'vendor/fallback/ لازم يكون اتشال — النسخة المزدوجة اتشالت');
+  assert.ok(sw.indexOf('vendor/fallback/') === -1,
+    'مفيش ملفات fallback في precache الـSW');
 });
 
 test('مفيش اسم عمومي معرّف في أكتر من ملف', () => {
@@ -914,4 +923,29 @@ test('الرسم بيوصل للـrender الحقيقي — مرجع مباشر 
     'smooth.js ما ينفعش يعتمد على rAF لتحرير الرسم المعلّق');
   assert.ok(/pendingThis/.test(sm) && /MAX_BURST/.test(sm),
     'smooth.js لازم ينفّذ الرسم المعلّق (مش بس يسجّله)');
+});
+
+/* ===== عمود vehicles.data (JSON) اتمسح =====
+
+   كان عمود jsonb فيه نسخة كاملة من كل حقول السيارة — 4.9 MB
+   على 3,960 صف (وخلّى الجدول كله 15 MB). الـ20 مفتاح اللي جواه
+   كلهم موجودين أصلاً كأعمدة حقيقية، والدمج في fromVehicleRow
+   كان بيخلي العمود هو المرجع (Object.assign({}, extra, base))
+   يعني الـJSON ما كانش بيساهم في أي قيمة.
+
+   ⭐ الترتيب ده لازم يفضل زي ما هو: العمود آخر واحد في الـmerge
+   عشان هو اللي يفوز. لو اتقلب، الـJSON (القديم) هيغلب تاني. */
+test('التطبيق مش بيعتمد على عمود vehicles.data (JSON)', () => {
+  const d = read('modules/data.js');
+
+  assert.ok(!/data\s*:\s*full/.test(d),
+    'لازم نوقف كتابة النسخة الكاملة في عمود data');
+  assert.ok(/data\s*:\s*null/.test(d),
+    'عمود data لازم يتفضّى (null) عند الحفظ');
+  assert.ok(!/JSON\.parse\(JSON\.stringify\(car\)\)/.test(d),
+    'مفيش داعي نبني نسخة JSON من السيارة كلها');
+
+  /* ترتيب الدمج: العمود لازم يفوز */
+  assert.ok(/Object\.assign\(\{\}, extra, base\)/.test(d),
+    'ترتيب الدمج لازم يفضل: العمود (base) هو المرجع');
 });

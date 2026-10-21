@@ -9,78 +9,13 @@ const PERIOD_PRESETS = window.YahmaReports.periodPresets;
 function reportStorageRead(key, fallback){ return window.YahmaReports.storageRead(key, fallback); }
 function persistReportState(){ return window.YahmaReports.persistState(); }
 function getReportPresets(){ return window.YahmaReports.getPresets(); }
-function _legacyIsoLocal(d){ const x=new Date(d); if(isNaN(x)) return ''; return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
-function _legacyPeriodBounds(){
-  const p = window.periodRange || {preset:'thisMonth'};
-  const now = new Date();
-  if(p.preset==='custom'){
-    let from = p.from || '', to = p.to || '';
-    if(from && to && from > to){ const t=from; from=to; to=t; }
-    return {from: from || '1900-01-01', to: to || isoLocal(now)};
-  }
-  const y=now.getFullYear(), m=now.getMonth();
-  const ws=new Date(now); ws.setDate(ws.getDate()-((ws.getDay()+1)%7)); // الأسبوع يبدأ السبت
-  switch(p.preset){
-    case 'today':    return {from: isoLocal(now), to: isoLocal(now)};
-    case 'thisWeek': return {from: isoLocal(ws), to: isoLocal(now)};
-    case 'thisMonth':return {from: isoLocal(new Date(y,m,1)), to: isoLocal(new Date(y,m+1,0))};
-    case 'lastMonth':return {from: isoLocal(new Date(y,m-1,1)), to: isoLocal(new Date(y,m,0))};
-    case 'last30':   { const s=new Date(now); s.setDate(s.getDate()-29); return {from:isoLocal(s), to:isoLocal(now)}; }
-    case 'last90':   { const s=new Date(now); s.setDate(s.getDate()-89); return {from:isoLocal(s), to:isoLocal(now)}; }
-    case 'ytd':      return {from: isoLocal(new Date(y,0,1)), to: isoLocal(new Date(y,11,31))};
-    default:         return {from:'1900-01-01', to: isoLocal(new Date(y,11,31))}; // all
-  }
-}
-function _legacyPeriodLabel(){
-  if((window.periodRange||{}).preset==='all') return 'كل الفترات';
-  const b = periodBounds();
-  return 'من '+(b.from||'—')+' إلى '+(b.to||'—');
-}
-// أي تاريخ يمثل السجل؟ (يراعي أسماء الحقول الفعلية الموجودة في البيانات)
-function _legacyPeriodDateOf(rec){
-  const iso = v => { if(!v) return ''; const s=String(v); return s.length>=10 ? s.slice(0,10) : ''; };
-  return iso(rec.updatedAt) || iso(rec.lastMaintenance) || iso(rec.createdAt) || iso(rec.prepCompletedAt) || iso(rec.nextService) || '';
-}
-function _legacyInPeriod(rec){
-  const b = periodBounds();
-  const d = periodDateOf(rec);
-  if(!d) return true; // سجلات بلا تاريخ تُحتسب ضمن أي فترة (سلوك متوافق مع النسخ السابقة)
-  return d >= b.from && d <= b.to;
-}
-/* ===== v9: المؤشرات المحاسبية — تُحتسب من حقول الإيراد الاختيارية فقط، بلا أرقام مفبركة =====
-   ⚠️ الدالة دي ميتة ومفيش حاجة بتناديها (المسار الحي هو
-   `accountingIndicators` فوق → `YahmaReports.accountingIndicators`).
-   ومبقتش بتقرأ `rentedDaysMonth` — لو حد نقلها ورجّعها للحياة
-   هيخلّي التقرير يقول 0% تاني. لو محتاج تجيبها، خد المصدر من
-   سجل الاستئجارات مش من العمود. */
-function _legacyAccountingIndicators(list){
-  const b = periodBounds();
-  let days = Math.round((new Date(b.to) - new Date(b.from))/86400000) + 1;
-  if(!(days>0)) days = 30;
-  let active=0, dailySum=0, dailyN=0, estSum=0, estN=0, maintCost=0;
-  (list||[]).forEach(c=>{
-    const st=String(c.carStatus||'').trim();
-    if(!st.includes('خارج') && !st.includes('مسروق') && !st.includes('محول') && !st.includes('مفقود') && !st.includes('مؤرشفة') && !st.includes('مباعة')) active++;
-    const dr=parseFloat(c.dailyRate), rd=parseFloat(c.rentedDaysMonth);
-    if(!isNaN(dr)&&dr>0){ dailySum+=dr; dailyN++; }
-    if(!isNaN(dr)&&dr>0&&!isNaN(rd)&&rd>=0){ estSum+=dr*rd; estN++; }
-    const mc=parseFloat(c.maintenanceCost); if(!isNaN(mc)) maintCost+=mc;
-  });
-  const avgDaily = dailyN? dailySum/dailyN : 0;
-  const monthPotential = dailyN? avgDaily*active*30 : 0; // تقدير: متوسط السعر اليومي × السيارات النشطة × 30 يوم
-  const estMonthRev = estSum;                            // تقدير من أيام التأجير المسجلة فعليًا
-  return {
-    days, active,
-    avgDaily: Math.round(avgDaily),
-    monthPotential: Math.round(monthPotential),
-    estMonthRev: Math.round(estMonthRev),
-    revPerCar: active? Math.round((estMonthRev||monthPotential)/active) : 0,
-    maintCost: Math.round(maintCost),
-    netEst: Math.round((estMonthRev||monthPotential) - maintCost),
-    hasData: dailyN>0
-  };
-}
-function _legacyFmtSAR(n){ return ((n||0).toLocaleString('en-US'))+' ر.س'; }
+/* ===== الكود القديم (_legacy*) اتمسح =====
+   كان هنا 7 دوال قديمة (_legacyIsoLocal … _legacyAccountingIndicators)
+   ميتة من زمان: المسار الحي كله بيفوّض لـwindow.YahmaReports
+   (periodBounds / periodLabel / periodDate / inPeriod /
+    accountingIndicators / formatCurrency). اتمسكت عشان كود ميت
+   بيلخبط أي حد يعدّل التقرير لاحقًا — خصوصًا _legacyAccountingIndicators
+   كانت بتقرأ rentedDaysMonth وبتطلع أرقام غير حقيقية. */
 function isoLocal(date){ return window.YahmaReports.isoLocal(date); }
 function periodBounds(){ return window.YahmaReports.periodBounds(); }
 function periodLabel(){ return window.YahmaReports.periodLabel(); }

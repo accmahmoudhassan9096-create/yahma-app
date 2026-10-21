@@ -87,6 +87,11 @@ test('formatArabicDate outputs numeric dates without Arabic month names', () => 
   env.document = { getElementById: () => null, querySelectorAll: () => [] };
   env.localStorage = { getItem: () => null, setItem: () => null };
   vm.runInNewContext(read('core/router-payments.js'), env, { filename: 'core/router-payments.js' });
+    vm.runInNewContext(read('core/router-payments-item.js'), env, { filename: 'core/router-payments-item.js' });
+    vm.runInNewContext(read('core/router-payments-bulk.js'), env, { filename: 'core/router-payments-bulk.js' });
+    vm.runInNewContext(read('core/router-payments-pending.js'), env, { filename: 'core/router-payments-pending.js' });
+    vm.runInNewContext(read('core/router-payments-paid.js'), env, { filename: 'core/router-payments-paid.js' });
+    vm.runInNewContext(read('core/router-payments-renewed.js'), env, { filename: 'core/router-payments-renewed.js' });
   const formatArabicDate = env.formatArabicDate;
 
   // With timestamp (e.g. user screenshot 19 أكتوبر 2026)
