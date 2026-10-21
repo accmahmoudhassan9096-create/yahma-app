@@ -638,38 +638,47 @@ function bindPaySelection(content, tab) {
 
   if (!tbody._paySelectDelegate) {
     tbody._paySelectDelegate = true;
+    /* ⭐ التحديد: منطق واحد في مكان واحد.
+
+       ⚠️ العطل كان: الـclick والـchange handlerين الاتنين كانوا
+       بيقلبوا نفس الـSet. والـclick handler كان بيقفل التحديد غلط
+       لأن المتصفح بيقلب حالة الـcheckbox *بعد* الـclick handlers
+       (في Chrome: الـchange بيطلق بـchecked قديم). فالنتيجة:
+       - ضغط واحد = تحديد (صح) بس الـSet بيتقلب مرتين
+       - والضغط الثاني = إلغاء، لكن التحديدات التانية بتتمسح
+
+       الحل: منطق واحد — نToggle على الـSet بناءً على الحالة
+       *المرئية* (checked) وقت الحدث، والـclick handler مايعملش
+       أي toggle لو كان الهدف هو الـcheckbox نفسه (المتصفح بيعمله).
+
+       مهم: الـSet بيتحدّث بـadd/delete حسب checked، مش toggle —
+       عشان كده التحديدات المتعددة تفضل زي ما هي. */
+    function applyPayCheck(box, tab, id) {
+      const set = PAY_SELECTIONS[tab] || (PAY_SELECTIONS[tab] = new Set());
+      if (box.checked) set.add(id); else set.delete(id);
+      const tr = box.closest('tr');
+      if (tr) tr.classList.toggle('is-selected', box.checked);
+      payBulkBarHtml(tab);
+    }
+
     tbody.addEventListener('change', function (e) {
       const box = e.target.closest ? e.target.closest('input[data-pay-check]') : null;
       if (!box) return;
-      const t = box.dataset.payTab;
-      const id = String(box.dataset.payCheck);
-      const set = PAY_SELECTIONS[t] || (PAY_SELECTIONS[t] = new Set());
-      if (box.checked) set.add(id); else set.delete(id);
-      payBulkBarHtml(t);
+      applyPayCheck(box, box.dataset.payTab, String(box.dataset.payCheck));
     });
     tbody.addEventListener('click', function (e) {
+      /* الـcheckbox نفسه: المتصفح بيتولّى التحويل — ما نعملش toggle.
+         (كان بيعمل delete لأن checked لسه false وقت الـhandler.) */
+      if (e.target.closest && e.target.closest('input[data-pay-check]')) return;
       if (e.target.closest('button, a, select, textarea, input:not([data-pay-check]), .row-actions')) return;
       if (!canBulkHere()) return;
       const tr = e.target.closest('tr');
       if (!tr) return;
       const cb = tr.querySelector('input[data-pay-check]');
       if (!cb || cb.disabled) return;
-
-      const t = cb.dataset.payTab;
-      const id = String(cb.dataset.payCheck);
-      const set = PAY_SELECTIONS[t] || (PAY_SELECTIONS[t] = new Set());
-
-      if (e.target === cb || (e.target.matches && e.target.matches('input[data-pay-check]'))) {
-        if (cb.checked) set.add(id); else set.delete(id);
-        tr.classList.toggle('is-selected', cb.checked);
-        payBulkBarHtml(t);
-        return;
-      }
-
+      /* الضغط على أي مكان تاني في الصف = تبديل التحديد */
       cb.checked = !cb.checked;
-      if (cb.checked) set.add(id); else set.delete(id);
-      tr.classList.toggle('is-selected', cb.checked);
-      payBulkBarHtml(t);
+      applyPayCheck(cb, cb.dataset.payTab, String(cb.dataset.payCheck));
     });
   }
 
