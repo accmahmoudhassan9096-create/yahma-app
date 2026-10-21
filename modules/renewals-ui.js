@@ -280,8 +280,15 @@ function renderRenewals(content, mode='inspection'){
   function wireRenChecks(){
     const tbody=$('ren-tbody'); if(!tbody) return;
     tbody.querySelectorAll('.row-check').forEach(cb=>{
-      cb.checked=selectedRenIds.has(cb.dataset.id);
-      cb.onchange=()=>{ if(cb.checked) selectedRenIds.add(cb.dataset.id); else selectedRenIds.delete(cb.dataset.id); updateRenBulkBar(); };
+      const id = String(cb.dataset.id);
+      cb.checked=selectedRenIds.has(id);
+      const onToggle = ()=>{
+        if(cb.checked) selectedRenIds.add(id);
+        else selectedRenIds.delete(id);
+        updateRenBulkBar();
+      };
+      cb.onchange=onToggle;
+      cb.onclick=(e)=>{ e.stopPropagation(); onToggle(); };
     });
     const head=$('ren-head-check');
     if(head && !head._bound){
@@ -540,7 +547,7 @@ function renderRenewals(content, mode='inspection'){
         /* الملاحظات بيانات تشغيلية — مفتوحة لكل من يعدّل، مش بس للإداري. */
 const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPerms.canEditNow():!(typeof currentRole!=='undefined'&&currentRole==='view'));
         return `<tr data-id="${escapeHtml(c.id)}">
-        ${canBulk?`<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td>`:''}
+        ${canBulk?`<td class="td-check"><label class="td-check-wrap"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" ${selectedRenIds.has(String(c.id))?'checked':''} aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></label></td>`:''}
         <td class="plate">${escapeHtml(c.plate||'—')}</td>
         <td>${escapeHtml(c.brand||'—')}</td>
         <td>${escapeHtml(c.type||'—')}</td>
@@ -592,14 +599,14 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
         tbody._renDelegate = true;
         tbody.addEventListener('click', async function(e){
           const btn = e.target.closest('button[data-renew-insp],button[data-renew-lic],button[data-renew-ins],button[data-del-car]');
-          if(!btn) return;
-          e.stopPropagation();
-          if(btn.dataset.delCar){
-            if(typeof currentRole!=='undefined'&&currentRole!=='admin'&&currentRole!=='ops'){alert('ليس لديك صلاحية الحذف.');return;}
-            const car=fleet.find(c=>String(c.id)===String(btn.dataset.delCar)); if(!car) return;
-            await deleteRenCars([car.id]);
-            return;
-          }
+          if(btn){
+            e.stopPropagation();
+            if(btn.dataset.delCar){
+              if(typeof currentRole!=='undefined'&&currentRole!=='admin'&&currentRole!=='ops'){alert('ليس لديك صلاحية الحذف.');return;}
+              const car=fleet.find(c=>String(c.id)===String(btn.dataset.delCar)); if(!car) return;
+              await deleteRenCars([car.id]);
+              return;
+            }
             if(btn.dataset.renewInsp){
              const car=fleet.find(c=>c.id===btn.dataset.renewInsp); if(!car) return;
              if(typeof currentRole!=='undefined'&&currentRole!=='admin'&&currentRole!=='ops'){alert('لس لديك صلاحية تسجيل تجديد الفحص.');return;}
@@ -625,17 +632,39 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
              if(typeof window.log==='function') window.log('طلب دفع فحص','السيارة '+(car.plate||''));
              if(typeof render==='function') render();
              document.querySelector('.nav-item[data-tab="payments"]')?.click();
-          } else if(btn.dataset.renewLic){
-            const car=fleet.find(c=>c.id===btn.dataset.renewLic); if(!car) return;
-            const newDate=prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):', defaultLicenseExpiry());
-            if(!newDate) return;
-            car.licenseExpiry=normalizeDateValue(newDate)||newDate;
-            if(!car.licenseStatus||String(car.licenseStatus).includes('منته')) car.licenseStatus='نشط';
-            await saveData([car.id]); render();
-          } else if(btn.dataset.renewIns){
-            const car=fleet.find(c=>c.id===btn.dataset.renewIns); if(!car) return;
-            if(!confirm('تعيين تأمين السيارة '+car.plate+' كـ «ساري»؟')) return;
-            car.insuranceStatus='ساري'; await saveData([car.id]); render();
+             return;
+            }
+            if(btn.dataset.renewLic){
+             const car=fleet.find(c=>c.id===btn.dataset.renewLic); if(!car) return;
+             const newDate=prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):', defaultLicenseExpiry());
+             if(!newDate) return;
+             car.licenseExpiry=normalizeDateValue(newDate)||newDate;
+             if(!car.licenseStatus||String(car.licenseStatus).includes('منته')) car.licenseStatus='نشط';
+             await saveData([car.id]); render();
+             return;
+            }
+            if(btn.dataset.renewIns){
+             const car=fleet.find(c=>c.id===btn.dataset.renewIns); if(!car) return;
+             if(!confirm('تعيين تأمين السيارة '+car.plate+' كـ «ساري»؟')) return;
+             car.insuranceStatus='ساري'; await saveData([car.id]); render();
+             return;
+            }
+            return;
+          }
+
+          /* تحديد فوري للسيارة عند الضغط على السطر (تسهيل الاختيار من أول ضغطة) */
+          if(canBulk && !e.target.closest('input, button, a, select, textarea, label, .td-check')){
+            const tr = e.target.closest('tr[data-id]');
+            if(tr){
+              const cb = tr.querySelector('.row-check');
+              if(cb){
+                cb.checked = !cb.checked;
+                const id = String(cb.dataset.id);
+                if(cb.checked) selectedRenIds.add(id);
+                else selectedRenIds.delete(id);
+                updateRenBulkBar();
+              }
+            }
           }
         });
       }

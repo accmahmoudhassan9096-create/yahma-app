@@ -494,11 +494,12 @@ function payCheckHeader(tab, allIds) {
 
 function payCheckCell(tab, itemId, plate) {
   if (!canBulkHere()) return '';
-  const on = selectedPayRows(tab).some(function (r) { return String(r.item.id) === String(itemId); });
-  return '<td class="td-check" onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-pay-check="'
+  const set = PAY_SELECTIONS[tab];
+  const on = set ? set.has(String(itemId)) : false;
+  return '<td class="td-check"><label class="td-check-wrap"><input type="checkbox" class="row-check" data-pay-check="'
     + escapeHtml(String(itemId)) + '" data-pay-tab="' + tab + '"'
     + (on ? ' checked' : '')
-    + ' aria-label="تحديد السيارة ' + escapeHtml(plate || '—') + '"></td>';
+    + ' aria-label="تحديد السيارة ' + escapeHtml(plate || '—') + '"></label></td>';
 }
 
 /* ⭐ الشريط بياخد نفس التركيب بالظبط لشريط «الفحص»:
@@ -634,10 +635,32 @@ function bindPaySelection(content, tab) {
       const box = e.target.closest ? e.target.closest('input[data-pay-check]') : null;
       if (!box) return;
       const t = box.dataset.payTab;
-      const id = box.dataset.payCheck;
+      const id = String(box.dataset.payCheck);
       const set = PAY_SELECTIONS[t] || (PAY_SELECTIONS[t] = new Set());
       if (box.checked) set.add(id); else set.delete(id);
       payBulkBarHtml(t);
+    });
+    tbody.addEventListener('click', function (e) {
+      const box = e.target.closest ? e.target.closest('input[data-pay-check]') : null;
+      if (box) {
+        e.stopPropagation();
+        return;
+      }
+      /* تحديد السيارة عند الضغط على السطر خارج الأزرار والروابط */
+      if (canBulkHere() && !e.target.closest('input, button, a, select, textarea, label, .td-check, .row-actions')) {
+        const tr = e.target.closest('tr');
+        if (tr) {
+          const cb = tr.querySelector('input[data-pay-check]');
+          if (cb) {
+            cb.checked = !cb.checked;
+            const t = cb.dataset.payTab;
+            const id = String(cb.dataset.payCheck);
+            const set = PAY_SELECTIONS[t] || (PAY_SELECTIONS[t] = new Set());
+            if (cb.checked) set.add(id); else set.delete(id);
+            payBulkBarHtml(t);
+          }
+        }
+      }
     });
   }
 
