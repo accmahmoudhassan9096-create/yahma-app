@@ -285,7 +285,7 @@
       ].join('\x1f');
     }catch(e){ return String(Date.now()); }
   }
-  const selectedIds=new Set();
+  const selectedIds=_persistentFleetSelectedIds;
   const val = id => {
     const el = $(id);
     return (el && el.value || '').trim();
@@ -599,12 +599,19 @@
         tbody.querySelectorAll('.td-check').forEach(td => {
           td.onclick = (e) => {
             e.stopPropagation();
-            if (e.target.matches && e.target.matches('.row-check')) return;
             const cb = td.querySelector('.row-check');
-            if (cb && !cb.disabled) {
-              cb.checked = !cb.checked;
-              cb.dispatchEvent(new Event('change', { bubbles: true }));
+            if (!cb || cb.disabled) return;
+            const id = String(cb.dataset.id);
+            if (e.target === cb) {
+              if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+              td.closest('tr')?.classList.toggle('is-selected', cb.checked);
+              updateBulkBar();
+              return;
             }
+            cb.checked = !cb.checked;
+            if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+            td.closest('tr')?.classList.toggle('is-selected', cb.checked);
+            updateBulkBar();
           };
         });
         tbody.querySelectorAll('[data-view-car]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openVehicle360(btn.dataset.viewCar)}));

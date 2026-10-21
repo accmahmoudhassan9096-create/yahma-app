@@ -649,20 +649,27 @@ function bindPaySelection(content, tab) {
     });
     tbody.addEventListener('click', function (e) {
       if (e.target.closest('button, a, select, textarea, input:not([data-pay-check]), .row-actions')) return;
-      if (e.target.matches && e.target.matches('input[data-pay-check]')) return;
       if (!canBulkHere()) return;
       const tr = e.target.closest('tr');
-      if (tr) {
-        const cb = tr.querySelector('input[data-pay-check]');
-        if (cb && !cb.disabled) {
-          cb.checked = !cb.checked;
-          const t = cb.dataset.payTab;
-          const id = String(cb.dataset.payCheck);
-          const set = PAY_SELECTIONS[t] || (PAY_SELECTIONS[t] = new Set());
-          if (cb.checked) set.add(id); else set.delete(id);
-          payBulkBarHtml(t);
-        }
+      if (!tr) return;
+      const cb = tr.querySelector('input[data-pay-check]');
+      if (!cb || cb.disabled) return;
+
+      const t = cb.dataset.payTab;
+      const id = String(cb.dataset.payCheck);
+      const set = PAY_SELECTIONS[t] || (PAY_SELECTIONS[t] = new Set());
+
+      if (e.target === cb || (e.target.matches && e.target.matches('input[data-pay-check]'))) {
+        if (cb.checked) set.add(id); else set.delete(id);
+        tr.classList.toggle('is-selected', cb.checked);
+        payBulkBarHtml(t);
+        return;
       }
+
+      cb.checked = !cb.checked;
+      if (cb.checked) set.add(id); else set.delete(id);
+      tr.classList.toggle('is-selected', cb.checked);
+      payBulkBarHtml(t);
     });
   }
 

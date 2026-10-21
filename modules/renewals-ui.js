@@ -286,6 +286,7 @@ function renderRenewals(content, mode='inspection'){
     tbody.querySelectorAll('.row-check').forEach(cb=>{
       const id = String(cb.dataset.id);
       cb.checked=selectedRenIds.has(id);
+      cb.closest('tr')?.classList.toggle('is-selected', cb.checked);
     });
     const head=$('ren-head-check');
     if(head && !head._bound){
@@ -610,6 +611,7 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
           const id = String(cb.dataset.id);
           if(cb.checked) selectedRenIds.add(id);
           else selectedRenIds.delete(id);
+          cb.closest('tr')?.classList.toggle('is-selected', cb.checked);
           updateRenBulkBar();
         });
       }
@@ -674,23 +676,32 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
           /* تجاهل النقر على عناصر التحكم الأخرى */
           if(e.target.closest('button, a, select, textarea, input:not(.row-check)')) return;
 
-          /* إذا كان النقر مباشرة على المربع، يتولاه حدث change */
-          if(e.target.matches && e.target.matches('.row-check')) return;
+          if(!canBulk) return;
+          const tr = e.target.closest('tr[data-id]');
+          if(!tr) return;
+          const cb = tr.querySelector('.row-check');
+          if(!cb || cb.disabled) return;
 
-          /* تحديد فوري للسيارة من أول نقرة عند الضغط في خلية التحديد (.td-check) أو في أي مكان على السطر */
-          if(canBulk){
-            const tr = e.target.closest('tr[data-id]');
-            if(tr){
-              const cb = tr.querySelector('.row-check');
-              if(cb && !cb.disabled){
-                cb.checked = !cb.checked;
-                const id = String(cb.dataset.id);
-                if(cb.checked) selectedRenIds.add(id);
-                else selectedRenIds.delete(id);
-                updateRenBulkBar();
-              }
-            }
+          const id = String(cb.dataset.id);
+
+          /* 1) إذا كان النقر مباشرة على المربع:
+             المتصفح قام بتبديل cb.checked بالفعل قبل تشغيل click.
+             نقوم بتحديث القائمة والتحديد البصري فوراً من أول لمسة */
+          if(e.target === cb || (e.target.matches && e.target.matches('.row-check'))){
+            if(cb.checked) selectedRenIds.add(id);
+            else selectedRenIds.delete(id);
+            tr.classList.toggle('is-selected', cb.checked);
+            updateRenBulkBar();
+            return;
           }
+
+          /* 2) إذا كان النقر على الخلية (.td-check) أو في أي مكان على السطر:
+             نقوم بتبديل المربع برمجياً وتحديث التحديد فوراً */
+          cb.checked = !cb.checked;
+          if(cb.checked) selectedRenIds.add(id);
+          else selectedRenIds.delete(id);
+          tr.classList.toggle('is-selected', cb.checked);
+          updateRenBulkBar();
         });
       }
       // تفويض حفظ الملاحظات مرة واحدة (وضع الفحص فقط — متوافق مع Virtualization)
