@@ -598,9 +598,6 @@ body.dark-mode .fleet-table tbody tr:has(.row-check:checked), body.dark-mode .fl
   .prep-dashboard-grid{grid-template-columns:1fr!important}
   .prep-filter{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
   .prep-filter input{grid-column:1/-1}
-  .dues-kpis{grid-template-columns:repeat(2,1fr)!important;gap:8px!important}
-  .dues-filter{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
-  .dues-filter input{grid-column:1/-1}
   .task-table{font-size:12px}
   .task-table th:nth-child(4),
   .task-table td:nth-child(4),

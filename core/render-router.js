@@ -158,9 +158,6 @@ function render(){
      والأسطول والفروع والتقارير يفضلوا كل الأسطول.
      بنلفّ fleet مؤقتاً وقت الرسم ونرجّعها فوراً — فالتعديل والحفظ شغالين عادي. */
   let scopedFleet=null;
-  /* «الاستئجارات» في القائمة: السجل بيتبني من جدول rentals مش من
-     الأسطول، فلو دخل في النطاق هيتقفل على «المحتاجة فحص» ونفس
-     الفلتر بيقصي سجلات ما ليها علاقة. */
   if (typeof fleetForTab==='function' && currentTab
       && ['dashboard','fleet','branches','reports','audit','preparation','users'].indexOf(currentTab)<0){
     try{

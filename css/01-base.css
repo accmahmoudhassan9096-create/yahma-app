@@ -186,17 +186,6 @@
      نفس أساس تبويب التجهيز بالظبط (.prep-*) بس باسم صادق للتبويب
      الجديد — تكرار المقصود مش صدفة: زوّدنا اسم بدل ما نكتب
      القواعد من جديد، فمفيش خطر إن الوضع الليلي يفترق. */
-  .dues-page-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-  .dues-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-  .dues-kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px}
-  .dues-kpi b{display:block;font-size:25px}
-  .dues-kpi span{color:var(--muted);font-size:12px}
-  .dues-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-  .dues-filter select,.dues-filter input{padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-family:inherit}
-  .dues-table td{white-space:nowrap}
-  .dues-amount{font-weight:700;font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
-  .dues-norate{color:var(--muted)}
-  @media(max-width:900px){.dues-kpis{grid-template-columns:repeat(2,1fr)}}
 
   /* ===== محرّر رسالة الترحيب =====
      العرض بيتظبط في 04 لأن .modal معرّف في 02 (ملف بعده) وكان
