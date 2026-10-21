@@ -325,7 +325,7 @@ ${d.accLine}
 
   /* ===== تصدير Excel ===== */
   function bindExcelExport(ctx) {
-  const { DOC_TYPES, allRentalsForCar, branchRevenue, branches, daysFrom, list, periodBounds, rf, rpFiltered } = ctx;
+  const { DOC_TYPES, branchRevenue, branches, daysFrom, list, periodBounds, rf } = ctx;
   /* ---- Excel export (filtered list) ---- */
   const exportReportsExcel = async () => {
     if(!(await ensureXlsxReady())){
@@ -356,12 +356,11 @@ ${d.accLine}
         'رقم الهيكل': c.chassisNo||'',
         'حالة التأمين': c.insuranceStatus||'',
         'انتهاء الرخصة': c.licenseExpiry||'',
-        'أيام التأجير': rpFiltered.perCar.get(String(c.id))||0,
+        'أيام التأجير': (function(){ const d=parseFloat(c.rentedDaysMonth); return isNaN(d)?'':d; })(),
         'إيراد تقديري': (function(){
-          const rd=rpFiltered.perCar.get(String(c.id))||0;
-          if(!rd) return 0;
-          const rec=allRentalsForCar(String(c.id)).sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate)))[0];
-          return Math.round(rd*(parseFloat(rec?rec.dailyRate:c.dailyRate)||0));
+          const dr=parseFloat(c.dailyRate), rd=parseFloat(c.rentedDaysMonth);
+          if(isNaN(dr)||dr<=0||isNaN(rd)) return 0;
+          return Math.round(dr*rd);
         })(),
         'انتهاء البطاقة': c.cardExpiry||'',
         'انتهاء الرخصة': c.licenseExpiry||'',

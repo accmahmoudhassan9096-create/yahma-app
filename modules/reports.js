@@ -20,7 +20,6 @@
   const {
     FILTERS_KEY, PRESETS_KEY, PERIOD_PRESETS,
     storageRead, persistState, getPresets, isoLocal,
-    rentalsPeriod, rentedDaysFor, allRentalsForCar, noRentalsNotice,
     periodBounds, periodLabel, periodDate, inPeriod,
     accountingIndicators, aggregateReport
   } = Core;
@@ -91,23 +90,12 @@ function renderReports(content, context){
      وتحتسب بـperCar الخريطة — فلو عدّينا على `list` مرة تانية
      من غير فلتر، الأرقام مش هتطابق عدد السيارات المعروض. */
   const rpb=periodBounds();
-  const rpFiltered=rentalsPeriod(list, rpb);
-  const rentedDaysTotal=rpFiltered.days;
-  /* ⭐ المقام أيام الفترة الحقيقية. مع «آخر 90 يوم» أو شهر 31 يوم،
-     القسمة على 30 ثابتة كانت بتدي استغلال أقل من الحقيقي دايمًا. */
+  /* ⭐ المقام أيام الفترة الحقيقية (مهم للقسمة على 30 ثابتة). */
   const periodDays=Math.max(1,Math.round((new Date(rpb.to)-new Date(rpb.from))/86400000)+1);
-  const utilizationPct=activeCars.length?Math.round(rentedDaysTotal/(activeCars.length*periodDays)*1000)/10:0;
   const serviceDue=list.filter(c=>{const d=daysFrom(c.nextService);return d!==null&&d<=30;}).length;
   const workshopMap={};
   list.filter(c=>String(c.carStatus||'').includes('صيانة')).forEach(c=>{const w=String(c.workshop||'غير محددة').trim()||'غير محددة';workshopMap[w]=(workshopMap[w]||0)+1;});
   const topWorkshops=Object.entries(workshopMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  /* أعلى إيراد: الأيام من الخريطة، والسعر من السجل وقت التسجيل
-     — مش السعر الحالي، عشان تغيير السعر ما يعيدش كتابة التاريخ. */
-  const topRevenueCars=activeCars.map(c=>{
-    const rd=rpFiltered.perCar.get(String(c.id))||0;
-    const rec=allRentalsForCar(String(c.id)).sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate)))[0];
-    return {car:c,days:rd,revenue:rd*(parseFloat(rec?rec.dailyRate:c.dailyRate)||0)};
-  }).filter(x=>x.revenue>0).sort((a,b)=>b.revenue-a.revenue).slice(0,5);
 
   // الإيراد حسب الفرع من سعر اليوم المسجل
   const branchRevenueMap={};
@@ -116,16 +104,12 @@ function renderReports(content, context){
     const m=branchRevenueMap[b]||(branchRevenueMap[b]={cars:0,daySum:0,dayN:0,rev:0});
     m.cars++;
     const dr=parseFloat(c.dailyRate);
-    /* ⭐ الأيام من الخريطة، والسعر من آخر سجل للـd السيارة دي.
-       بالـdالة القديمة كان الإيراد = سعر اليوم الحالي × رقم
-       الشهر — فأي تغيير سعر كان بيعيد كتابة التاريخ. */
-    const rd=rpFiltered.perCar.get(String(c.id))||0;
+    /* ⭐ الإيراد التقديري للفرع = (سعر اليوم × أيام التأجير المسجلة
+       في السيارة). مفيش سجل استئجارات — الرقم تقديري. */
+    const rd=parseFloat(c.rentedDaysMonth);
     if(!isNaN(dr)&&dr>0){
       m.daySum+=dr; m.dayN++;
-      if(rd>0){
-        const rec=allRentalsForCar(String(c.id)).sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate)))[0];
-        m.rev+=rd*(parseFloat(rec?rec.dailyRate:dr)||0);
-      }
+      if(!isNaN(rd)&&rd>=0) m.rev+=dr*rd;
     }
   });
   const branchRevenue=Object.entries(branchRevenueMap).map(([name,m])=>({name,cars:m.cars,avg:m.dayN?Math.round(m.daySum/m.dayN):0,rev:Math.round(m.rev)})).sort((a,b)=>b.rev-a.rev);
@@ -258,10 +242,9 @@ function renderReports(content, context){
   content.innerHTML = View.reportsTemplate({
     DOC_BUCKETS, PERIOD_PRESETS, acc, activeCars, branchCompare, branchOpts, branchRevenue,
     branches, carsNoPrice, content, docDetail, donut, esc, expBuckets, fails, maint, maxFail,
-    modelOpts, noRentalsNotice, notReady, out, ownerOpts, owners, pct, periodBounds, periodDays,
-    periodLabel, prepOpen, prepOverdue, ready, readyPct, rentedDaysTotal, reportPresets, rf,
-    rpFiltered, serviceDue, statusOpts, topDocBranches, topRevenueCars, topWorkshops, total,
-    utilizationPct, weekBars 
+    modelOpts, notReady, out, ownerOpts, owners, pct, periodBounds, periodDays,
+    periodLabel, prepOpen, prepOverdue, ready, readyPct, reportPresets, rf,
+    serviceDue, statusOpts, topDocBranches, topWorkshops, total, weekBars 
   });
   View.bindReportControls({
     PERIOD_PRESETS, REPORT_PRESETS_KEY, content, esc, list, periodBounds, renderReports, rf 
@@ -271,8 +254,7 @@ function renderReports(content, context){
     periodLabel, prepOpen, prepOverdue, ready, readyPct, rf, total 
   });
   Sched.bindExcelExport({
-    DOC_TYPES, allRentalsForCar, branchRevenue, branches, daysFrom, list, periodBounds, rf,
-    rpFiltered 
+    DOC_TYPES, branchRevenue, branches, daysFrom, list, periodBounds, rf
   });
   Sched.bindPdfButtons({
   });

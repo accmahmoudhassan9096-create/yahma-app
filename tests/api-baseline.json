@@ -1,507 +1,464 @@
 {
- "YahmaAppContext": [
-  "addCloudVehicleIds",
-  "attachRealtimeSync",
-  "fetchCloudVehicles",
-  "getFleet",
-  "loadData",
-  "normalizeFleetDates",
-  "render",
-  "renderEmergencyFleet",
-  "rowToCar",
-  "seedData",
-  "setCloudVehicleIds",
-  "setFleet",
-  "updateLastSyncLabel"
- ],
- "YahmaAppLock": [
-  "gate",
-  "hide",
-  "init",
-  "isEnabled",
-  "isUnlocked",
-  "relock",
-  "setEnabled",
-  "show",
-  "unlock",
-  "verify"
- ],
- "YahmaAppVersion": [
-  "askHardRefresh",
-  "compareVersions",
-  "current",
-  "hardRefresh",
-  "init",
-  "readVersion",
-  "runningVersion",
-  "setBadge",
-  "showUpdateBanner",
-  "versionNumber"
- ],
- "YahmaAudit": [
-  "render"
- ],
- "YahmaBranchEmail": [
-  "call",
-  "mount",
-  "readDraft",
-  "writeDraft"
- ],
- "YahmaBranches": [
-  "render"
- ],
- "YahmaCaptureViaSvg": "function",
- "YahmaDB": [
-  "count",
-  "db",
-  "dropPending",
-  "listPending",
-  "loadBranches",
-  "loadFleet",
-  "migrateFromLocalStorage",
-  "pendingCount",
-  "queuePending",
-  "ready",
-  "saveBranches",
-  "saveFleet"
- ],
- "YahmaDashboard": [
-  "render"
- ],
- "YahmaDashboardCore": [
-  "computeDashboardState"
- ],
- "YahmaDashboardView": [
-  "bindDashboardEvents",
-  "dashboardTemplate"
- ],
- "YahmaData": [
-  "fetchAllVehicles",
-  "fromVehicleRow",
-  "installResumeHook",
-  "loadData",
-  "markSessionExpired",
-  "saveData",
-  "toVehicleRow"
- ],
- "YahmaDues": [
-  "HEADERS",
-  "applyFilters",
-  "buildRows",
-  "currentMonth",
-  "daysInMonth",
-  "money",
-  "monthLabel",
-  "monthlyDues",
-  "rateOf",
-  "recompute",
-  "render",
-  "rowCells",
-  "summarize"
- ],
- "YahmaEmailSchedule": [
-  "loadRecipients",
-  "loadSchedule",
-  "loadSendLog",
-  "markSent",
-  "recipientsKey",
-  "saveRecipients",
-  "saveSchedule",
-  "saveSendLog",
-  "scheduleKey",
-  "sendLogKey"
- ],
- "YahmaErrorPanel": [
-  "badge",
-  "install",
-  "open",
-  "quickReport",
-  "syncFab",
-  "syncVisibility"
- ],
- "YahmaErrors": [
-  "MAX_SIGNATURES",
-  "SAVE_KEY",
-  "all",
-  "capture",
-  "clear",
-  "guard",
-  "installGlobalHandlers",
-  "on",
-  "persist",
-  "recent",
-  "summary"
- ],
- "YahmaExport": [
-  "capturePngBlob",
-  "createFormalReportPdf",
-  "currentTabData",
-  "ensurePdfLibs",
-  "ensurePdfReady",
-  "ensureXlsx",
-  "excel",
-  "exportFleetExcel",
-  "exportReportPdf",
-  "exportRowsToExcel",
-  "exportTabExcel",
-  "exportTabPdf",
-  "exportTablePdf",
-  "loadScript",
-  "pdfPrepare"
- ],
- "YahmaExportBar": [
-  "build",
-  "sync"
- ],
- "YahmaExportLazy": [
-  "capturePngBlob",
-  "createFormalReportPdf",
-  "currentTabData",
-  "ensurePdfLibs",
-  "ensurePdfReady",
-  "ensureXlsx",
-  "excel",
-  "exportFleetExcel",
-  "exportReportPdf",
-  "exportRowsToExcel",
-  "exportTabExcel",
-  "exportTabPdf",
-  "exportTablePdf",
-  "loadScript",
-  "pdfPrepare"
- ],
- "YahmaFleet": [
-  "count",
-  "createFilterEngine",
-  "exportExcel",
-  "getAll",
-  "go",
-  "optionList",
-  "persist",
-  "readinessStats",
-  "render",
-  "uniqueFieldValues"
- ],
- "YahmaFleetCore": [
-  "createFilterEngine",
-  "getFleet",
-  "optionList",
-  "readinessStats",
-  "uniqueFieldValues"
- ],
- "YahmaFleetExcel": [
-  "EXCEL_HEADERS",
-  "FIELD_ALIASES",
-  "downloadTemplate",
-  "exportFleet",
-  "findField",
-  "isSoldStatus",
-  "mergeImportRecord",
-  "normalizeHeader",
-  "parseCardUpdateRows",
-  "parseImportRows",
-  "parseTransferFileRows",
-  "toDateStr",
-  "transferPlateVariants"
- ],
- "YahmaFleetView": [
-  "render"
- ],
- "YahmaFollowUp": [
-  "render"
- ],
- "YahmaFonts": [
-  "PDF_FONT",
-  "faceCSS"
- ],
- "YahmaMyAccount": [
-  "MIN_PASSWORD",
-  "NATIONAL_ID_RE",
-  "PHONE_RE",
-  "digitsOnly",
-  "open",
-  "toLatinDigits",
-  "validate",
-  "validatePassword"
- ],
- "YahmaOffline": [
-  "FLUSH_EVERY_MS",
-  "dropSettled",
-  "enqueue",
-  "flush",
-  "install",
-  "on",
-  "snapshot"
- ],
- "YahmaOpsCore": [
-  "addDays",
-  "buildOpsNotifications",
-  "branchMetrics",
-  "collectTasks",
-  "daysBetween",
-  "expiryAlerts",
-  "fleetArr",
-  "parseDate",
-  "readinessFailures",
-  "slaTargetFor",
-  "taskSLA",
-  "today",
-  "toastKbd"
- ],
- "YahmaOpsUX": [
-  "branchMetrics",
-  "buildOpsNotifications",
-  "expiryAlerts",
-  "openNotifyCenter",
-  "searchAll",
-  "taskSLA"
- ],
- "YahmaPayments": [
-  "DONE_NOTE",
-  "PAID_KEY",
-  "PENDING_KEY",
-  "cancel",
-  "diagnose",
-  "doneStamp",
-  "getCurrentActorName",
-  "isRenewed",
-  "localAll",
-  "localByStatus",
-  "markLicenseRenewed",
-  "markPaid",
-  "pendingList",
-  "prevStateOf",
-  "rememberCarState",
-  "renewedList",
-  "requestPayment",
-  "revertPaidToPending",
-  "revertPendingToInspection",
-  "revertRenewedToPaid",
-  "sync"
- ],
- "YahmaPerms": [
-  "OPS_EDIT_TABS",
-  "ORDER",
-  "ROLES",
-  "VIEW_EDIT_TABS",
-  "canAdminister",
-  "canBulk",
-  "canDelete",
-  "canEditNow",
-  "canManage",
-  "denyMessage",
-  "inTab",
-  "isKnown",
-  "label",
-  "options",
-  "rank",
-  "role"
- ],
- "YahmaPreparationData": [
-  "approveCar",
-  "checklistForCar",
-  "dueState",
-  "getTasks",
-  "saveInlineStatus",
-  "saveTask",
-  "statusForCar",
-  "statusLabel"
- ],
- "YahmaPreparationHistory": [
-  "appendEvent",
-  "renderTimeline"
- ],
- "YahmaReadiness": [
-  "reasons",
-  "stats",
-  "vehicle"
- ],
- "YahmaRealtime": [
-  "attach",
-  "detach",
-  "manualRefresh",
-  "refresh"
- ],
- "YahmaRenewals": [
-  "buildInspectionWhatsAppMessage",
-  "carsToInspectionRows",
-  "getUninspectedCars",
-  "render"
- ],
- "YahmaRentals": [
-  "KEY",
-  "MAX_DAYS",
-  "byCar",
-  "daysBetween",
-  "endRental",
-  "fetchRemote",
-  "isOpen",
-  "localAll",
-  "localOpen",
-  "normDate",
-  "openForCar",
-  "overlapDays",
-  "removeRental",
-  "rentalDaysForCar",
-  "revenueBetween",
-  "startRental",
-  "sync",
-  "todayStr",
-  "updateRental"
- ],
- "YahmaRentalsUI": [
-  "render"
- ],
- "YahmaReports": [
-  "accountingIndicators",
-  "aggregateReport",
-  "exportExcel",
-  "filtersKey",
-  "formalReportHtml",
-  "formatCurrency",
-  "getPresets",
-  "go",
-  "inPeriod",
-  "infographicDonut",
-  "infographicDonutLegend",
-  "infographicFileName",
-  "infographicHtml",
-  "infographicTextSummary",
-  "isoLocal",
-  "periodBounds",
-  "periodDate",
-  "periodLabel",
-  "periodPresets",
-  "persistState",
-  "preparePdf",
-  "presetsKey",
-  "render",
-  "reportFileName",
-  "reportTextSummary",
-  "storageRead"
- ],
- "YahmaReportsCore": [
-  "FILTERS_KEY",
-  "PERIOD_PRESETS",
-  "PRESETS_KEY",
-  "accountingIndicators",
-  "aggregateReport",
-  "allRentalsForCar",
-  "getPresets",
-  "inPeriod",
-  "isoLocal",
-  "noRentalsNotice",
-  "periodBounds",
-  "periodDate",
-  "periodLabel",
-  "persistState",
-  "rentalsPeriod",
-  "rentedDaysFor",
-  "storageRead"
- ],
- "YahmaReportsSchedule": [
-  "bindExcelExport",
-  "bindPdfButtons",
-  "bindScheduleUI"
- ],
- "YahmaReportsTemplates": [
-  "escapeHtml",
-  "formalReportHtml",
-  "formatCurrency",
-  "infographicDonut",
-  "infographicDonutLegend",
-  "infographicFileName",
-  "infographicHtml",
-  "infographicTextSummary",
-  "reportFileName",
-  "reportTextSummary"
- ],
- "YahmaReportsView": [
-  "bindOwnerRows",
-  "bindReportControls",
-  "bindReportRows",
-  "openDrill",
-  "reportsTemplate"
- ],
- "YahmaTopbarMenu": [
-  "bindMobileTools",
-  "openMenu",
-  "positionMenu"
- ],
- "YahmaTopbarUser": [
-  "closeMenu",
-  "openUserAdmin",
-  "openWelcomeEditor",
-  "syncProfileMenu",
-  "welcomeLoadTemplate",
-  "welcomeRender"
- ],
- "YahmaTransfers": [
-  "render"
- ],
- "YahmaUndo": [
-  "MAX_ENTRIES",
-  "__busy",
-  "clear",
-  "has",
-  "peek",
-  "record",
-  "size",
-  "syncMenu",
-  "undo"
- ],
- "YahmaUsers": [
-  "render"
- ],
- "YahmaUtils": [
-  "CHURN_BUCKETS",
-  "CHURN_DOCS",
-  "CITY_COORDS",
-  "LICENSE_YEARS",
-  "REGION_DEFS",
-  "addDays",
-  "addYears",
-  "brandKey",
-  "canonicalBrand",
-  "carChurn",
-  "carStatusActive",
-  "carStatusMatch",
-  "carStatusOut",
-  "carStatusReady",
-  "cardDisplayStatus",
-  "churnStats",
-  "cityOfBranch",
-  "dateStatus",
-  "daysFromNow",
-  "defaultLicenseExpiry",
-  "escapeHtml",
-  "expiresWithinMonths",
-  "fmtDate",
-  "inspectionDisplayStatus",
-  "licenseDisplayStatus",
-  "normStatus",
-  "normalizeDateValue",
-  "regionOfBranch",
-  "textTag",
-  "todayStr",
-  "uid"
- ],
- "YahmaVTable": [
-  "create"
- ],
- "YahmaVehicleForm": [
-  "PROTECTED",
-  "applyFieldLocks",
-  "canTouchFields",
-  "collect",
-  "isLocked",
-  "protectedFormIds"
- ],
- "YahmaVehicleModal": [
-  "open"
- ],
- "YahmaVehicleOperations": [
-  "archiveEditing",
-  "saveFromForm"
- ]
+  "YahmaAppContext": [
+    "addCloudVehicleIds",
+    "attachRealtimeSync",
+    "fetchCloudVehicles",
+    "getFleet",
+    "loadData",
+    "normalizeFleetDates",
+    "render",
+    "renderEmergencyFleet",
+    "rowToCar",
+    "seedData",
+    "setCloudVehicleIds",
+    "setFleet",
+    "updateLastSyncLabel"
+  ],
+  "YahmaAppLock": [
+    "gate",
+    "hide",
+    "init",
+    "isEnabled",
+    "isUnlocked",
+    "relock",
+    "setEnabled",
+    "show",
+    "unlock",
+    "verify"
+  ],
+  "YahmaAppVersion": [
+    "askHardRefresh",
+    "compareVersions",
+    "current",
+    "hardRefresh",
+    "init",
+    "readVersion",
+    "runningVersion",
+    "setBadge",
+    "showUpdateBanner",
+    "versionNumber"
+  ],
+  "YahmaAudit": [
+    "render"
+  ],
+  "YahmaBranchEmail": [
+    "call",
+    "mount",
+    "readDraft",
+    "writeDraft"
+  ],
+  "YahmaBranches": [
+    "render"
+  ],
+  "YahmaCaptureViaSvg": "function",
+  "YahmaDB": [
+    "count",
+    "db",
+    "dropPending",
+    "listPending",
+    "loadBranches",
+    "loadFleet",
+    "migrateFromLocalStorage",
+    "pendingCount",
+    "queuePending",
+    "ready",
+    "saveBranches",
+    "saveFleet"
+  ],
+  "YahmaDashboard": [
+    "render"
+  ],
+  "YahmaDashboardCore": [
+    "computeDashboardState"
+  ],
+  "YahmaDashboardView": [
+    "bindDashboardEvents",
+    "dashboardTemplate"
+  ],
+  "YahmaData": [
+    "fetchAllVehicles",
+    "fromVehicleRow",
+    "installResumeHook",
+    "loadData",
+    "markSessionExpired",
+    "saveData",
+    "toVehicleRow"
+  ],
+  "YahmaEmailSchedule": [
+    "loadRecipients",
+    "loadSchedule",
+    "loadSendLog",
+    "markSent",
+    "recipientsKey",
+    "saveRecipients",
+    "saveSchedule",
+    "saveSendLog",
+    "scheduleKey",
+    "sendLogKey"
+  ],
+  "YahmaErrorPanel": [
+    "badge",
+    "install",
+    "open",
+    "quickReport",
+    "syncFab",
+    "syncVisibility"
+  ],
+  "YahmaErrors": [
+    "MAX_SIGNATURES",
+    "SAVE_KEY",
+    "all",
+    "capture",
+    "clear",
+    "guard",
+    "installGlobalHandlers",
+    "on",
+    "persist",
+    "recent",
+    "summary"
+  ],
+  "YahmaExport": [
+    "capturePngBlob",
+    "createFormalReportPdf",
+    "currentTabData",
+    "ensurePdfLibs",
+    "ensurePdfReady",
+    "ensureXlsx",
+    "excel",
+    "exportFleetExcel",
+    "exportReportPdf",
+    "exportRowsToExcel",
+    "exportTabExcel",
+    "exportTabPdf",
+    "exportTablePdf",
+    "loadScript",
+    "pdfPrepare"
+  ],
+  "YahmaExportBar": [
+    "build",
+    "sync"
+  ],
+  "YahmaExportLazy": [
+    "capturePngBlob",
+    "createFormalReportPdf",
+    "currentTabData",
+    "ensurePdfLibs",
+    "ensurePdfReady",
+    "ensureXlsx",
+    "excel",
+    "exportFleetExcel",
+    "exportReportPdf",
+    "exportRowsToExcel",
+    "exportTabExcel",
+    "exportTabPdf",
+    "exportTablePdf",
+    "loadScript",
+    "pdfPrepare"
+  ],
+  "YahmaFleet": [
+    "count",
+    "createFilterEngine",
+    "exportExcel",
+    "getAll",
+    "go",
+    "optionList",
+    "persist",
+    "readinessStats",
+    "render",
+    "uniqueFieldValues"
+  ],
+  "YahmaFleetCore": [
+    "createFilterEngine",
+    "getFleet",
+    "optionList",
+    "readinessStats",
+    "uniqueFieldValues"
+  ],
+  "YahmaFleetExcel": [
+    "EXCEL_HEADERS",
+    "FIELD_ALIASES",
+    "downloadTemplate",
+    "exportFleet",
+    "findField",
+    "isSoldStatus",
+    "mergeImportRecord",
+    "normalizeHeader",
+    "parseCardUpdateRows",
+    "parseImportRows",
+    "parseTransferFileRows",
+    "toDateStr",
+    "transferPlateVariants"
+  ],
+  "YahmaFleetView": [
+    "render"
+  ],
+  "YahmaFollowUp": [
+    "render"
+  ],
+  "YahmaFonts": [
+    "PDF_FONT",
+    "faceCSS"
+  ],
+  "YahmaMyAccount": [
+    "MIN_PASSWORD",
+    "NATIONAL_ID_RE",
+    "PHONE_RE",
+    "digitsOnly",
+    "open",
+    "toLatinDigits",
+    "validate",
+    "validatePassword"
+  ],
+  "YahmaOffline": [
+    "FLUSH_EVERY_MS",
+    "dropSettled",
+    "enqueue",
+    "flush",
+    "install",
+    "on",
+    "snapshot"
+  ],
+  "YahmaOpsCore": [
+    "addDays",
+    "buildOpsNotifications",
+    "branchMetrics",
+    "collectTasks",
+    "daysBetween",
+    "expiryAlerts",
+    "fleetArr",
+    "parseDate",
+    "readinessFailures",
+    "slaTargetFor",
+    "taskSLA",
+    "today",
+    "toastKbd"
+  ],
+  "YahmaOpsUX": [
+    "branchMetrics",
+    "buildOpsNotifications",
+    "expiryAlerts",
+    "openNotifyCenter",
+    "searchAll",
+    "taskSLA"
+  ],
+  "YahmaPayments": [
+    "DONE_NOTE",
+    "PAID_KEY",
+    "PENDING_KEY",
+    "cancel",
+    "diagnose",
+    "doneStamp",
+    "getCurrentActorName",
+    "isRenewed",
+    "localAll",
+    "localByStatus",
+    "markLicenseRenewed",
+    "markPaid",
+    "pendingList",
+    "prevStateOf",
+    "rememberCarState",
+    "renewedList",
+    "requestPayment",
+    "revertPaidToPending",
+    "revertPendingToInspection",
+    "revertRenewedToPaid",
+    "sync"
+  ],
+  "YahmaPerms": [
+    "OPS_EDIT_TABS",
+    "ORDER",
+    "ROLES",
+    "VIEW_EDIT_TABS",
+    "canAdminister",
+    "canBulk",
+    "canDelete",
+    "canEditNow",
+    "canManage",
+    "denyMessage",
+    "inTab",
+    "isKnown",
+    "label",
+    "options",
+    "rank",
+    "role"
+  ],
+  "YahmaPreparationData": [
+    "approveCar",
+    "checklistForCar",
+    "dueState",
+    "getTasks",
+    "saveInlineStatus",
+    "saveTask",
+    "statusForCar",
+    "statusLabel"
+  ],
+  "YahmaPreparationHistory": [
+    "appendEvent",
+    "renderTimeline"
+  ],
+  "YahmaReadiness": [
+    "reasons",
+    "stats",
+    "vehicle"
+  ],
+  "YahmaRealtime": [
+    "attach",
+    "detach",
+    "manualRefresh",
+    "refresh"
+  ],
+  "YahmaRenewals": [
+    "buildInspectionWhatsAppMessage",
+    "carsToInspectionRows",
+    "getUninspectedCars",
+    "render"
+  ],
+  "YahmaReports": [
+    "accountingIndicators",
+    "aggregateReport",
+    "exportExcel",
+    "filtersKey",
+    "formalReportHtml",
+    "formatCurrency",
+    "getPresets",
+    "go",
+    "inPeriod",
+    "infographicDonut",
+    "infographicDonutLegend",
+    "infographicFileName",
+    "infographicHtml",
+    "infographicTextSummary",
+    "isoLocal",
+    "periodBounds",
+    "periodDate",
+    "periodLabel",
+    "periodPresets",
+    "persistState",
+    "preparePdf",
+    "presetsKey",
+    "render",
+    "reportFileName",
+    "reportTextSummary",
+    "storageRead"
+  ],
+  "YahmaReportsCore": [
+    "FILTERS_KEY",
+    "PERIOD_PRESETS",
+    "PRESETS_KEY",
+    "accountingIndicators",
+    "aggregateReport",
+    "getPresets",
+    "inPeriod",
+    "isoLocal",
+    "periodBounds",
+    "periodDate",
+    "periodLabel",
+    "persistState",
+    "storageRead"
+  ],
+  "YahmaReportsSchedule": [
+    "bindExcelExport",
+    "bindPdfButtons",
+    "bindScheduleUI"
+  ],
+  "YahmaReportsTemplates": [
+    "escapeHtml",
+    "formalReportHtml",
+    "formatCurrency",
+    "infographicDonut",
+    "infographicDonutLegend",
+    "infographicFileName",
+    "infographicHtml",
+    "infographicTextSummary",
+    "reportFileName",
+    "reportTextSummary"
+  ],
+  "YahmaReportsView": [
+    "bindOwnerRows",
+    "bindReportControls",
+    "bindReportRows",
+    "openDrill",
+    "reportsTemplate"
+  ],
+  "YahmaTopbarMenu": [
+    "bindMobileTools",
+    "openMenu",
+    "positionMenu"
+  ],
+  "YahmaTopbarUser": [
+    "closeMenu",
+    "openUserAdmin",
+    "openWelcomeEditor",
+    "syncProfileMenu",
+    "welcomeLoadTemplate",
+    "welcomeRender"
+  ],
+  "YahmaTransfers": [
+    "render"
+  ],
+  "YahmaUndo": [
+    "MAX_ENTRIES",
+    "__busy",
+    "clear",
+    "has",
+    "peek",
+    "record",
+    "size",
+    "syncMenu",
+    "undo"
+  ],
+  "YahmaUsers": [
+    "render"
+  ],
+  "YahmaUtils": [
+    "CHURN_BUCKETS",
+    "CHURN_DOCS",
+    "CITY_COORDS",
+    "LICENSE_YEARS",
+    "REGION_DEFS",
+    "addDays",
+    "addYears",
+    "brandKey",
+    "canonicalBrand",
+    "carChurn",
+    "carStatusActive",
+    "carStatusMatch",
+    "carStatusOut",
+    "carStatusReady",
+    "cardDisplayStatus",
+    "churnStats",
+    "cityOfBranch",
+    "dateStatus",
+    "daysFromNow",
+    "defaultLicenseExpiry",
+    "escapeHtml",
+    "expiresWithinMonths",
+    "fmtDate",
+    "inspectionDisplayStatus",
+    "licenseDisplayStatus",
+    "normStatus",
+    "normalizeDateValue",
+    "regionOfBranch",
+    "textTag",
+    "todayStr",
+    "uid"
+  ],
+  "YahmaVTable": [
+    "create"
+  ],
+  "YahmaVehicleForm": [
+    "PROTECTED",
+    "applyFieldLocks",
+    "canTouchFields",
+    "collect",
+    "isLocked",
+    "protectedFormIds"
+  ],
+  "YahmaVehicleModal": [
+    "open"
+  ],
+  "YahmaVehicleOperations": [
+    "archiveEditing",
+    "saveFromForm"
+  ]
 }

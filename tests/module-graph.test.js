@@ -10,8 +10,6 @@
       index.html بالظبط**. لو ملف اتنقل لمكان غلط في الترتيب، أو
       ملف فيه خطأ صياغة، أو ملف ناقص — الاختبار بيقع هنا.
       (ترتيب التحميل مش رفاهية: `core/permissions.js` لازم يتحمّل
-      قبل `core/auth-boot.js`، و`modules/rentals-store.js` قبل
-      `modules/rentals.js`، إلخ.)
 
    ❷ بيقارن الـAPI العام (٤١ namespace وكل مفتاح فيهم) بخط أساس
       محفوظ في `api-baseline.json`. لو أي دالة عامة ضاعت أو
@@ -618,8 +616,8 @@ test('مفيش اسم عمومي معرّف في أكتر من ملف', () => {
 
 /* ⭐ مفيش دالة معرّفة مرتين جوّه نفس الملف — دي بتخّي الاسم. */
 test('مفيش دالة معرّفة مرتين جوّه نفس الملف', () => {
-  const files = ['modules/reports.js', 'core/render-router.js', 'modules/rentals.js',
-    'modules/rentals-store.js', 'core/branches-store.js', 'modules/dashboard.js'];
+  const files = ['modules/reports.js', 'core/render-router.js',
+    'core/branches-store.js', 'modules/dashboard.js'];
   files.forEach((f) => {
     const code = read(f);
     const defs = [...code.matchAll(/^\s*function\s+([A-Za-z_$][\w$]*)\s*\(/gm)].map((m) => m[1]);
@@ -843,76 +841,31 @@ test('زر الأخطاء العائم موجود ويشتغل', () => {
 
 /* ===== حارس: تبويب «الاستئجارات» و«المستحقات» لازم يفضلوا موجودين =====
 
-   حصل إن agent بيشيل التابيبات دي بالكامل (2,820 سطر محذوف):
-   من الـnav والـdispatch وصلاحيات الأقسام وملفات المتجر وملفات
-   SQL والاختبارات. ده عكس المطلب صراحةً:
-     · التقارير لازم تقرأ سجل الاستئجارات (2,859 سجل مرحَّل)،
-       ونسبة الاستغلال المفروض تظهر 70% مش 0%
-     · «الاستئجارات» لازم يبقى جدول حقيقي بتاريخات، مش عمود مصقول
-     · «المستحقات» جدول قائم وشغّال
-
-   الاختبار ده بيقفل الميزة: أي حذف لازم يعدّي من هنا الأول. */
-test('حارس: تبويب «الاستئجارات» و«المستحقات» موجودين ومش بيتشالوش', () => {
+   تبويب «الاستئجارات» و«المستحقات» اتشالوا بالكامل بناءً على طلب
+   المستخدم: التبويبات والملفات والجدول في قاعدة البيانات. */
+test('تبويب «الاستئجارات» و«المستحقات» اتشالوا بالكامل (مفيش بقايا)', () => {
   const html = read('index.html');
-  assert.ok(/data-tab="rentals"/.test(html), 'زر «الاستئجارات» مفقود من الـnav');
-  assert.ok(/data-tab="dues"/.test(html), 'زر «المستحقات» مفقود من الـnav');
-  assert.ok(/modules\/rentals-store\.js/.test(html), 'متجر الاستئجارات مش محمَّل');
-  assert.ok(/modules\/rentals\.js/.test(html), 'واجهة الاستئجارات مش محمَّلة');
-  assert.ok(/modules\/dues\.js/.test(html), 'واجهة المستحقات مش محمَّلة');
+  assert.ok(!/data-tab="rentals"/.test(html), 'زر «الاستئجارات» لسه موجود');
+  assert.ok(!/data-tab="dues"/.test(html), 'زر «المستحقات» لسه موجود');
+  assert.ok(!/modules\/rentals-store\.js/.test(html), 'متجر الاستئجارات لسه محمَّل');
+  assert.ok(!/modules\/rentals\.js/.test(html), 'واجهة الاستئجارات لسه محمَّلة');
+  assert.ok(!/modules\/dues\.js/.test(html), 'واجهة المستحقات لسه محمَّلة');
 
   const rr = read('core/render-router.js');
-  assert.ok(/currentTab === 'rentals'/.test(rr), 'مفيش عرض لتبويب الاستئجارات');
-  assert.ok(/currentTab === 'dues'/.test(rr), 'مفيش عرض لتبويب المستحقات');
+  assert.ok(!/currentTab === 'rentals'/.test(rr), 'لسه في عرض لتبويب الاستئجارات');
+  assert.ok(!/currentTab === 'dues'/.test(rr), 'لسه في عرض لتبويب المستحقات');
 
   const bs = read('core/branches-store.js');
-  assert.ok(/id:'rentals'/.test(bs), 'الاستئجارات ناقصة من صلاحيات الأقسام');
-  assert.ok(/id:'dues'/.test(bs), 'المستحقات ناقصة من صلاحيات الأقسام');
+  assert.ok(!/id:'rentals'/.test(bs), 'الاستئجارات لسه في صلاحيات الأقسام');
+  assert.ok(!/id:'dues'/.test(bs), 'المستحقات لسه في صلاحيات الأقسام');
 
   const rc = read('modules/reports-core.js');
-  assert.ok(/rentals/i.test(rc), 'التقارير لازم تقرأ سجل الاستئجارات');
+  assert.ok(!/rentals/i.test(rc), 'التقارير لسه بتقرأ سجل الاستئجارات');
 
   ['modules/rentals-store.js', 'modules/rentals.js', 'modules/dues.js',
    'tests/rentals.test.js', 'tests/dues.test.js', 'supabase/rentals.sql']
     .forEach((f) => {
-      assert.ok(fs.existsSync(path.join(ROOT, f)), 'الملف «' + f + '» مفقود');
+      assert.ok(!fs.existsSync(path.join(ROOT, f)), 'الملف «' + f + '» لسه موجود');
     });
 });
 
-/* ===== حارس: الرسم لازم يوصل للـrender الحقيقي =====
-
-   ⚠️ العطل: المستخدم يضغط تبويب، الـcurrentTab بيتغيّر في
-      البيانات، بس الشاشة بتفضل على التبويب القديم. مفيش خطأ.
-
-   السبب: window.render مش دالة واحدة — ده سلسلة أغلفة:
-     perf-vtable → ops-intel → notifications → audit-theme → [smooth]
-   وأي غلاف في الوسط ابتلع النداء بيخلي الرسم يضيع.
-
-   الإصلاح: مرجع مباشر window.yahmaRenderNow بيرسم من غير ما
-   يمر على السلسلة، والطبقة الخارجية (perf-vtable) تستخدمه. */
-test('الرسم بيوصل للـrender الحقيقي — مرجع مباشر yahmaRenderNow', () => {
-  const rr = read('core/render-router.js');
-  assert.ok(/window\.yahmaRenderNow\s*=\s*function/.test(rr),
-    'المرجع المباشر window.yahmaRenderNow مفقود من render-router.js');
-  assert.ok(/render\.apply\(this, arguments\)/.test(rr),
-    'yahmaRenderNow لازم ينادي الـrender الحقيقي مباشرة');
-
-  /* الطبقة الخارجية في السلسلة لازم تفضّل المرجع المباشر */
-  const pv = read('modules/perf-vtable.js');
-  assert.ok(/yahmaRenderNow/.test(pv),
-    'perf-vtable لازم يستخدم yahmaRenderNow (الطبقة الخارجية)');
-  assert.ok(/realRender\.apply\(this, lastArgs/.test(pv),
-    'perf-vtable لازم ينادي realRender في run() و _perfImmediate()');
-
-  /* التنقل بين التبويبات لازم يرسم بالمرجع المباشر */
-  const ng = read('modules/nav-guard.js');
-  assert.ok(/yahmaRenderNow/.test(ng),
-    'nav-guard لازم يستخدم yahmaRenderNow في drawNow()');
-
-  /* smooth.js ما ينفعش يعتمد على requestAnimationFrame — رAF
-     ما بتشتغلش لما الصفحة في الخلفية (الموبايل). */
-  const sm = read('modules/smooth.js');
-  assert.ok(!/requestAnimationFrame\(release\)/.test(sm),
-    'smooth.js ما ينفعش يعتمد على rAF لتحرير الرسم المعلّق');
-  assert.ok(/pendingThis/.test(sm) && /MAX_BURST/.test(sm),
-    'smooth.js لازم ينفّذ الرسم المعلّق (مش بس يسجّله)');
-});

@@ -9,9 +9,7 @@
   "insurance-renewals": "ok",
   "inspections": "ok",
   "transfers": "ok",
-  "rentals": "ok",
   "reports": "ok",
-  "dues": "ok",
   "audit": "ok",
   "users": "ok"
 }

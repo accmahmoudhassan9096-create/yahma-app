@@ -120,7 +120,7 @@ update public.profiles
 set allowed_tabs = array[
   'fleet','branches','renewals','payments','paid','renewed',
   'license-renewals','insurance-renewals','inspections',
-  'transfers','reports','dues','audit'
+  'transfers','reports','audit'
 ]::text[]
 where allowed_tabs is null;
 

@@ -120,7 +120,7 @@ const PAGE_PERMISSION_OPTIONS=[
   {id:'fleet',label:'الأسطول'},{id:'branches',label:'الفروع'},{id:'renewals',label:'الفحص'},
   {id:'payments',label:'تحت الدفع'},{id:'paid',label:'تم الدفع'},{id:'renewed',label:'تم التجديد'},{id:'license-renewals',label:'رخص منتهية'},
   {id:'insurance-renewals',label:'التأمين'},{id:'inspections',label:'بطاقات التشغيل'},
-  {id:'transfers',label:'التنازلات'},{id:'rentals',label:'الاستئجارات'},{id:'reports',label:'التقارير'},{id:'dues',label:'المستحقات'},{id:'audit',label:'سجل النشاط'},{id:'users',label:'المستخدمون'}
+  {id:'transfers',label:'التنازلات'},{id:'reports',label:'التقارير'},{id:'audit',label:'سجل النشاط'},{id:'users',label:'المستخدمون'}
 ];
 window.PAGE_PERMISSION_OPTIONS=PAGE_PERMISSION_OPTIONS;
 window.currentUserPermissions=Array.isArray(window.currentUserPermissions)?window.currentUserPermissions:[];
@@ -130,7 +130,7 @@ window.currentUserPermissions=Array.isArray(window.currentUserPermissions)?windo
    القاعدة الجديدة: لو مفيش تحديد صريح، امنح كل الأقسام عدا السجل الإداري. */
 window.ALL_YAHMA_TABS=(typeof PAGE_PERMISSION_OPTIONS!=='undefined'&&Array.isArray(PAGE_PERMISSION_OPTIONS))
   ? PAGE_PERMISSION_OPTIONS.map(function(p){return p.id;})
-  : ['dashboard','fleet','branches','renewals','payments','paid','renewed','license-renewals','insurance-renewals','inspections','transfers','rentals','reports','dues','audit'];
+  : ['dashboard','fleet','branches','renewals','payments','paid','renewed','license-renewals','insurance-renewals','inspections','transfers','reports','audit'];
 window.defaultYahmaTabsForRole=function(role){
   var all=window.ALL_YAHMA_TABS||[];
   if(role==='admin') return all.slice();
@@ -175,7 +175,7 @@ function fleetForTab(tab, list){
   var all = Array.isArray(list) ? list : (typeof fleet !== 'undefined' && Array.isArray(fleet) ? fleet : []);
   if(!tab) return all;
   /* الأسطول/الفروع/الرئيسية/التقارير/السجل: كل السيارات */
-  if(['dashboard','fleet','branches','reports','audit','preparation','dues','rentals','users'].indexOf(tab)>=0) return all;
+  if(['dashboard','fleet','branches','reports','audit','preparation','users'].indexOf(tab)>=0) return all;
 
   var lvl = (typeof dateStatus==='function') ? function(d){ return dateStatus(d).level; }
            : function(d){ return d ? 'green' : 'grey'; };

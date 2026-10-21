@@ -65,68 +65,6 @@
 
      ⚠️ لو مفيش ولا استئجار مسجّل، رجّع hasStore=false — والصفحة
      بتقول «لسه محدّدش استئجارات» بدل ما تعرض 0% كأنه إجابة. */
-  function rentalsPeriod(cars, bounds) {
-    const out = { days: 0, revenue: 0, carsRented: 0, hasStore: false, perCar: new Map() };
-    if (!global.YahmaRentals || typeof global.YahmaRentals.revenueBetween !== 'function') return out;
-    let all;
-    try { all = global.YahmaRentals.localAll() || []; }
-    catch (e) { if (typeof yahmaErr === 'function') yahmaErr(e, 'reports.js:rentalsPeriod'); return out; }
-    out.hasStore = all.length > 0;
-    if (!out.hasStore) return out;
-
-    /* ⭐ فلتر الأسطول: التقرير بيشتغل على قائمة مفلترة، فلازم
-       الأرقام تتحسب على نفس القائمة. لو حسبنا كل السجلات
-       وضفناها، الأرقام مش بتطابق عدد السيارات المعروض —
-       وده بالظبط اللي صinality كان بيفصله. */
-    const wanted = new Set((cars || []).map(c => String(c.id)));
-    let days = 0, revenue = 0;
-    all.forEach(r => {
-      if (!wanted.has(String(r.carId))) return;
-      const d = global.YahmaRentals.overlapDays(r, bounds.from, bounds.to);
-      if (d <= 0) return;
-      const amount = d * (parseFloat(r.dailyRate) || 0);
-      days += d;
-      revenue += amount;
-      out.perCar.set(String(r.carId), (out.perCar.get(String(r.carId)) || 0) + d);
-    });
-    out.days = days;
-    out.revenue = revenue;
-    out.carsRented = out.perCar.size;
-    return out;
-  }
-
-  /* أيام الاستئجار لِد السيارة في الفترة — بديل rentedDaysMonth */
-  function rentedDaysFor(carId, bounds) {
-    const n = rentalsPeriod([{ id: carId }], bounds).days;
-    return n || 0;
-  }
-
-  /* كل سجلات سيارة معيّنة — للتقرير التفصيلي ولأعلى إيراد.
-     بترجع مصفوفة فاضية بدل ما ترمي: نداءات التقرير بتحصل جوه
-     رسم الصفحة، وترمي هنا = شاشة بيضاء. */
-  function allRentalsForCar(carId) {
-    try {
-      if (global.YahmaRentals && typeof global.YahmaRentals.byCar === 'function') {
-        return global.YahmaRentals.byCar(carId) || [];
-      }
-    } catch (e) { if (typeof yahmaErr === 'function') yahmaErr(e, 'reports.js:allRentalsForCar'); }
-    return [];
-  }
-
-  /* ⚠️ رسالة صريحة لما مفيش استئجارات مسجّلة.
-     بدل «0% استغلال» اللي بيقول للمستخدم «أسطولك مش بيأجّر»
-     وهو في الحقيقة «لسه محدّدش».
-     الرد التلقائي ده هو اللي خلّى صفر الـ3,984 يفضل months
-     والحدش ياخد باله. */
-  function noRentalsNotice(count) {
-    return '<div class="panel" style="border-inline-start:4px solid var(--gold,#C9A227)">'
-      + '<h3>لسه محدّدش استئجارات</h3>'
-      + '<p>مفيش ولا عملية استئجار مسجّلة، فمفيش أرقام استغلال ولا إيراد نحسبها.</p>'
-      + '<p class="muted-small">الرقم 0% اللي كان بيظهر مكان ده كان غلط — كان يعني «مفيش بيانات»، مش «مفيش تأجير».</p>'
-      + '<button type="button" class="btn btn-primary btn-small" data-goto-rentals="1">افتح تبويب الاستئجارات</button>'
-      + '</div>';
-  }
-
   function periodBounds() {
     const period = global.periodRange || { preset: 'thisMonth' };
     const now = new Date();
@@ -175,37 +113,35 @@
     const bounds = periodBounds();
     let days = Math.round((new Date(bounds.to) - new Date(bounds.from)) / 86400000) + 1;
     if (!(days > 0)) days = 30;
-    let active = 0, dailySum = 0, dailyCount = 0, maintenanceCost = 0;
-    /* ⭐ الأيام والإيراد يجوا من سجل الاستئجارات للفترة دي،
-       مش من `rentedDaysMonth`. */
-    const rp = rentalsPeriod(list, bounds);
-    const estimateSum = rp.revenue;
+    let active = 0, dailySum = 0, dailyCount = 0, estSum = 0, maintenanceCost = 0;
     (list || []).forEach(car => {
       const status = String(car.carStatus || '').trim();
       if (!status.includes('خارج') && !status.includes('مسروق') && !status.includes('محول') && !status.includes('مفقود') && !status.includes('مؤرشفة') && !status.includes('مباعة')) active++;
       const dailyRate = parseFloat(car.dailyRate);
       if (!isNaN(dailyRate) && dailyRate > 0) { dailySum += dailyRate; dailyCount++; }
+      /* ⭐ الإيراد التقديري = (السعر اليومي × أيام التأجير المسجلة
+         في السيارة نفسها). مفيش سجل استئجارات — كل رقم هنا
+         تقديري ومبني على حقول السيارة، مش على عمليات مسجّلة. */
+      const rentedDays = parseFloat(car.rentedDaysMonth);
+      if (!isNaN(dailyRate) && dailyRate > 0 && !isNaN(rentedDays) && rentedDays >= 0) estSum += dailyRate * rentedDays;
       const cost = parseFloat(car.maintenanceCost);
       if (!isNaN(cost)) maintenanceCost += cost;
     });
     const averageDaily = dailyCount ? dailySum / dailyCount : 0;
     const monthlyPotential = dailyCount ? averageDaily * active * 30 : 0;
-    const estimatedRevenue = estimateSum;
+    /* لو مفيش أي سيارة مسجّلة لها أيام تأجير، نرجع للتقدير العام
+       (متوسط السعر اليومي × السيارات النشطة × 30 يوم) عشان الكارت
+       ما يبقاش أصفار. */
+    const estimatedRevenue = estSum || monthlyPotential;
     return {
       days, active,
       avgDaily: Math.round(averageDaily),
       monthPotential: Math.round(monthlyPotential),
       estMonthRev: Math.round(estimatedRevenue),
-      revPerCar: active ? Math.round((estimatedRevenue || monthlyPotential) / active) : 0,
+      revPerCar: active ? Math.round(estimatedRevenue / active) : 0,
       maintCost: Math.round(maintenanceCost),
-      netEst: Math.round((estimatedRevenue || monthlyPotential) - maintenanceCost),
-      hasData: dailyCount > 0,
-      /* ⭐ الاستغلال = أيام الاستئجار ÷ (سيارات نشطة × أيام الفترة).
-         المقام أيام الفترة الحقيقية مش 30 ثابتة — مع فترة 90 يوم
-         أو شهر 31 يوم الرقم القديم كان بيبقى غلط دايمًا. */
-      rentedDays: rp.days,
-      carsRented: rp.carsRented,
-      hasRentals: rp.hasStore
+      netEst: Math.round(estimatedRevenue - maintenanceCost),
+      hasData: dailyCount > 0
     };
   }
 
@@ -291,7 +227,6 @@
   const Core = {
     FILTERS_KEY, PRESETS_KEY, PERIOD_PRESETS,
     storageRead, persistState, getPresets, isoLocal,
-    rentalsPeriod, rentedDaysFor, allRentalsForCar, noRentalsNotice,
     periodBounds, periodLabel, periodDate, inPeriod,
     accountingIndicators, aggregateReport
   };

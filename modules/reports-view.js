@@ -13,7 +13,7 @@
 
   /* ===== القالب — HTML اللوحة ===== */
   function reportsTemplate(ctx) {
-  const { DOC_BUCKETS, PERIOD_PRESETS, acc, activeCars, branchCompare, branchOpts, branchRevenue, branches, carsNoPrice, content, docDetail, donut, esc, expBuckets, fails, maint, maxFail, modelOpts, noRentalsNotice, notReady, out, ownerOpts, owners, pct, periodBounds, periodDays, periodLabel, prepOpen, prepOverdue, ready, readyPct, rentedDaysTotal, reportPresets, rf, rpFiltered, serviceDue, statusOpts, topDocBranches, topRevenueCars, topWorkshops, total, utilizationPct, weekBars } = ctx;
+  const { DOC_BUCKETS, PERIOD_PRESETS, acc, activeCars, branchCompare, branchOpts, branchRevenue, branches, carsNoPrice, content, docDetail, donut, esc, expBuckets, fails, maint, maxFail, modelOpts, notReady, out, ownerOpts, owners, pct, periodBounds, periodDays, periodLabel, prepOpen, prepOverdue, ready, readyPct, reportPresets, rf, serviceDue, statusOpts, topDocBranches, topWorkshops, total, weekBars } = ctx;
   return `
   <div class="rd-shell" id="reports-dashboard">
     <div class="rd-toolbar">
@@ -87,20 +87,6 @@
     </div>
 
     <div class="rd-grid rd-new-report-grid">
-      /* ⭐ الكارت بيتلون حسب السبب: مفيش استئجارات ≠ استغلال صفر.
-       0% حمرا بتقول المستخدم «أسطولك مش بيشتغل» وهي أصلاً
-       «لسه محدّدش». الفرق ده كبير في القرار. */
-      <div class="rd-card rd-3d">
-        <div class="rd-card-h"><h3>تقرير الاستغلال والإيراد</h3><span class="rd-chip">من سجل الاستئجارات</span></div>
-        ${rpFiltered.hasStore?`
-        <div class="rd-acct">
-          <div class="rd-acct-item ok"><b>${activeCars.length}</b><span>سيارات نشطة</span><small>قابلة للتأجير ضمن الفلتر</small></div>
-          <div class="rd-acct-item ${utilizationPct>=50?'ok':(utilizationPct>0?'warn':'bad')}"><b>${utilizationPct}%</b><span>متوسط الاستغلال</span><small>${rentedDaysTotal} يوم تأجير مسجل من ${periodDays} يوم</small></div>
-          <div class="rd-acct-item ok"><b>${fmtSAR(acc.estMonthRev)}</b><span>إيراد مسجل</span><small>${rpFiltered.carsRented} سيارة اتأجرت</small></div>
-        </div>
-        <div class="rd-report-list">${topRevenueCars.length?topRevenueCars.map(x=>`<div><span>${esc(x.car.plate||'—')} · ${esc(x.car.branch||'—')}</span><b>${fmtSAR(x.revenue)}</b></div>`).join(''):'<div class="rd-empty">مفيش استئجار مسجّل في الفترة دي.</div>'}</div>
-        `:noRentalsNotice(rpFiltered.carsRented)}
-      </div>
       <div class="rd-card rd-3d">
         <div class="rd-card-h"><h3>تقرير الصيانة</h3><span class="rd-chip">إجراءات قريبة</span></div>
         <div class="rd-acct">
@@ -332,14 +318,6 @@ ${branches.slice(0,5).map(b=>`• ${b.name}: ${b.pct}% جاهز (${b.r}/${b.t})`
     else { f.style.display='none'; t.style.display='none'; }
   };
   syncCustomDates();
-  /* زرار «لسه محدّدش استئجارات» — يوديه للتبويب عشان يسجّل
-     أول عملية بدل ما يقفل التقرير عند 0%. */
-  document.querySelectorAll('[data-goto-rentals]').forEach(b=>{
-    b.addEventListener('click',()=>{
-      if(typeof window.goTabFromRouter==='function') window.goTabFromRouter('rentals');
-      else window.yahmaSetTab('rentals');
-    });
-  });
   const perEl=document.getElementById('rd-period'); if(perEl) perEl.addEventListener('change', syncCustomDates);
   ['rd-from','rd-to'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('change', ()=>{ if((window.periodRange.preset||'')==='custom') applyFilters(); }); });
   const savedFilterSelect=document.getElementById('rd-saved-filter');

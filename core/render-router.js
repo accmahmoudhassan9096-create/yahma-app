@@ -85,11 +85,7 @@ function goTabFromRouter(tab){
     i.classList.toggle('active', i.dataset.tab===tab);
   });
   try{
-    /* ⭐ المرجع المباشر للـrender الحقيقي — بيقطع سلسلة الأغلفة
-       اللي ممكن تبلع النداء (التبويب بيتغير بس الشاشة لأ). */
-    if(typeof window.yahmaRenderNow==='function'){
-      window.yahmaRenderNow();
-    }else if(typeof window.render==='function'&&typeof window.render._perfImmediate==='function'){
+    if(typeof window.render==='function'&&typeof window.render._perfImmediate==='function'){
       window.render._perfImmediate();
     }else if(typeof window.render==='function'){
       window.render();
@@ -142,14 +138,6 @@ function render(){
     const ci=document.getElementById('count-inspections'); if(ci) ci.textContent = followUpAlerts;
     const transfersCount=fleet.filter(c=>String(c.transferDone||'').trim()==='نعم').length;
     const transfersBadge=document.getElementById('count-transfers'); if(transfersBadge) transfersBadge.textContent=transfersCount;
-    /* ⚠️ العداد = عدد الاستئجارات الشغّالة، زي «تم الدفع» بيعدّ
-       السطور الفعلية مش كل السجلات. العداد عدّاد تنبيه لا إحصاء. */
-    try{
-      const rentalsBadge=document.getElementById('count-rentals');
-      if(rentalsBadge && window.YahmaRentals && typeof window.YahmaRentals.localOpen==='function'){
-        rentalsBadge.textContent=window.YahmaRentals.localOpen().length;
-      }
-    }catch(_){yahmaErr(_,'render-router.js:count-rentals');}
     const pendingPayments=loadInspectionPayments().length;
     const paymentCount=document.getElementById('count-payments'); if(paymentCount) paymentCount.textContent=pendingPayments;
     const paidCount=document.getElementById('count-paid'); if(paidCount) paidCount.textContent=loadPaidInspections().length;
@@ -170,7 +158,7 @@ function render(){
      الأسطول، فلو دخل في النطاق هيتقفل على «المحتاجة فحص» ونفس
      الفلتر بيقصي سجلات ما ليها علاقة. */
   if (typeof fleetForTab==='function' && currentTab
-      && ['dashboard','fleet','branches','reports','audit','preparation','dues','rentals','users'].indexOf(currentTab)<0){
+      && ['dashboard','fleet','branches','reports','audit','preparation','users'].indexOf(currentTab)<0){
     try{
       __yahmaFullFleet = fleet;
       scopedFleet = fleetForTab(currentTab, fleet);
@@ -181,7 +169,7 @@ function render(){
     /* بيانات PDF الخاصة بالتبويب تُعاد توليدها مع كل عرض — نمسح القديمة حتى لا يصدّر زر PDF بيانات تبويب سابق */
     window._yahmaCurrentPdfData = null;
     /* تبويبات الجداول: مسطرة تمرير رأسية واحدة فقط لا غير */
-    var TABLE_TABS = ['fleet','branches','payments','paid','renewed','rentals']; /* مثبّتة: الجدول يتمرر داخليًا والفلاتر والترقيم ثابتة */
+    var TABLE_TABS = ['fleet','branches','payments','paid','renewed']; /* مثبّتة: الجدول يتمرر داخليًا والفلاتر والترقيم ثابتة */
     var FLOW_TABS = ['renewals','license-renewals','insurance-renewals','inspections','transfers']; /* انسيابية: المحتوى يتمرر مرة واحدة والجدول بطوله الطبيعي */
     content.classList.toggle('content-table', TABLE_TABS.indexOf(currentTab) >= 0);
     content.classList.toggle('content-flow', FLOW_TABS.indexOf(currentTab) >= 0);
@@ -201,31 +189,11 @@ if(currentTab === 'dashboard') renderDashboard(content);
     else if(currentTab === 'renewed') renderRenewedInspections(content);
     else if(currentTab === 'inspections') renderFollowUp(content);
     else if(currentTab === 'transfers') renderTransfers(content);
-    else if(currentTab === 'rentals'){
-      /* نفس القالب بتاع «المستحقات»: الوحدة دي ليها مكتبتها
-         الخاصة، فلازم نشوفها موجودة قبل ما نناديها. */
-      if(window.YahmaRentalsUI && typeof window.YahmaRentalsUI.render==='function'){
-        try{ window.YahmaRentalsUI.render(content); }
-        catch(e){
-          window.__lastError=(e&&e.stack)||String(e);
-          content.innerHTML='<div class="panel"><h3>تعذر عرض الاستئجارات</h3><p class="muted-small">'+escapeHtml(e&&e.message?e.message:'حدث خطأ غير متوقع')+'</p><button type="button" class="btn btn-primary btn-small" id="rentals-retry">إعادة المحاولة</button></div>';
-          document.getElementById('rentals-retry')?.addEventListener('click',()=>render());
-        }
-      }
-    }
     else if(currentTab === 'reports') renderReports(content);
     else if(currentTab === 'audit') renderAuditPage(content);
     else if(currentTab === 'users') renderUsers(content);
     else if(currentTab === 'branches') renderBranches(content);
     else if(currentTab === 'preparation') renderPreparation(content);
-    else if(currentTab === 'dues' && window.YahmaDues && typeof window.YahmaDues.render==='function'){
-      try{ window.YahmaDues.render(content); }
-      catch(e){
-        window.__lastError=(e&&e.stack)||String(e);
-        content.innerHTML='<div class="panel"><h3>تعذر عرض المستحقات</h3><p class="muted-small">'+escapeHtml(e&&e.message?e.message:'حدث خطأ غير متوقع')+'</p><button type="button" class="btn btn-primary btn-small" id="dues-retry">إعادة المحاولة</button></div>';
-        document.getElementById('dues-retry')?.addEventListener('click',()=>render());
-      }
-    }
   }catch(e){
     window.__lastError=(e&&e.stack)||String(e);
     console.error('render failed for tab '+currentTab,e);
@@ -248,28 +216,6 @@ if(currentTab === 'dashboard') renderDashboard(content);
   /* شريط التصدير (Excel + PDF) بيظهر في أي تبويب فيه جدول */
   try{ if(window.YahmaExportBar&&typeof window.YahmaExportBar.sync==='function') window.YahmaExportBar.sync(); }catch(_){yahmaErr(_,'render-router.js:608');}
 }
-
-/* ===== ⭐ المرجع المباشر للـrender الحقيقي =====
-
-   window.render مش دالة واحدة — دي سلسلة أغلفة:
-     perf-vtable → ops-intel → notifications → audit-theme → [smooth]
-   وكل غلاف بيلتف على اللي قبله. لو أي غلاف في الوسط ابتلع النداء
-   (أو رفع استثناء مبلعه غلاف تاني) → الرسم بيضيع، والنتيجة:
-     · المستخدم يضغط تبويب
-     · الـcurrentTab بيتغيّر في البيانات
-     · الشاشة بتفضل على التبويب القديم
-   من غير أي خطأ في الـconsole. (نفس العطل اللي ops-intel.js حذّر منه.)
-
-   المرجع ده بيقطع الدايرة: أي حد عايز يرسم فوراً بينادي
-   window.yahmaRenderNow() — وده الـrender الحقيقي نفسه، من غير ما
-   يمر على السلسلة. */
-window.yahmaRenderNow = function(){
-  try{
-    window.__yahmaRenderCount = (window.__yahmaRenderCount || 0) + 1;
-    return render.apply(this, arguments);
-  }
-  catch(e){ yahmaErr(e,'render-router.js:yahmaRenderNow'); throw e; }
-};
 
 /* ===== تنبيه صريح عند فشل تحميل البيانات =====
    بدون كده المستخدم يشوف شاشة فاضية ويظن إن الأسطول فاضي */

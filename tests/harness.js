@@ -77,7 +77,7 @@ function loadModule(rel, extraGlobals) {
   if (extraGlobals) Object.assign(sandbox, extraGlobals);
   const code = fs.readFileSync(file, 'utf8');
   vm.runInContext(code, app.context, { filename: file });
-  return sandbox.YahmaDues || sandbox.YahmaUtils || sandbox;
+  return sandbox.YahmaUtils || sandbox;
 }
 
 /* ===== مصانع بيانات للاختبار ===== */
