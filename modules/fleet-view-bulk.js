@@ -12,19 +12,19 @@
 (function (global) {
   'use strict';
   function updateBulkBar(ctx){
-    const bar=$('bulk-bar');
+    const bar=ctx.$('bulk-bar');
     const n=ctx.selectedIds.size;
     if(!bar) return;
     bar.style.display = n>0 ? 'flex' : 'none';
-    const cnt=$('bulk-count');
+    const cnt=ctx.$('bulk-count');
     if(cnt) cnt.textContent = n + ' محددة';
-    const head=$('bulk-head-check');
+    const head=ctx.$('bulk-head-check');
     const allVisible=ctx.getFilteredRows();
     if(head){
       head.checked = allVisible.length>0 && allVisible.every(c=>ctx.selectedIds.has(String(c.id)));
       head.indeterminate = ctx.selectedIds.size>0 && !head.checked;
     }
-    const selAll=$('bulk-select-all');
+    const selAll=ctx.$('bulk-select-all');
     if(selAll) selAll.checked = head ? head.checked : false;
   }
   function getSelectedCars(ctx){

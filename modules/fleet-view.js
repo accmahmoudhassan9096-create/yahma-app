@@ -301,7 +301,7 @@
     return (el && el.value || '').trim();
   };
   const FleetBulk = window.YahmaFleetViewBulk;
-  const bulkCtx = { selectedIds, val, draw: () => draw(), exportRows: (r) => exportRows(r), getFilteredRows: () => getFilteredRows() };
+  const bulkCtx = { selectedIds, val, $: (id) => document.getElementById(id), draw: () => draw(), exportRows: (r) => exportRows(r), getFilteredRows: () => getFilteredRows() };
   const updateBulkBar = () => FleetBulk.updateBulkBar(bulkCtx);
   const getSelectedCars = () => FleetBulk.getSelectedCars(bulkCtx);
   const bulkRenewLicense = () => FleetBulk.bulkRenewLicense(bulkCtx);

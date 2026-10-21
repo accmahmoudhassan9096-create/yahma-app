@@ -317,7 +317,7 @@ function renderRenewals(content, mode='inspection'){
   /* ⭐ الإجراءات الجماعية اتنقلت لملفها: modules/renewals-ui-bulk.js
      (نفس الدوال بنفس الترتيب — بس بتاخد ctx.selectedRenIds). */
   const Bulk = window.YahmaRenewalsBulk;
-  const renCtx = { selectedRenIds };
+  const renCtx = { selectedRenIds, $: (id) => document.getElementById(id) };
   const deleteRenCars = (ids) => Bulk.deleteRenCars(renCtx, ids);
   const renSelectedCars = () => Bulk.renSelectedCars(renCtx);
   const renPlates = (cars) => Bulk.renPlates(renCtx, cars);
