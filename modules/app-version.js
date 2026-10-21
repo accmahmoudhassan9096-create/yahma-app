@@ -33,7 +33,12 @@
 
   /* ===== تحديث قسري =====
      يمسح Service Worker والكاش كله ويعيد تحميل الصفحة من السيرفر.
-     ده الضمان الوحيد إن المستخدم يقدر يخرج من نسخة قديمة. */
+     ده الضمان الوحيد إن المستخدم يقدر يخرج من نسخة قديمة.
+
+     ⚠️ كمان بنمسح localStorage: كان بيسيب جلسة قديمة وكاش بيانات
+     منتهية (بتخلي الأسطول يظهر 0 والتبويبات تختفي). المسح بيكسّر
+     الجلسة المحلية — بس الـrefresh token في Supabase بيفضل، فالدخول
+     بيحصل من جديد تلقائياً. */
   async function hardRefresh() {
     try { window.__yahmaWarnDismissed = false; } catch(_){yahmaErr(_,'app-version.js:38');}
     try { var t = document.getElementById('yahma-update-toast'); if (t) t.remove(); } catch(_){yahmaErr(_,'app-version.js:39');}
@@ -49,6 +54,20 @@
         await Promise.all(keys.map(function (k) { return caches.delete(k); }));
       }
     } catch(_){yahmaErr(_,'app-version.js:51');}
+    /* ⭐ مسح الكاش المحلي: كاش البيانات والجلسة المنتهية كان
+       بيسبّب «الأسطول = 0» والتبويبات مخفية. */
+    try {
+      if (global.localStorage) {
+        var drop = [];
+        for (var i = 0; i < global.localStorage.length; i++) {
+          var k = global.localStorage.key(i);
+          /* نسيب مفاتيح اللغة والمظهر — مش دي بيانات */
+          if (k && !/^yahma-(lang|theme|dir)/i.test(k)) drop.push(k);
+        }
+        drop.forEach(function (k) { try { global.localStorage.removeItem(k); } catch(_){} });
+      }
+    } catch(_){yahmaErr(_,'app-version.js:localStorage');}
+    try { if (global.sessionStorage) global.sessionStorage.clear(); } catch(_){yahmaErr(_,'app-version.js:sessionStorage');}
     try { location.replace(location.pathname + '?hard=' + Date.now()); } catch(_){yahmaErr(_,'app-version.js:52');}
   }
 

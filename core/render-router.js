@@ -356,12 +356,21 @@ function showDataWarning(content){
     +(expired?'<button type="button" class="btn btn-primary btn-small" data-ywarn="relogin">🔑 تسجيل دخول</button>'
              :'<button type="button" class="btn btn-primary btn-small" data-ywarn="cloud">⬇ حدّث من السحابة</button>')
     +'<button type="button" class="btn btn-ghost btn-small" data-ywarn="reload">↻ تحديث الآن</button>'
+    /* ⭐ «تحديث قسري»: بيمسح الـSW والكاش والكاش المحلي كله — الحل
+       الوحيد لو المنصة قاعدة على نسخة قديمة أو كاش جلسة منتهية. */
+    +'<button type="button" class="btn btn-ghost btn-small" data-ywarn="hard">⟳ تحديث قسري</button>'
     +'<button type="button" class="btn btn-ghost btn-small" data-ywarn="relogin2">'+(expired?'تسجيل خروج ودخول':'إعادة تسجيل الدخول')+'</button>'
     +'</div>';
   const first=content.firstElementChild;
   if(first) content.insertBefore(banner,first); else content.appendChild(banner);
   banner.querySelector('[data-ywarn="close"]').onclick=()=>{ window.__yahmaWarnDismissed=true; hideDataWarning(); };
   banner.querySelector('[data-ywarn="reload"]').onclick=()=>location.reload();
+  /* ⭐ التحديث القسري: بيمسح كل حاجة (SW + كاش + كاش محلي) وبيعيد التحميل */
+  banner.querySelector('[data-ywarn="hard"]')?.addEventListener('click',function(){
+    if(typeof window.yahmaHardRefresh === 'function') window.yahmaHardRefresh();
+    else if(typeof window.yahmaAskHardRefresh === 'function') window.yahmaAskHardRefresh();
+    else location.reload();
+  });
   banner.querySelector('[data-ywarn="cloud"]')?.addEventListener('click',async()=>{
     try{ if(typeof window.__yahmaSessionExpired!=='undefined') window.__yahmaSessionExpired=false;
       if(typeof loadData==='function'){ await loadData(true); } }catch(_){yahmaErr(_,'render-router.js:730');}
