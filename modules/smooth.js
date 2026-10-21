@@ -46,8 +46,11 @@
           try{ window.render.apply(pendingThis, pendingArgs || []); }
           catch(_){ /* الخطأ بيتبعت للـerror bus من جوه الـrender نفسه */ }
         };
-        requestAnimationFrame(release);
-        setTimeout(release, 250);
+        /* ⚠️ setTimeout مش requestAnimationFrame.
+           الـrAF ما بتشتغلش لما الصفحة في الخلفية (الموبايل)،
+           فكان الرسم المعلّق ما يتنفّذش خالص — والتبويب يتغيّر في
+           البيانات بس الشاشة على القديم. setTimeout بيشتغل دايمًا. */
+        setTimeout(release, 60);
       }
     };
     window.render._smoothWrapped = true;

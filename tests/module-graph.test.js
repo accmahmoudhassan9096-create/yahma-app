@@ -877,3 +877,42 @@ test('حارس: تبويب «الاستئجارات» و«المستحقات» �
       assert.ok(fs.existsSync(path.join(ROOT, f)), 'الملف «' + f + '» مفقود');
     });
 });
+
+/* ===== حارس: الرسم لازم يوصل للـrender الحقيقي =====
+
+   ⚠️ العطل: المستخدم يضغط تبويب، الـcurrentTab بيتغيّر في
+      البيانات، بس الشاشة بتفضل على التبويب القديم. مفيش خطأ.
+
+   السبب: window.render مش دالة واحدة — ده سلسلة أغلفة:
+     perf-vtable → ops-intel → notifications → audit-theme → [smooth]
+   وأي غلاف في الوسط ابتلع النداء بيخلي الرسم يضيع.
+
+   الإصلاح: مرجع مباشر window.yahmaRenderNow بيرسم من غير ما
+   يمر على السلسلة، والطبقة الخارجية (perf-vtable) تستخدمه. */
+test('الرسم بيوصل للـrender الحقيقي — مرجع مباشر yahmaRenderNow', () => {
+  const rr = read('core/render-router.js');
+  assert.ok(/window\.yahmaRenderNow\s*=\s*function/.test(rr),
+    'المرجع المباشر window.yahmaRenderNow مفقود من render-router.js');
+  assert.ok(/render\.apply\(this, arguments\)/.test(rr),
+    'yahmaRenderNow لازم ينادي الـrender الحقيقي مباشرة');
+
+  /* الطبقة الخارجية في السلسلة لازم تفضّل المرجع المباشر */
+  const pv = read('modules/perf-vtable.js');
+  assert.ok(/yahmaRenderNow/.test(pv),
+    'perf-vtable لازم يستخدم yahmaRenderNow (الطبقة الخارجية)');
+  assert.ok(/realRender\.apply\(this, lastArgs/.test(pv),
+    'perf-vtable لازم ينادي realRender في run() و _perfImmediate()');
+
+  /* التنقل بين التبويبات لازم يرسم بالمرجع المباشر */
+  const ng = read('modules/nav-guard.js');
+  assert.ok(/yahmaRenderNow/.test(ng),
+    'nav-guard لازم يستخدم yahmaRenderNow في drawNow()');
+
+  /* smooth.js ما ينفعش يعتمد على requestAnimationFrame — رAF
+     ما بتشتغلش لما الصفحة في الخلفية (الموبايل). */
+  const sm = read('modules/smooth.js');
+  assert.ok(!/requestAnimationFrame\(release\)/.test(sm),
+    'smooth.js ما ينفعش يعتمد على rAF لتحرير الرسم المعلّق');
+  assert.ok(/pendingThis/.test(sm) && /MAX_BURST/.test(sm),
+    'smooth.js لازم ينفّذ الرسم المعلّق (مش بس يسجّله)');
+});

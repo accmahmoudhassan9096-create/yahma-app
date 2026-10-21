@@ -85,7 +85,11 @@ function goTabFromRouter(tab){
     i.classList.toggle('active', i.dataset.tab===tab);
   });
   try{
-    if(typeof window.render==='function'&&typeof window.render._perfImmediate==='function'){
+    /* ⭐ المرجع المباشر للـrender الحقيقي — بيقطع سلسلة الأغلفة
+       اللي ممكن تبلع النداء (التبويب بيتغير بس الشاشة لأ). */
+    if(typeof window.yahmaRenderNow==='function'){
+      window.yahmaRenderNow();
+    }else if(typeof window.render==='function'&&typeof window.render._perfImmediate==='function'){
       window.render._perfImmediate();
     }else if(typeof window.render==='function'){
       window.render();
@@ -244,6 +248,28 @@ if(currentTab === 'dashboard') renderDashboard(content);
   /* شريط التصدير (Excel + PDF) بيظهر في أي تبويب فيه جدول */
   try{ if(window.YahmaExportBar&&typeof window.YahmaExportBar.sync==='function') window.YahmaExportBar.sync(); }catch(_){yahmaErr(_,'render-router.js:608');}
 }
+
+/* ===== ⭐ المرجع المباشر للـrender الحقيقي =====
+
+   window.render مش دالة واحدة — دي سلسلة أغلفة:
+     perf-vtable → ops-intel → notifications → audit-theme → [smooth]
+   وكل غلاف بيلتف على اللي قبله. لو أي غلاف في الوسط ابتلع النداء
+   (أو رفع استثناء مبلعه غلاف تاني) → الرسم بيضيع، والنتيجة:
+     · المستخدم يضغط تبويب
+     · الـcurrentTab بيتغيّر في البيانات
+     · الشاشة بتفضل على التبويب القديم
+   من غير أي خطأ في الـconsole. (نفس العطل اللي ops-intel.js حذّر منه.)
+
+   المرجع ده بيقطع الدايرة: أي حد عايز يرسم فوراً بينادي
+   window.yahmaRenderNow() — وده الـrender الحقيقي نفسه، من غير ما
+   يمر على السلسلة. */
+window.yahmaRenderNow = function(){
+  try{
+    window.__yahmaRenderCount = (window.__yahmaRenderCount || 0) + 1;
+    return render.apply(this, arguments);
+  }
+  catch(e){ yahmaErr(e,'render-router.js:yahmaRenderNow'); throw e; }
+};
 
 /* ===== تنبيه صريح عند فشل تحميل البيانات =====
    بدون كده المستخدم يشوف شاشة فاضية ويظن إن الأسطول فاضي */

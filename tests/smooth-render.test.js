@@ -87,7 +87,7 @@ test('smooth.js: الرسم المعلّق بيتنفّذ — مش بيتسقط'
   s.sandbox.window.render();          // الأول — ينفّذ
   s.sandbox.window.render();          // التاني — يتأجل
   assert.equal(s.calls, 1, 'قبل الإفراج: لسه واحد');
-  s.flushRaf();                       // الإطار الجاي → release
+  s.flushTimers();                    // المؤقّت — الإفراج (rAF ما بتشتغلش في الخلفية)
   assert.equal(s.calls, 2,
     'الرسم المعلّق لازم ينفّذ بعد الإفراج — قبل كنا بنمسحه وبنضيّعه');
 });
@@ -118,7 +118,7 @@ test('smooth.js: الرسم المؤجل بيستقبل نفس الـarguments',
   };
   s.sandbox.window.render('rentals', 42);     // ينفّذ فوراً
   s.sandbox.window.render('dashboard', 7);    // يتأجل (التبويب الجديد)
-  s.flushRaf();                               // الإفراج → ينفّذ المؤجل
+  s.flushTimers();                            // الإفراج → ينفّذ المؤجل
   assert.ok(seen.length >= 2, 'لازم ينفّذ الرسمين');
   assert.deepEqual(seen[seen.length - 1], ['dashboard', 7],
     'الرسم المؤجل لازم يوصل بنفس الـarguments — مش القديم');
