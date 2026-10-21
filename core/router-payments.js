@@ -1,4 +1,4 @@
-/* ===== core/router-payments.js — دورة الفحص والدفع والتجديد =====
+﻿/* ===== core/router-payments.js — دورة الفحص والدفع والتجديد =====
  *
  * كل حاجة بتخص دورة «الفحص ← تحت الدفع ← تم الدفع ← تم التجديد»:
  * قراءة الطلبات، خلايا العرض، التحديد الجماعي، تنفيذ الإجراءات
@@ -553,21 +553,24 @@ function fixPaySpans(content) {
   });
 }
 
-/* تحديث حالة الشريط بعد أي تغيير في التحديد. */
+/* تحديث حالة الشريط بعد أي تغيير في التحديد.
+   ⭐ نستخدم PAY_SELECTIONS[tab].size مباشرة للعد — مش selectedPayRows()
+   لأن selectedPayRows بترجع بس اللي في PAY_ROW_INDEX الحالي (المفلتر)،
+   فلو فلترت بالبحث والسيارات المحددة مش في الـindex، العد بيبان صفر. */
 function payBulkBarHtml(tab) {
   const bar = document.getElementById('pay-bulk-bar-' + tab);
   const head = document.querySelector('input[data-pay-head="' + tab + '"]');
   const allCount = Object.keys(PAY_ROW_INDEX[tab] || {}).length;
-  const items = selectedPayRows(tab);
+  const selCount = (PAY_SELECTIONS[tab] || new Set()).size;
   if (head) {
-    head.checked = allCount > 0 && items.length === allCount;
-    head.indeterminate = items.length > 0 && items.length < allCount;
+    head.checked = allCount > 0 && selCount === allCount;
+    head.indeterminate = selCount > 0 && selCount < allCount;
   }
   if (!bar) return;
-  bar.style.display = items.length ? '' : 'none';
+  bar.style.display = selCount ? '' : 'none';
   const cnt = document.getElementById('pay-bulk-count-' + tab);
   if (cnt) {
-    cnt.textContent = items.length + ' محددة'
+    cnt.textContent = selCount + ' محددة'
       + ' من ' + allCount;
   }
 }
@@ -636,39 +639,32 @@ function bindPaySelection(content, tab) {
   if (!tbody) return;
   payBulkBarHtml(tab);
 
-  if (!tbody._paySelectDelegate) {
-    tbody._paySelectDelegate = true;
-    /* ⭐ التحديد: منطق واحد في مكان واحد.
+  /* ⭐ الإصلاح الجذري: بنربط الـlisteners على content (اللي بيفضل موجود)
+     مش على tbody (اللي بيتدمر ويتعاد إنشاؤه كل render).
+     الـguard بيتحط على content مش على tbody. */
+  if (!content._paySelectDelegate) {
+    content._paySelectDelegate = true;
 
-       ⚠️ العطل كان: الـclick والـchange handlerين الاتنين كانوا
-       بيقلبوا نفس الـSet. والـclick handler كان بيقفل التحديد غلط
-       لأن المتصفح بيقلب حالة الـcheckbox *بعد* الـclick handlers
-       (في Chrome: الـchange بيطلق بـchecked قديم). فالنتيجة:
-       - ضغط واحد = تحديد (صح) بس الـSet بيتقلب مرتين
-       - والضغط الثاني = إلغاء، لكن التحديدات التانية بتتمسح
-
-       الحل: منطق واحد — نToggle على الـSet بناءً على الحالة
-       *المرئية* (checked) وقت الحدث، والـclick handler مايعملش
-       أي toggle لو كان الهدف هو الـcheckbox نفسه (المتصفح بيعمله).
-
-       مهم: الـSet بيتحدّث بـadd/delete حسب checked، مش toggle —
-       عشان كده التحديدات المتعددة تفضل زي ما هي. */
-    function applyPayCheck(box, tab, id) {
-      const set = PAY_SELECTIONS[tab] || (PAY_SELECTIONS[tab] = new Set());
+    function applyPayCheck(box) {
+      const t = box.dataset.payTab;
+      const id = String(box.dataset.payCheck);
+      const set = PAY_SELECTIONS[t] || (PAY_SELECTIONS[t] = new Set());
       if (box.checked) set.add(id); else set.delete(id);
       const tr = box.closest('tr');
       if (tr) tr.classList.toggle('is-selected', box.checked);
-      payBulkBarHtml(tab);
+      payBulkBarHtml(t);
     }
 
-    tbody.addEventListener('change', function (e) {
+    /* change: المتصفح بيقلب checked قبل ما يطلق change — فنقرأ الحالة الصح. */
+    content.addEventListener('change', function (e) {
       const box = e.target.closest ? e.target.closest('input[data-pay-check]') : null;
       if (!box) return;
-      applyPayCheck(box, box.dataset.payTab, String(box.dataset.payCheck));
+      applyPayCheck(box);
     });
-    tbody.addEventListener('click', function (e) {
-      /* الـcheckbox نفسه: المتصفح بيتولّى التحويل — ما نعملش toggle.
-         (كان بيعمل delete لأن checked لسه false وقت الـhandler.) */
+
+    /* click: لو الهدف هو الـcheckbox نفسه — نسيبه للـchange.
+       لو الهدف مكان تاني في الصف — نقلب checked يدويًا ثم نطبّق. */
+    content.addEventListener('click', function (e) {
       if (e.target.closest && e.target.closest('input[data-pay-check]')) return;
       if (e.target.closest('button, a, select, textarea, input:not([data-pay-check]), .row-actions')) return;
       if (!canBulkHere()) return;
@@ -676,9 +672,8 @@ function bindPaySelection(content, tab) {
       if (!tr) return;
       const cb = tr.querySelector('input[data-pay-check]');
       if (!cb || cb.disabled) return;
-      /* الضغط على أي مكان تاني في الصف = تبديل التحديد */
       cb.checked = !cb.checked;
-      applyPayCheck(cb, cb.dataset.payTab, String(cb.dataset.payCheck));
+      applyPayCheck(cb);
     });
   }
 
