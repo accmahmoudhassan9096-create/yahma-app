@@ -87,6 +87,22 @@
     }
     try{ if(window.YahmaErrorPanel && typeof window.YahmaErrorPanel.syncVisibility==='function') window.YahmaErrorPanel.syncVisibility(); }catch(_){yahmaErr(_,'topbar-ui.js:err');}
 
+    /* ⭐ تقرير سريع عن الأخطاء — متاح لكل الأدوار (مش بس المدير).
+       «سجل الأخطاء» الكامل مخفي لغير الأدمن لأنه فيه أسماء ملفات
+       وسطور. بس لما حاجة غلط، المستخدم لازم يعرف من غير صلاحيات.
+       فبنديله نافذة مختصرة: آخر 10 أخطاء (الرسالة والمكان) + زر نسخ. */
+    var quickErr=document.getElementById('umt-quick-errors');
+    if(quickErr && !quickErr._yahmaBound){
+      quickErr._yahmaBound=true;
+      quickErr.addEventListener('click',function(e){
+        e.preventDefault();
+        closeMenu();
+        if(window.YahmaErrorPanel && typeof window.YahmaErrorPanel.quickReport==='function'){
+          window.YahmaErrorPanel.quickReport();
+        }
+      });
+    }
+
     /* قفل المنصة: اقفل دلوقتي / شغّل ووقّف القفل */
     var lockNow=document.getElementById('umt-lock-now');
     if(lockNow && !lockNow._yahmaBound){

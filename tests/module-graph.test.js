@@ -737,3 +737,25 @@ test('applyRole متاحة خارجياً وبتتحمل على الدور', () 
   assert.ok(/yahmaApplyRole/.test(after),
     'auth-boot.js مش بيطبّق الصلاحيات بعد ما الدور يتحدّث');
 });
+
+/* ===== «تقرير سريع عن الأخطاء» متاح لكل الأدوار =====
+
+   «سجل الأخطاء» الكامل مخفي لغير المدير (فيه أسماء ملفات وسطور).
+   بس لما حاجة غلط، المستخدم لازم يعرف من غير صلاحيات إدارية.
+   فبنضيف زر «تقرير سريع» ظاهر دايماً، بيعرض آخر 10 أخطاء. */
+test('تقرير سريع عن الأخطاء — متاح لكل الأدوار', () => {
+  const html = read('index.html');
+  assert.ok(/id="umt-quick-errors"/.test(html),
+    'زر «تقرير سريع» مش موجود في القائمة');
+
+  /* ما ينفعش يكون hidden — زي «سجل الأخطاء» */
+  const btn = /<button[^>]*id="umt-quick-errors"[^>]*>/.exec(html);
+  assert.ok(btn, 'زر «تقرير سريع» مفقود');
+  assert.ok(!/\shidden/.test(btn[0]),
+    '«تقرير سريع» لازم يظهر لكل الأدوار — ما ينفعش يكون hidden');
+
+  const ep = read('modules/error-panel.js');
+  assert.ok(/function quickReport\s*\(/.test(ep), 'quickReport مفقودة في error-panel.js');
+  assert.ok(/quickReport/.test(read('modules/topbar-menu.js')),
+    'الزر مش مربوط في topbar-menu.js');
+});
