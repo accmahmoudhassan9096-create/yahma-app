@@ -60,7 +60,7 @@
     <h2>تسجيل الدخول</h2>
     <p class="sub">استخدم بيانات الحساب اللي أنشأها لك المدير</p>
     <div class="auth-field"><label for="auth-email">البريد الإلكتروني</label><input type="email" id="auth-email" autocomplete="username"></div>
-    <div class="auth-field"><label for="auth-password">كلمة المرور</label><input type="password" id="auth-password" autocomplete="current-password"></div>
+    <div class="auth-field"><label for="auth-password">كلمة المرور</label><input type="password" id="auth-password" autocomplete="current-password"><button type="button" class="auth-eye" id="auth-eye" title="إظهار/إخفاء كلمة المرور" aria-label="إظهار كلمة المرور">👁</button></div>
     <div style="text-align:left;margin:-6px 0 10px"><a href="#" id="auth-forgot-link" style="font-size:12px;color:var(--muted);text-decoration:underline">نسيت كلمة المرور؟</a></div>
     <div id="auth-error"></div>
     <button class="btn btn-primary" id="auth-login-btn">دخول</button>
@@ -80,6 +80,7 @@
       <div class="auth-field">
         <label for="lock-password">كلمة المرور</label>
         <input type="password" id="lock-password" autocomplete="current-password" enterkeyhint="go">
+    <button type="button" class="auth-eye" id="lock-eye" title="إظهار/إخفاء كلمة المرور" aria-label="إظهار كلمة المرور">👁</button>
       </div>
       <div id="lock-error" class="lock-error"></div>
       <button class="btn btn-primary" type="submit" id="lock-submit">فتح المنصة</button>

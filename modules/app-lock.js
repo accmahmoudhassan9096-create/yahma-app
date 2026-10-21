@@ -146,6 +146,21 @@
     if (!form || form.__bound) return;
     form.__bound = true;
 
+    /* ⭐ زر إظهار/إخفاء كلمة المرور (نفس بتاع شاشة الدخول).
+        على الموبايل الكتابة في حقل مخفي صعبة، والزرار بيوفّر وقت. */
+    var eyeBtn = el('lock-eye');
+    var lockInput = el('lock-password');
+    if (eyeBtn && lockInput && !eyeBtn.__bound) {
+      eyeBtn.__bound = true;
+      eyeBtn.addEventListener('click', function () {
+        var showing = lockInput.type === 'text';
+        lockInput.type = showing ? 'password' : 'text';
+        eyeBtn.setAttribute('aria-label', showing ? 'إظهار كلمة المرور' : 'إخفاء كلمة المرور');
+        eyeBtn.classList.toggle('is-on', !showing);
+        try { lockInput.focus(); } catch (_) { }
+      });
+    }
+
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       var input = el('lock-password');

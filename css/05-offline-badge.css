@@ -81,3 +81,29 @@ body.dark-mode .yh-err-fab:hover{background:#2A1B1B;}
 @media (max-width:700px){
   .yh-err-fab{bottom:calc(12px + env(safe-area-inset-bottom,0px));}
 }
+
+/* ===== زر إظهار/إخفاء كلمة المرور =====
+   زرار صغير جوه حقل كلمة المرور. على الموبايل الكتابة في حقل
+   مخفي صعبة (لازم تضبط المؤشر وتختار كل الحرف)، فده بيوفّر وقت. */
+.auth-eye{
+  position:absolute;
+  inset-inline-end:8px;
+  top:50%;
+  transform:translateY(-50%);
+  width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:transparent;
+  font-size:14px;
+  line-height:1;
+  cursor:pointer;
+  opacity:.65;
+  padding:0;
+}
+.auth-eye:hover{opacity:1;background:rgba(0,0,0,.04);}
+.auth-eye.is-on{opacity:1;border-color:var(--teal,#0A5F5D);background:rgba(10,95,93,.08);}
+body.dark-mode .auth-eye{background:transparent;border-color:var(--line);}
+/* الحقل نفسه لازم ياخد مساحة للزر */
+.auth-field{position:relative;}
+.auth-field input[type="password"],.auth-field input[type="text"]{padding-inline-end:38px;}

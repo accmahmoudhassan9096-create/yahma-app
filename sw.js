@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v268';
+const CACHE_NAME = 'yahma-shell-v269';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -212,4 +212,5 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
 

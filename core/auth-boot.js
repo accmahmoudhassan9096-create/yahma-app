@@ -434,6 +434,22 @@ function initAuthUI(){
   const emailEl = document.getElementById('auth-email');
   const passEl = document.getElementById('auth-password');
 
+  /* ⭐ زر إظهار/إخفاء كلمة المرور.
+     على الموبايل الكتابة في حقل مخفي صعبة (لازم تضغط مطوّل وتختار
+     كل الحرف)، وفي كل مرة بتكتب كلمة السر بالغلط. الزر بيوفّر وقت.
+     وبي.toggle بين text و password — والافتراضي مخفي. */
+  const eyeBtn = document.getElementById('auth-eye');
+  if(eyeBtn && passEl && !eyeBtn._bound){
+    eyeBtn._bound = true;
+    eyeBtn.addEventListener('click', function(){
+      const showing = passEl.type === 'text';
+      passEl.type = showing ? 'password' : 'text';
+      eyeBtn.setAttribute('aria-label', showing ? 'إظهار كلمة المرور' : 'إخفاء كلمة المرور');
+      eyeBtn.classList.toggle('is-on', !showing);
+      try{ passEl.focus(); }catch(_){}
+    });
+  }
+
   const doLogin = async ()=>{
     const email=(emailEl.value||'').trim(), pass=passEl.value||'';
     const errEl=document.getElementById('auth-error');
