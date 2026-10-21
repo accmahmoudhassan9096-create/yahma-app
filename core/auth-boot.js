@@ -310,6 +310,28 @@ function getCachedRole(uid){ try{ return localStorage.getItem(roleCacheKey(uid))
 function setCachedRole(uid, role){ try{ if(role) localStorage.setItem(roleCacheKey(uid), role); }catch(_){yahmaErr(_,'auth-boot.js:136');} }
 function cachedRoleOrView(uid){ const role=getCachedRole(uid); return ['admin','ops','view'].includes(role)?role:'view'; }
 
+/* ⭐ سياسة احتفاظ سجل النشاط.
+   public.audit_logs بيكبر ~500-800 صف في اليوم (كل حفظ وكل إجراء
+   بيكتب سطر). من غير تنظيف بيوصل ~60 MB في السنة. الدالة
+   cleanup_audit_logs في القاعدة بتمسح اللي أقدم من 30 يوم، ونتنادىها
+   مرة واحدة في اليوم لكل جهاز (العلامة في localStorage).
+
+   أي فشل هنا مينفعش يأثر على تسجيل الدخول — عشان كده كل حاجة
+   في try/catch وبلا رمي. */
+function cleanupAuditLog(){
+  try{
+    var KEY='yahma-audit-cleanup-date';
+    var today=new Date().toISOString().slice(0,10);
+    try{ if(localStorage.getItem(KEY)===today) return; }catch(_){}
+    if(!window.supabaseClient || typeof window.supabaseClient.rpc!=='function') return;
+    window.supabaseClient.rpc('cleanup_audit_logs', { keep_days: 30 })
+      .then(function(res){
+        try{ if(!res || res.error) return; localStorage.setItem(KEY, today); }catch(_){}
+      })
+      .catch(function(){ /* الشبكة أو الصلاحية — نتجاهل */ });
+  }catch(_){ /* نتجاهل */ }
+}
+
 let _sessionBootUid=null;
 function activateAuthenticatedSession(user){
   if(!user||!user.id||_sessionBootUid===user.id) return;
@@ -342,6 +364,11 @@ function activateAuthenticatedSession(user){
          جوه الـIIFE في audit-theme.js، فالنداء كان بيسقط والتبويبات
          (المستخدمين / سجل النشاط) فاضلت مخفية للأدمن. */
       try{ if(typeof window.yahmaApplyRole==='function') window.yahmaApplyRole(); }catch(_){yahmaErr(_,'auth-boot.js:applyRole');}
+      /* ⭐ تنظيف سجل النشاط: السجل بيكبر ~500 صف في اليوم (كل حفظ
+         وكل إجراء بيكتب سطر). من غير سياسة احتفاظ بيوصل 60 MB
+         في السنة. الدالة cleanup_audit_logs في القاعدة بتمسح
+         اللي أقدم من 30 يوم — ونتنادىها مرة واحدة في اليوم. */
+      try{ cleanupAuditLog(); }catch(_){yahmaErr(_,'auth-boot.js:cleanupAudit');}
       // نطاق الفرع: صفِّ أي بيانات متبقية من جلسة سابقة قبل العرض والتحميل
       try{ if(typeof scopeFleetToUser==='function' && typeof fleet!=='undefined' && Array.isArray(fleet)) fleet=scopeFleetToUser(fleet); }catch(_){yahmaErr(_,'auth-boot.js:161');}
       putBoot(async function(){
