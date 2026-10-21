@@ -285,7 +285,13 @@
       ].join('\x1f');
     }catch(e){ return String(Date.now()); }
   }
-  const selectedIds=_persistentFleetSelectedIds;
+  /* ⚠️ لازم Set محلي. كان مكتوب `_persistentFleetSelectedIds` — متغير
+     مش معرّف في أي مكان بالمشروع، فالسطر ده كان بيعمل ReferenceError
+     وتبويب «الأسطول» كان بيرمي استثناء ويرجع للـemergency fleet
+     (والمستخدم يشوف السيارات بتتنقل بين التبويبات من غير سبب).
+     التحديد المتعدد شغّال بـSet عادي — الـset بينبقى جوّه الدالة
+     وبيتمسح لما الدالة تخلص (وهو المطلوب: تختفي لما تغيّر التبويب). */
+  const selectedIds=new Set();
   const val = id => {
     const el = $(id);
     return (el && el.value || '').trim();

@@ -659,3 +659,59 @@ test('_headers: الـJS و الـsw.js ما يتخدمش immutable', () => {
   assert.ok(Number(maxAge[1]) <= 900,
     'قاعدة /*.js max-age=' + maxAge[1] + ' — طويل أوي، التعديلات مش هتوصل');
 });
+
+/* ===== مفيش متغير مستخدم ومش معرّف =====
+
+   ⚠️ العطل: كان مكتوب `const selectedIds=_persistentFleetSelectedIds` في
+   modules/fleet-view.js — متغير مش معرّف في أي مكان بالمشروع. النتيجة:
+   تبويب «الأسطول» كان بيرمي ReferenceError وقت الرسم، والـcatch كان
+   بيرسم emergency fleet. المستخدم شاف السيارات بتتنقل بين التبويبات
+   من غير سبب، والتبويب مش بيشتغل صح.
+
+   الفحص ده: أي اسم بيتصرّف كـmodule-level state (بادئ بـ_) لازم يكون
+   معرّف في مكان ما في المشروع — أو يكون parameter عادي. */
+test('مفيش متغير module-level مستخدم ومش معرّف', () => {
+  const files = [];
+  const walk = (dir) => {
+    fs.readdirSync(dir, { withFileTypes: true }).forEach((e) => {
+      if (['node_modules', 'vendor', '.git', 'tests'].includes(e.name)) return;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (/\.js$/.test(e.name)) files.push(full);
+    });
+  };
+  walk(ROOT);
+
+  /* كل الأسماء المعرَّفة في المشروع */
+  const all = files.map((f) => read(path.relative(ROOT, f))).join('\n');
+  const defined = new Set();
+  for (const m of all.matchAll(/\b(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/g)) defined.add(m[1]);
+  for (const m of all.matchAll(/\b(?:const|let|var)\s*\{([^}]*)\}/g)) {
+    m[1].split(',').forEach((p) => {
+      const t = p.split('=')[0].trim().replace(/^\.\.\./, '');
+      const n = t.includes(':') ? t.split(':').pop().trim() : t;
+      if (/^[A-Za-z_$][\w$]*$/.test(n)) defined.add(n);
+    });
+  }
+
+  /* أسماء معروفة إنها params أو HTML attributes — مش module state */
+  const KNOWN = new Set(['_blank', '_self', '_parent', '_top', '_q', '_to_', '_evt', '_e', '_i', '_k', '_v', '_id', '_el', '_x', '_y', '_a', '_b', '_c', '_d', '_f', '_g', '_h', '_j', '_l', '_m', '_n', '_o', '_p', '_r', '_s', '_t', '_u', '_w']);
+
+  const bad = [];
+  files.forEach((f) => {
+    const code = read(path.relative(ROOT, f))
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+    for (const m of code.matchAll(/(^|[^\w$.])(_[A-Za-z][\w]*)/g)) {
+      const name = m[2];
+      if (defined.has(name)) continue;
+      if (KNOWN.has(name)) continue;
+      /* parameter عادي أو destructuring — مش module state */
+      if (new RegExp('[(,]\\s*' + name + '\\s*[),=]').test(code)) continue;
+      if (new RegExp('[{,]\\s*' + name + '\\s*[:,}]').test(code)) continue;
+      /* اسم مستخدم في string — خلّينا نتجاهله */
+      bad.push(path.relative(ROOT, f) + ':' + code.slice(0, m.index).split('\n').length + '  ' + name);
+    }
+  });
+  assert.deepStrictEqual(bad, [], 'متغيرات module-level مستخدمة ومش معرّفة:\n  ' + bad.join('\n  '));
+});
