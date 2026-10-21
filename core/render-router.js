@@ -85,7 +85,11 @@ function goTabFromRouter(tab){
     i.classList.toggle('active', i.dataset.tab===tab);
   });
   try{
-    if(typeof window.render==='function'&&typeof window.render._perfImmediate==='function'){
+    /* ⭐ المرجع المباشر للـrender الحقيقي — بيقطع سلسلة الأغلفة
+       اللي ممكن تبلع النداء (التبويب بيتغير بس الشاشة لأ). */
+    if(typeof window.yahmaRenderNow==='function'){
+      window.yahmaRenderNow();
+    }else if(typeof window.render==='function'&&typeof window.render._perfImmediate==='function'){
       window.render._perfImmediate();
     }else if(typeof window.render==='function'){
       window.render();
@@ -378,3 +382,21 @@ function renderUsers(content){
     return window.YahmaUsers.render(content);
   }
 }
+
+/* ===== ⭐ المرجع المباشر للـrender الحقيقي =====
+
+   `window.render` مش دالة واحدة — دي سلسلة أغلفة بتلتف عليه بالترتيب:
+     perf-vtable → ops-intel → notifications → audit-theme → [smooth]
+   وكل غلاف بيلتف على اللي قبله. لو أي غلاف في الوسط ابتلع النداء
+   (أو بطّل الرسم وهو مشغول) → الرسم بيضيع، والنتيجة:
+     · المستخدم يضغط تبويب
+     · الـcurrentTab بيتغيّر في البيانات
+     · الشاشة بتفضل على التبويب القديم
+   من غير أي خطأ في الـconsole.
+
+   ⚠️ لازم نمسك الـfunction object هنا **وقت التحميل**:
+   لو كتبنا `function(){ return render.apply(...) }` جوه الدالة،
+   الـ`render` هيتقرا وقت النداء → هيلاقي نفسه اتبدّل بالأغلفة
+   → حلقة لا نهائية (وهذا اللي حصل في v275). Grabbing the object
+   once, at load time, is the only safe way. */
+window.yahmaRenderNow = render;

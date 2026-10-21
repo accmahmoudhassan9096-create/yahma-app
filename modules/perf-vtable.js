@@ -39,9 +39,23 @@
     var orig = window.render;
     if(typeof orig !== 'function' || orig._perfWrapped) return;
     var pending=false, lastArgs=null, lastThis=null;
+    /* ⭐ لو المرجع المباشر للـrender الحقيقي موجود، نستخدمه.
+       دي الطبقة الخارجية في السلسلة، فبتضمن إن أي نداء يوصل
+       للـrender الحقيقي حتى لو غلاف في الوسط ابتلع النداء.
+       (من غير كده: التبويب بيتغير في البيانات بس الشاشة لأ.)
+       ملاحظة: yahmaRenderNow هو الـfunction object نفسه (مش غلاف)،
+       فمفيش أي احتمال لدورة. */
+    function realRender(){
+      try{
+        if(typeof window.yahmaRenderNow === 'function'){
+          return window.yahmaRenderNow.apply(this, arguments);
+        }
+      }catch(e){ yahmaErr(e,'perf-vtable.js:realRender'); }
+      return orig.apply(this, arguments);
+    }
     function run(){
       pending=false;
-      try{ orig.apply(lastThis, lastArgs||[]); }
+      try{ realRender.apply(this, lastArgs||[]); }
       catch(e){ console.error('render', e); }
     }
     var debounced=debounce(run, 50);
@@ -57,7 +71,7 @@
     window.render._orig = orig;
     window.render._perfImmediate = function(){
       lastThis=this; lastArgs=arguments;
-      try{ orig.apply(lastThis, lastArgs||[]); }catch(e){ console.error('render', e); }
+      try{ realRender.apply(this, lastArgs||[]); }catch(e){ console.error('render', e); }
     };
   }
 

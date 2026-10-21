@@ -869,3 +869,49 @@ test('تبويب «الاستئجارات» و«المستحقات» اتشال�
     });
 });
 
+
+/* ===== حارس: الرسم لازم يوصل للـrender الحقيقي =====
+
+   ⚠️ العطل: المستخدم يضغط تبويب، الـcurrentTab بيتغيّر في
+      البيانات، بس الشاشة بتفضل على التبويب القديم. مفيش خطأ.
+
+   السبب: window.render مش دالة واحدة — ده سلسلة أغلفة:
+     perf-vtable → ops-intel → notifications → audit-theme → [smooth]
+   وأي غلاف في الوسط ابتلع النداء بيخلي الرسم يضيع.
+
+   ⚠️ ودرس مهم: لازم نمسك الـfunction object وقت التحميل.
+   لو غلّفناه بـfunction(){ return render.apply(...) } فـ`render`
+   هيتقرا وقت النداء → هيلاقي نفسه اتبدّل بالأغلفة → حلقة
+   لا نهائية (v275). الاختبار ده بيمنع التكرار. */
+test('الرسم بيوصل للـrender الحقيقي — مرجع مباشر yahmaRenderNow', () => {
+  const rr = read('core/render-router.js');
+  /* (1) لازم يبقى فيه مرجع مباشر */
+  assert.ok(/window\.yahmaRenderNow\s*=\s*render\s*;/.test(rr),
+    'المرجع المباشر لازم يكون: window.yahmaRenderNow = render;');
+
+  /* (2) ممنوع يكون غلاف — الغلاف بيعمل حلقة لا نهائية */
+  assert.ok(!/window\.yahmaRenderNow\s*=\s*function/.test(rr),
+    'yahmaRenderNow لازم يكون الـfunction object نفسه — مش غلاف دالة');
+  assert.ok(!/yahmaRenderNow[^\n]*render\.apply/.test(rr),
+    'ممنوع نقرا render.apply جوه yahmaRenderNow — بيعمل حلقة لا نهائية');
+
+  /* (3) الطبقة الخارجية في السلسلة لازم تفضّل المرجع المباشر */
+  const pv = read('modules/perf-vtable.js');
+  assert.ok(/yahmaRenderNow/.test(pv),
+    'perf-vtable لازم يستخدم yahmaRenderNow (الطبقة الخارجية)');
+  assert.ok(/realRender\.apply\(this, lastArgs/.test(pv),
+    'perf-vtable لازم ينادي realRender في run() و _perfImmediate()');
+
+  /* (4) التنقل بين التبويبات لازم يرسم بالمرجع المباشر */
+  const ng = read('modules/nav-guard.js');
+  assert.ok(/yahmaRenderNow/.test(ng),
+    'nav-guard لازم يستخدم yahmaRenderNow في drawNow()');
+
+  /* (5) smooth.js ما ينفعش يعتمد على requestAnimationFrame — رAF
+     ما بتشتغلش لما الصفحة في الخلفية (الموبايل). */
+  const sm = read('modules/smooth.js');
+  assert.ok(!/requestAnimationFrame\(release\)/.test(sm),
+    'smooth.js ما ينفعش يعتمد على rAF لتحرير الرسم المعلّق');
+  assert.ok(/pendingThis/.test(sm) && /MAX_BURST/.test(sm),
+    'smooth.js لازم ينفّذ الرسم المعلّق (مش بس يسجّله)');
+});

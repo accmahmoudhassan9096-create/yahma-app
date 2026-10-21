@@ -93,6 +93,16 @@
   }
 
   function drawNow() {
+    /* ⭐ نرسم بالـrender الحقيقي مباشرة (window.yahmaRenderNow).
+       window.render سلسلة أغلفة، وأي غلاف في الوسط ممكن يبلع النداء —
+       فالمستخدم يضغط تبويب والـcurrentTab بيتغير بس الشاشة لأ.
+       المرجع المباشر بيقطع الدايرة. */
+    try {
+      if (typeof global.yahmaRenderNow === 'function') {
+        global.yahmaRenderNow();
+        return;
+      }
+    } catch(_){yahmaErr(_,'nav-guard.js:drawNow');}
     /* نفضّل الرسم الفوري (يتخطى الـ rAF) لو متاح — مهم على الموبايل */
     try {
       if (global.render && typeof global.render._perfImmediate === 'function') {
