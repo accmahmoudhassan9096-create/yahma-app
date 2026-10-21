@@ -258,10 +258,13 @@ function renderFollowUp(content){
     const n=selectedFuIds.size;
     bar.style.display=n?'':'none';
     const cnt=$('fu-bulk-count'); if(cnt) cnt.textContent=n+' محددة';
-    const tbody=$('fu-tbody');
-    const boxes=tbody?[...tbody.querySelectorAll('.row-check')]:[];
+    const allRows = getRows();
     const head=$('fu-head-check');
-    if(head){ head.checked=boxes.length>0&&boxes.every(b=>b.checked); head.indeterminate=boxes.some(b=>b.checked)&&!head.checked; }
+    if(head){
+      const allSelected = allRows.length > 0 && allRows.every(c => selectedFuIds.has(String(c.id)));
+      head.checked = allSelected;
+      head.indeterminate = selectedFuIds.size > 0 && !allSelected;
+    }
   }
   function wireFuChecks(){
     const tbody=$('fu-tbody'); if(!tbody) return;
@@ -273,9 +276,12 @@ function renderFollowUp(content){
     if(head && !head._bound){
       head._bound=true;
       head.onchange=()=>{
-        const boxes=[...tbody.querySelectorAll('.row-check')];
-        if(head.checked) boxes.forEach(b=>selectedFuIds.add(b.dataset.id));
-        else boxes.forEach(b=>selectedFuIds.delete(b.dataset.id));
+        const allRows = getRows();
+        if(head.checked) {
+          allRows.forEach(c => selectedFuIds.add(String(c.id)));
+        } else {
+          selectedFuIds.clear();
+        }
         wireFuChecks(); updateFuBulkBar();
       };
     }

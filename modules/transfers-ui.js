@@ -150,10 +150,13 @@ function renderTransfers(content){
     const n=selectedTrIds.size;
     bar.style.display=n?'':'none';
     const cnt=$('tr-bulk-count'); if(cnt) cnt.textContent=n+' محددة';
-    const tbody=$('tr-tbody');
-    const boxes=tbody?[...tbody.querySelectorAll('.row-check')]:[];
+    const allRows = getRows();
     const head=$('tr-head-check');
-    if(head){ head.checked=boxes.length>0&&boxes.every(b=>b.checked); head.indeterminate=boxes.some(b=>b.checked)&&!head.checked; }
+    if(head){
+      const allSelected = allRows.length > 0 && allRows.every(c => selectedTrIds.has(String(c.id)));
+      head.checked = allSelected;
+      head.indeterminate = selectedTrIds.size > 0 && !allSelected;
+    }
   }
   function wireTrChecks(){
     const tbody=$('tr-tbody'); if(!tbody) return;
@@ -165,9 +168,12 @@ function renderTransfers(content){
     if(head && !head._bound){
       head._bound=true;
       head.onchange=()=>{
-        const boxes=[...tbody.querySelectorAll('.row-check')];
-        if(head.checked) boxes.forEach(b=>selectedTrIds.add(b.dataset.id));
-        else boxes.forEach(b=>selectedTrIds.delete(b.dataset.id));
+        const allRows = getRows();
+        if(head.checked) {
+          allRows.forEach(c => selectedTrIds.add(String(c.id)));
+        } else {
+          selectedTrIds.clear();
+        }
         wireTrChecks(); updateTrBulkBar();
       };
     }

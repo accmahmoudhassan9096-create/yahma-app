@@ -548,13 +548,19 @@ function fixPaySpans(content) {
 /* تحديث حالة الشريط بعد أي تغيير في التحديد. */
 function payBulkBarHtml(tab) {
   const bar = document.getElementById('pay-bulk-bar-' + tab);
-  if (!bar) return;
+  const head = document.querySelector('input[data-pay-head="' + tab + '"]');
+  const allCount = Object.keys(PAY_ROW_INDEX[tab] || {}).length;
   const items = selectedPayRows(tab);
+  if (head) {
+    head.checked = allCount > 0 && items.length === allCount;
+    head.indeterminate = items.length > 0 && items.length < allCount;
+  }
+  if (!bar) return;
   bar.style.display = items.length ? '' : 'none';
   const cnt = document.getElementById('pay-bulk-count-' + tab);
   if (cnt) {
     cnt.textContent = items.length + ' محددة'
-      + ' من ' + Object.keys(PAY_ROW_INDEX[tab] || {}).length;
+      + ' من ' + allCount;
   }
 }
 
@@ -641,9 +647,9 @@ function bindPaySelection(content, tab) {
     head.onchange = function () {
       const all = Object.keys(PAY_ROW_INDEX[tab] || {});
       PAY_SELECTIONS[tab] = head.checked ? new Set(all) : new Set();
-      /* مينفعش نغيّر الـchecked بتاع كل الـcheckboxes ونعمل
-         رسم مع كل رسم — الأسطر بتتحدّث من الرسم فمفيش
-         مشكلة. بنحدّث بس الشريط. */
+      content.querySelectorAll('input[data-pay-check][data-pay-tab="' + tab + '"]').forEach(function (cb) {
+        cb.checked = head.checked;
+      });
       payBulkBarHtml(tab);
     };
   }
@@ -651,6 +657,10 @@ function bindPaySelection(content, tab) {
   const clear = content.querySelector('[data-pay-clear="' + tab + '"]');
   if (clear) clear.onclick = function () {
     PAY_SELECTIONS[tab] = new Set();
+    content.querySelectorAll('input[data-pay-check][data-pay-tab="' + tab + '"]').forEach(function (cb) {
+      cb.checked = false;
+    });
+    if (head) { head.checked = false; head.indeterminate = false; }
     payBulkBarHtml(tab);
   };
 

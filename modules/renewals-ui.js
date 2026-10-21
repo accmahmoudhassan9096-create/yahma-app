@@ -269,10 +269,13 @@ function renderRenewals(content, mode='inspection'){
     const n=selectedRenIds.size;
     bar.style.display=n?'':'none';
     const cnt=$('ren-bulk-count'); if(cnt) cnt.textContent=n+' محددة';
-    const tbody=$('ren-tbody');
-    const boxes=tbody?[...tbody.querySelectorAll('.row-check')]:[];
+    const allRows = getRows();
     const head=$('ren-head-check');
-    if(head){ head.checked=boxes.length>0&&boxes.every(b=>b.checked); head.indeterminate=boxes.some(b=>b.checked)&&!head.checked; }
+    if(head){
+      const allSelected = allRows.length > 0 && allRows.every(c => selectedRenIds.has(String(c.id)));
+      head.checked = allSelected;
+      head.indeterminate = selectedRenIds.size > 0 && !allSelected;
+    }
   }
   function wireRenChecks(){
     const tbody=$('ren-tbody'); if(!tbody) return;
@@ -284,9 +287,12 @@ function renderRenewals(content, mode='inspection'){
     if(head && !head._bound){
       head._bound=true;
       head.onchange=()=>{
-        const boxes=[...tbody.querySelectorAll('.row-check')];
-        if(head.checked) boxes.forEach(b=>selectedRenIds.add(b.dataset.id));
-        else boxes.forEach(b=>selectedRenIds.delete(b.dataset.id));
+        const allRows = getRows();
+        if(head.checked) {
+          allRows.forEach(c => selectedRenIds.add(String(c.id)));
+        } else {
+          selectedRenIds.clear();
+        }
         wireRenChecks(); updateRenBulkBar();
       };
     }
