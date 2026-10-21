@@ -168,21 +168,91 @@ function diagnose() {
     } catch (_) { return null; }
   }
 
-  /* يحمّل من السيرفر ويحدّث الكاش المحلي */
+  /* يحمّل من السيرفر ويحدّث الكاش المحلي دون مسح البيانات غير المرفوعة */
   async function sync() {
     migrateLegacy();
     var remote = await fetchRemote();
-    if (!remote) return localAll();
+    var localPending = readJSON(PENDING_KEY, []);
+    var localPaid = readJSON(PAID_KEY, []);
+
+    // إذا فشل الاتصال بالسيرفر، نرجع البيانات المحلية فورًا
+    if (remote === null) return localAll();
+
+    // خريطة أسماء المستخدمين من السجلات المحلية للحفاظ عليها
     var localMap = new Map();
     localAll().forEach(function (p) {
       if (p.userName) localMap.set(String(p.id), p.userName);
       if (p.carId && p.userName) localMap.set('car-' + String(p.carId), p.userName);
     });
+
+    // 1) إذا كان السيرفر فارغًا تمامًا ولكن يوجد بيانات محلية، نقوم برفع البيانات المحلية فورًا للسيرفر
+    if (tableReady() && remote.length === 0 && (localPending.length > 0 || localPaid.length > 0)) {
+      try {
+        var toUpload = [];
+        localPending.forEach(function (p) {
+          toUpload.push({
+            car_id: String(p.carId),
+            plate: p.plate || '',
+            branch: p.branch || '',
+            status: 'pending',
+            requested_at: p.requestedAt || new Date().toISOString(),
+            prev_state: { userName: p.userName || '' }
+          });
+        });
+        localPaid.forEach(function (p) {
+          toUpload.push({
+            car_id: String(p.carId),
+            plate: p.plate || '',
+            branch: p.branch || '',
+            status: 'paid',
+            requested_at: p.requestedAt || new Date().toISOString(),
+            paid_at: p.paidAt || new Date().toISOString(),
+            note: p.note || '',
+            prev_state: { userName: p.userName || '' }
+          });
+        });
+        if (toUpload.length > 0) {
+          for (var c = 0; c < toUpload.length; c += 50) {
+            await global.supabaseClient.from('inspection_payments')
+              .insert(toUpload.slice(c, c + 50));
+          }
+          var reRemote = await fetchRemote();
+          if (reRemote && reRemote.length) remote = reRemote;
+        }
+      } catch (uploadErr) {
+        console.warn('Sync upload error:', uploadErr);
+        // عند حدوث خطأ في الرفع، نحافظ على البيانات المحلية ولا نمسحها أبدًا
+        return localAll();
+      }
+    }
+
+    // 2) دمج العناصر المحلية التي لم تُسجل على السيرفر بعد
+    var remoteCarIds = new Set(remote.map(function (r) { return String(r.carId); }));
+    var unsyncedPending = localPending.filter(function (p) { return !remoteCarIds.has(String(p.carId)); });
+    if (unsyncedPending.length && tableReady()) {
+      try {
+        var newUploads = unsyncedPending.map(function(p){
+          return {
+            car_id: String(p.carId),
+            plate: p.plate || '',
+            branch: p.branch || '',
+            status: 'pending',
+            requested_at: p.requestedAt || new Date().toISOString(),
+            prev_state: { userName: p.userName || '' }
+          };
+        });
+        await global.supabaseClient.from('inspection_payments').insert(newUploads);
+        var ref = await fetchRemote();
+        if (ref && ref.length) remote = ref;
+      } catch(_){}
+    }
+
     remote.forEach(function (r) {
       if (!r.userName) {
         r.userName = localMap.get(String(r.id)) || localMap.get('car-' + String(r.carId)) || '';
       }
     });
+
     var pending = remote.filter(function (p) { return p.status === 'pending'; });
     var paid = remote.filter(function (p) { return p.status === 'paid'; });
     writeJSON(PENDING_KEY, pending);
@@ -267,7 +337,11 @@ function diagnose() {
         var res = await global.supabaseClient.from('inspection_payments')
           .insert(chunk)
           .select('id,car_id');
-        if (!res.error && res.data && res.data.length) {
+        if (res.error) {
+          console.warn('requestPaymentBatch cloud error:', res.error);
+          global.__yahmaPaymentsCloudError = String(res.error.message || res.error);
+        } else if (res.data && res.data.length) {
+          global.__yahmaPaymentsCloudError = '';
           var mapCreated = new Map();
           res.data.forEach(function(row) { mapCreated.set(String(row.car_id), row.id); });
           var currentPending = readJSON(PENDING_KEY, []);

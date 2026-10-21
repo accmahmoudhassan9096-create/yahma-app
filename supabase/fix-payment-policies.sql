@@ -25,7 +25,7 @@ create policy "inspection_payments_insert_admin_ops"
     exists (
       select 1 from public.profiles p
       where p.id = auth.uid()
-        and p.role in ('admin', 'ops')
+        and p.role in ('admin', 'manager', 'ops')
     )
   );
 
@@ -37,14 +37,14 @@ create policy "inspection_payments_update_admin_ops"
     exists (
       select 1 from public.profiles p
       where p.id = auth.uid()
-        and p.role in ('admin', 'ops')
+        and p.role in ('admin', 'manager', 'ops')
     )
   )
   with check (
     exists (
       select 1 from public.profiles p
       where p.id = auth.uid()
-        and p.role in ('admin', 'ops')
+        and p.role in ('admin', 'manager', 'ops')
     )
   );
 
@@ -56,7 +56,7 @@ create policy "inspection_payments_delete_admin_ops"
     exists (
       select 1 from public.profiles p
       where p.id = auth.uid()
-        and p.role in ('admin', 'ops')
+        and p.role in ('admin', 'manager', 'ops')
     )
   );
 

@@ -344,6 +344,7 @@ function activateAuthenticatedSession(user){
         if(typeof applyRole==='function') applyRole();
         showAppScreen();
         if(typeof loadData==='function') await loadData(false);
+        try{ if(window.YahmaPayments && typeof window.YahmaPayments.sync==='function') await window.YahmaPayments.sync(); }catch(_){yahmaErr(_,'auth-boot.js:payments-sync');}
         try{ if(typeof migrateTypeModelConvention==='function') await migrateTypeModelConvention(); }catch(_){yahmaErr(_,'auth-boot.js:166');}
         try{ if(typeof migrateCarStatusValues==='function') await migrateCarStatusValues(); }catch(_){yahmaErr(_,'auth-boot.js:167');}
         try{ if(typeof migrateCarBrands==='function') await migrateCarBrands(); }catch(_){yahmaErr(_,'auth-boot.js:168');}
