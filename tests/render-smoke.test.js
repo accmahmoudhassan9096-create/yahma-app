@@ -56,7 +56,7 @@ const BROWSER_GLOBALS = new Set([
   'ensureXlsxReady', 'openModal', 'openVehicle360', 'removeSoldVehiclesByPlates',
   'defaultLicenseExpiry', 'normalizeDateValue', 'churnStats', 'carChurn', 'churnStats',
   'canBulkPayAction', 'canBulkHere', 'canDeleteHere', 'renderInspectionPayments',
-  'renderPaidInspections', 'renderRenewedInspections', 'renderFollowUp', 'renderTransfers',
+  'renderPaidInspections', 'renderRenewedInspections', 'renderFollowUp', 
   'renderBranches', 'renderPreparation', 'renderAuditPage', 'renderDashboard', 'renderFleet',
   'renderUsers', 'renderReports', 'renderAudit', 'saveData', 'loadData', 'loadBranches',
   'applyRole', 'applyBranchScopeUI', 'showBranchScopeNotice', 'applyTabEditPermission',

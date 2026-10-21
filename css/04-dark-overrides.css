@@ -1,14 +1,9 @@
 /* تصدير — بنفسجي فاتح هادي */
-.topbar-actions .tb-export,
-.topbar-actions #btn-dd-export,
-.topbar-actions #dd-export > button{
+.topbar-actions #btn-dd-export,.topbar-actions #dd-export > button {
   background:#F4F1FA !important;
   color:#5A4A82 !important;
   border:1px solid #D8D0EA !important;
-}
-.topbar-actions .tb-export:hover,
-.topbar-actions #btn-dd-export:hover,
-.topbar-actions #dd-export > button:hover{
+}.topbar-actions #btn-dd-export:hover,.topbar-actions #dd-export > button:hover {
   background:#EBE6F5 !important;
   border-color:#C9BDE0 !important;
   color:#46386A !important;
@@ -110,10 +105,7 @@ body.dark-mode .topbar-actions .tb-refresh{
   background:#1F2B2A !important;
   border-color:#334443 !important;
   color:#9BB8B5 !important;
-}
-body.dark-mode .topbar-actions .tb-export,
-body.dark-mode .topbar-actions #btn-dd-export,
-body.dark-mode .topbar-actions #dd-export > button{
+}body.dark-mode .topbar-actions #btn-dd-export,body.dark-mode .topbar-actions #dd-export > button {
   background:#2A2438 !important;
   color:#C4B5E0 !important;
   border-color:#3D3554 !important;
@@ -1048,17 +1040,6 @@ body.dark-mode .yx-count{color:#9AA5B8;}
   .yx-title{max-width:44vw;}
   .yx-btn{padding:9px 15px;font-size:13px;}
 }
-.tr-toolbar{
-  position: sticky;
-  top: 0;
-  z-index: 38;
-  background: var(--paper, #F6F8FC);
-  padding: 6px 0;
-  margin-top: 10px !important;
-  border-bottom: 1px solid var(--line);
-}
-body.dark-mode .tr-toolbar{background: #101828;}
-
 /* ===== إلغاء تأثير الميلان (3D tilt) في التقارير =====
    الـ rd-shell كان فيه perspective + preserve-3d، فكان الكارت يميل
    لما الماوس يقف عليه (ويبان «رجّاج» ويزحلق المحتوى تحته).
@@ -1444,15 +1425,11 @@ body.dark-mode .rd-doc-cell.bad{background:#4A292D;color:#FCA5A5}
 body.dark-mode .rd-doc-cell.warn{background:#493A22;color:#FCD34D}
 body.dark-mode .rd-doc-cell.info{background:#193B43;color:#67E8F9}
 /* شارة نطاق الفرع — الوضع الليلي */
-body.dark-mode .branch-scope-chip{background:#193B43;color:#7FD1CC}
-/* حقل الملاحظات — الوضع الليلي */
-body.dark-mode .ren-note-input,body.dark-mode .fu-note-input,body.dark-mode .tr-note-input,body.dark-mode .pay-note-input{background:#263442;border-color:#3A4A5E;color:#E7EEF5}
-body.dark-mode .ren-note-input[readonly],body.dark-mode .fu-note-input[readonly],body.dark-mode .tr-note-input[readonly],body.dark-mode .pay-note-input[readonly]{background:transparent;border-color:transparent}
+body.dark-mode .branch-scope-chip{background:#193B43;color:#7FD1CC}/* حقل الملاحظات — الوضع الليلي */
+body.dark-mode .ren-note-input,body.dark-mode .fu-note-input,body.dark-mode .pay-note-input {background:#263442;border-color:#3A4A5E;color:#E7EEF5}body.dark-mode .ren-note-input[readonly],body.dark-mode .fu-note-input[readonly],body.dark-mode .pay-note-input[readonly] {background:transparent;border-color:transparent}
 /* خلايا بيانات السيارة — الوضع الليلي. خلايا عرض فمافيش خلفية
    ولا حدود؛ inherited من خلية الجدول. */
-body.dark-mode .pay-cell,body.dark-mode .ren-data-cell{color:inherit}
-body.dark-mode .tr-status-sel,body.dark-mode .tr-date-input{background:#263442;border-color:#3A4A5E;color:#E7EEF5}
-/* المتاح مقابل المؤجر — الوضع الليلي */
+body.dark-mode .pay-cell,body.dark-mode .ren-data-cell{color:inherit}/* المتاح مقابل المؤجر — الوضع الليلي */
 body.dark-mode .home-avail{background:#1E2A38;border-color:#2E3D4F}
 body.dark-mode .home-avail-total{background:#193B43;color:#7FD1CC}
 body.dark-mode .home-avail-bar{background:#263442}

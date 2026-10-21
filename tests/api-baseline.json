@@ -393,9 +393,6 @@
     "welcomeLoadTemplate",
     "welcomeRender"
   ],
-  "YahmaTransfers": [
-    "render"
-  ],
   "YahmaUndo": [
     "MAX_ENTRIES",
     "__busy",

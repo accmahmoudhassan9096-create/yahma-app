@@ -859,12 +859,8 @@ input:focus, select:focus, textarea:focus, .search input:focus, .topbar-search-w
 .br-name-btn:focus-visible{outline:3px solid #168A81;outline-offset:2px;border-radius:4px}
 body.dark-mode .br-name-btn{color:#7FD1CC}
 /* شارة نطاق الفرع في الشريط العلوي */
-.branch-scope-chip{display:inline-block;background:#E7F7F6;color:#0A5F5D;font-size:11px;font-weight:800;padding:2px 10px;border-radius:999px;white-space:nowrap}
-/* حقل الملاحظات القابل للكتابة داخل جدول الفحص */
-.ren-note-input,.fu-note-input,.tr-note-input,.pay-note-input{width:100%;min-width:140px;font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--line,#E4EAF1);border-radius:7px;background:#fff;color:inherit}
-.ren-note-input:focus,.fu-note-input:focus,.tr-note-input:focus,.pay-note-input:focus{outline:2px solid #168A81;outline-offset:0;border-color:#168A81}
-.ren-note-input[readonly],.fu-note-input[readonly],.tr-note-input[readonly],.pay-note-input[readonly]{background:transparent;border-color:transparent;cursor:default}
-.ren-note-input.saving,.fu-note-input.saving,.tr-note-input.saving,.pay-note-input.saving{opacity:.55}
+.branch-scope-chip{display:inline-block;background:#E7F7F6;color:#0A5F5D;font-size:11px;font-weight:800;padding:2px 10px;border-radius:999px;white-space:nowrap}/* حقل الملاحظات القابل للكتابة داخل جدول الفحص */
+.ren-note-input,.fu-note-input,.pay-note-input {width:100%;min-width:140px;font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--line,#E4EAF1);border-radius:7px;background:#fff;color:inherit}.ren-note-input:focus,.fu-note-input:focus,.pay-note-input:focus {outline:2px solid #168A81;outline-offset:0;border-color:#168A81}.ren-note-input[readonly],.fu-note-input[readonly],.pay-note-input[readonly] {background:transparent;border-color:transparent;cursor:default}.ren-note-input.saving,.fu-note-input.saving,.pay-note-input.saving {opacity:.55}
 /* خلايا بيانات السيارة عبر دورة الفحص والدفع — عرض بس.
   Values come from the uploaded Excel sheet or the edit dialog, never
    typed into the table, so these are plain cells: a shared class so
@@ -875,10 +871,7 @@ body.dark-mode .br-name-btn{color:#7FD1CC}
   font-size:12.5px;font-variant-numeric:tabular-nums;
   color:inherit;white-space:normal;word-break:break-word;min-width:110px;
 }
-.ren-data-cell{font-family:inherit}
-.tr-status-sel,.tr-date-input{font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--line,#E4EAF1);border-radius:7px;background:#fff;color:inherit;margin-inline-end:6px}
-.tr-status-sel:disabled,.tr-date-input:disabled{background:transparent;border-color:transparent;cursor:default}
-/* المتاح مقابل المؤجر في الرئيسية */
+.ren-data-cell{font-family:inherit}/* المتاح مقابل المؤجر في الرئيسية */
 .home-avail{background:var(--panel,#fff);border:1px solid var(--line,#E8EEF2);border-radius:14px;padding:16px}
 .home-avail-head{display:flex;justify-content:space-between;align-items:center}
 .home-avail-head h3{margin:0;font-size:15px}
