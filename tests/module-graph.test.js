@@ -782,4 +782,9 @@ test('زر الأخطاء العائم موجود ويشتغل', () => {
   assert.ok(/quickReport\(\)/.test(
     /btn\.addEventListener\('click'[\s\S]{0,200}?\}\);/.exec(ep)[0]
   ), 'الزر العائم مش مربوط بالنافذة');
+
+  /* ⚠️ لازم 'flex' مش '' — الـCSS بيقول display:none، فالـinline
+     الفاضي بيسيب الزر مخفي. ده كان يخفي الزر العائم بالكامل. */
+  assert.ok(/btn\.style\.display\s*=\s*'flex'/.test(ep),
+    'syncFab لازم تحط display=flex — الـinline الفاضي بيسيبه مخفي');
 });

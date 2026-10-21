@@ -196,7 +196,9 @@
     if (!btn) return;
     var sum = bus.summary();
     if (!sum || !sum.total) { btn.style.display = 'none'; return; }
-    btn.style.display = '';
+    /* ⚠️ لازم 'flex' مش '' — الـCSS بيقول display:none، فالـinline
+       الفاضي بيسيبه مخفي. */
+    btn.style.display = 'flex';
     var n = btn.querySelector('.yh-err-fab-n');
     if (n) n.textContent = sum.total > 99 ? '99+' : String(sum.total);
   }
