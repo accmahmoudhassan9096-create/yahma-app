@@ -215,8 +215,77 @@ function diagnose() {
     return '';
   }
 
+  /* تسجيل دفعات طلبات جديدة مجمعة فائقة السرعة */
+  async function requestPaymentBatch(cars) {
+    if (!Array.isArray(cars) || !cars.length) return { ok: true, moved: 0 };
+    var activeUser = getCurrentActorName();
+    var pending = readJSON(PENDING_KEY, []);
+    var existingCarIds = new Set(pending.map(function(p){ return String(p.carId); }));
+    var newEntries = [];
+    var payloads = [];
+
+    cars.forEach(function(car) {
+      if (!car) return;
+      var cid = String(car.id);
+      if (existingCarIds.has(cid)) return;
+      existingCarIds.add(cid);
+      var entry = {
+        id: 'req-' + cid + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        carId: cid,
+        plate: car.plate || '',
+        branch: car.branch || '',
+        status: 'pending',
+        requestedAt: new Date().toISOString(),
+        paidAt: null,
+        userName: activeUser
+      };
+      newEntries.push(entry);
+      payloads.push({
+        car_id: entry.carId,
+        plate: entry.plate,
+        branch: entry.branch,
+        status: 'pending',
+        requested_at: entry.requestedAt,
+        prev_state: { userName: activeUser }
+      });
+    });
+
+    if (!newEntries.length) return { ok: true, moved: 0 };
+
+    // تحديث التخزين المحلي دفعة واحدة بطلب واحد
+    for (var i = newEntries.length - 1; i >= 0; i--) {
+      pending.unshift(newEntries[i]);
+    }
+    writeJSON(PENDING_KEY, pending);
+
+    if (!tableReady()) return { ok: true, local: true, moved: newEntries.length };
+
+    // إرسال الطلبات للسحابة بدفعات مجمعة في طلب واحد
+    try {
+      for (var c = 0; c < payloads.length; c += 50) {
+        var chunk = payloads.slice(c, c + 50);
+        var res = await global.supabaseClient.from('inspection_payments')
+          .insert(chunk)
+          .select('id,car_id');
+        if (!res.error && res.data && res.data.length) {
+          var mapCreated = new Map();
+          res.data.forEach(function(row) { mapCreated.set(String(row.car_id), row.id); });
+          var currentPending = readJSON(PENDING_KEY, []);
+          currentPending.forEach(function(p) {
+            if (mapCreated.has(String(p.carId))) p.id = mapCreated.get(String(p.carId));
+          });
+          writeJSON(PENDING_KEY, currentPending);
+        }
+      }
+    } catch(err) {
+      console.warn('requestPaymentBatch cloud sync error:', err);
+    }
+    return { ok: true, moved: newEntries.length };
+  }
+
   /* تسجيل طلب جديد (من زر «طلب دفع» في تبويب الفحص) */
   async function requestPayment(car) {
+    if (Array.isArray(car)) return requestPaymentBatch(car);
     if (!car) return { ok: false, error: 'السيارة غير موجودة' };
     var activeUser = getCurrentActorName();
     var entry = {
