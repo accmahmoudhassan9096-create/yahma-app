@@ -664,6 +664,21 @@ function bindPaySelection(content, tab) {
       payBulkBarHtml(t);
     }
 
+    /* ⭐ قراءة الحالة بعد ما المتصفح يقلب.
+
+       السبب: وقت الـclick handler، المتصفح لسه ما قلبش box.checked
+       (Chrome بيقلبها في "pre-click activation" بس الـproperty لسه
+       قديمة وقت الـhandler). فكان applyPayCheck بيشوف القيمة القديمة
+       وبيعمل delete بدل add — والضغط بيحتاج ضغطتين.
+
+       الحل: نؤجّل قراءة الحالة لـsetTimeout(0) — بعد ما المتصفح
+       يقلب فعلاً. والـcheckbox بيتحدث في الشاشة صح من غير ما
+       نعمل double-flip. */
+    function applyPayCheckSoon(box) {
+      box._payHandled = true;
+      setTimeout(function () { applyPayCheck(box); }, 0);
+    }
+
     content.addEventListener('click', function (e) {
       /* زر أو لينك أو input تاني — نتجاهل */
       if (e.target.closest('button, a, select, textarea, .row-actions')) return;
@@ -672,9 +687,9 @@ function bindPaySelection(content, tab) {
       const box = e.target.closest ? e.target.closest('input[data-pay-check]') : null;
       if (box) {
         /* الضغطة مباشرة على الـcheckbox:
-           المتصفح بيقلب checked قبل ما يطلق click — نقرأها هنا. */
+           نقرأ الحالة بعد ما المتصفح يقلبها. */
         if (box.disabled) return;
-        applyPayCheck(box);
+        applyPayCheckSoon(box);
         return;
       }
 
@@ -685,6 +700,17 @@ function bindPaySelection(content, tab) {
       if (!cb || cb.disabled) return;
       cb.checked = !cb.checked;
       applyPayCheck(cb);
+    });
+
+    /* ⭐ شبكة أمان: لو الـclick handler اتخطّى (مثلاً programmatic
+       change)، الـchange handler بيشتغل. الـonchange بيقرأ الحالة
+       بعد ما المتصفح يقلب — فبيكون صح دايماً. */
+    content.addEventListener('change', function (e) {
+      const box = e.target.closest ? e.target.closest('input[data-pay-check]') : null;
+      if (!box || box.disabled) return;
+      /* لو الـclick handler اشتغل بالفعل، ما نعملش التحديث مرتين */
+      if (box._payHandled) { box._payHandled = false; return; }
+      applyPayCheck(box);
     });
   }
 

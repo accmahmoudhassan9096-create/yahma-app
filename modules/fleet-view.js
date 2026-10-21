@@ -609,9 +609,16 @@
             if (!cb || cb.disabled) return;
             const id = String(cb.dataset.id);
             if (e.target === cb) {
-              if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
-              td.closest('tr')?.classList.toggle('is-selected', cb.checked);
-              updateBulkBar();
+              /* ⭐ نقرأ الحالة بعد ما المتصفح يقلب. وقت الـhandler
+                 المتصفح لسه ما قلبش cb.checked (Chrome بيقلبها في
+                 "pre-click activation" بس الـproperty لسه قديمة).
+                 فكان السطر ده بيشوف القيمة القديمة وبيعمل delete
+                 بدل add — والضغط بيحتاج ضغطتين. */
+              setTimeout(() => {
+                if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+                td.closest('tr')?.classList.toggle('is-selected', cb.checked);
+                updateBulkBar();
+              }, 0);
               return;
             }
             cb.checked = !cb.checked;
@@ -632,12 +639,20 @@
         tbody.querySelectorAll('.row-check').forEach(cb=>{
           const id = String(cb.dataset.id);
           cb.checked = selectedIds.has(id);
-          const onToggle = ()=>{
+          /* ⭐ منطق واحد في مكان واحد.
+             كان في onchange و onclick الاتنين بينادوا onToggle — وكمان
+             الـtd.onclick فوق كان بيقلب. فالتحديد كان بيتقلب ٣ مرات
+             والضغط بيحتاج ضغطتين.
+
+             الحل: onchange بس هو اللي بيفعّل (المتصفح بيطلقه بعد ما
+             يقلب الـcheckbox)، والـonclick بيبطّل السلوك الافتراضي
+             بس. */
+          cb.onchange = ()=>{
             if(cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+            cb.closest('tr')?.classList.toggle('is-selected', cb.checked);
             updateBulkBar();
           };
-          cb.onchange = onToggle;
-          cb.onclick = (e)=>{ e.stopPropagation(); onToggle(); };
+          cb.onclick = (e)=>{ e.stopPropagation(); };
         });
       }
       if(window.YahmaVTable && scrollEl && tb){

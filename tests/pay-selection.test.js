@@ -43,15 +43,44 @@ test('الـclick handler على content مش tbody', () => {
     'ما المفروضش يكون click listener على tbody');
 });
 
-test('الـclick handler بيعالج الـcheckbox مباشرة (بدون استنياء change)', () => {
+test('الـclick handler بيقرأ حالة الـcheckbox بعد ما المتصفح يقلبها', () => {
+  /* ⭐ سبب «ضغطتين» بعد البحث:
+     وقت الـclick handler، المتصفح (Chrome) لسه ما قلبش checkbox.checked.
+     بيقلبها في "pre-click activation" بس الـproperty لسه قديمة وقت
+     الـhandler. فالـhandler كان بيقرأ القيمة القديمة وبيعمل delete
+     بدل add — فالضغط بيحتاج ضغطتين.
+
+     خصوصاً بعد البحث: الجدول بيتعاد بناؤه، فالـcheckboxes الجديدة
+     مالها checked attribute، فالحالة القديمة false دايماً.
+
+     الحل: نأجّل قراءة الحالة لـsetTimeout(0) — بعد التحويل. */
   const clickHandler = /content\.addEventListener\('click'[\s\S]*?\n  \}\);/.exec(SRC);
   assert.ok(clickHandler, 'الـclick handler على content مفقود');
   const body = clickHandler[0];
-  /* لازم يعالج الـcheckbox مباشرة — بيقرأ checked بعد ما المتصفح يقلبها */
+
   assert.ok(/closest\('input\[data-pay-check\]'\)/.test(body),
     'الـclick handler لازم يفحص لو الهدف checkbox');
-  assert.ok(/applyPayCheck\(box\)/.test(body),
-    'الـclick handler لازم ينادي applyPayCheck على الـcheckbox مباشرة');
+  assert.ok(/applyPayCheckSoon\(box\)/.test(body),
+    'الـclick handler لازم ينادي applyPayCheckSoon (المؤجلة) — مش applyPayCheck مباشرة');
+  /* مسموح applyPayCheck(cb) في فرع "الضغط على مكان تاني في الصف" —
+     لأننا نقلب cb.checked يدوياً قبل النداء. المهم إن مسار الـcheckbox
+     نفسه ما يناديهاش مباشرةً. */
+  const boxBranch = /if \(box\) \{[^}]*applyPayCheckSoon\(box\);[^}]*\}/.exec(body);
+  assert.ok(boxBranch, 'فرع الـcheckbox (if (box) { ... }) مفقود');
+  assert.ok(!/applyPayCheck\(box\)/.test(boxBranch[0]),
+    'فرع الـcheckbox ما ينفعش ينادي applyPayCheck مباشرةً (بيقرأ حالة قديمة)');
+
+  assert.ok(/function applyPayCheckSoon\(box\)\s*\{[\s\S]*?setTimeout\(/s.test(SRC),
+    'applyPayCheckSoon لازم تؤجّل القراءة بـsetTimeout');
+});
+
+/* شبكة أمان: الـchange handler موجود وبيقرأ الحالة الصح */
+test('فيه change handler كشبكة أمان بيقرأ الحالة بعد التحويل', () => {
+  assert.ok(/content\.addEventListener\('change'/.test(SRC),
+    'الـchange handler لازم يكون موجود — شبكة أمان لو الـclick اتخطّى');
+  assert.ok(/applyPayCheck\(box\)/.test(
+    /content\.addEventListener\('change'[\s\S]*?\n  \}\);/.exec(SRC)[0]
+  ), 'الـchange handler لازم ينادي applyPayCheck');
 });
 
 test('applyPayCheck بتضيف/تحذف حسب checked — مش toggle عشوائي', () => {
