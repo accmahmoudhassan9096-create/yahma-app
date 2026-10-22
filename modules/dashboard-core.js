@@ -138,22 +138,6 @@ function computeDashboardState(fleet) {
 
   // حالة الأسطول — مستوى الشركة بالترتيب المعتمد
   const stOf = c => String(c.carStatus || '').trim();
-  const statusRows = [
-    { label: 'تحت الصيانة', color: '#E6A23C', match: s => s.includes('صيانة') },
-    { label: 'حجز', color: '#D6952A', match: s => s === 'حجز' },
-    { label: 'متاحة للايجار', color: '#0BAA86', match: s => { const n = normStatus(s); return n === 'متاحه للايجار' || n === 'موجوده' || n === 'نشط'; } },
-    { label: 'محولة غير مستلمة', color: '#7C5CFF', match: s => s.includes('محول') },
-    { label: 'مسروقة', color: '#991B1B', match: s => s.includes('مسروق') },
-    { label: 'معروضة للبيع', color: '#3B82C4', match: s => normStatus(s) === 'معروضه للبيع' },
-    { label: 'مؤجرة', color: '#2FA36B', match: s => s.includes('مؤجر') },
-    { label: 'خدمة', color: '#0EA5E9', match: s => s === 'خدمة' },
-    { label: 'مفقودة', color: '#4B5563', match: s => s.includes('مفقود') }
-  ].map(r => ({ label: r.label, color: r.color, match: r.match, n: fleet.filter(c => r.match(stOf(c))).length }));
-  const matchedIds = new Set();
-  fleet.forEach(c => { const s = stOf(c); if (statusRows.some(r => r.match(s))) matchedIds.add(c.id); });
-  const otherCars = fleet.filter(c => !matchedIds.has(c.id));
-  statusRows.push({ label: 'أخرى', color: '#9AA5B1', n: otherCars.length, more: true });
-  // خريطة المناطق: تجميع الفروع + لقطة يومية لمعدل النمو (يبدأ القياس من أول يوم)
   const regionStats = (typeof REGION_DEFS !== 'undefined' ? REGION_DEFS : []).map(r => ({ ...r, total: 0, branches: {} }));
   const regionById = {};
   regionStats.forEach(r => { regionById[r.id] = r; });
@@ -197,59 +181,6 @@ function computeDashboardState(fleet) {
     b.pct = b.total ? Math.round(b.ready / b.total * 100) : 0;
   });
   /* ===== قائمة عمل الفروع: نواقص الأوراق مجمّعة لكل فرع + رسالة واتساب بضغطة ===== */
-  const DOC_KEYS = [
-    { key: 'card', label: 'الكارت', icon: '🪪' },
-    { key: 'license', label: 'الرخصة', icon: '📄' },
-    { key: 'insurance', label: 'التأمين', icon: '🛡️' },
-    { key: 'inspection', label: 'الفحص', icon: '🔍' }
-  ];
-  const wqOut = c => { const s = String(c.carStatus || ''); return s.includes('خارج') || s.includes('مسروق') || s.includes('مفقود') || s.includes('محول'); };
-  const wqLabel = (k) => (DOC_KEYS.find(d => d.key === k) || {}).label || k;
-  const workMap = {};
-  fleet.forEach(c => {
-    const r = vehicleReadiness(c);
-    if (r.ready || wqOut(c)) return;
-    const keys = r.failed.filter(x => DOC_KEYS.some(d => d.key === x.key)).map(x => x.key);
-    if (!keys.length) return;
-    const name = (c.branch || 'غير محدد').trim() || 'غير محدد';
-    const w = workMap[name] || (workMap[name] = { name, total: 0, gap: [], byDoc: { card: 0, license: 0, insurance: 0, inspection: 0 } });
-    w.total++;
-    w.gap.push({ plate: c.plate || '—', docs: keys.map(wqLabel), id: c.id });
-    DOC_KEYS.forEach(d => { if (keys.includes(d.key)) w.byDoc[d.key]++; });
-  });
-  const workQueue = Object.values(workMap)
-    .map(w => ({ ...w, pctReady: w.total ? Math.round((w.total - w.gap.length) / w.total * 100) : 0 }))
-    .sort((a, b) => b.gap.length - a.gap.length);
-  const wqCars = workQueue.reduce((s, w) => s + w.gap.length, 0);
-  const wqDocTotals = DOC_KEYS.map(d => ({ ...d, n: workQueue.reduce((s, w) => s + w.byDoc[d.key], 0) }));
-  const wqDate = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0, 10);
-  const wqMessage = (w) => {
-    const L = [];
-    L.push('⛔ طلب استكمال أوراق — ' + w.name);
-    L.push('التاريخ: ' + wqDate);
-    L.push('');
-    L.push('السيارات الناقصة: ' + w.gap.length + ' من ' + w.total + ' (الجاهزية ' + w.pctReady + '%)');
-    const top = DOC_KEYS.filter(d => w.byDoc[d.key] > 0).map(d => d.icon + ' ' + d.label + ': ' + w.byDoc[d.key]).join(' · ');
-    if (top) L.push('النواقص: ' + top);
-    L.push('');
-    w.gap.slice(0, 40).forEach((g, i) => { L.push((i + 1) + ') ' + g.plate + ' — ناقص: ' + g.docs.join(' + ')); });
-    if (w.gap.length > 40) L.push('… و' + (w.gap.length - 40) + ' سيارة أخرى (القائمة كاملة في التطبيق)');
-    L.push('');
-    L.push('برجاء الإجراء وإبلاغ الإدارة فور الانتهاء. شكرًا تعاونكم.');
-    return L.join('\n');
-  };
-  const wqMessageAll = () => {
-    const L = ['⛔ طلب استكمال أوراق — كل الفروع', 'التاريخ: ' + wqDate, '', 'إجمالي السيارات الناقصة: ' + wqCars, ''];
-    workQueue.slice(0, 25).forEach(w => {
-      L.push('■ ' + w.name + ' — ' + w.gap.length + '/' + w.total + ' ناقصة');
-      w.gap.slice(0, 8).forEach(g => L.push('   • ' + g.plate + ' — ' + g.docs.join(' + ')));
-      if (w.gap.length > 8) L.push('   … و' + (w.gap.length - 8) + ' أخرى');
-      L.push('');
-    });
-    return L.join('\n');
-  };
-  // أسباب عدم الجاهزية بنسب
-  /* ===== توقّع دوران الأسطول + المنحنى التاريخي ===== */
   const churn = (typeof churnStats === 'function') ? churnStats(fleet)
     : { total: 0, buckets: {}, docs: {}, riskList: [], risk30: 0 };
   const churnRows = (typeof CHURN_BUCKETS !== 'undefined' ? CHURN_BUCKETS : [])
@@ -321,14 +252,6 @@ function computeDashboardState(fleet) {
       '" x2="' + (100 + 68 * Math.cos(a)).toFixed(1) + '" y2="' + (106 - 68 * Math.sin(a)).toFixed(1) +
       '" stroke="var(--ink)" stroke-width="2" opacity=".35"/>';
   });
-  const gaugeSvg = '<svg viewBox="0 0 200 128" role="presentation" style="display:block;width:200px;height:auto">'
-    + '<path d="' + gArc(0, 0.5) + '" fill="none" stroke="#E64B4B" stroke-width="18" stroke-linecap="round"/>'
-    + '<path d="' + gArc(0.5, 0.7) + '" fill="none" stroke="#E6A23C" stroke-width="18"/>'
-    + '<path d="' + gArc(0.7, 1) + '" fill="none" stroke="#0BAA86" stroke-width="18" stroke-linecap="round"/>'
-    + gTicks
-    + '<line x1="100" y1="106" x2="' + gNx.toFixed(1) + '" y2="' + gNy.toFixed(1) + '" style="stroke:var(--ink)" stroke-width="5" stroke-linecap="round"/>'
-    + '<circle cx="100" cy="106" r="9" style="fill:var(--ink)"/>'
-    + '<text x="100" y="74" text-anchor="middle" font-size="23" font-weight="800" style="fill:var(--ink)">' + pReady + '%</text></svg>';
 
   // مهامي اليوم من مهام التجهيز
   const today = typeof todayStr === 'function' ? todayStr() : new Date().toISOString().slice(0, 10);
@@ -421,7 +344,6 @@ function computeDashboardState(fleet) {
   };
 
   return {
- DOC_KEYS,
  activity,
  available,
  branchFull,
@@ -437,11 +359,9 @@ function computeDashboardState(fleet) {
  dReady,
  docStats,
  fmtTime,
- gaugeSvg,
  histBase,
  isToday,
  mapMode,
- otherCars,
  pReady,
  pRenCard,
  pRenIns,
@@ -458,7 +378,6 @@ function computeDashboardState(fleet) {
  renLic,
  rented,
  stOf,
- statusRows,
  todayCount,
  todayIso,
  todayTasks,
@@ -466,11 +385,6 @@ function computeDashboardState(fleet) {
  total,
  trend,
  trendSvg,
- workQueue,
- wqCars,
- wqDocTotals,
- wqMessage,
- wqMessageAll
   };
 }
 

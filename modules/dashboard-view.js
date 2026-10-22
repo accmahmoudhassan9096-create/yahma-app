@@ -10,7 +10,7 @@
 
 /* ===== القالب ===== */
 function dashboardTemplate(state) {
-  const { DOC_KEYS, activity, available, branchFull, churn, churnQuick, churnRows, churnSum, colors, conicParts, dFinal, dNeed, dPrep, dReady, docStats, fmtTime, gaugeSvg, histBase, isToday, mapMode, otherCars, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, statusRows, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, workQueue, wqCars, wqDocTotals, wqMessage, wqMessageAll } = state;
+  const { activity, available, branchFull, churn, churnQuick, churnRows, churnSum, colors, conicParts, dFinal, dNeed, dPrep, dReady, docStats, fmtTime, histBase, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg } = state;
   return `
   <div class="home-dash">
     <!-- Hero -->
@@ -36,11 +36,6 @@ function dashboardTemplate(state) {
           <div class="hero-summary-stat"><b>${available}</b><span>السيارات المتاحة</span></div>
           <div class="hero-summary-stat"><b>${rented}</b><span>السيارات المؤجرة</span></div>
         </div>
-      </div>
-      <div class="home-hero-gauge hero-gauge" role="img" aria-label="مقياس جاهزية الأسطول ${pReady}%">
-        <div class="hero-gauge-title">مقياس الجاهزية</div>
-        ${gaugeSvg}
-        <div class="hero-gauge-sub">${ready.toLocaleString('en')} من ${total.toLocaleString('en')} سيارة</div>
       </div>
       <div class="home-hero-car hero-car-clean" aria-hidden="true"><video class="home-hero-car-img home-hero-video" autoplay muted loop playsinline preload="metadata" poster="assets/dashboard-hero.png"><source src="assets/hero-video.mp4" type="video/mp4"></video></div>
     </div>
@@ -137,21 +132,6 @@ function dashboardTemplate(state) {
         </div>
         <button type="button" class="home-link-all" data-go="preparation">عرض كل المهام ←</button>
       </div>
-    <div class="home-avail">
-      <div class="home-avail-head">
-        <h3>🚗 حالة الأسطول — مستوى الشركة</h3>
-        <span class="home-avail-total">${total} سيارة</span>
-      </div>
-      <div class="home-avail-legend">
-        ${statusRows.map(r => r.more
-          ? `<div class="home-avail-leg home-avail-more" role="button" tabindex="0" aria-label="سيارات أخرى غير مصنفة: ${r.n} — اضغط لعرضها"><i style="background:${r.color}"></i><span>${r.label} · اضغط للعرض</span><b>${r.n}</b><em>${pct(r.n)}%</em></div><div class="home-avail-bar"><i style="width:${total ? Math.round(r.n / total * 100) : 0}%;background:${r.color}"></i></div>`
-          : `<div class="home-avail-leg"><i style="background:${r.color}"></i><span>${r.label}</span><b>${r.n}</b><em>${pct(r.n)}%</em></div><div class="home-avail-bar"><i style="width:${total ? Math.round(r.n / total * 100) : 0}%;background:${r.color}"></i></div>`).join('')}
-        <div class="home-avail-other-detail" id="home-avail-other-detail" style="display:none">
-          ${otherCars.slice(0, 100).map(c => `<div><span>${escapeHtml(c.plate || '—')} · ${escapeHtml(c.branch || '—')}</span><b>${escapeHtml(stOf(c) || 'فارغة')}</b></div>`).join('') || '<div class="rd-empty">—</div>'}
-          ${otherCars.length > 100 ? `<div class="muted-small">+ ${otherCars.length - 100} أخرى</div>` : ''}
-        </div>
-      </div>
-    </div>
     </div>
     <!-- Regions map -->
     <div class="home-card home-map-card">
@@ -211,54 +191,6 @@ function dashboardTemplate(state) {
         ${trendSvg ? `<div class="home-trend-legend"><span><i style="background:#C6952E"></i>عدد السيارات (${trend[trend.length-1].total})</span><span><i style="background:#0BAA86"></i>الجاهزية (${trend[trend.length-1].pct || 0}%)</span></div>${trendSvg}`
           : `<div class="home-trend-empty"><div class="home-trend-now"><b>${total.toLocaleString('en')}</b><span>سيارة اليوم</span><b>${pReady}%</b><span>الجاهزية</span></div><div class="muted-small">المنحنى بيظهر من يومينمختلفين — افتح المنصة كل يوم وسجل يومي تتراكم تلقائيًا.</div></div>`}
       </div>
-    </div>
-    <!-- Branch work queue -->
-    <div class="home-card home-wq-card">
-      <div class="home-card-head">
-        <h3>⚡ قائمة عمل الفروع</h3>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <span class="muted-small">النواقص = الأوراق الناقصة فقط (لا تشمل خارج/مفقود/مسروب) · رسالة جاهزة بضغطة</span>
-          <button type="button" class="btn btn-ghost btn-small" data-wq-all-copy>📋 نسخ الكل</button>
-          <button type="button" class="btn btn-primary btn-small" data-wq-all-wa>📲 واتساب (الكل)</button>
-        </div>
-      </div>
-      ${workQueue.length ? `
-      <div class="home-wq-chips">
-        <span class="home-wq-chip"><b>${workQueue.length}</b> فرع به نواقص</span>
-        <span class="home-wq-chip alert"><b>${wqCars}</b> سيارة ناقصة</span>
-        ${wqDocTotals.filter(d => d.n).map(d => `<span class="home-wq-chip">${d.icon} ${d.label} <b>${d.n}</b></span>`).join('')}
-      </div>
-      <div class="home-wq-filters">
-        <button type="button" class="quick-filter active" data-wq-doc="">الكل</button>
-        ${DOC_KEYS.map(d => `<button type="button" class="quick-filter" data-wq-doc="${d.key}">${d.icon} ${d.label}</button>`).join('')}
-      </div>
-      <div class="home-wq-list" id="home-wq-list">
-        ${workQueue.map((w, i) => `
-        <div class="home-wq-row${i >= 10 ? ' wq-more' : ''}" data-wq-row data-wq-name="${escapeHtml(w.name)}"
-             data-wq-card="${w.byDoc.card}" data-wq-license="${w.byDoc.license}" data-wq-insurance="${w.byDoc.insurance}" data-wq-inspection="${w.byDoc.inspection}">
-          <div class="home-wq-row-head">
-            <span class="home-wq-name">${escapeHtml(w.name)}</span>
-            <span class="home-wq-count">${w.gap.length} <em>من ${w.total}</em></span>
-          </div>
-          <div class="home-wq-docs">
-            ${DOC_KEYS.filter(d => w.byDoc[d.key] > 0).map(d => `<span class="home-wq-doc">${d.icon} ${d.label} <b>${w.byDoc[d.key]}</b></span>`).join('')}
-            <span class="home-wq-ready">جاهزية ${w.pctReady}%</span>
-          </div>
-          <div class="home-wq-row-actions">
-            <button type="button" class="btn btn-primary btn-small" data-wq-wa="${escapeHtml(w.name)}">📲 واتساب</button>
-            <button type="button" class="btn btn-ghost btn-small" data-wq-copy="${escapeHtml(w.name)}">📋 نسخ</button>
-            <button type="button" class="btn btn-ghost btn-small" data-wq-view="${escapeHtml(w.name)}">عرض السيارات ←</button>
-          </div>
-          <details class="home-wq-details">
-            <summary>قائمة اللوحات (${w.gap.length})</summary>
-            <div class="home-wq-plates">
-              ${w.gap.map(g => `<div><span>${escapeHtml(g.plate)}</span><em>${escapeHtml(g.docs.join(' + '))}</em></div>`).join('')}
-            </div>
-          </details>
-        </div>`).join('')}
-      </div>
-      ${workQueue.length > 10 ? `<button type="button" class="home-link-all" data-wq-toggle>عرض كل الفروع (${workQueue.length}) ←</button>` : ''}
-      ` : '<div class="empty">كل أوراق الأسطول مستوفية 👍 لا يوجد عمل مطلوب على الفروع.</div>'}
     </div>
     <!-- Bottom row -->
     <div class="home-bottom">
@@ -326,7 +258,7 @@ function dashboardTemplate(state) {
 /* ===== ربط الأحداث ===== */
 function bindDashboardEvents(content, context, state) {
   const { setCurrentTab } = context;
-  const { branchFull, churnQuick, mapMode, regionById, regionStats, workQueue, wqMessage, wqMessageAll } = state;
+  const { branchFull, churnQuick, mapMode, regionById, regionStats } = state;
   // خريطة المناطق (Leaflet تحميل كسول — تعمل أونلاين، والأرقام محفوظة بدونه)
   (function initRegionMap(){
     const el = content.querySelector('#region-map');
@@ -450,83 +382,6 @@ function bindDashboardEvents(content, context, state) {
   content.querySelectorAll('[data-churn-seg]').forEach(b => b.addEventListener('click', () => churnGo(b.dataset.churnSeg, '')));
   content.querySelectorAll('[data-churn-branch]').forEach(b => b.addEventListener('click', () => churnGo('d30', b.dataset.churnBranch)));
 
-  /* ===== قائمة عمل الفروع: واتساب/نسخ/عرض ===== */
-  const wqFind = (name) => workQueue.find(w => w.name === name);
-  const wqToast = (msg) => { try { if (typeof toastKbd === 'function') toastKbd(msg); } catch(e){yahmaErr(e,'dashboard.js:797');} };
-  const wqCopy = (text, okMsg) => {
-    const done = () => wqToast(okMsg || 'تم نسخ القائمة');
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(done).catch(() => prompt('انسخ النص يدويًا:', text));
-      } else prompt('انسخ النص يدويًا:', text);
-    } catch(e) { prompt('انسخ النص يدويًا:', text); }
-  };
-  const wqOpenWa = (phone, text) => {
-    const num = String(phone || '').replace(/[^0-9]/g, '').replace(/^0+/, '');
-    const digits = num.length >= 10 ? num : '';
-    const url = digits
-      ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text)
-      : 'https://wa.me/?text=' + encodeURIComponent(text);
-    window.open(url, '_blank', 'noopener');
-  };
-  const wqBranchPhone = (name) => {
-    try {
-      if (typeof getBranchByName === 'function') {
-        const b = getBranchByName(name);
-        if (b && b.phone) return b.phone;
-      }
-    } catch(e){yahmaErr(e,'dashboard.js:820');}
-    return '';
-  };
-  const wqAskPhone = (label) => {
-    try {
-      return window.prompt(label + '\nرقم واتساب (مثال: 2010xxxxxxxx) — اتركه فارغًا لفتح محادثة جديدة للاختيار اليدوي:', '') || '';
-    } catch(e) { return ''; }
-  };
-  content.querySelectorAll('[data-wq-wa]').forEach(b => b.addEventListener('click', () => {
-    const w = wqFind(b.dataset.wqWa);
-    if (!w) return;
-    const phone = wqBranchPhone(w.name) || wqAskPhone(w.name);
-    wqOpenWa(phone, wqMessage(w));
-  }));
-  content.querySelectorAll('[data-wq-copy]').forEach(b => b.addEventListener('click', () => {
-    const w = wqFind(b.dataset.wqCopy);
-    if (!w) return;
-    wqCopy(wqMessage(w), 'تم نسخ نواقص ' + w.name);
-  }));
-  content.querySelectorAll('[data-wq-view]').forEach(b => b.addEventListener('click', () => {
-    const w = wqFind(b.dataset.wqView);
-    window.pendingFleetBranch = b.dataset.wqView;
-    window.pendingFleetQuickFilter = '';
-    window.pendingFleetPlates = w ? w.gap.map(g => g.plate) : null;
-    const nav = document.querySelector('.nav-item[data-tab="fleet"]');
-    if (nav) nav.click();
-    if (typeof render === 'function') render();
-  }));
-  const wqAllCopy = content.querySelector('[data-wq-all-copy]');
-  if (wqAllCopy) wqAllCopy.addEventListener('click', () => wqCopy(wqMessageAll(), 'تم نسخ نواقص كل الفروع'));
-  const wqAllWa = content.querySelector('[data-wq-all-wa]');
-  if (wqAllWa) wqAllWa.addEventListener('click', () => wqOpenWa(wqAskPhone('مسؤول الإدارة'), wqMessageAll()));
-  const wqToggle = content.querySelector('[data-wq-toggle]');
-  let wqDocFilter = '';
-  let wqShowAll = false;
-  const wqApply = () => {
-    content.querySelectorAll('[data-wq-row]').forEach(row => {
-      const n = wqDocFilter ? (+row.dataset['wq' + wqDocFilter.charAt(0).toUpperCase() + wqDocFilter.slice(1)] || 0) : 1;
-      const hideByDoc = wqDocFilter && n === 0;
-      const hideByMore = !wqShowAll && row.classList.contains('wq-more');
-      row.style.display = (hideByDoc || hideByMore) ? 'none' : '';
-    });
-    if (wqToggle) wqToggle.textContent = wqShowAll ? 'إخفاء باقي الفروع' : 'عرض كل الفروع (' + workQueue.length + ') ←';
-  };
-  if (wqToggle) wqToggle.addEventListener('click', () => { wqShowAll = !wqShowAll; wqApply(); });
-  content.querySelectorAll('[data-wq-doc]').forEach(b => b.addEventListener('click', () => {
-    wqDocFilter = b.dataset.wqDoc || '';
-    content.querySelectorAll('[data-wq-doc]').forEach(x => x.classList.toggle('active', x === b));
-    wqShowAll = wqShowAll || !!wqDocFilter;
-    wqApply();
-  }));
-  wqApply();
 
   // فيديو الواجهة: يعمل تلقائيًا بدون صوت — وإن غاب الملف يرجع لصورة السيارة
   const heroVideo = content.querySelector('.home-hero-video');
@@ -565,16 +420,6 @@ function bindDashboardEvents(content, context, state) {
       const filter = el.getAttribute('data-filter') || null;
       if (tab) goTab(tab, filter);
     });
-  });
-  // صف «أخرى» يفتح تفاصيل السيارات غير المصنفة
-  content.querySelectorAll('.home-avail-more').forEach(el => {
-    el.style.cursor = 'pointer';
-    const toggle = () => {
-      const det = document.getElementById('home-avail-other-detail');
-      if (det) det.style.display = det.style.display === 'none' ? '' : 'none';
-    };
-    el.addEventListener('click', toggle);
-    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
   });
   // Animate bars after paint
   requestAnimationFrame(() => {
