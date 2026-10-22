@@ -15,7 +15,7 @@
      3) الوثائق (كارت/رخصة/تأمين/فحص)
      4) الحالات وأسباب عدم الجاهزية + المناطق
      5) أعمار الأسطول
-     6) الأداء التشغيلي (سعر اليوم والتشغيل والصيانة)
+     6) التسعير والعداد (سعر اليوم وقيمة الأسطول واستهلاك كل فرع)
      7) قائمة المتابعة (السيارات اللي محتاجة إجراء)
      8) التنازلات
 
@@ -28,8 +28,6 @@
 */
 (function (global) {
   'use strict';
-
-  var DAYS_IN_MONTH = 30;
 
   /* حالة الواجهة: التقرير المفتوح والفرع المختار.
      مش بنخزّنها في localStorage — التقارير شاشة عرض، وأول ما تدخل
@@ -134,6 +132,7 @@
       prep: 0,
       out: 0,
       notReady: 0,
+      kmMax: 0,
       labels: {},
       reasons: {},
       statuses: {},
@@ -160,7 +159,8 @@
       if (!b) {
         b = model.branches[branch] = {
           total: 0, ready: 0, prep: 0, out: 0,
-          rateSum: 0, rateCount: 0, rentedDays: 0, maint: 0, km: 0, transferDone: 0
+          rateSum: 0, rateCount: 0, rentedDays: 0, maint: 0, km: 0, kmCount: 0,
+          yearSum: 0, yearCount: 0, transferDone: 0
         };
       }
       b.total++;
@@ -213,6 +213,11 @@
       if (!yRec) yRec = model.years[yearKey] = { count: 0, rateSum: 0, rateCount: 0 };
       yRec.count++;
 
+      if (yearKey) {
+        b.yearSum += year;
+        b.yearCount++;
+      }
+
       var rate = Number(car.dailyRate);
       if (isFinite(rate) && rate > 0) {
         yRec.rateSum += rate;
@@ -228,7 +233,11 @@
       if (isFinite(maint) && maint > 0) b.maint += maint;
 
       var km = Number(car.odometer);
-      if (isFinite(km) && km > 0) b.km += km;
+      if (isFinite(km) && km > 0) {
+        b.km += km;
+        b.kmCount++;
+        if (km > model.kmMax) model.kmMax = km;
+      }
 
       var transferDone = String(car.transferDone || '').trim();
       var transferStatus = String(car.transferStatus || '').trim();
@@ -261,6 +270,9 @@
           rentedDays: b.rentedDays,
           maint: b.maint,
           km: b.km,
+          kmCount: b.kmCount,
+          yearCount: b.yearCount,
+          avgYear: b.yearCount ? Math.round((b.yearSum / b.yearCount) * 10) / 10 : 0,
           transferDone: b.transferDone,
           pct: pctOf(b.ready, b.total)
         };
@@ -565,54 +577,56 @@
     var branches = branchRows(model);
     var rateSum = 0;
     var rateCount = 0;
-    var rentedDays = 0;
-    var maint = 0;
     var km = 0;
+    var kmCars = 0;
+    var yearSum = 0;
+    var yearCount = 0;
 
     branches.forEach(function (b) {
       rateSum += b.rateSum;
       rateCount += b.rateCount;
-      rentedDays += b.rentedDays;
-      maint += b.maint;
       km += b.km;
+      kmCars += b.kmCount;
+      yearSum += b.avgYear * b.yearCount;
+      yearCount += b.yearCount;
     });
 
     var avgRate = rateCount ? Math.round(rateSum / rateCount) : 0;
     var capacity = Math.round(rateSum);
-    var utilization = pctOf(rentedDays, model.total * DAYS_IN_MONTH);
-    var avgKm = model.total ? Math.round(km / model.total) : 0;
+    var avgKm = kmCars ? Math.round(km / kmCars) : 0;
+    var avgYear = yearCount ? Math.round((yearSum / yearCount) * 10) / 10 : 0;
 
     return {
-      title: 'الأداء التشغيلي',
-      subtitle: 'سعر اليوم وقيمة الأسطول وأيام التشغيل وتكلفة الصيانة لكل فرع.',
+      title: 'التسعير والعداد',
+      subtitle: 'سعر اليوم وقيمة الأسطول واستهلاك كل فرع — من بيانات مسجّلة فعلاً على السيارات.',
       kpis: [
         { label: 'متوسط سعر اليوم', value: num(avgRate) + ' ر.س' },
         { label: 'قيمة الأسطول اليومية', value: num(capacity) + ' ر.س', hint: 'لو كل السيارات اتأجرت يوم' },
-        { label: 'نسبة التشغيل', value: pctLabel(rentedDays, model.total * DAYS_IN_MONTH), cls: utilization >= 60 ? 'good' : 'warn', hint: 'أيام التأجير ÷ 30 يوم' },
-        { label: 'إجمالي الصيانة', value: num(Math.round(maint)) + ' ر.س' },
+        { label: 'سيارات مسعّرة', value: num(rateCount), cls: rateCount === model.total ? 'good' : 'warn', hint: pctLabel(rateCount, model.total) + ' من الأسطول' },
         { label: 'متوسط العداد', value: num(avgKm) + ' كم' },
-        { label: 'سيارات بسعر يوم', value: num(rateCount) }
+        { label: 'أعلى عداد', value: num(model.kmMax) + ' كم' },
+        { label: 'متوسط سنة الصنع', value: avgYear ? String(avgYear) : '—' }
       ],
       sections: [
         {
-          title: 'الأداء حسب الفرع',
-          note: 'أيام التشغيل من عمود «أيام التأجير» المسجّل على كل سيارة، والنسبة من 30 يوم.',
-          headers: ['الفرع', 'السيارات', 'متوسط سعر اليوم', 'قيمة اليوم', 'أيام التشغيل', 'نسبة التشغيل', 'الصيانة', 'متوسط العداد'],
+          title: 'التسعير والعداد حسب الفرع',
+          note: 'قيمة اليوم = مجموع سعر اليوم لكل سيارات الفرع.',
+          headers: ['الفرع', 'السيارات', 'مسعّرة', 'نسبة المسعّرة', 'متوسط سعر اليوم', 'قيمة اليوم', 'متوسط العداد', 'متوسط سنة الصنع'],
           rows: branches.map(function (b) {
             return [
               b.name,
               b.total,
+              b.rateCount,
+              pctOf(b.rateCount, b.total),
               b.rateCount ? Math.round(b.rateSum / b.rateCount) : 0,
               Math.round(b.rateSum),
-              b.rentedDays,
-              pctOf(b.rentedDays, b.total * DAYS_IN_MONTH),
-              Math.round(b.maint),
-              b.total ? Math.round(b.km / b.total) : 0
+              b.kmCount ? Math.round(b.km / b.kmCount) : 0,
+              b.avgYear || 0
             ];
           }),
-          foot: ['الإجمالي', model.total, avgRate, capacity, rentedDays,
-            pctOf(rentedDays, model.total * DAYS_IN_MONTH), Math.round(maint), avgKm],
-          barCol: 5
+          foot: ['الإجمالي', model.total, rateCount, pctOf(rateCount, model.total),
+            avgRate, capacity, avgKm, avgYear],
+          barCol: 3
         }
       ]
     };
@@ -718,7 +732,7 @@
     { id: 'docs', label: 'الوثائق', build: buildDocs },
     { id: 'states', label: 'الحالات والمناطق', build: buildStates },
     { id: 'ages', label: 'الأعمار', build: buildAges },
-    { id: 'ops', label: 'التشغيل', build: buildOps },
+    { id: 'ops', label: 'التسعير', build: buildOps },
     { id: 'watch', label: 'قائمة المتابعة', build: buildWatch },
     { id: 'transfers', label: 'التنازلات', build: buildTransfers }
   ];
@@ -890,7 +904,7 @@
     var title = document.getElementById('topbar-title');
     var sub = document.getElementById('topbar-sub');
     if (title) title.textContent = 'التقارير';
-    if (sub) sub.textContent = 'جاهزية ووثائق وأعمار وتشغيل الأسطول — جاهزة للتصدير Excel و PDF.';
+    if (sub) sub.textContent = 'جاهزية ووثائق وأعمار وتسعير الأسطول — جاهزة للتصدير Excel و PDF.';
 
     var all = getFleet();
     if (!all.length) {
