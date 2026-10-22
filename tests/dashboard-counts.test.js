@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 const test = require('node:test');
 const assert = require('node:assert');
@@ -53,7 +53,6 @@ function setupEnvironment() {
     'modules/readiness.js',
     'core/branches-store.js',
     'modules/dashboard-core.js',
-    'modules/reports.js'
   ];
 
   for (const s of scripts) {

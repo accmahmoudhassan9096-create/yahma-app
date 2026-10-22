@@ -1,6 +1,6 @@
-/* ===== شبكة أمان قبل تقسيم الملفات الكبيرة =====
+﻿/* ===== شبكة أمان قبل تقسيم الملفات الكبيرة =====
 
-   الهدف: نقدر نفكّ `modules/reports.js` (1657 سطر) و
+   الهدف: نقدر نفكّ `core/render-router.js`
    `core/render-router.js` (1503) من غير ما نكسر حاجة، وقاعدة
    البيانات تقوللنا لو كسرنا.
 
@@ -240,47 +240,11 @@ test('التبويبات نفسها ما اتغيّرتش — نفس القائ�
 /* ⭐ دالة نُقلت لملف جديد لازم تفضل في نفس المكان العام.
    الاختبار ده بيمنع «حركة صامتة»: الدالة بتتحرك لاسم تاني
    فيتغيّر السلوك من غير ما حد ياخد باله. */
-test('الدوال اللي اتقسمت مازالت متاحة بنفس الأسماء', () => {
-  const { ctx } = loadApp();
-  const R = ctx.YahmaReports;
-  assert.ok(R, 'YahmaReports مش موجود');
-  /* الدوال اللي في الخط الأساس بتوع التقارير */
-  ['periodBounds', 'periodLabel', 'periodDate', 'inPeriod', 'accountingIndicators',
-    'aggregateReport', 'formatCurrency', 'reportFileName', 'reportTextSummary',
-    'formalReportHtml', 'infographicFileName', 'infographicTextSummary',
-    'infographicDonut', 'infographicDonutLegend', 'infographicHtml',
-    'isoLocal', 'storageRead', 'persistState', 'getPresets',
-    'go', 'exportExcel', 'preparePdf'
-  ].forEach((fn) => {
-    assert.strictEqual(typeof R[fn], 'function', 'YahmaReports.' + fn + ' مش موجودة');
-  });
-  assert.strictEqual(typeof R.render, 'function', 'YahmaReports.render مش موجودة');
-});
-
 /* ⭐ تقسيم واجهة اللوحة ما_addedش حاجة للواجهة العامة.
 
    واجهة التقReports اتقسمت لـ view و schedule. الدوال الجديدة دي
    داخلية (بتاخد ctx من renderReports) — المفروض ما تظهرش على
    window غير كـnamespace، وما تاخدش مفتاح جديد في YahmaReports. */
-test('تقسيم الواجهة ما ضفش مفتاح جديد للـAPI العام', () => {
-  const { ctx } = loadApp();
-  const R = ctx.YahmaReports;
-  assert.strictEqual(Object.keys(R).length, 26,
-    'YahmaReports بقى ' + Object.keys(R).length + ' مفتاح بدل 26: ' + Object.keys(R).join(', '));
-
-  /* الأسماء اللي اتنقلت لازم تكون موجودة في ملفاتها الجديدة */
-  assert.deepStrictEqual(Object.keys(ctx.YahmaReportsView).sort(),
-    ['bindOwnerRows', 'bindReportControls', 'bindReportRows', 'openDrill', 'reportsTemplate']);
-  assert.deepStrictEqual(Object.keys(ctx.YahmaReportsSchedule).sort(),
-    ['bindExcelExport', 'bindPdfButtons', 'bindScheduleUI']);
-
-  /* وrenderReports لازم تفضل هي اللي بتتعرض — المنفذ الوحيد للتقارير.
-     (دي مش نفس كائن window.renderReports: دي غلاف الـrouter، والمنفذ
-      جوه الـIIFE. الاتنين موجودين قبل وبعد التقسيم.) */
-  assert.strictEqual(typeof R.render, 'function', 'YahmaReports.render لازم تفضل دالة');
-  assert.strictEqual(typeof ctx.renderReports, 'function', 'renderReports العالمية ناقصة');
-});
-
 /* ⭐ تقسيم لوحة التحكم ما_addedش حاجة للواجهة العامة.
 
    واجهة التحكم اتقسمت لـ core (الحساب) و view (العرض). الدوال الجديدة
@@ -447,21 +411,6 @@ test('الدوال المنقولة للعمليات الاستخبارية بت
 
 /* ⭐ كل دالة منقولة لازم تاخد ctx — عشان ما تفتحش نطاق جديد
    بالصدفة وتقرأ متغير عام بالغلط. */
-test('الدوال المنقولة للعرض بتاخد ctx صريح', () => {
-  const { ctx } = loadApp();
-  [['YahmaReportsView', 'reportsTemplate'], ['YahmaReportsView', 'bindReportControls'],
-    ['YahmaReportsView', 'bindReportRows'], ['YahmaReportsView', 'bindOwnerRows'],
-    ['YahmaReportsSchedule', 'bindScheduleUI'], ['YahmaReportsSchedule', 'bindExcelExport'],
-    ['YahmaReportsSchedule', 'bindPdfButtons']].forEach(([ns, fn]) => {
-    const f = ctx[ns][fn];
-    assert.strictEqual(typeof f, 'function', ns + '.' + fn + ' ناقصة');
-    assert.strictEqual(f.length, 1, ns + '.' + fn + ' المفروض تاخد ctx واحد');
-  });
-  /* openDrill بتاخد ctx + عنوان + سيارات */
-  assert.strictEqual(ctx.YahmaReportsView.openDrill.length, 4,
-    'openDrill المفروض (ctx, title, cars, extraCol)');
-});
-
 /* ⭐ مفيش اسم عمومي معرّف في ملفين.
 
    الطريقة: بيحمّل كل ملف لوحده في رمل فاضي وبيشوف إيه الأسماء
@@ -500,9 +449,9 @@ test('دوال الـrouter الأساسية شغّالة فعلاً بعد ال
   const { ctx } = loadApp();
   ['render', 'renderInspectionPayments', 'renderPaidInspections', 'renderRenewedInspections',
     'renderBranches', 'renderPreparation', 'renderAuditPage', 'renderDashboard', 'renderFleet',
-    'renderReports', 'canRunPayments', 'formatArabicDate', 'goTabFromRouter',
+    'canRunPayments', 'formatArabicDate', 'goTabFromRouter',
     'downloadBranchStatusTemplate', 'handleBranchStatusImport', 'emailBranch', 'whatsappBranch',
-    'openBranchModal', 'buildDonut', 'buildStackedBar', 'buildYearChart', 'buildOwnerChart',
+    'openBranchModal',
     'getPrepTasks', 'savePrepTask', 'prepStatusForCar', 'prepChecklistForCar',
     'loadInspectionPayments', 'loadPaidInspections', 'loadRenewedInspections'
   ].forEach((fn) => {
@@ -533,7 +482,7 @@ test('الملفات المتخصصة مسجّلة في index.html والـpreca
   const SPECIAL = [
     'core/router-payments.js', 'core/router-payments-item.js', 'core/router-payments-bulk.js',
     'core/router-payments-pending.js', 'core/router-payments-paid.js', 'core/router-payments-renewed.js',
-    'core/router-charts.js', 'core/router-branches.js'
+    'core/router-branches.js'
   ];
   SPECIAL.forEach((f) => {
     assert.ok(html.indexOf('"' + f + '"') > -1, f + ' مش محمّل في index.html');
@@ -558,7 +507,7 @@ test('مفيش كود مكرر بين الملفات المتخصصة والـro
     [...router.matchAll(/^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]));
   ['core/router-payments.js', 'core/router-payments-item.js', 'core/router-payments-bulk.js',
     'core/router-payments-pending.js', 'core/router-payments-paid.js', 'core/router-payments-renewed.js',
-    'core/router-charts.js', 'core/router-branches.js'].forEach((f) => {
+    'core/router-branches.js'].forEach((f) => {
     const code = read(f);
     const fns = [...code.matchAll(/^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
     const dup = fns.filter((n) => routerFns.has(n));
@@ -642,7 +591,7 @@ test('مفيش اسم عمومي معرّف في أكتر من ملف', () => {
 
 /* ⭐ مفيش دالة معرّفة مرتين جوّه نفس الملف — دي بتخّي الاسم. */
 test('مفيش دالة معرّفة مرتين جوّه نفس الملف', () => {
-  const files = ['modules/reports.js', 'core/render-router.js',
+  const files = ['core/render-router.js',
     'core/branches-store.js', 'modules/dashboard.js'];
   files.forEach((f) => {
     const code = read(f);
@@ -885,11 +834,14 @@ test('تبويب «الاستئجارات» و«المستحقات» اتشال�
   assert.ok(!/id:'rentals'/.test(bs), 'الاستئجارات لسه في صلاحيات الأقسام');
   assert.ok(!/id:'dues'/.test(bs), 'المستحقات لسه في صلاحيات الأقسام');
 
-  const rc = read('modules/reports-core.js');
-  assert.ok(!/rentals/i.test(rc), 'التقارير لسه بتقرأ سجل الاستئجارات');
+  const rc = read('core/render-router.js');
+  assert.ok(!/currentTab === 'reports'/.test(rc), 'the reports tab is still dispatched');
 
   ['modules/rentals-store.js', 'modules/rentals.js', 'modules/dues.js',
-   'tests/rentals.test.js', 'tests/dues.test.js', 'supabase/rentals.sql']
+   'tests/rentals.test.js', 'tests/dues.test.js', 'supabase/rentals.sql',
+   'modules/reports.js', 'modules/reports-core.js', 'modules/reports-view.js',
+   'modules/reports-schedule.js', 'modules/reports-templates.js',
+   'core/report-glue.js', 'modules/email-schedule.js']
     .forEach((f) => {
       assert.ok(!fs.existsSync(path.join(ROOT, f)), 'الملف «' + f + '» لسه موجود');
     });

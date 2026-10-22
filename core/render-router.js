@@ -2,7 +2,6 @@
 /* استُخرج من app-core.js (السطور 950-1431) ضمن تقسيم الملفات.
    يُحمَّل بنفس الترتيب السابق بالضبط ضمن كتلة core/* قبل الوحدات المُستخرجة من الذيل. */
 
-function renderReports(content){ return window.YahmaReports.render(content, {fleet, presetsKey: REPORT_PRESETS_KEY, scheduleKey: SND_SKEY}); }
 function exportReportPDF(restoreTab){ return window.YahmaExport.exportReportPdf(restoreTab); }
 
 function prepChecklistForCar(car){ return window.YahmaPreparationData.checklistForCar(car, vehicleReadiness); }
@@ -190,7 +189,6 @@ if(currentTab === 'dashboard') renderDashboard(content);
     else if(currentTab === 'renewed') renderRenewedInspections(content);
     else if(currentTab === 'inspections') renderFollowUp(content);
     else if(currentTab === 'transfers') renderTransfers(content);
-    else if(currentTab === 'reports') renderReports(content);
     else if(currentTab === 'audit') renderAuditPage(content);
     else if(currentTab === 'users') renderUsers(content);
     else if(currentTab === 'branches') renderBranches(content);

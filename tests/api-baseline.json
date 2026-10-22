@@ -84,18 +84,6 @@
     "saveData",
     "toVehicleRow"
   ],
-  "YahmaEmailSchedule": [
-    "loadRecipients",
-    "loadSchedule",
-    "loadSendLog",
-    "markSent",
-    "recipientsKey",
-    "saveRecipients",
-    "saveSchedule",
-    "saveSendLog",
-    "scheduleKey",
-    "sendLogKey"
-  ],
   "YahmaErrorPanel": [
     "badge",
     "install",
@@ -312,73 +300,6 @@
     "carsToInspectionRows",
     "getUninspectedCars",
     "render"
-  ],
-  "YahmaReports": [
-    "accountingIndicators",
-    "aggregateReport",
-    "exportExcel",
-    "filtersKey",
-    "formalReportHtml",
-    "formatCurrency",
-    "getPresets",
-    "go",
-    "inPeriod",
-    "infographicDonut",
-    "infographicDonutLegend",
-    "infographicFileName",
-    "infographicHtml",
-    "infographicTextSummary",
-    "isoLocal",
-    "periodBounds",
-    "periodDate",
-    "periodLabel",
-    "periodPresets",
-    "persistState",
-    "preparePdf",
-    "presetsKey",
-    "render",
-    "reportFileName",
-    "reportTextSummary",
-    "storageRead"
-  ],
-  "YahmaReportsCore": [
-    "FILTERS_KEY",
-    "PERIOD_PRESETS",
-    "PRESETS_KEY",
-    "accountingIndicators",
-    "aggregateReport",
-    "getPresets",
-    "inPeriod",
-    "isoLocal",
-    "periodBounds",
-    "periodDate",
-    "periodLabel",
-    "persistState",
-    "storageRead"
-  ],
-  "YahmaReportsSchedule": [
-    "bindExcelExport",
-    "bindPdfButtons",
-    "bindScheduleUI"
-  ],
-  "YahmaReportsTemplates": [
-    "escapeHtml",
-    "formalReportHtml",
-    "formatCurrency",
-    "infographicDonut",
-    "infographicDonutLegend",
-    "infographicFileName",
-    "infographicHtml",
-    "infographicTextSummary",
-    "reportFileName",
-    "reportTextSummary"
-  ],
-  "YahmaReportsView": [
-    "bindOwnerRows",
-    "bindReportControls",
-    "bindReportRows",
-    "openDrill",
-    "reportsTemplate"
   ],
   "YahmaTopbarMenu": [
     "bindMobileTools",

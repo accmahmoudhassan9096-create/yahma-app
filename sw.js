@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v290';
+const CACHE_NAME = 'yahma-shell-v291';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -29,7 +29,6 @@ const LOCAL_APP_SHELL = [
   './modules/app-lock.js',
   './core/branches-store.js',
   './core/sync.js',
-  './core/report-glue.js',
   './core/render-router.js',
   './core/router-payments.js',
   './core/router-payments-item.js',
@@ -37,7 +36,6 @@ const LOCAL_APP_SHELL = [
   './core/router-payments-pending.js',
   './core/router-payments-paid.js',
   './core/router-payments-renewed.js',
-  './core/router-charts.js',
   './core/router-branches.js',
   './core/pdf-share.js',
   './core/excel-import.js',
@@ -64,7 +62,6 @@ const LOCAL_APP_SHELL = [
   './manifest.json',
   './modules/data.js',
   './modules/payments-store.js',
-  './modules/email-schedule.js',
   './modules/branch-email.js',
   './modules/realtime.js',
   './modules/utils.js',
@@ -76,11 +73,6 @@ const LOCAL_APP_SHELL = [
   './modules/fleet-view-bulk.js',
   './modules/fleet-view.js',
   './modules/fleet.js',
-  './modules/reports.js',
-  './modules/reports-core.js',
-  './modules/reports-schedule.js',
-  './modules/reports-templates.js',
-  './modules/reports-view.js',
   './modules/dashboard-core.js',
   './modules/dashboard-view.js',
   './modules/dashboard.js',

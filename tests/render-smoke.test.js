@@ -40,8 +40,8 @@ const BROWSER_GLOBALS = new Set([
   'supabaseClient', 'supabaseReady', 'fleet', 'branches', 'currentRole', 'currentTab',
   'currentUser', 'currentUserPermissions', 'currentUserName', 'currentUserBranch',
   'YahmaPerms', 'YahmaDB', 'YahmaExport', 'YahmaExportBar', 'YahmaPayments',
-  'YahmaUsers', 'YahmaReports', 'YahmaReportsCore',
-  'YahmaReportsView', 'YahmaReportsSchedule', 'YahmaReportsTemplates', 'YahmaDashboard',
+  'YahmaUsers', 
+  'YahmaDashboard',
   'YahmaDashboardCore', 'YahmaDashboardView', 'YahmaFleet', 'YahmaFleetCore', 'YahmaFleetView',
   'YahmaTopbarUser', 'YahmaTopbarMenu', 'YahmaOpsCore', 'YahmaOpsUX', 'YahmaMyAccount',
   'YahmaAppLock', 'YahmaAppVersion', 'YahmaErrorPanel', 'YahmaAudit',
@@ -86,7 +86,10 @@ const BROWSER_GLOBALS = new Set([
   'err', 'e', 'i', 'j', 'k', 'n', 'm', 'v', 'x', 'y', 'z', 'a', 'b', 'c', 'd', 'f', 'g',
   'h', 'l', 'p', 'q', 'r', 's', 't', 'u', 'w', 'rb', 'rl', 'rows', 'cols', 'attr',
   /* رموز يونيكود بتظهر في نصوص */
-  'u06F9', 'u0640'
+  'u06F9', 'u0640',
+  /* ⭐ كلمات جوه نصوص CSS (font-display:swap) — الـmasker مش بيعرف
+     يميزها، فكانت بتطلع كأنها متغير مش معرّف. */
+  'swap'
 ]);
 
 /* ملفات فيها دوال رسم — دي اللي لو_referenceError بيظهر فيها */
@@ -99,16 +102,11 @@ const RENDER_FILES = [
     'core/router-payments-paid.js',
     'core/router-payments-renewed.js',
   'core/router-branches.js',
-  'core/router-charts.js',
   'modules/fleet-view.js',
   'modules/fleet-core.js',
   'modules/dashboard-view.js',
   'modules/dashboard-core.js',
-  'modules/reports.js',
-  'modules/reports-view.js',
-  'modules/reports-core.js',
-  'modules/reports-schedule.js',
-  'modules/reports-templates.js',
+
   'modules/users-tab.js',
   'modules/renewals-ui.js',
   'modules/topbar-ui.js',
