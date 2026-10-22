@@ -1814,3 +1814,50 @@ body.dark-mode #yahma-version-badge.is-update{
   0%,100%{box-shadow:0 0 0 0 rgba(240,192,112,.55)}
   50%{box-shadow:0 0 0 7px rgba(240,192,112,0)}
 }
+
+/* ===== تبويب «التقارير» =====
+   سبع تقارير جاهزة، كل واحد بجدول + تصدير Excel و PDF.
+   الألوان من نفس توكنات المشروع (--navy/--green/--amber/--red). */
+.rp-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.rp-head h2{margin:0 0 3px;font-size:18px;color:var(--navy)}
+.rp-filter{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.rp-filter select{padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);font:inherit;min-width:190px}
+.rp-tabs{display:flex;gap:6px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:6px;margin-bottom:14px}
+.rp-tab{border:0;background:transparent;padding:9px 15px;border-radius:8px;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s}
+.rp-tab:hover{background:var(--paper);color:var(--ink)}
+.rp-tab.active{background:var(--navy);color:#fff;box-shadow:0 3px 10px rgba(31,60,136,.22)}
+.rp-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.rp-kpi{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--navy);border-radius:12px;padding:12px 13px;box-shadow:var(--shadow-sm);min-width:0}
+.rp-kpi span{display:block;color:var(--muted);font-size:11px;font-weight:700;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rp-kpi b{display:block;font-size:22px;letter-spacing:-.4px;color:var(--ink);line-height:1.2}
+.rp-kpi small{display:block;color:var(--muted);font-size:10.5px;margin-top:3px}
+.rp-kpi.good{border-top-color:var(--green)}
+.rp-kpi.good b{color:var(--green)}
+.rp-kpi.warn{border-top-color:var(--amber)}
+.rp-kpi.warn b{color:var(--amber)}
+.rp-kpi.bad{border-top-color:var(--red)}
+.rp-kpi.bad b{color:var(--red)}
+.rp-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow-sm)}
+.rp-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.rp-card-title h3{margin:0 0 3px;font-size:14px;color:var(--navy)}
+.rp-card-actions{display:flex;gap:7px;flex-shrink:0}
+.rp-btn{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:6px 11px;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.rp-btn:hover{border-color:var(--navy);color:var(--navy)}
+.rp-scroll{overflow:auto;max-height:min(56vh,560px);border:1px solid var(--line);border-radius:10px}
+.rp-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.rp-table th{position:sticky;top:0;z-index:2;background:var(--grey-soft);color:var(--muted);font-weight:700;text-align:right;padding:9px 11px;white-space:nowrap;border-bottom:1px solid var(--line)}
+.rp-table td{padding:9px 11px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;color:var(--ink)}
+.rp-table tbody tr:hover td{background:rgba(8,112,111,.04)}
+.rp-table tbody tr:last-child td{border-bottom:0}
+.rp-table tfoot td{background:var(--paper);font-weight:800;border-top:1px solid var(--line);border-bottom:0}
+.rp-muted{color:var(--muted)}
+.rp-pct{min-width:130px}
+.rp-bar{display:inline-block;vertical-align:middle;width:72px;height:8px;border-radius:6px;background:var(--grey-soft);overflow:hidden;margin-inline-end:7px}
+.rp-bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#0BAA86,#2FA36B)}
+.rp-bar-num{font-size:11.5px;color:var(--muted)}
+.rp-empty{padding:22px;text-align:center;color:var(--muted);font-size:12.5px;border:1px dashed var(--line);border-radius:10px}
+@media(max-width:1100px){.rp-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:640px){.rp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.rp-head{align-items:flex-start}.rp-filter{width:100%}.rp-filter select{flex:1;min-width:0}.rp-card{padding:12px}.rp-scroll{max-height:none}.rp-tab{padding:8px 11px;font-size:12px}}
+body.dark-mode .rp-table th{background:#28313E}
+body.dark-mode .rp-table tbody tr:hover td{background:rgba(46,211,160,.06)}
+body.dark-mode .rp-btn{background:#111827}

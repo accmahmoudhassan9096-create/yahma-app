@@ -301,6 +301,9 @@
     "getUninspectedCars",
     "render"
   ],
+  "YahmaReports": [
+    "render"
+  ],
   "YahmaTopbarMenu": [
     "bindMobileTools",
     "openMenu",

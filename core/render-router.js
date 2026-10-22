@@ -181,6 +181,7 @@ function render(){
   if (titles) titles.style.display = currentTab === 'dashboard' ? 'none' : 'block';
 if(currentTab === 'dashboard') renderDashboard(content);
     else if(currentTab === 'fleet') renderFleet(content);
+    else if(currentTab === 'reports') renderReports(content);
     else if(currentTab === 'renewals') renderRenewals(content,'inspection');
     else if(currentTab === 'license-renewals') renderRenewals(content,'license');
     else if(currentTab === 'insurance-renewals') renderRenewals(content,'insurance');

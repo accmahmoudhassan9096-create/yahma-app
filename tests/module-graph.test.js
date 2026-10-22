@@ -834,12 +834,16 @@ test('تبويب «الاستئجارات» و«المستحقات» اتشال�
   assert.ok(!/id:'rentals'/.test(bs), 'الاستئجارات لسه في صلاحيات الأقسام');
   assert.ok(!/id:'dues'/.test(bs), 'المستحقات لسه في صلاحيات الأقسام');
 
+  /* ⭐ «التقارير» رجعت في v295 بملف واحد جديد (modules/reports.js).
+     الملفات القديمة الثمانية لازم تفضل مش موجودة — عشان ما نرجعش
+     لكود متشعّب تاني. */
   const rc = read('core/render-router.js');
-  assert.ok(!/currentTab === 'reports'/.test(rc), 'the reports tab is still dispatched');
+  assert.ok(/currentTab === 'reports'/.test(rc), 'تبويب التقارير مش موصول بالراوتر');
+  assert.ok(fs.existsSync(path.join(ROOT, 'modules/reports.js')), 'ملف التقارير الجديد مش موجود');
 
   ['modules/rentals-store.js', 'modules/rentals.js', 'modules/dues.js',
    'tests/rentals.test.js', 'tests/dues.test.js', 'supabase/rentals.sql',
-   'modules/reports.js', 'modules/reports-core.js', 'modules/reports-view.js',
+   'modules/reports-core.js', 'modules/reports-view.js',
    'modules/reports-schedule.js', 'modules/reports-templates.js',
    'core/report-glue.js', 'modules/email-schedule.js']
     .forEach((f) => {
