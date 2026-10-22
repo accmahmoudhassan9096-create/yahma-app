@@ -10,7 +10,7 @@
   var onUpdate = null;
   var startedAt = Date.now();
 
-  function setBadge(version) {
+  function setBadge(version, hasUpdate) {
     CURRENT = version || '';
     var badge = document.getElementById('yahma-version-badge');
     if (!badge) return;
@@ -193,6 +193,7 @@
     if (latest && running && compareVersions(running, latest)) {
       /* فيه نسخة أحدث على السيرفر — نعرض اللافتة فوراً */
       try { showUpdateBanner(); } catch (_) { }
+      try { setBadge(running, true); } catch (_) { }
     }
     if (!('serviceWorker' in navigator)) return;
 
