@@ -1016,4 +1016,48 @@ test('النسخ المضغوطة من الـCSS متSynchronize مع المصد
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
+/* ===== توازن وسوم HTML في index.html =====
+
+   ⭐ لازم كل <div> يقابله </div>. لما وسمة قفلت ناقصة، الـHTML
+   بيتكسّر: الشريط بيبلع الصفحة كلها (13,552px ارتفاع) والـcontent
+   بيتزنق (24px عرض) والأزرار بتتطاير. والاختبارات مش بتمسك ده
+   لأن الرسم بيحصل في DOM وهمي.
+
+   ⭐ وكمان: كل script و link مربوط لازم يكون موجود على القرص. */
+test('index.html: توازن وسوم HTML + كل الملفات المربوطة موجودة', () => {
+  const html = read('index.html');
+  const VOID_TAGS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr', 'option'];
+  const tags = html.match(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g) || [];
+  const stack = [];
+  const problems = [];
+  tags.forEach((raw) => {
+    const m = /^<\/?([a-zA-Z][a-zA-Z0-9]*)/.exec(raw);
+    if (!m) return;
+    const name = m[1].toLowerCase();
+    if (VOID_TAGS.indexOf(name) > -1) return;
+    if (raw.charAt(1) === '/') {
+      const open = stack.pop();
+      if (open !== name) problems.push('closing ' + name + ' does not match ' + (open || 'nothing'));
+    } else if (!/\/>$/.test(raw)) {
+      stack.push(name);
+    }
+  });
+  if (stack.length) problems.push('open without close: ' + stack.join(', ') + ' (' + stack.length + ')');
+  assert.deepStrictEqual(problems, [],
+    'HTML tags are not balanced - the page will break:\n  ' + problems.join('\n  '));
+
+  /* every linked file exists */
+  const missing = [];
+  for (const m of html.matchAll(/<script[^>]+src="([^"]+)"/g)) {
+    if (/^https?:/.test(m[1])) continue;
+    if (!fs.existsSync(path.join(ROOT, m[1].replace(/^\.\//, '')))) missing.push(m[1]);
+  }
+  for (const m of html.matchAll(/<link[^>]+href="([^"]+)"/g)) {
+    if (/^https?:|^data:/.test(m[1])) continue;
+    if (!fs.existsSync(path.join(ROOT, m[1].replace(/^\.\//, '')))) missing.push(m[1]);
+  }
+  assert.deepStrictEqual(missing, [],
+    'files linked in index.html but missing on disk:\n  ' + missing.join('\n  '));
+});
+
 
