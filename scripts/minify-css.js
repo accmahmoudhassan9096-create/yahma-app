@@ -68,14 +68,25 @@ function minifyCss(src) {
       continue;
     }
 
-    /* whitespace */
+    /* whitespace — a space between two parts of a SELECTOR must
+       survive, or `.a .b` silently becomes `.a.b` (a different, much
+       stricter selector) and `tr:nth-child(even) td` becomes
+       `tr:nth-child(even)td`. That broke the whole layout once.
+
+       So the space is only dropped where it can never matter: right
+       after an opening bracket, or right before a closing one. */
     if (/\s/.test(c)) {
       let j = i;
       while (j < n && /\s/.test(src[j])) j++;
       const prev = out[out.length - 1];
       const next = src[j];
-      /* a space is only needed between two "word" characters */
-      if (prev && next && /[\w-]/.test(prev) && /[\w-]/.test(next)) out += ' ';
+      const DROP_BEFORE = ',;{})(';
+      const DROP_AFTER = ',;{[';
+      const needSpace =
+        prev && next &&
+        DROP_BEFORE.indexOf(next) === -1 &&
+        DROP_AFTER.indexOf(prev) === -1;
+      if (needSpace) out += ' ';
       i = j;
       continue;
     }

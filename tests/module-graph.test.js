@@ -1061,3 +1061,58 @@ test('index.html: توازن وسوم HTML + كل الملفات المربوط�
 });
 
 
+
+/* ===== الـCSS المضغوط: نفس المعنى مش بس نفس النص =====
+
+   ⭐ المقارنة النصية مكانش كفاية: الـminifier كان بيحذف المسافة
+   بين جزأين من الـselector، فـ`.a .b` كانت بتتحوّل لـ`.a.b` —
+   معنى مختلف تماماً. الشكل اتكسر والاختبار عدّى.
+   ⇒ دلوقتي بنقارن قائمة الـselectors نفسها، واحد واحد. */
+test('الـCSS المضغوط: نفس الـselectors (دلالي مش نصّي)', () => {
+  const cssDir = path.join(ROOT, 'css');
+  const sources = fs.readdirSync(cssDir).filter(n => n.endsWith('.css') && !n.endsWith('.min.css'));
+  assert.ok(sources.length >= 5, 'ملفات CSS المصدر مفقودة');
+
+  /* نستخرج الـselectors من نص CSS (نقرا الوسوم والقواعد) */
+  const selectorsOf = (cssIn) => {
+    /* التعليقات بتتشال — الـminifier بيشيلها كمان */
+    const css = cssIn.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const out = [];
+    let i = 0;
+    while (i < css.length) {
+      const brace = css.indexOf('{', i);
+      if (brace < 0) break;
+      const prelude = css.slice(i, brace);
+      let depth = 1, j = brace + 1;
+      while (j < css.length && depth > 0) { if (css[j] === '{') depth++; else if (css[j] === '}') depth--; j++; }
+      const trimmed = prelude.trim();
+      if (!trimmed.startsWith('@')) {
+        trimmed.split(',').forEach((sel) => {
+          /* نوحّد الشكل: المسافة حوالين > + ~ مش مهمة دلالياً،
+             بس المسافة بين جزأين من الـselector (descendant) مهمة
+             جدًا — دي اللي كانت بتضيع. */
+          const t = sel.trim().replace(/\s+/g, ' ').replace(/\s*([>+~])\s*/g, ' $1 ');
+          if (t) out.push(t);
+        });
+      }
+      i = j;
+    }
+    return out;
+  };
+
+  sources.forEach((name) => {
+    const minName = name.replace(/\.css$/, '.min.css');
+    const src = fs.readFileSync(path.join(cssDir, name), 'utf8');
+    const min = fs.readFileSync(path.join(cssDir, minName), 'utf8');
+    const a = selectorsOf(src);
+    const b = selectorsOf(min);
+    assert.strictEqual(b.length, a.length,
+      minName + ': عدد الـselectors مختلف (' + b.length + ' vs ' + a.length + ') — الـminifier بياكل قواعد');
+    /* نفس الـselectors بالترتيب (المهم: المسافة بين الأجزاء) */
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) {
+        assert.fail(minName + ': الـselector اتغير\n  المصدر:   ' + a[i] + '\n  المضغوط: ' + b[i]);
+      }
+    }
+  });
+});
