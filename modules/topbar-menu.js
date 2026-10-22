@@ -56,10 +56,8 @@
   function bindMobileTools(){
     var map={
       'umt-import':'btn-import',
-  /* ⭐ زرار التصدير في الشريط اتشال — قائمة المستخدم بتنادي الدالة
-     مباشرة بدل ما تدوس على زرار مش موجود. */
-  'umt-export-xlsx':'__yahmaExportXlsx',
-  'umt-export-pdf':'__yahmaExportPdf',
+      'umt-export-xlsx':'btn-export',
+      'umt-export-pdf':'btn-export-pdf',
       'umt-template':'btn-template',
       'umt-email-pdf':'btn-email-filtered-pdf',
       'umt-backup':'btn-backup'
@@ -151,16 +149,6 @@
       trigger.addEventListener('click',function(e){
         e.preventDefault();
         closeMenu();
-        /* ⭐ التصدير: زرار الشريط اتشال، فبنادي الدالة مباشرة
-           بدل ما ندوس على زرار مش موجود. */
-        if(map[id]==='__yahmaExportXlsx'){
-          try{ if(typeof exportFleet==='function') exportFleet(); }catch(_){yahmaErr(_,'topbar-ui.js:export');}
-          return;
-        }
-        if(map[id]==='__yahmaExportPdf'){
-          try{ if(typeof exportCurrentTabPDF==='function') exportCurrentTabPDF(); }catch(_){yahmaErr(_,'topbar-ui.js:export');}
-          return;
-        }
         var target=document.getElementById(map[id]);
         if(!target){ return; }
         /* نحترم نفس قواعد الصلاحية المطبّقة على الزر الأصلي */
