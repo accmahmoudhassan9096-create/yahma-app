@@ -181,13 +181,6 @@ function computeDashboardState(fleet) {
     b.pct = b.total ? Math.round(b.ready / b.total * 100) : 0;
   });
   /* ===== قائمة عمل الفروع: نواقص الأوراق مجمّعة لكل فرع + رسالة واتساب بضغطة ===== */
-  const churn = (typeof churnStats === 'function') ? churnStats(fleet)
-    : { total: 0, buckets: {}, docs: {}, riskList: [], risk30: 0 };
-  const churnRows = (typeof CHURN_BUCKETS !== 'undefined' ? CHURN_BUCKETS : [])
-    .map(b => ({ ...b, cars: (churn.buckets[b.id] || {}).cars || 0, docs: (churn.buckets[b.id] || {}).docs || 0 }));
-  const churnSum = churnRows.reduce((s, r) => s + r.cars, 0) || 1;
-  const churnQuick = { expired: 'exp_now', d30: 'exp_30', d60: 'exp_60', d90: 'exp_90' };
-  const docStats = (typeof CHURN_DOCS !== 'undefined' ? CHURN_DOCS : []).map(d => ({ ...d, ...(churn.docs[d.key] || { expired: 0, d30: 0, d90: 0, total: 0 }) }));
   /* لقطة يومية ب Gesamt العدد والجاهزية (تغذّي المنحنى) */
   if (!regHist.length || regHist[regHist.length - 1].d !== todayIso) {
     const last = regHist[regHist.length - 1];
@@ -347,17 +340,12 @@ function computeDashboardState(fleet) {
  activity,
  available,
  branchFull,
- churn,
- churnQuick,
- churnRows,
- churnSum,
  colors,
  conicParts,
  dFinal,
  dNeed,
  dPrep,
  dReady,
- docStats,
  fmtTime,
  histBase,
  isToday,

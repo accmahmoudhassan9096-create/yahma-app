@@ -10,7 +10,7 @@
 
 /* ===== القالب ===== */
 function dashboardTemplate(state) {
-  const { activity, available, branchFull, churn, churnQuick, churnRows, churnSum, colors, conicParts, dFinal, dNeed, dPrep, dReady, docStats, fmtTime, histBase, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg } = state;
+  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, fmtTime, histBase, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg } = state;
   return `
   <div class="home-dash">
     <!-- Hero -->
@@ -165,24 +165,8 @@ function dashboardTemplate(state) {
         </div>
       </div>
     </div>
-    <!-- Churn forecast + history -->
+    <!-- Fleet history -->
     <div class="home-churn-grid">
-      <div class="home-card home-churn-card">
-        <div class="home-card-head">
-          <h3>⏳ توقّع دوران الأسطول</h3>
-          <span class="muted-small">أقرب انتهاء بين الكارت والرخصة والتأمين · اضغط أي شريحة لعرض السيارات</span>
-        </div>
-        <div class="home-churn-bar" role="img" aria-label="توزيع السيارات حسب أقرب تاريخ انتهاء">
-          ${churnRows.filter(r => r.cars > 0).map(r => `<button type="button" class="home-churn-seg" data-churn-seg="${r.id}" style="width:${(r.cars / churnSum * 100).toFixed(2)}%;background:${r.color}" title="${escapeHtml(r.label)}: ${r.cars} سيارة"><span>${r.cars}</span></button>`).join('')}
-        </div>
-        <div class="home-churn-legend">
-          ${churnRows.filter(r => r.cars > 0).map(r => `<button type="button" class="home-churn-leg" data-churn-seg="${r.id}"><i style="background:${r.color}"></i><span>${escapeHtml(r.label)}</span><b>${r.cars}</b><em>${Math.round(r.cars / churnSum * 100)}%</em><u>${r.docs} ورقة</u></button>`).join('')}
-        </div>
-        <div class="home-churn-docs">
-          ${docStats.map(d => `<div class="home-churn-doc"><span>${d.icon} ${escapeHtml(d.label)}</span><b>${d.expired}</b><em>منتهية</em><b>${d.d30}</b><em>خلال 30 يوم</em><b>${d.d90}</b><em>خلال 90 يوم</em></div>`).join('')}
-        </div>
-        ${churn.riskList && churn.riskList.length ? `<div class="home-churn-risk"><span class="muted-small">أعلى الفروع 위험 (منتهية + خلال 30 يوم):</span>${churn.riskList.slice(0, 6).map(([b, n]) => `<button type="button" class="quick-filter" data-churn-branch="${escapeHtml(b)}">${escapeHtml(b)} <b>${n}</b></button>`).join('')}</div>` : ''}
-      </div>
       <div class="home-card home-trend-card">
         <div class="home-card-head">
           <h3>📈 تاريخ الأسطول</h3>
@@ -258,7 +242,7 @@ function dashboardTemplate(state) {
 /* ===== ربط الأحداث ===== */
 function bindDashboardEvents(content, context, state) {
   const { setCurrentTab } = context;
-  const { branchFull, churnQuick, mapMode, regionById, regionStats } = state;
+  const { branchFull, mapMode, regionById, regionStats } = state;
   // خريطة المناطق (Leaflet تحميل كسول — تعمل أونلاين، والأرقام محفوظة بدونه)
   (function initRegionMap(){
     const el = content.querySelector('#region-map');
@@ -371,17 +355,6 @@ function bindDashboardEvents(content, context, state) {
   }));
 
   /* ===== توقّع الدوران: الانتقال للأسطول بالفلتر المناسب ===== */
-  const churnGo = (bucketId, branch) => {
-    window.pendingFleetQuickFilter = churnQuick[bucketId] || '';
-    window.pendingFleetBranch = branch || '';
-    window.pendingFleetPlates = null;
-    const nav = document.querySelector('.nav-item[data-tab="fleet"]');
-    if (nav) nav.click();
-    if (typeof render === 'function') render();
-  };
-  content.querySelectorAll('[data-churn-seg]').forEach(b => b.addEventListener('click', () => churnGo(b.dataset.churnSeg, '')));
-  content.querySelectorAll('[data-churn-branch]').forEach(b => b.addEventListener('click', () => churnGo('d30', b.dataset.churnBranch)));
-
 
   // فيديو الواجهة: يعمل تلقائيًا بدون صوت — وإن غاب الملف يرجع لصورة السيارة
   const heroVideo = content.querySelector('.home-hero-video');
