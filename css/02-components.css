@@ -740,6 +740,13 @@ body.dark-mode .mp-divider{background:#374151;}
 .btn-primary:hover{
   box-shadow: 0 8px 20px rgba(8,127,125,.28) !important;
 }
+.btn-import-dd:hover,
+.btn-export-dd:hover,
+.btn-theme-toggle:hover{
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
 /* Nav items */
 .nav-item{
   transition:
@@ -754,14 +761,26 @@ body.dark-mode .mp-divider{background:#374151;}
 }
 .nav-item.active{
   transition: background var(--t-med) var(--ease-soft), border-color var(--t-med) var(--ease-soft);
-}/* Cards / tiles / panels */
-.tile,.home-kpi,.panel,.home-card,.prep-kpi {
+}
+
+/* Cards / tiles / panels */
+.tile,
+.home-kpi,
+.panel,
+.home-card,
+.prep-kpi,
+.readiness-box,
+.report-card{
   transition:
     transform var(--t-med) var(--ease-soft),
     box-shadow var(--t-med) var(--ease-soft),
     border-color var(--t-fast) linear !important;
   will-change: transform;
-}.tile:hover,.home-kpi:hover,.home-card:hover {
+}
+.tile:hover,
+.home-kpi:hover,
+.readiness-box:hover,
+.home-card:hover{
   transform: translateY(-3px);
   box-shadow: 0 12px 28px rgba(9,90,89,.12) !important;
 }
@@ -797,22 +816,38 @@ input:focus, select:focus, textarea:focus, .search input:focus, .topbar-search-w
 }
 .tag:hover, .readiness-pill:hover{
   transform: scale(1.04);
-}/* Links / task rows */
-.home-task,.home-link-all,.mp-item,.more-item {
+}
+
+/* Links / task rows */
+.home-task, .home-link-all, .mp-item, .more-item, .alert-row{
   transition:
     background var(--t-fast) var(--ease-soft),
     color var(--t-fast) linear,
     transform var(--t-fast) var(--ease-soft),
     box-shadow var(--t-med) var(--ease-soft) !important;
-}.home-task:hover {
+}
+.home-task:hover, .alert-row:hover{
   transform: translateX(-2px);
-}/* Progress bars — width animated when data-w applied */
-.home-kpi-bar i,.home-reason-bar i,.owner-fill,.prep-progress > span {
+}
+
+/* Progress bars — width animated when data-w applied */
+.home-kpi-bar i,
+.home-reason-bar i,
+.owner-fill,
+.readiness-fill,
+.prep-progress > span{
   transition: width var(--t-slow) var(--ease-out) !important;
-}/* Hero / CTA */
-.home-hero {
+}
+
+/* Hero / CTA */
+.home-hero, .home-cta{
   transition: box-shadow var(--t-med) var(--ease-soft), transform var(--t-med) var(--ease-soft);
-}.home-hero-car-img{
+}
+.home-cta:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(8,112,111,.12);
+}
+.home-hero-car-img{
   transition: transform var(--t-slow) var(--ease-soft), filter var(--t-med) linear;
 }
 .home-hero:hover .home-hero-car-img{
@@ -859,8 +894,12 @@ input:focus, select:focus, textarea:focus, .search input:focus, .topbar-search-w
 .br-name-btn:focus-visible{outline:3px solid #168A81;outline-offset:2px;border-radius:4px}
 body.dark-mode .br-name-btn{color:#7FD1CC}
 /* شارة نطاق الفرع في الشريط العلوي */
-.branch-scope-chip{display:inline-block;background:#E7F7F6;color:#0A5F5D;font-size:11px;font-weight:800;padding:2px 10px;border-radius:999px;white-space:nowrap}/* حقل الملاحظات القابل للكتابة داخل جدول الفحص */
-.ren-note-input,.fu-note-input,.pay-note-input {width:100%;min-width:140px;font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--line,#E4EAF1);border-radius:7px;background:#fff;color:inherit}.ren-note-input:focus,.fu-note-input:focus,.pay-note-input:focus {outline:2px solid #168A81;outline-offset:0;border-color:#168A81}.ren-note-input[readonly],.fu-note-input[readonly],.pay-note-input[readonly] {background:transparent;border-color:transparent;cursor:default}.ren-note-input.saving,.fu-note-input.saving,.pay-note-input.saving {opacity:.55}
+.branch-scope-chip{display:inline-block;background:#E7F7F6;color:#0A5F5D;font-size:11px;font-weight:800;padding:2px 10px;border-radius:999px;white-space:nowrap}
+/* حقل الملاحظات القابل للكتابة داخل جدول الفحص */
+.ren-note-input,.fu-note-input,.tr-note-input,.pay-note-input{width:100%;min-width:140px;font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--line,#E4EAF1);border-radius:7px;background:#fff;color:inherit}
+.ren-note-input:focus,.fu-note-input:focus,.tr-note-input:focus,.pay-note-input:focus{outline:2px solid #168A81;outline-offset:0;border-color:#168A81}
+.ren-note-input[readonly],.fu-note-input[readonly],.tr-note-input[readonly],.pay-note-input[readonly]{background:transparent;border-color:transparent;cursor:default}
+.ren-note-input.saving,.fu-note-input.saving,.tr-note-input.saving,.pay-note-input.saving{opacity:.55}
 /* خلايا بيانات السيارة عبر دورة الفحص والدفع — عرض بس.
   Values come from the uploaded Excel sheet or the edit dialog, never
    typed into the table, so these are plain cells: a shared class so
@@ -871,11 +910,16 @@ body.dark-mode .br-name-btn{color:#7FD1CC}
   font-size:12.5px;font-variant-numeric:tabular-nums;
   color:inherit;white-space:normal;word-break:break-word;min-width:110px;
 }
-.ren-data-cell{font-family:inherit}/* المتاح مقابل المؤجر في الرئيسية */
+.ren-data-cell{font-family:inherit}
+.tr-status-sel,.tr-date-input{font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--line,#E4EAF1);border-radius:7px;background:#fff;color:inherit;margin-inline-end:6px}
+.tr-status-sel:disabled,.tr-date-input:disabled{background:transparent;border-color:transparent;cursor:default}
+/* المتاح مقابل المؤجر في الرئيسية */
 .home-avail{background:var(--panel,#fff);border:1px solid var(--line,#E8EEF2);border-radius:14px;padding:16px}
 .home-avail-head{display:flex;justify-content:space-between;align-items:center}
 .home-avail-head h3{margin:0;font-size:15px}
-.home-avail-total{background:#E7F7F6;color:#0A5F5D;font-size:12px;font-weight:800;padding:3px 12px;border-radius:999px;white-space:nowrap}.home-avail-legend{display:flex;flex-direction:column;gap:10px;flex:1;min-width:220px}
+.home-avail-total{background:#E7F7F6;color:#0A5F5D;font-size:12px;font-weight:800;padding:3px 12px;border-radius:999px;white-space:nowrap}
+.home-avail-row{display:flex;gap:18px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.home-avail-legend{display:flex;flex-direction:column;gap:10px;flex:1;min-width:220px}
 .home-avail-leg{display:flex;align-items:center;gap:8px;font-size:13px}
 .home-avail-leg i{width:12px;height:12px;border-radius:4px;flex:none}
 .home-avail-leg span{flex:1;color:var(--muted,#666E8C)}
