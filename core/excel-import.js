@@ -610,9 +610,9 @@ async function handleSoldExcelFile(file){
 }
 
 document.getElementById('btn-refresh').addEventListener('click', manualRefresh);
-document.getElementById('btn-template').addEventListener('click', ()=>{ downloadTemplate(); document.getElementById('more-menu')?.classList.remove('open'); });
+document.getElementById('btn-template')?.addEventListener('click', ()=>{ downloadTemplate(); document.getElementById('more-menu')?.classList.remove('open'); });
 document.getElementById('btn-sold-template')?.addEventListener('click', ()=>{ downloadSoldTemplate(); document.getElementById('more-menu')?.classList.remove('open'); });
-document.getElementById('btn-export').addEventListener('click', ()=>{ exportFleet(); document.getElementById('more-menu')?.classList.remove('open'); });
+document.getElementById('btn-export')?.addEventListener('click', ()=>{ exportFleet(); document.getElementById('more-menu')?.classList.remove('open'); });
 document.getElementById('btn-import').addEventListener('click', ()=> document.getElementById('file-import').click());
 document.getElementById('btn-export-pdf')?.addEventListener('click', exportCurrentTabPDF);
 document.getElementById('btn-sold-import')?.addEventListener('click', ()=> document.getElementById('file-sold-import').click());

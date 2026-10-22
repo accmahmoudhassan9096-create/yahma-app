@@ -56,9 +56,9 @@
   function bindMobileTools(){
     var map={
       'umt-import':'btn-import',
-      'umt-export-xlsx':'btn-export',
-      'umt-export-pdf':'btn-export-pdf',
-      'umt-template':'btn-template',
+      'umt-export-xlsx':'__yahmaExportXlsx',
+      'umt-export-pdf':'__yahmaExportPdf',
+      'umt-template':'__yahmaTemplate',
       'umt-email-pdf':'btn-email-filtered-pdf',
       'umt-backup':'btn-backup'
     };
@@ -149,6 +149,21 @@
       trigger.addEventListener('click',function(e){
         e.preventDefault();
         closeMenu();
+        /* ⭐ التصدير والنماذج بقوا من قائمة المستخدم بس (اتشالوا من
+           الشريط العلوي). الأزرار الأصلية مش موجودة، فبنادي الدوال
+           مباشرة بدل ما ندوس على زرار مش موجود. */
+        if(map[id]==='__yahmaExportXlsx'){
+          try{ if(typeof exportFleet==='function') exportFleet(); }catch(_){yahmaErr(_,'topbar-ui.js:export');}
+          return;
+        }
+        if(map[id]==='__yahmaExportPdf'){
+          try{ if(typeof exportCurrentTabPDF==='function') exportCurrentTabPDF(); }catch(_){yahmaErr(_,'topbar-ui.js:export');}
+          return;
+        }
+        if(map[id]==='__yahmaTemplate'){
+          try{ if(typeof downloadTemplate==='function') downloadTemplate(); }catch(_){yahmaErr(_,'topbar-ui.js:template');}
+          return;
+        }
         var target=document.getElementById(map[id]);
         if(!target){ return; }
         /* نحترم نفس قواعد الصلاحية المطبّقة على الزر الأصلي */

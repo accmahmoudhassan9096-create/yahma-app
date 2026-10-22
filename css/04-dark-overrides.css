@@ -1,4 +1,4 @@
-/* تصدير — بنفسجي فاتح هادي */
+﻿/* تصدير — بنفسجي فاتح هادي */
 .topbar-actions .tb-export,
 .topbar-actions #btn-dd-export,
 .topbar-actions #dd-export > button{
@@ -1734,3 +1734,64 @@ body.dark-mode .gs-plate{color:#F8FAFC;}
     justify-content:center;
   }
 }
+
+/* ===== Topbar: icons only + calm colours =====
+
+   The header actions are icon-only now (the name lives in the
+   tooltip), with a soft tint and a light glow. The menus open for
+   real: they live inside .tb-io-group, so these selectors are
+   descendants - never the direct child (>) form, which is what
+   kept every menu invisible. */
+.topbar-actions .tb-io-group .top-dd{display:block!important;position:relative!important}
+.topbar-actions .tb-io-group .top-dd>button{
+  width:40px!important;height:40px!important;padding:0!important;
+  justify-content:center!important;gap:0!important;border-radius:12px!important;
+  background:transparent!important;border:1px solid transparent!important;
+  transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease!important;
+}
+.topbar-actions .tb-io-group .top-dd>button:hover{transform:translateY(-1px)!important}
+.topbar-actions .tb-io-group .top-dd>button .btn-label{display:none!important}
+.topbar-actions .tb-io-group .top-dd>button .dd-caret{display:none!important}
+.topbar-actions .tb-io-group .top-dd>button svg{
+  width:19px!important;height:19px!important;flex:0 0 19px!important;
+  stroke-width:1.9!important;opacity:1!important;
+}
+
+/* import - calm teal */
+.topbar-actions .tb-io-group #btn-dd-import{
+  background:#EAF6F2!important;color:#1E8A7A!important;border-color:#CDE7DF!important;
+  box-shadow:0 2px 8px rgba(30,138,122,.14)!important;
+}
+.topbar-actions .tb-io-group #btn-dd-import:hover{
+  background:#DFF0EA!important;border-color:#B6DCD1!important;
+  box-shadow:0 4px 14px rgba(30,138,122,.22)!important;
+}
+
+/* backup + email - calm indigo */
+.topbar-actions .tb-io-group #btn-dd-backup,
+.topbar-actions #btn-email-filtered-pdf{
+  background:#EDF0F8!important;color:#4A5B8C!important;border-color:#D3D9EA!important;
+  box-shadow:0 2px 8px rgba(74,91,140,.13)!important;
+}
+.topbar-actions .tb-io-group #btn-dd-backup:hover,
+.topbar-actions #btn-email-filtered-pdf:hover{
+  background:#E3E8F4!important;border-color:#BFC7E0!important;
+  box-shadow:0 4px 14px rgba(74,91,140,.2)!important;
+}
+
+/* dark mode - the same tone, deeper */
+body.dark-mode .topbar-actions .tb-io-group #btn-dd-import{
+  background:#123A34!important;color:#5FD3BE!important;border-color:#1D5B51!important;
+}
+body.dark-mode .topbar-actions .tb-io-group #btn-dd-backup,
+body.dark-mode .topbar-actions #btn-email-filtered-pdf{
+  background:#1B2340!important;color:#9FB0E0!important;border-color:#2C3760!important;
+}
+
+/* the menus must open - descendant selectors, no > */
+.topbar-actions .top-dd .top-dd-menu{display:none!important}
+.topbar-actions .top-dd.open .top-dd-menu{
+  display:block!important;visibility:visible!important;opacity:1!important;
+  pointer-events:auto!important;
+}
+.topbar-actions .top-dd.open{z-index:10060!important}

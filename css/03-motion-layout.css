@@ -1,4 +1,4 @@
-/* Content page enter (subtle) */
+﻿/* Content page enter (subtle) */
 .content > *{
   animation: contentFadeIn var(--t-med) var(--ease-soft) both;
 }
@@ -760,8 +760,8 @@ body.dark-mode .home-hero.hero-executive{background:linear-gradient(110deg,#102d
 
 
 /* Restore all legacy header actions hidden by the compact layout. */
-.topbar-actions>.top-dd{display:block!important;position:relative!important}
-.topbar-actions>.top-dd>button{display:inline-flex!important;align-items:center!important;gap:6px!important;height:40px!important;padding:0 10px!important;border-radius:10px!important;white-space:nowrap!important;font-size:12px!important}
+.topbar-actions .top-dd{display:block!important;position:relative!important}
+.topbar-actions .top-dd>button{display:inline-flex!important;align-items:center!important;gap:6px!important;height:40px!important;padding:0 10px!important;border-radius:10px!important;white-space:nowrap!important;font-size:12px!important}
 .topbar-actions>#btn-add-car{display:inline-flex!important;order:10;height:40px!important;padding:0 12px!important;border-radius:10px!important;white-space:nowrap!important;font-size:12px!important}
 .topbar.is-dashboard .topbar-actions .btn-import-dd,.topbar.is-dashboard .topbar-actions .btn-export-dd,.topbar.is-dashboard #dd-templates,.topbar.is-dashboard #dd-backup,.topbar.is-dashboard #btn-add-car{display:inline-flex!important}
 /* على الموبايل: نخفي أدوات البيانات من الشريط (الزحام) ونقلها لقائمة المستخدم.
@@ -772,9 +772,9 @@ body.dark-mode .home-hero.hero-executive{background:linear-gradient(110deg,#102d
   .topbar.is-dashboard .topbar-actions .tb-desktop-only{display:none!important}
 }
 .topbar.is-dashboard #dd-templates,.topbar.is-dashboard #dd-backup{display:block!important}
-.topbar-actions>.top-dd .top-dd-menu{display:none!important}
-.topbar-actions>.top-dd.open>.top-dd-menu{display:block!important;visibility:visible!important;pointer-events:auto!important}
-@media(max-width:900px){.topbar-actions>.top-dd>button{width:40px!important;padding:0!important;justify-content:center!important;font-size:0!important}.topbar-actions>.top-dd>button svg{width:17px!important}.topbar-actions>.top-dd .dd-caret{display:none!important}.topbar-actions>#dd-templates>button::before{content:'▦';font-size:17px}.topbar-actions>#dd-backup>button::before{content:'⤓';font-size:17px}.topbar-actions>#dd-import>button::before{content:'↑';font-size:19px}.topbar-actions>#dd-export>button::before{content:'↓';font-size:19px}.topbar-actions>#btn-add-car{width:40px!important;padding:0!important;justify-content:center!important;font-size:0!important}.topbar-actions>#btn-add-car::before{content:'+';font-size:21px}}
+.topbar-actions .top-dd .top-dd-menu{display:none!important}
+.topbar-actions .top-dd.open>.top-dd-menu{display:block!important;visibility:visible!important;pointer-events:auto!important}
+@media(max-width:900px){.topbar-actions .top-dd>button{width:40px!important;padding:0!important;justify-content:center!important;font-size:0!important}.topbar-actions .top-dd>button svg{width:17px!important}.topbar-actions .top-dd .dd-caret{display:none!important}.topbar-actions>#dd-templates>button::before{content:'▦';font-size:17px}.topbar-actions>#dd-backup>button::before{content:'⤓';font-size:17px}.topbar-actions>#dd-import>button::before{content:'↑';font-size:19px}.topbar-actions>#dd-export>button::before{content:'↓';font-size:19px}.topbar-actions>#btn-add-car{width:40px!important;padding:0!important;justify-content:center!important;font-size:0!important}.topbar-actions>#btn-add-car::before{content:'+';font-size:21px}}
 
 
 
