@@ -9,14 +9,15 @@
       الدالة هي اللي بترسمها على الشاشة أو تصدّرها Excel/PDF.
       يعني مفيش نسختين من نفس الحساب تفرّقوا مع الوقت.
 
-   التقارير السبعة:
+   التقارير الثمانية:
      1) ملخص تنفيذي
      2) الجاهزية حسب الفرع
      3) الوثائق (كارت/رخصة/تأمين/فحص)
      4) الحالات وأسباب عدم الجاهزية + المناطق
      5) أعمار الأسطول
      6) الأداء التشغيلي (سعر اليوم والتشغيل والصيانة)
-     7) التنازلات
+     7) قائمة المتابعة (السيارات اللي محتاجة إجراء)
+     8) التنازلات
 
    ملاحظات مهمة:
    · الجاهزية بتيجي من YahmaReadiness.vehicle — نفس الدالة اللي
@@ -577,7 +578,7 @@
     });
 
     var avgRate = rateCount ? Math.round(rateSum / rateCount) : 0;
-    var capacity = Math.round(b.rateSum);
+    var capacity = Math.round(rateSum);
     var utilization = pctOf(rentedDays, model.total * DAYS_IN_MONTH);
     var avgKm = model.total ? Math.round(km / model.total) : 0;
 
@@ -612,6 +613,68 @@
           foot: ['الإجمالي', model.total, avgRate, capacity, rentedDays,
             pctOf(rentedDays, model.total * DAYS_IN_MONTH), Math.round(maint), avgKm],
           barCol: 5
+        }
+      ]
+    };
+  }
+
+  function buildWatch(model, list) {
+    var rows = [];
+    var scoreCount = {};
+
+    (list || []).forEach(function (car) {
+      if (!car || typeof car !== 'object') return;
+      var read = readinessOf(car);
+      if (read.ready) return;
+      var failed = (read.failed || []).map(function (check) { return check && check.label; }).filter(Boolean);
+      if (!failed.length) failed = [read.label || 'غير جاهزة'];
+      scoreCount[failed.length] = (scoreCount[failed.length] || 0) + 1;
+      rows.push({
+        plate: String(car.plate || 'بدون لوحة'),
+        branch: String(car.branch || '').trim() || 'بدون فرع',
+        status: String(car.carStatus || '').trim() || 'بدون حالة',
+        reasons: failed.join(' · '),
+        score: failed.length
+      });
+    });
+
+    rows.sort(function (a, b) { return b.score - a.score || a.plate.localeCompare(b.plate); });
+
+    var LIMIT = 150;
+    var shown = rows.slice(0, LIMIT);
+    var heavy = rows.filter(function (r) { return r.score >= 3; }).length;
+
+    var scoreRows = Object.keys(scoreCount)
+      .map(function (k) { return Number(k); })
+      .sort(function (a, b) { return b - a; })
+      .map(function (k) { return [k, scoreCount[k], pctOf(scoreCount[k], rows.length)]; });
+
+    return {
+      title: 'قائمة المتابعة',
+      subtitle: 'السيارات اللي محتاجة إجراء فعلي — الأكثر مشاكل الأول.',
+      kpis: [
+        { label: 'تحتاج إجراء', value: num(rows.length), cls: rows.length ? 'warn' : 'good' },
+        { label: '٣ مشاكل أو أكثر', value: num(heavy), cls: 'bad' },
+        { label: 'جاهزة (مستبعدة)', value: num(model.ready), cls: 'good' },
+        { label: 'معروض في القائمة', value: num(shown.length) },
+        { label: 'أعلى عدد مشاكل', value: num(rows.length ? rows[0].score : 0) },
+        { label: 'خارج الأسطول', value: num(model.out), cls: 'bad' }
+      ],
+      sections: [
+        {
+          title: 'أولويات الإجراء',
+          note: 'أعلى ' + LIMIT + ' سيارة بعدد المشاكل — التصدير بيشمل نفس الصفوف.',
+          headers: ['اللوحة', 'الفرع', 'الحالة', 'الأسباب', 'عدد المشاكل'],
+          rows: shown.map(function (r) {
+            return [r.plate, r.branch, r.status, r.reasons, r.score];
+          })
+        },
+        {
+          title: 'توزيع عدد المشاكل',
+          note: 'كل سيارة غير جاهزة متحسوبة مرة واحدة بعدد أسبابها.',
+          headers: ['عدد المشاكل', 'السيارات', 'النسبة'],
+          rows: scoreRows,
+          barCol: 2
         }
       ]
     };
@@ -656,6 +719,7 @@
     { id: 'states', label: 'الحالات والمناطق', build: buildStates },
     { id: 'ages', label: 'الأعمار', build: buildAges },
     { id: 'ops', label: 'التشغيل', build: buildOps },
+    { id: 'watch', label: 'قائمة المتابعة', build: buildWatch },
     { id: 'transfers', label: 'التنازلات', build: buildTransfers }
   ];
 
