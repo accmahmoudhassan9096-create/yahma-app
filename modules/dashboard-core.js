@@ -246,6 +246,18 @@ function computeDashboardState(fleet) {
       '" stroke="var(--ink)" stroke-width="2" opacity=".35"/>';
   });
 
+  /* مؤشر الجاهزية: قوس ملوّن (أحمر ← أصفر ← أخضر) وإبرة على نسبة الجاهزية.
+     كان اتشال في v292، ورجع في v298 بناءً على طلب المستخدم —
+     دلوقتي مكانه في الهيرو: الفيديو أقصى اليسار والمقياس على يمينه. */
+  const gaugeSvg = '<svg viewBox="0 0 200 128" role="presentation" style="display:block;width:200px;height:auto">'
+    + '<path d="' + gArc(0, 0.5) + '" fill="none" stroke="#E64B4B" stroke-width="18" stroke-linecap="round"/>'
+    + '<path d="' + gArc(0.5, 0.7) + '" fill="none" stroke="#E6A23C" stroke-width="18"/>'
+    + '<path d="' + gArc(0.7, 1) + '" fill="none" stroke="#0BAA86" stroke-width="18" stroke-linecap="round"/>'
+    + gTicks
+    + '<line x1="100" y1="106" x2="' + gNx.toFixed(1) + '" y2="' + gNy.toFixed(1) + '" style="stroke:var(--ink)" stroke-width="5" stroke-linecap="round"/>'
+    + '<circle cx="100" cy="106" r="9" style="fill:var(--ink)"/>'
+    + '<text x="100" y="74" text-anchor="middle" font-size="23" font-weight="800" style="fill:var(--ink)">' + pReady + '%</text></svg>';
+
   // مهامي اليوم من مهام التجهيز
   const today = typeof todayStr === 'function' ? todayStr() : new Date().toISOString().slice(0, 10);
   let todayTasks = [];
@@ -347,6 +359,7 @@ function computeDashboardState(fleet) {
  dPrep,
  dReady,
  fmtTime,
+ gaugeSvg,
  histBase,
  isToday,
  mapMode,

@@ -10,7 +10,7 @@
 
 /* ===== القالب ===== */
 function dashboardTemplate(state) {
-  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, fmtTime, histBase, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg } = state;
+  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, fmtTime, gaugeSvg, histBase, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg } = state;
   return `
   <div class="home-dash">
     <!-- Hero -->
@@ -36,6 +36,11 @@ function dashboardTemplate(state) {
           <div class="hero-summary-stat"><b>${available}</b><span>السيارات المتاحة</span></div>
           <div class="hero-summary-stat"><b>${rented}</b><span>السيارات المؤجرة</span></div>
         </div>
+      </div>
+      <div class="home-hero-gauge hero-gauge" role="img" aria-label="مقياس جاهزية الأسطول ${pReady}%">
+        <div class="hero-gauge-title">مقياس الجاهزية</div>
+        ${gaugeSvg}
+        <div class="hero-gauge-sub">${ready.toLocaleString('en')} من ${total.toLocaleString('en')} سيارة</div>
       </div>
       <div class="home-hero-car hero-car-clean" aria-hidden="true"><video class="home-hero-car-img home-hero-video" autoplay muted loop playsinline preload="metadata" poster="assets/dashboard-hero.png"><source src="assets/hero-video.mp4" type="video/mp4"></video></div>
     </div>
