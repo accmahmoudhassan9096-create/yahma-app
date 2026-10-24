@@ -58,7 +58,7 @@
     documentUrl: ['رابط المستند','رابط الوثيقة','document url'],
     maintenanceNotes: ['ملاحظات الصيانة','maintenance notes'],
     branch: ['اسم الفرع','الفرع','branch'],
-    carStatus: ['حالة السيارة','car status'],
+    carStatus: ['حالة السيارة','car status','الحالة','وضع السيارة','status'],
     notes: ['ملاحظات','البيان','ملاحظة','notes'],
     transferDone: ['تنازل','نقل الملكية','تم التنازل','نقل ملكية','منقولة','transfer'],
     transferDate: ['تاريخ التنازل','تاريخ النقل','transfer date'],
@@ -216,6 +216,7 @@
   }
 
   function parseImportRows(rows, uid) {
+    const idGen = (typeof uid === 'function') ? uid : (typeof global.uid === 'function' ? global.uid : () => 'car_' + Math.random().toString(36).slice(2, 9));
     let skipped = 0;
     let derivedInspection = 0;
     const records = [];
@@ -252,14 +253,15 @@
         }
       }
       const car = Object.fromEntries(IMPORT_FIELDS.map(field => [field, values[field] || '']));
-      car.id = uid();
+      car.id = idGen();
       records.push({ car, provided: Array.from(provided) });
     });
 
-    const soldKeys = new Set(records.filter(record => isSoldStatus(record.car.carStatus))
+    const isSoldRecord = (record) => isSoldStatus(record.car.carStatus) || isSoldStatus(record.car.notes);
+    const soldKeys = new Set(records.filter(isSoldRecord)
       .map(record => normalizeHeader(record.car.plate).replace(/[^\p{L}\p{N}]/gu, '')));
-    const sold = records.filter(record => isSoldStatus(record.car.carStatus));
-    const active = records.filter(record => !isSoldStatus(record.car.carStatus)
+    const sold = records.filter(isSoldRecord);
+    const active = records.filter(record => !isSoldRecord(record)
       && !soldKeys.has(normalizeHeader(record.car.plate).replace(/[^\p{L}\p{N}]/gu, '')));
     return { active, sold, skipped, unknown: [...unknown].filter(Boolean), derivedInspection };
   }

@@ -37,6 +37,7 @@ function loadFleetExcel() {
   const sandbox = {
     console, Date, Math, JSON, Intl, Promise, RegExp, Set, Map,
     setTimeout: () => 0, clearTimeout: () => {}, alert() {},
+    uid: () => 'uid-test',
     XLSX: undefined
   };
   sandbox.window = sandbox;
@@ -550,3 +551,32 @@ test('ملف التحقق على القاعدة آمن — بيعمل rollback',
   assert.ok(/set role = 'view'/.test(code),
     'مافيش حساب مشاهدة مؤقت — مفيش أصلاً على المنصة، والاختبار بيفحص والا محدش');
 });
+
+test('استيراد الإكسيل: حذف المباعة والهلاك الكلي (من حالة السيارة أو الملاحظات) دون نقل أي سيارة بين التبويبات', () => {
+  const X = loadFleetExcel();
+  const rows = [
+    { 'رقم اللوحة': '1111 أ ب ج', 'حالة السيارة': 'نشطة', 'اسم الفرع': 'فرع الرياض' },
+    { 'رقم اللوحة': '2222 أ ب ج', 'حالة السيارة': 'مباعة', 'اسم الفرع': 'فرع جدة' },
+    { 'رقم اللوحة': '3333 أ ب ج', 'حالة السيارة': 'نشطة', 'ملاحظات': 'هلاك كلي للسيارة', 'اسم الفرع': 'فرع الدمام' },
+    { 'رقم اللوحة': '4444 أ ب ج', 'حالة السيارة': 'هلاك كلي', 'اسم الفرع': 'فرع مكة' }
+  ];
+
+  const plan = X.parseImportRows(rows);
+  assert.strictEqual(plan.active.length, 1, 'يجب أن تبقى سيارة واحدة نشطة فقط');
+  assert.strictEqual(plan.active[0].car.plate, '1111 أ ب ج');
+  assert.strictEqual(plan.sold.length, 3, 'يجب تحديد 3 سيارات كمباعة/هلاك كلي');
+  
+  const soldPlates = plan.sold.map(s => s.car.plate);
+  assert.ok(soldPlates.includes('2222 أ ب ج'), 'المباعة بحالة السيارة يجب أن تكون في sold');
+  assert.ok(soldPlates.includes('3333 أ ب ج'), 'الهلاك الكلي بالملاحظات يجب أن تكون في sold');
+  assert.ok(soldPlates.includes('4444 أ ب ج'), 'الهلاك الكلي بحالة السيارة يجب أن تكون في sold');
+
+  // التأكد من عدم وجود أي استدعاء لـ markLicenseRenewed في كود استيراد الإكسيل
+  const imp = noComments(read('core/excel-import.js'));
+  assert.ok(!imp.includes('markLicenseRenewed'), 'يجب ألا يحتوي كود استيراد الإكسيل على نقل تلقائي عبر markLicenseRenewed');
+  
+  // التأكد من تنظيف inspection_payments عند حذف السيارات المباعة/الهلاك الكلي
+  assert.ok(imp.includes('inspection_payments'), 'يجب حذف سجلات inspection_payments للسيارات المباعة');
+  assert.ok(imp.includes('YahmaPayments.cancel'), 'يجب إلغاء الدفعات محلياً للسيارات المباعة/الهلاك');
+});
+

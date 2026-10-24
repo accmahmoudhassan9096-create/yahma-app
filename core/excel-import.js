@@ -114,7 +114,7 @@ async function handleExcelFile(file){
   const soldMatches=new Set(plan.sold.map(record=>normalizePlateKey(record.car.plate)));  const soldCount=fleet.filter(car=>soldMatches.has(normalizePlateKey(car.plate))).length;
   const shouldContinue=confirm(
     `معاينة تحديث الأسطول:\n${plan.active.length} صف نشط (${updateCandidates} موجود للتحديث، ${newCandidates} جديد)\n`+
-    `${soldCount} سيارة مباعة سيتم حذفها\n\nسيتم تحديث الحقول غير الفارغة فقط. السيارات غير الموجودة في الملف لن تُحذف.`+
+    `${soldCount} سيارة (مباعة / هلاك كلي) سيتم حذفها من جميع التبويبات\n\nسيتم تحديث الفرع وحالة السيارة وباقي البيانات دون نقل أي سيارة بين التبويبات.`+
     (plan.cardUpdates?`\n${plan.cardUpdates} سيارة شملها تحديث ورقة الكروت (حالة/فرع).`:'')+
     ((plan.unknown&&plan.unknown.length)?`\n\n⚠ أعمدة غير معروفة سيتم تجاهلها: ${plan.unknown.slice(0,8).join('، ')}${plan.unknown.length>8?` (+${plan.unknown.length-8})`:''}`:'')+
     `\nمتابعة؟`
@@ -165,27 +165,6 @@ async function handleExcelFile(file){
     if (typeof ensureBranchName === 'function') {
       [...new Set(fleet.map(c => String(c.branch || '').trim()).filter(Boolean))].forEach(ensureBranchName);
       if (typeof saveBranches === 'function') await saveBranches();
-    }
-  } catch(_) {}
-
-  // 2. تحديث ومزامنة طوابير الدفع (تحت الدفع / تم الدفع / تم التجديد) للسيارات التي تجددت في الشيت
-  try {
-    if (window.YahmaPayments && typeof window.YahmaPayments.localAll === 'function') {
-      const allPayments = window.YahmaPayments.localAll();
-      const updatedCarsMap = new Map(affectedIds.map(id => [String(id), fleet.find(c => String(c.id) === String(id))]).filter(([, c]) => !!c));
-      for (const p of allPayments) {
-        const c = updatedCarsMap.get(String(p.carId));
-        if (!c) continue;
-        const inspOk = (typeof inspectionDisplayStatus === 'function')
-          ? inspectionDisplayStatus(c.inspectionStatus).level === 'green'
-          : c.inspectionStatus === 'تم الفحص';
-        const licOk = (typeof dateStatus === 'function')
-          ? dateStatus(c.licenseExpiry).level === 'green'
-          : false;
-        if (p.status === 'paid' && licOk && typeof window.YahmaPayments.markLicenseRenewed === 'function') {
-          await window.YahmaPayments.markLicenseRenewed(p.id, p.carId);
-        }
-      }
     }
   } catch(_) {}
 
@@ -557,7 +536,22 @@ async function removeSoldVehiclesByPlates(plates,options={}){
   try{ if(window.YahmaUndo) window.YahmaUndo.record(matched,{source:'removeSoldVehiclesByPlates'}); }catch(_){yahmaErr(_,'excel-import.js:493');}
 
   // حذف من Supabase واحدة تلو الأخرى (أو batch)
+  // حذف من طوابير الدفع والفحص (inspection_payments) محلياً ومن السحابة لجميع التبويبات
+  try {
+    if (window.YahmaPayments && typeof window.YahmaPayments.cancel === 'function') {
+      ids.forEach(cid => {
+        try { window.YahmaPayments.cancel(null, cid); } catch (_) {}
+      });
+    }
+  } catch (_) {}
+
   if(!window._demoMode && window.supabaseReady && window.supabaseClient){
+    try {
+      for (let i = 0; i < ids.length; i += 100) {
+        const chunk = ids.slice(i, i + 100);
+        window.supabaseClient.from('inspection_payments').delete().in('car_id', chunk).catch(() => {});
+      }
+    } catch (_) {}
     try{
       for(let i=0;i<ids.length;i+=100){
         const chunk=ids.slice(i,i+100);
