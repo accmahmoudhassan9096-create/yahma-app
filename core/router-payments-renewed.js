@@ -22,6 +22,11 @@ function renderRenewedInspections(content){
   const stampOf=(p)=>(window.YahmaPayments&&typeof window.YahmaPayments.doneStamp==='function')
     ? window.YahmaPayments.doneStamp(p) : p.licenseRenewedAt || null;
   const todayCount=rows.filter(({item})=>{ const s=stampOf(item); return s && new Date(s)>=today; }).length;
+  const needsLicense=({car})=>{
+    const d=car&&car.licenseExpiry?new Date(car.licenseExpiry):null;
+    return !d || isNaN(d.getTime()) || d.getTime() < Date.now();
+  };
+  const pendingLicenseCount=rows.filter(needsLicense).length;
 
   const getBranches = () => {
     const s = new Set();
@@ -48,12 +53,22 @@ function renderRenewedInspections(content){
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip">
     <div class="fleet-summary-card"><span class="fleet-summary-icon">✓</span><span><b>${rows.length}</b><small>إجمالي المجدّد</small></span></div>
     <div class="fleet-summary-card"><span class="fleet-summary-icon">📅</span><span><b>${todayCount}</b><small>تم تجديدها اليوم</small></span></div>
+    <div class="fleet-summary-card ${pendingLicenseCount?'attention':''}"><span class="fleet-summary-icon">📄</span><span><b>${pendingLicenseCount}</b><small>بانتظار تجديد الرخصة</small></span></div>
   </div>
+  ${pendingLicenseCount > 0 ? `
+  <div class="panel" style="border-inline-start:4px solid var(--amber,#D97706);margin-bottom:12px;background:rgba(217,119,6,0.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <div>
+      <b style="color:#B45309">⚠️ تنبيه: يوجد ${pendingLicenseCount} سيارة مسجلة هنا ورخصتها لم تتجدد بعد</b>
+      <div class="muted-small">هذه السيارات تم سداد فحصها لكن لم يصدر لها تاريخ رخصة سارٍ بعد (مكانها الطبيعي هو تبويب «تم الدفع»).</div>
+    </div>
+    ${(typeof payMovableRole === 'function' && payMovableRole()) ? `<button type="button" class="btn btn-primary btn-small" id="btn-revert-unrenewed">↩ إعادة ${pendingLicenseCount} سيارة غير مجددة إلى «تم الدفع»</button>` : ''}
+  </div>` : ''}
   <div class="filter-panel">
     <div class="filter-panel-title"><strong>🔎 فلاتر تم التجديد</strong><span>صفِّ النتائج حسب اللوحة، الفرع، المستخدم، أو التاريخ</span></div>
     <div class="quick-filters" id="renewed-quick">
       <button type="button" class="quick-filter active" data-rq="all">الكل</button>
       <button type="button" class="quick-filter" data-rq="today">📅 تم تجديدها اليوم</button>
+      ${pendingLicenseCount > 0 ? `<button type="button" class="quick-filter" data-rq="needs-license">⚠️ بانتظار تجديد الرخصة (${pendingLicenseCount})</button>` : ''}
     </div>
     <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
       <label>بحث<input id="pay-search-renewed" placeholder="رقم اللوحة، الفرع، المالك، المستخدم، الملاحظات..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
@@ -84,6 +99,7 @@ function renderRenewedInspections(content){
     return rows.filter(({item, car}) => {
       const stamp = stampOf(item);
       if (activeRQ === 'today' && (!stamp || new Date(stamp) < today)) return false;
+      if (activeRQ === 'needs-license' && !needsLicense({car})) return false;
 
       if (q) {
         const hay = [car.plate, item.plate, car.branch, item.branch, car.serial, car.accountNo, car.ownerNumber, car.owner, car.companyName, car.licenseExpiry, car.notes, formatArabicDate(stamp), resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
@@ -190,5 +206,29 @@ function renderRenewedInspections(content){
 
   draw();
   bindPaymentsDiagnostic(content);
+
+  const btnRev = content.querySelector('#btn-revert-unrenewed');
+  if (btnRev) {
+    btnRev.onclick = async () => {
+      const targets = rows.filter(needsLicense);
+      if (!targets.length) {
+        alert('لا توجد سيارات بحاجة للإعادة.');
+        return;
+      }
+      if (!confirm('إعادة ' + targets.length + ' سيارة لم تتجدد رخصتها بعد إلى تبويب «تم الدفع»؟\n\nستعود هذه السيارات فورًا إلى قائمة «تم الدفع» حتى يتم تجديد رخصها فعليًا.')) return;
+      btnRev.disabled = true;
+      btnRev.textContent = 'جارِ النقل...';
+      for (const r of targets) {
+        try {
+          if (typeof PAY_ITEM_ACTION !== 'undefined' && PAY_ITEM_ACTION.back2) {
+            await PAY_ITEM_ACTION.back2(r.item, r.car, true);
+          }
+        } catch (e) {
+          if (typeof yahmaErr === 'function') yahmaErr(e, 'router-payments-renewed.js:btn-revert-unrenewed');
+        }
+      }
+      render();
+    };
+  }
 }
 

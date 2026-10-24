@@ -182,7 +182,7 @@ async function handleExcelFile(file){
         const licOk = (typeof dateStatus === 'function')
           ? dateStatus(c.licenseExpiry).level === 'green'
           : false;
-        if (p.status !== 'done' && (inspOk || licOk) && typeof window.YahmaPayments.markLicenseRenewed === 'function') {
+        if (p.status === 'paid' && licOk && typeof window.YahmaPayments.markLicenseRenewed === 'function') {
           await window.YahmaPayments.markLicenseRenewed(p.id, p.carId);
         }
       }
