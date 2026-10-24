@@ -9,15 +9,19 @@
       الدالة هي اللي بترسمها على الشاشة أو تصدّرها Excel/PDF.
       يعني مفيش نسختين من نفس الحساب تفرّقوا مع الوقت.
 
-   التقارير الثمانية:
+   التقارير المتاحة:
      1) ملخص تنفيذي
      2) الجاهزية حسب الفرع
-     3) الوثائق (كارت/رخصة/تأمين/فحص)
-     4) الحالات وأسباب عدم الجاهزية + المناطق
-     5) أعمار الأسطول
-     6) التسعير والعداد (سعر اليوم وقيمة الأسطول واستهلاك كل فرع)
-     7) قائمة المتابعة (السيارات اللي محتاجة إجراء)
-     8) التنازلات
+     3) دورة الفحص والمدفوعات والتجديد
+     4) حركة الأسطول والسيارات الراكدة
+     5) الصيانة ومراكز الخدمة والورش
+     6) الشركات والملاك والتأمين
+     7) الوثائق (كارت/رخصة/تأمين/فحص)
+     8) الحالات وأسباب عدم الجاهزية + المناطق
+     9) أعمار الأسطول
+     10) التسعير والعداد (سعر اليوم وقيمة الأسطول واستهلاك كل فرع)
+     11) قائمة المتابعة (السيارات اللي محتاجة إجراء)
+     12) التنازلات
 
    ملاحظات مهمة:
    · الجاهزية بتيجي من YahmaReadiness.vehicle — نفس الدالة اللي
@@ -726,9 +730,468 @@
     };
   }
 
+  function buildPipeline(model, list) {
+    var pData = (function () {
+      var p = global.YahmaPayments;
+      var pending = [];
+      var paid = [];
+      var renewed = [];
+      var carMap = {};
+      try {
+        if (p && typeof p.localByStatus === 'function') {
+          pending = p.localByStatus('pending') || [];
+        }
+        if (p && typeof p.pendingList === 'function') {
+          paid = p.pendingList() || [];
+        } else if (p && typeof p.localByStatus === 'function') {
+          var allPaid = p.localByStatus('paid') || [];
+          var isRen = typeof p.isRenewed === 'function' ? p.isRenewed : function () { return false; };
+          paid = allPaid.filter(function (x) { return !isRen(x); });
+          renewed = allPaid.filter(isRen);
+        }
+        if (p && typeof p.renewedList === 'function') {
+          renewed = p.renewedList() || [];
+        }
+      } catch (_) {}
+      pending.forEach(function (x) { if (x && x.carId) carMap[String(x.carId)] = { stage: 'تحت الدفع', item: x }; });
+      paid.forEach(function (x) { if (x && x.carId) carMap[String(x.carId)] = { stage: 'تم الدفع', item: x }; });
+      renewed.forEach(function (x) { if (x && x.carId) carMap[String(x.carId)] = { stage: 'تم التجديد', item: x }; });
+      return { pending: pending, paid: paid, renewed: renewed, carMap: carMap };
+    })();
+
+    var bMap = {};
+    var stageCounts = { insp: 0, pending: 0, paid: 0, renewed: 0 };
+    var activeRows = [];
+
+    (list || []).forEach(function (car) {
+      if (!car) return;
+      var bName = String(car.branch || '').trim() || 'بدون فرع';
+      if (!bMap[bName]) bMap[bName] = { total: 0, insp: 0, pending: 0, paid: 0, renewed: 0 };
+      bMap[bName].total++;
+
+      var payInfo = pData.carMap[String(car.id)];
+      var isInspNeeded = (typeof global.YahmaUtils !== 'undefined' && typeof global.YahmaUtils.inspectionDisplayStatus === 'function')
+        ? global.YahmaUtils.inspectionDisplayStatus(car.inspectionStatus).level !== 'green'
+        : (car.inspectionStatus === 'لم يفحص');
+
+      if (payInfo) {
+        if (payInfo.stage === 'تحت الدفع') {
+          stageCounts.pending++;
+          bMap[bName].pending++;
+          activeRows.push({
+            plate: car.plate || '—',
+            branch: bName,
+            stage: 'تحت الدفع',
+            date: payInfo.item.requestedAt || '—',
+            notes: car.notes || '—'
+          });
+        } else if (payInfo.stage === 'تم الدفع') {
+          stageCounts.paid++;
+          bMap[bName].paid++;
+          activeRows.push({
+            plate: car.plate || '—',
+            branch: bName,
+            stage: 'تم الدفع (بانتظار التجديد)',
+            date: payInfo.item.paidAt || payInfo.item.requestedAt || '—',
+            notes: car.notes || '—'
+          });
+        } else if (payInfo.stage === 'تم التجديد') {
+          stageCounts.renewed++;
+          bMap[bName].renewed++;
+        }
+      } else if (isInspNeeded) {
+        stageCounts.insp++;
+        bMap[bName].insp++;
+      }
+    });
+
+    var bRows = Object.keys(bMap).map(function (name) {
+      var b = bMap[name];
+      var inPipeline = b.insp + b.pending + b.paid + b.renewed;
+      var renPct = inPipeline ? pctOf(b.renewed, inPipeline) : 100;
+      return [name, b.total, b.insp, b.pending, b.paid, b.renewed, renPct];
+    }).sort(function (a, b) { return b[1] - a[1]; });
+
+    var totalInPipeline = stageCounts.insp + stageCounts.pending + stageCounts.paid + stageCounts.renewed;
+    var estPaidFees = (stageCounts.paid + stageCounts.renewed) * 115;
+    var renOverallPct = totalInPipeline ? pctOf(stageCounts.renewed, totalInPipeline) : 100;
+
+    return {
+      title: 'دورة الفحص والمدفوعات والتجديد',
+      subtitle: 'متابعة مسار تجديد الأسطول: من الفحص الدوري إلى سداد الرسوم وإتمام تجديد رخصة السير.',
+      kpis: [
+        { label: 'تحت الفحص الدوري', value: num(stageCounts.insp), cls: stageCounts.insp ? 'warn' : 'good' },
+        { label: 'تحت الدفع (معلقة)', value: num(stageCounts.pending), cls: stageCounts.pending ? 'bad' : 'good' },
+        { label: 'تم الدفع (بانتظار التجديد)', value: num(stageCounts.paid), cls: stageCounts.paid ? 'warn' : 'good' },
+        { label: 'تم التجديد بنجاح', value: num(stageCounts.renewed), cls: 'good' },
+        { label: 'رسوم تم سدادها (تقديري)', value: num(estPaidFees) + ' ر.س', hint: '115 ر.س / فحص' },
+        { label: 'نسبة إتمام التجديد', value: renOverallPct + '%', cls: renOverallPct >= 70 ? 'good' : 'warn' }
+      ],
+      sections: [
+        {
+          title: 'مراحل دورة الفحص والتجديد حسب الفرع',
+          note: 'توزيع السيارات في مراحل الفحص والدفع والتجديد لكل فرع.',
+          headers: ['الفرع', 'إجمالي السيارات', 'تحت الفحص', 'تحت الدفع', 'تم الدفع', 'تم التجديد', 'نسبة الإنجاز'],
+          rows: bRows,
+          foot: ['الإجمالي', model.total, stageCounts.insp, stageCounts.pending, stageCounts.paid, stageCounts.renewed, renOverallPct],
+          barCol: 6
+        },
+        {
+          title: 'السيارات العالقة في مسار الدفع والتجديد',
+          note: 'السيارات التي تم طلب سدادها أو دفعها ولم تكتمل بعد لتجديد الرخصة.',
+          headers: ['اللوحة', 'الفرع', 'المرحلة الحالية', 'تاريخ الحركة', 'الملاحظات'],
+          rows: activeRows.slice(0, 150).map(function (r) {
+            return [r.plate, r.branch, r.stage, r.date, r.notes];
+          })
+        }
+      ]
+    };
+  }
+
+  function buildMovement(model, list) {
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    var bMap = {};
+    var idle15Count = 0;
+    var idle30Count = 0;
+    var idle60Count = 0;
+    var rentedNowCount = 0;
+    var rentedDaysTotal = 0;
+    var rentedDaysCars = 0;
+    var maxIdleDays = 0;
+    var idleList = [];
+
+    (list || []).forEach(function (car) {
+      if (!car) return;
+      var bName = String(car.branch || '').trim() || 'بدون فرع';
+      if (!bMap[bName]) {
+        bMap[bName] = { total: 0, rentedNow: 0, idle15: 0, idle30: 0, rentedDaysSum: 0, rentedDaysCount: 0 };
+      }
+      bMap[bName].total++;
+
+      var status = String(car.carStatus || '').trim();
+      var isRentedNow = (status === 'مؤجرة');
+      if (isRentedNow) {
+        rentedNowCount++;
+        bMap[bName].rentedNow++;
+      }
+
+      var days = null;
+      if (car.daysSinceMovement !== undefined && car.daysSinceMovement !== null && car.daysSinceMovement !== '') {
+        var n = Number(car.daysSinceMovement);
+        if (isFinite(n) && n >= 0) days = n;
+      }
+      if (days === null && car.lastMovementDate) {
+        var d = new Date(String(car.lastMovementDate).trim());
+        if (!isNaN(d.getTime())) {
+          days = Math.max(0, Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24)));
+        }
+      }
+
+      if (days !== null) {
+        if (days > maxIdleDays) maxIdleDays = days;
+        if (days >= 15) {
+          idle15Count++;
+          bMap[bName].idle15++;
+        }
+        if (days >= 30) {
+          idle30Count++;
+          bMap[bName].idle30++;
+        }
+        if (days >= 60) idle60Count++;
+
+        if (days >= 15 && !isRentedNow) {
+          idleList.push({
+            plate: car.plate || '—',
+            brandType: (car.brand || '') + ' ' + (car.type || car.model || ''),
+            branch: bName,
+            lastDate: car.lastMovementDate || '—',
+            idleDays: days,
+            status: status || '—',
+            rate: car.dailyRate ? num(car.dailyRate) + ' ر.س' : '—'
+          });
+        }
+      }
+
+      var rDays = Number(car.rentedDaysMonth);
+      if (isFinite(rDays) && rDays > 0) {
+        rentedDaysTotal += rDays;
+        rentedDaysCars++;
+        bMap[bName].rentedDaysSum += rDays;
+        bMap[bName].rentedDaysCount++;
+      }
+    });
+
+    idleList.sort(function (a, b) { return b.idleDays - a.idleDays; });
+
+    var bRows = Object.keys(bMap).map(function (name) {
+      var b = bMap[name];
+      var avgRented = b.rentedDaysCount ? Math.round((b.rentedDaysSum / b.rentedDaysCount) * 10) / 10 : 0;
+      var utilPct = b.total ? pctOf(b.rentedNow, b.total) : 0;
+      return [name, b.total, b.rentedNow, b.idle15, b.idle30, avgRented, utilPct];
+    }).sort(function (a, b) { return b[1] - a[1]; });
+
+    var avgRentedDaysOverall = rentedDaysCars ? Math.round((rentedDaysTotal / rentedDaysCars) * 10) / 10 : 0;
+    var overallUtilPct = model.total ? pctOf(rentedNowCount, model.total) : 0;
+
+    return {
+      title: 'حركة وتشغيل الأسطول (الراكدة والتشغيل)',
+      subtitle: 'تحليل معدلات تشغيل الأسطول، وكشف السيارات الراكدة التي لم تتحرك منذ فترات طويلة.',
+      kpis: [
+        { label: 'مؤجرة الآن (نشطة)', value: num(rentedNowCount), cls: 'good', hint: overallUtilPct + '% نسبة التشغيل' },
+        { label: 'راكدة (+15 يوم)', value: num(idle15Count), cls: idle15Count ? 'warn' : 'good' },
+        { label: 'راكدة بشدة (+30 يوم)', value: num(idle30Count), cls: idle30Count ? 'bad' : 'good' },
+        { label: 'حرجة (+60 يوم)', value: num(idle60Count), cls: idle60Count ? 'bad' : '' },
+        { label: 'متوسط أيام التأجير', value: avgRentedDaysOverall ? avgRentedDaysOverall + ' يوم' : '—', hint: 'شهرياً للسيارة' },
+        { label: 'أعلى فترة ركود', value: maxIdleDays ? maxIdleDays + ' يوم' : '—', cls: maxIdleDays > 45 ? 'bad' : '' }
+      ],
+      sections: [
+        {
+          title: 'تحليل التشغيل والركود حسب الفرع',
+          note: 'نسبة التشغيل = السيارات المؤجرة حالياً ÷ إجمالي سيارات الفرع.',
+          headers: ['الفرع', 'السيارات', 'مؤجرة حالياً', 'راكدة (+15 يوم)', 'راكدة (+30 يوم)', 'متوسط أيام التأجير', 'نسبة التشغيل'],
+          rows: bRows,
+          foot: ['الإجمالي', model.total, rentedNowCount, idle15Count, idle30Count, avgRentedDaysOverall, overallUtilPct],
+          barCol: 6
+        },
+        {
+          title: 'قائمة أعلى السيارات ركوداً (تتطلب تدخلاً تشغيلياً أو ترويجياً)',
+          note: 'السيارات غير المؤجرة التي مضى على آخر حركة لها 15 يوماً فأكثر مرتبة من الأكثر ركوداً.',
+          headers: ['اللوحة', 'الماركة / الفئة', 'الفرع', 'تاريخ آخر حركة', 'أيام الركود', 'الحالة الحالية', 'سعر اليوم'],
+          rows: idleList.slice(0, 150).map(function (r) {
+            return [r.plate, r.brandType, r.branch, r.lastDate, r.idleDays, r.status, r.rate];
+          })
+        }
+      ]
+    };
+  }
+
+  function buildMaintenance(model, list) {
+    var bMap = {};
+    var shopMap = {};
+    var totalCost = 0;
+    var maintCarsCount = 0;
+    var underMaintCount = 0;
+    var maxCarCost = 0;
+    var maintList = [];
+
+    (list || []).forEach(function (car) {
+      if (!car) return;
+      var bName = String(car.branch || '').trim() || 'بدون فرع';
+      if (!bMap[bName]) bMap[bName] = { total: 0, cost: 0, cars: 0, underMaint: 0 };
+      bMap[bName].total++;
+
+      var status = String(car.carStatus || '').trim();
+      var isUnderMaint = (status === 'تحت الصيانة' || status === 'صيانة');
+      if (isUnderMaint) {
+        underMaintCount++;
+        bMap[bName].underMaint++;
+      }
+
+      var cost = Number(car.maintenanceCost);
+      var hasCost = isFinite(cost) && cost > 0;
+      var shop = String(car.workshop || '').trim();
+      var nextServ = String(car.nextService || '').trim();
+      var lastServ = String(car.lastMaintenance || '').trim();
+
+      if (hasCost) {
+        totalCost += cost;
+        maintCarsCount++;
+        bMap[bName].cost += cost;
+        bMap[bName].cars++;
+        if (cost > maxCarCost) maxCarCost = cost;
+      }
+
+      if (shop) {
+        if (!shopMap[shop]) shopMap[shop] = { count: 0, cost: 0 };
+        shopMap[shop].count++;
+        if (hasCost) shopMap[shop].cost += cost;
+      }
+
+      if (hasCost || shop || nextServ || isUnderMaint) {
+        maintList.push({
+          plate: car.plate || '—',
+          branch: bName,
+          shop: shop || '—',
+          nextService: nextServ || '—',
+          lastMaint: lastServ || '—',
+          cost: hasCost ? cost : 0,
+          notes: car.maintenanceNotes || car.notes || '—'
+        });
+      }
+    });
+
+    maintList.sort(function (a, b) { return b.cost - a.cost; });
+
+    var bRows = Object.keys(bMap).map(function (name) {
+      var b = bMap[name];
+      var avgCost = b.cars ? Math.round(b.cost / b.cars) : 0;
+      return [name, b.total, b.cars, b.cost, avgCost, b.underMaint];
+    }).sort(function (a, b) { return b[3] - a[3] || b[1] - a[1]; });
+
+    var shopRows = Object.keys(shopMap).map(function (name) {
+      var s = shopMap[name];
+      var avgBill = s.count ? Math.round(s.cost / s.count) : 0;
+      var costShare = totalCost ? pctOf(s.cost, totalCost) : 0;
+      return [name, s.count, s.cost, avgBill, costShare];
+    }).sort(function (a, b) { return b[2] - a[2] || b[1] - a[1]; });
+
+    var avgOverallCost = maintCarsCount ? Math.round(totalCost / maintCarsCount) : 0;
+
+    return {
+      title: 'الصيانة ومراكز الخدمة والورش',
+      subtitle: 'حصر تكاليف ومصروفات الصيانة، وتوزيع الأعمال على الورش ومراكز الصيانة، وتنبيهات الخدمة الدورية.',
+      kpis: [
+        { label: 'إجمالي تكاليف الصيانة', value: num(totalCost) + ' ر.س', cls: totalCost ? 'warn' : 'good' },
+        { label: 'متوسط تكلفة السيارة', value: num(avgOverallCost) + ' ر.س', hint: 'لكل سيارة خضعت لصيانة' },
+        { label: 'سيارات تحت الصيانة', value: num(underMaintCount), cls: underMaintCount ? 'warn' : 'good' },
+        { label: 'سيارات ذات صيانة مسجلة', value: num(maintCarsCount) },
+        { label: 'ورش ومراكز معتمدة', value: num(Object.keys(shopMap).length) },
+        { label: 'أعلى تكلفة صيانة', value: num(maxCarCost) + ' ر.س' }
+      ],
+      sections: [
+        {
+          title: 'مصروفات الصيانة حسب الفرع',
+          note: 'متوسط التكلفة = إجمالي التكلفة ÷ عدد السيارات التي خضعت للصيانة.',
+          headers: ['الفرع', 'إجمالي السيارات', 'سيارات خضعت للصيانة', 'إجمالي التكلفة (ر.س)', 'متوسط التكلفة', 'تحت الصيانة حالياً'],
+          rows: bRows,
+          foot: ['الإجمالي', model.total, maintCarsCount, totalCost, avgOverallCost, underMaintCount]
+        },
+        {
+          title: 'توزيع الأعمال والمصروفات حسب الورشة ومراكز الخدمة',
+          note: 'حصر الورش المسجلة والمبالغ المنفقة في كل مركز.',
+          headers: ['الورشة / المركز', 'السيارات المخدومة', 'إجمالي التكلفة (ر.س)', 'متوسط الفاتورة (ر.س)', 'النسبة من المصروفات'],
+          rows: shopRows,
+          foot: ['الإجمالي', maintCarsCount, totalCost, avgOverallCost, totalCost ? 100 : 0],
+          barCol: 4
+        },
+        {
+          title: 'السيارات الأكثر تكلفة في الصيانة أو ذات مواعيد قادمة',
+          note: 'أعلى السيارات تكلفة صيانة مسجلة مرتبة تنازلياً.',
+          headers: ['اللوحة', 'الفرع', 'الورشة', 'موعد الصيانة القادمة', 'آخر صيانة', 'التكلفة (ر.س)', 'ملاحظات الصيانة'],
+          rows: maintList.slice(0, 150).map(function (r) {
+            return [r.plate, r.branch, r.shop, r.nextService, r.lastMaint, r.cost, r.notes];
+          })
+        }
+      ]
+    };
+  }
+
+  function buildCompanies(model, list) {
+    var compMap = {};
+    var ownerMap = {};
+    var insCompMap = {};
+    var compCarsCount = 0;
+    var ownerCarsCount = 0;
+
+    (list || []).forEach(function (car) {
+      if (!car) return;
+      var cName = String(car.companyName || '').trim();
+      var oName = String(car.owner || '').trim();
+      var insComp = String(car.insuranceCompany || '').trim();
+      var rate = Number(car.dailyRate);
+      var validRate = isFinite(rate) && rate > 0 ? rate : 0;
+
+      if (cName) {
+        compCarsCount++;
+        if (!compMap[cName]) compMap[cName] = { count: 0, rateSum: 0, rateCount: 0, accounts: new Set() };
+        compMap[cName].count++;
+        if (validRate) {
+          compMap[cName].rateSum += validRate;
+          compMap[cName].rateCount++;
+        }
+        if (car.accountNo) compMap[cName].accounts.add(String(car.accountNo).trim());
+      }
+
+      if (oName) {
+        ownerCarsCount++;
+        if (!ownerMap[oName]) ownerMap[oName] = { count: 0 };
+        ownerMap[oName].count++;
+      }
+
+      if (insComp) {
+        if (!insCompMap[insComp]) insCompMap[insComp] = { total: 0, active: 0, soon: 0, expired: 0 };
+        insCompMap[insComp].total++;
+        var ins = (typeof global.YahmaUtils !== 'undefined' && typeof global.YahmaUtils.textTag === 'function')
+          ? global.YahmaUtils.textTag(car.insuranceStatus) : null;
+        var lvl = ins && ins.level;
+        if (lvl === 'green') insCompMap[insComp].active++;
+        else if (lvl === 'amber') insCompMap[insComp].soon++;
+        else insCompMap[insComp].expired++;
+      }
+    });
+
+    var compRows = Object.keys(compMap).map(function (name) {
+      var c = compMap[name];
+      var avgRate = c.rateCount ? Math.round(c.rateSum / c.rateCount) : 0;
+      var pct = pctOf(c.count, model.total);
+      var accStr = c.accounts.size ? Array.from(c.accounts).slice(0, 3).join(', ') + (c.accounts.size > 3 ? '...' : '') : '—';
+      return [name, c.count, pct, accStr, avgRate];
+    }).sort(function (a, b) { return b[1] - a[1]; });
+
+    var insCompRows = Object.keys(insCompMap).map(function (name) {
+      var ic = insCompMap[name];
+      var validPct = ic.total ? pctOf(ic.active, ic.total) : 0;
+      return [name, ic.total, ic.active, ic.soon, ic.expired, validPct];
+    }).sort(function (a, b) { return b[1] - a[1]; });
+
+    var ownerRows = Object.keys(ownerMap).map(function (name) {
+      var o = ownerMap[name];
+      var pct = pctOf(o.count, model.total);
+      return [name, o.count, pct];
+    }).sort(function (a, b) { return b[1] - a[1]; });
+
+    var totalInsActive = model.insurance.active;
+    var totalInsAll = model.insurance.active + model.insurance.soon + model.insurance.expired + model.insurance.none;
+    var overallInsPct = totalInsAll ? pctOf(totalInsActive, totalInsAll) : 0;
+
+    return {
+      title: 'الشركات والملاك وشركات التأمين',
+      subtitle: 'حصر الأسطول حسب شركات التمويل والتأجير وأرقام الحسابات، وتوزيع الملاك وتغطيات شركات التأمين.',
+      kpis: [
+        { label: 'شركات تمويل/تأجير', value: num(Object.keys(compMap).length) },
+        { label: 'سيارات تابعة لشركات', value: num(compCarsCount), hint: pctLabel(compCarsCount, model.total) + ' من الأسطول' },
+        { label: 'ملاك مسجلون', value: num(Object.keys(ownerMap).length) },
+        { label: 'شركات تأمين معتمدة', value: num(Object.keys(insCompMap).length) },
+        { label: 'نسبة سريان التأمين', value: overallInsPct + '%', cls: overallInsPct >= 80 ? 'good' : 'warn' },
+        { label: 'إجمالي الأسطول', value: num(model.total) }
+      ],
+      sections: [
+        {
+          title: 'توزيع الأسطول حسب شركة التمويل / التأجير',
+          note: 'حصر الشركات الممولة والمالكة وأرقام الحسابات المسجلة ومتوسط الأسعار.',
+          headers: ['اسم الشركة', 'السيارات', 'النسبة من الأسطول', 'أرقام الحاسب المسجلة', 'متوسط سعر اليوم'],
+          rows: compRows,
+          foot: ['الإجمالي', compCarsCount, pctOf(compCarsCount, model.total), '—', '—'],
+          barCol: 2
+        },
+        {
+          title: 'تحليل وثائق التأمين حسب شركة التأمين',
+          note: 'توزيع وثائق التأمين ونسب سريانها لكل شركة تأمين.',
+          headers: ['شركة التأمين', 'إجمالي الوثائق', 'سارية', 'تنتهي قريباً', 'منتهية / غير سارية', 'نسبة السريان'],
+          rows: insCompRows,
+          barCol: 5
+        },
+        {
+          title: 'توزيع الأسطول حسب المالك',
+          note: 'حصر السيارات المسجلة بأسماء الملاك الأفراد.',
+          headers: ['اسم المالك', 'السيارات', 'النسبة من الأسطول'],
+          rows: ownerRows,
+          foot: ['الإجمالي', ownerCarsCount, pctOf(ownerCarsCount, model.total)],
+          barCol: 2
+        }
+      ]
+    };
+  }
+
   var REPORTS = [
     { id: 'overview', label: 'ملخص تنفيذي', build: buildOverview },
     { id: 'readiness', label: 'الجاهزية حسب الفرع', build: buildReadiness },
+    { id: 'pipeline', label: 'دورة الفحص والمدفوعات', build: buildPipeline },
+    { id: 'movement', label: 'حركة الأسطول والراكدة', build: buildMovement },
+    { id: 'maintenance', label: 'الصيانة والورش', build: buildMaintenance },
+    { id: 'companies', label: 'الشركات والتأمين', build: buildCompanies },
     { id: 'docs', label: 'الوثائق', build: buildDocs },
     { id: 'states', label: 'الحالات والمناطق', build: buildStates },
     { id: 'ages', label: 'الأعمار', build: buildAges },
