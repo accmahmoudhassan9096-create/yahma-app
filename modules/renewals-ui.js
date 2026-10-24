@@ -213,8 +213,14 @@ function renderRenewals(content, mode='inspection'){
         if(inspectionDisplayStatus(c.inspectionStatus).level !== 'red') return false;
       }
       if(q){
-        const hay=[c.plate,c.brand,c.model,c.owner,c.branch,c.carStatus,c.inspectionStatus,c.insuranceCompany].map(v=>String(v||'').toLowerCase()).join(' ');
-        if(!hay.includes(q)) return false;
+        /* نفس منطق تبويب الأسطول: أرقام اللوحة القصيرة ما تتطابقش مع
+           الرقم التسلسلي. modules/utils.js: carMatchesSearch */
+        if(typeof carMatchesSearch === 'function'){
+          if(!carMatchesSearch(c,q)) return false;
+        } else {
+          const hay=[c.plate,c.brand,c.model,c.owner,c.branch,c.carStatus,c.inspectionStatus,c.insuranceCompany].map(v=>String(v||'').toLowerCase()).join(' ');
+          if(!hay.includes(q)) return false;
+        }
       }
       if(val('ren-branch') && !eq(c.branch,val('ren-branch'))) return false;
       if(val('ren-owner') && !eq(c.owner,val('ren-owner'))) return false;

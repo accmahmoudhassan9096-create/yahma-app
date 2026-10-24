@@ -370,13 +370,79 @@
 
   function todayStr() { return new Date().toISOString().slice(0, 10); }
 
+  /* ===== البحث في الجداول =====
+
+     المشكلة: البحث كان بيجمع كل الحقول (ومنها الرقم التسلسلي ورقم
+     البطاقة) في نص واحد ويعمل عليه `includes`. فكتابة «7615» كانت
+     بترجّع أي سيارة رقمها التسلسلي فيه 7615 (زي 376157020) — وده
+     اللي المستخدم شافه: نتائج بأرقام لوحات تانية.
+
+     القاعدة الجديدة:
+       • أرقام أقل من 6 خانات = بحث في أرقام اللوحة بس.
+       • أرقام 6 خانات أو أكتر = ممكن تكون تسلسلي/بطاقة، فنسمح
+         بمطابقة جزئية فيهم كمان.
+       • حروف = اللوحة (بالترتيب أو معكوسة) أو أي حقل نصي.
+       • الرقم التسلسلي/البطاقة بالكامل بيتطابقوا دايمًا. */
+  const SEARCH_TEXT_FIELDS = ['brand','type','model','city','owner','branch','carStatus','inspectionStatus','insuranceCompany'];
+  const AR_DIGITS = { '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9' };
+  function normalizeSearchText(value) {
+    return String(value == null ? '' : value)
+      .replace(/[٠-٩]/g, d => AR_DIGITS[d])
+      .replace(/[أإآٱ]/g, 'ا')
+      .replace(/ى/g, 'ي')
+      .replace(/ة/g, 'ه')
+      .replace(/[\u064B-\u0652\u0640]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function plateSearchParts(plate) {
+    const norm = normalizeSearchText(plate).replace(/[^0-9a-z\u0600-\u06ff]+/g, ' ').trim();
+    const parts = norm ? norm.split(' ') : [];
+    const digits = [], letters = [];
+    parts.forEach(part => { (/\d/.test(part) ? digits : letters).push(part); });
+    return { compact: parts.join(''), digits, letters };
+  }
+  function plateMatchesQuery(plate, query) {
+    const q = normalizeSearchText(query);
+    if (!q) return true;
+    const parts = plateSearchParts(plate);
+    if (!parts.compact) return false;
+    if (/^\d+$/.test(q)) return parts.digits.some(d => d.indexOf(q) > -1);
+    const qCompact = q.replace(/[^0-9a-z\u0600-\u06ff]+/g, '');
+    if (!qCompact) return true;
+    if (parts.compact.indexOf(qCompact) > -1) return true;
+    /* «8842 ر ح ط» = «ر ح ط 8842» */
+    return (parts.digits.join('') + parts.letters.join('')).indexOf(qCompact) > -1;
+  }
+  function onlyDigits(value) { return normalizeSearchText(value).replace(/\D+/g, ''); }
+  function carMatchesSearch(car, query) {
+    const q = normalizeSearchText(query);
+    if (!q) return true;
+    if (plateMatchesQuery(car.plate, q)) return true;
+    if (/^\d+$/.test(q)) {
+      const serial = onlyDigits(car.serial);
+      const card = onlyDigits(car.cardNumber);
+      if (q.length >= 6) {
+        return (!!serial && serial.indexOf(q) > -1) || (!!card && card.indexOf(q) > -1);
+      }
+      return serial === q || card === q;
+    }
+    if (!car._searchHayN) {
+      car._searchHayN = SEARCH_TEXT_FIELDS.map(f => normalizeSearchText(car[f])).join(' ');
+    }
+    if (car._searchHayN.indexOf(q) > -1) return true;
+    return normalizeSearchText(car.serial) === q || normalizeSearchText(car.cardNumber) === q;
+  }
+
   const api = {
     uid, normalizeDateValue, daysFromNow, expiresWithinMonths, dateStatus, licenseDisplayStatus,
     cardDisplayStatus, inspectionDisplayStatus, textTag, escapeHtml,
     fmtDate, addDays, addYears, defaultLicenseExpiry, LICENSE_YEARS, todayStr,
     carStatusOut, carStatusActive, carStatusMatch, carStatusReady, normStatus,
     brandKey, canonicalBrand, REGION_DEFS, regionOfBranch, CITY_COORDS, cityOfBranch,
-    CHURN_DOCS, CHURN_BUCKETS, carChurn, churnStats
+    CHURN_DOCS, CHURN_BUCKETS, carChurn, churnStats,
+    normalizeSearchText, plateMatchesQuery, carMatchesSearch
   };
   global.YahmaUtils = api;
   Object.assign(global, api);

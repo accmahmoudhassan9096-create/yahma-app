@@ -90,12 +90,18 @@
         if (filters.branch && car.branch !== filters.branch) continue;
         if (filters.carStatus && car.carStatus !== filters.carStatus) continue;
         if (query) {
-          if (!car._searchHay) {
-            car._searchHay = [car.plate, car.brand, car.type, car.model, car.serial,
-              car.cardNumber, car.owner, car.branch, car.carStatus]
-              .map(value => String(value || '').toLowerCase()).join(' ');
+          /* نفس منطق البحث في التبويب — اللوحة لوحدها للأرقام القصيرة.
+             modules/utils.js: carMatchesSearch */
+          if (typeof carMatchesSearch === 'function') {
+            if (!carMatchesSearch(car, query)) continue;
+          } else {
+            if (!car._searchHay) {
+              car._searchHay = [car.plate, car.brand, car.type, car.model, car.serial,
+                car.cardNumber, car.owner, car.branch, car.carStatus]
+                .map(value => String(value || '').toLowerCase()).join(' ');
+            }
+            if (!car._searchHay.includes(query)) continue;
           }
-          if (!car._searchHay.includes(query)) continue;
         }
         if (needsStatus) {
           if (filters.cardCondition && options.helpers.cardState(car).level !== filters.cardCondition) continue;

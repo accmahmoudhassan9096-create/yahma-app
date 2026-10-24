@@ -364,10 +364,17 @@
       if(fCity && String(c.city||'')!==fCity) continue;
       if(fCarSt && !carStatusMatch(c.carStatus,fCarSt)) continue;
       if(q){
-        if(!c._searchHay){
-          c._searchHay=[c.plate,c.brand,c.type,c.model,c.city,c.serial,c.cardNumber,c.owner,c.branch,c.carStatus].map(v=>String(v||'').toLowerCase()).join(' ');
+        /* البحث بقى بيفرّق بين اللوحة والرقم التسلسلي — modules/utils.js:
+           carMatchesSearch. قبل كده «7615» كانت تجيب أي سيارة تسلسلها
+           فيه 7615. */
+        if(typeof carMatchesSearch === 'function'){
+          if(!carMatchesSearch(c,q)) continue;
+        } else {
+          if(!c._searchHay){
+            c._searchHay=[c.plate,c.brand,c.type,c.model,c.city,c.serial,c.cardNumber,c.owner,c.branch,c.carStatus].map(v=>String(v||'').toLowerCase()).join(' ');
+          }
+          if(!c._searchHay.includes(q)) continue;
         }
-        if(!c._searchHay.includes(q)) continue;
       }
       if(needStatus){
         if(fCardCond && cardState(c).level!==fCardCond) continue;
