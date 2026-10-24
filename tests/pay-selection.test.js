@@ -146,3 +146,13 @@ test('الضغط على الخلية يقلب التحديد — مش بس ال�
   assert.ok(/applyPayCheck\(box\)/.test(boxBranch[0]),
     'بعد ما نقلب لازم نطبّق التحديد');
 });
+
+test('تبويب تحت الدفع يحتوي على فلتر الملاحظات (قائمة منسدلة + أزرار سريعة)', () => {
+  const pendingCode = noComments(read('core/router-payments-pending.js'));
+  assert.ok(pendingCode.includes('pay-note-payments'), 'قائمة الملاحظات pay-note-payments مفقودة');
+  assert.ok(pendingCode.includes('pending-quick'), 'شريط الفلترة السريعة للملاحظات pending-quick مفقود');
+  assert.ok(pendingCode.includes('__has_notes__'), 'خيار تصفية السيارات ذات الملاحظات مفقود');
+  assert.ok(pendingCode.includes('__no_notes__'), 'خيار تصفية السيارات بدون ملاحظات مفقود');
+  assert.ok(pendingCode.includes('getNotes'), 'دالة استخراج الملاحظات getNotes مفقودة');
+});
+

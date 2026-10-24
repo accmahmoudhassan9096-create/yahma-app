@@ -26,6 +26,14 @@ function renderInspectionPayments(content){
     rows.forEach(r => { const c = r.car && r.car.companyName; if (c && String(c).trim()) s.add(String(c).trim()); });
     return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
   };
+  const getNotes = () => {
+    const s = new Set();
+    rows.forEach(r => {
+      const n = (r.car && r.car.notes) || (r.item && r.item.notes) || (r.item && r.item.note);
+      if (n && String(n).trim()) s.add(String(n).trim());
+    });
+    return [...s].sort((a,b) => a.localeCompare(b, 'ar'));
+  };
   const getUsers = () => {
     const s = new Set();
     rows.forEach(r => { const u = resolveItemUserName(r.item); if (u && u !== '—') s.add(u); });
@@ -36,13 +44,32 @@ function renderInspectionPayments(content){
   const compOpts = '<option value="">كل الشركات</option>' + getCompanies().map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
   const userOpts = '<option value="">كل المستخدمين</option>' + getUsers().map(u => '<option value="' + escapeHtml(u) + '">' + escapeHtml(u) + '</option>').join('');
 
+  const uniqueNotes = getNotes();
+  const hasNotesCount = rows.filter(r => {
+    const n = (r.car && r.car.notes) || (r.item && r.item.notes) || (r.item && r.item.note);
+    return !!String(n || '').trim();
+  }).length;
+  const noNotesCount = rows.length - hasNotesCount;
+  const noteOpts = '<option value="">كل الملاحظات</option>'
+    + '<option value="__has_notes__">📝 يوجد ملاحظات (' + hasNotesCount + ')</option>'
+    + '<option value="__no_notes__">⚪ بدون ملاحظات (' + noNotesCount + ')</option>'
+    + (uniqueNotes.length
+      ? '<optgroup label="نصوص الملاحظات المسجلة">' + uniqueNotes.map(n => '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>').join('') + '</optgroup>'
+      : '');
+
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip"><div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>طلبات تحت الدفع</small></span></div></div>
   <div class="filter-panel">
-    <div class="filter-panel-title"><strong>🔎 فلاتر طلبات تحت الدفع</strong><span>صفِّ النتائج حسب اللوحة، الفرع، الشركة، أو المستخدم</span></div>
-    <div class="fleet-filter-grid">
+    <div class="filter-panel-title"><strong>🔎 فلاتر طلبات تحت الدفع</strong><span>صفِّ النتائج حسب اللوحة، الفرع، الشركة، الملاحظات، أو المستخدم</span></div>
+    <div class="quick-filters" id="pending-quick">
+      <button type="button" class="quick-filter active" data-pq="all">الكل (${rows.length})</button>
+      <button type="button" class="quick-filter" data-pq="has_notes">📝 يوجد ملاحظات (${hasNotesCount})</button>
+      <button type="button" class="quick-filter" data-pq="no_notes">⚪ بدون ملاحظات (${noNotesCount})</button>
+    </div>
+    <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
       <label>بحث<input id="pay-search-payments" placeholder="رقم اللوحة، الفرع، الشركة، الرقم التسلسلي، المستخدم..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
       <label>الفرع<select id="pay-branch-payments">${branchOpts}</select></label>
       <label>الشركة<select id="pay-company-payments">${compOpts}</select></label>
+      <label>الملاحظات<select id="pay-note-payments">${noteOpts}</select></label>
       <label>المستخدم<select id="pay-user-payments">${userOpts}</select></label>
     </div>
     <div class="filter-footer">
@@ -55,15 +82,30 @@ function renderInspectionPayments(content){
   <div class="table-scroll"><table class="fleet-table" id="pay-table-payments"><thead><tr>${payCheckHeader('payments',rows.map(function(r){return String(r.item.id);}))}<th>رقم اللوحة</th><th>الفرع</th>${CORE_PAY_HEADERS}<th>تاريخ الطلب</th><th>حالة الدفع</th><th>ملاحظات</th><th>المستخدم</th><th>الإجراء</th></tr></thead><tbody id="pay-tbody-payments">
   </tbody></table></div>`;
 
+  let activeQuickNote = 'all';
+
   function getFiltered() {
     const q = (document.getElementById('pay-search-payments')?.value || '').trim().toLowerCase();
     const branch = (document.getElementById('pay-branch-payments')?.value || '').trim();
     const comp = (document.getElementById('pay-company-payments')?.value || '').trim();
+    const noteVal = (document.getElementById('pay-note-payments')?.value || '').trim();
     const user = (document.getElementById('pay-user-payments')?.value || '').trim();
 
     return rows.filter(({item, car}) => {
+      const carNote = String((car && car.notes) || (item && item.notes) || (item && item.note) || '').trim();
+      const hasNote = !!carNote;
+
+      if (activeQuickNote === 'has_notes' && !hasNote) return false;
+      if (activeQuickNote === 'no_notes' && hasNote) return false;
+
+      if (noteVal === '__has_notes__' && !hasNote) return false;
+      if (noteVal === '__no_notes__' && hasNote) return false;
+      if (noteVal && noteVal !== '__has_notes__' && noteVal !== '__no_notes__') {
+        if (!carNote.toLowerCase().includes(noteVal.toLowerCase())) return false;
+      }
+
       if (q) {
-        const hay = [car.plate, item.plate, car.branch, item.branch, car.companyName, car.serial, car.accountNo, car.notes, resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
+        const hay = [car.plate, item.plate, car.branch, item.branch, car.companyName, car.serial, car.accountNo, carNote, resolveItemUserName(item)].map(v => String(v || '').toLowerCase()).join(' ');
         if (!hay.includes(q)) return false;
       }
       if (branch && String((car && car.branch) || (item && item.branch) || '').trim() !== branch) return false;
@@ -128,17 +170,53 @@ function renderInspectionPayments(content){
     });
   }
 
-  ['pay-search-payments', 'pay-branch-payments', 'pay-company-payments', 'pay-user-payments'].forEach(id => {
+  content.querySelectorAll('#pending-quick .quick-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      content.querySelectorAll('#pending-quick .quick-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeQuickNote = btn.dataset.pq;
+      const noteSel = document.getElementById('pay-note-payments');
+      if (noteSel) {
+        if (activeQuickNote === 'has_notes') noteSel.value = '__has_notes__';
+        else if (activeQuickNote === 'no_notes') noteSel.value = '__no_notes__';
+        else noteSel.value = '';
+      }
+      draw();
+    });
+  });
+
+  function syncQuickFromSelect(val) {
+    if (val === '__has_notes__') activeQuickNote = 'has_notes';
+    else if (val === '__no_notes__') activeQuickNote = 'no_notes';
+    else activeQuickNote = 'all';
+    content.querySelectorAll('#pending-quick .quick-filter').forEach(b => {
+      b.classList.toggle('active', b.dataset.pq === activeQuickNote);
+    });
+  }
+
+  const filterIds = ['pay-search-payments', 'pay-branch-payments', 'pay-company-payments', 'pay-note-payments', 'pay-user-payments'];
+  filterIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      el.addEventListener('input', draw);
-      el.addEventListener('change', draw);
+      el.addEventListener('input', () => {
+        if (id === 'pay-note-payments') syncQuickFromSelect(el.value);
+        draw();
+      });
+      el.addEventListener('change', () => {
+        if (id === 'pay-note-payments') syncQuickFromSelect(el.value);
+        draw();
+      });
     }
   });
+
   document.getElementById('pay-clear-payments')?.addEventListener('click', function(){
-    ['pay-search-payments', 'pay-branch-payments', 'pay-company-payments', 'pay-user-payments'].forEach(id => {
+    filterIds.forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
+    });
+    activeQuickNote = 'all';
+    content.querySelectorAll('#pending-quick .quick-filter').forEach(b => {
+      b.classList.toggle('active', b.dataset.pq === 'all');
     });
     draw();
   });
