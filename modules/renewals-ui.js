@@ -39,6 +39,10 @@ function renderRenewals(content, mode='inspection'){
   const licenseMode=mode==='license';
   const insuranceMode=mode==='insurance';
   const isAdmin=(typeof currentRole!=='undefined'?currentRole==='admin':(typeof window!=='undefined'&&window.currentRole==='admin'));
+  /* «إداري» (manager) و«مدير النظام» هما اللي بيحرّكوا السيارات بين
+     مراحل الدورة الأربعة. «تشغيل» ليه زر واحد بس: تم الفحص. */
+  const isManager=(typeof currentRole!=='undefined'?currentRole==='manager':(typeof window!=='undefined'&&window.currentRole==='manager'));
+  const canMoveCycle=isAdmin||isManager;
   const isOpsInspection=(!licenseMode && !insuranceMode && !isAdmin);
   document.getElementById('topbar-title').textContent = insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص';
   document.getElementById('topbar-sub').textContent = insuranceMode?'متابعة وتجديد تأمين السيارات':licenseMode?'كل رخص محتاجة متابعة — منتهية وقاربت الانتهاء ومفيش لها تاريخ':'متابعة السيارات المطلوب فحصها';
@@ -117,15 +121,15 @@ function renderRenewals(content, mode='inspection'){
       <div class="bulk-bar-actions">
         ${insuranceMode?'<button class="btn btn-primary btn-small" id="ren-bulk-ins-ok">🛡️ تعيين «ساري»</button><button class="btn btn-ghost btn-small" id="ren-bulk-ins-no">تعيين «لا يوجد»</button>':''}
         ${(!licenseMode&&!insuranceMode)?(
-          isAdmin
+          canMoveCycle
             ? '<button class="btn btn-ghost btn-small" id="ren-insp-from-lic" title="يضبط حالة الفحص من تاريخ الرخصة: منتهية ⇐ لم يفحص، سارية ⇐ تم الفحص">🔄 فحص من الرخص</button><button class="btn btn-primary btn-small" id="ren-bulk-insp-yes" title="يضبط الحالة «تم الفحص» وينقل المحددة لِتبويب «تحت الدفع» — الخطوة التالية في الدورة">✅ تم الفحص ← تحت الدفع</button><button class="btn btn-ghost btn-small" id="ren-bulk-insp-no" title="يضبط الحالة «لم يفحص» بدون نقل — السيارة بتفضل في «الفحص»">لم يُفحص</button>'
-            : '<button class="btn btn-primary btn-small" id="ren-bulk-insp-yes" title="يضبط الحالة «تم الفحص» وينقل المحددة لِتبويب «تحت الدفع»">✅ تم الفحص ← تحت الدفع</button>'
+            : '<button class="btn btn-primary btn-small" id="ren-bulk-insp-yes" title="يضبط الحالة «تم الفحص» وينقل المحددة لِتبويب «تحت الدفع» تلقائيًا">✅ تم الفحص</button>'
         ):''}
         ${licenseMode?'<button class="btn btn-primary btn-small" id="ren-bulk-lic-renew">📅 تجديد الرخصة (سنة)</button><button class="btn btn-ghost btn-small" id="ren-bulk-lic-status">ضبط حالة الرخصة</button>':''}
-        <button class="btn btn-danger btn-small" id="ren-bulk-delete">🗑 حذف المحددة</button>
-        ${(canDelete && isAdmin)?`
-          <div class="admin-transfer-group" style="display:inline-flex;gap:4px;align-items:center;background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:6px;">
-            <span style="font-size:11px;font-weight:bold;color:var(--accent,#008080)">نقل المحددة (للمدير):</span>
+        ${canDelete?'<button class="btn btn-danger btn-small" id="ren-bulk-delete">🗑 حذف المحددة</button>':''}
+        ${canMoveCycle?`
+          <div class="admin-transfer-group" style="display:inline-flex;gap:4px;align-items:center;background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:6px;flex-wrap:wrap;">
+            <span style="font-size:11px;font-weight:bold;color:var(--accent,#008080)">نقل المحددة (إداري):</span>
             <button class="btn btn-ghost btn-small" id="ren-admin-to-payments" type="button" title="نقل السيارات المحددة لتبويب «تحت الدفع»">📥 تحت الدفع</button>
             <button class="btn btn-ghost btn-small" id="ren-admin-to-paid" type="button" title="نقل السيارات المحددة لتبويب «تم الدفع»">💵 تم الدفع</button>
             <button class="btn btn-ghost btn-small" id="ren-admin-to-renewed" type="button" title="نقل السيارات المحددة لتبويب «تم التجديد»">✅ تم التجديد</button>

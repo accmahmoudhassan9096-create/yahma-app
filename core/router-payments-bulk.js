@@ -142,6 +142,208 @@ function payCheckCell(tab, itemId, plate) {
    bulk-bar-actions هي اللي بتلوّن الأزرار أبيض على التدرّج
    الغامق. لو حطيت الأزرار مباشرة جوه bulk-bar، النص هيطلع
    غامق على غامق: الشريط يبان موجود والزراير مقروءة لأحد. */
+/* ===== نقل الإداري بين مراحل الدورة =====
+
+   «إداري» (manager) و«مدير النظام» (admin) يقدروا يعلّموا على سيارات
+   في أي تبويب من الأربعة وينقلوها لأي مرحلة تانية — مش بس الخطوة
+   اللي بعدها. «تشغيل» مالوش غير «تم الفحص» في تبويب الفحص.
+
+   النقل مش بيكتب حالة على السيارة وخلاص: بيمشي على نفس دوال المفرد
+   (PAY_ITEM_ACTION) خطوة خطوة — عشان الأثر على السحابة وحالة الرخصة
+   وحالة الفحص يبقى هو هو اللي بيحصل لو المستخدم عملها بإيده. */
+
+function payMovableRole() {
+  const r = (typeof currentRole !== 'undefined' ? currentRole
+    : (typeof window !== 'undefined' ? window.currentRole : ''));
+  return r === 'admin' || r === 'manager';
+}
+
+function payItemOfCar(carId) {
+  try {
+    if (!window.YahmaPayments || typeof window.YahmaPayments.localAll !== 'function') return null;
+    const all = window.YahmaPayments.localAll();
+    for (let i = 0; i < all.length; i++) {
+      if (String(all[i].carId) === String(carId)) return all[i];
+    }
+  } catch (e) { yahmaErr(e, 'router-payments-bulk.js:payItemOfCar'); }
+  return null;
+}
+
+/* المرحلة الحالية للسيارة من الطابور — مصدر واحد للحقيقة */
+function payStageOf(carId) {
+  const item = payItemOfCar(carId);
+  if (!item) return 'renewals';
+  if (String(item.status) === 'pending') return 'payments';
+  if (String(item.status) === 'paid') {
+    const renewed = (window.YahmaPayments && typeof window.YahmaPayments.isRenewed === 'function')
+      ? window.YahmaPayments.isRenewed(item) : false;
+    return renewed ? 'renewed' : 'paid';
+  }
+  return 'renewals';
+}
+
+/* سطور التحذير في نافذة التأكيد — الرجوع لورا بيمسح بيانات،
+   فلازم المستخدم يقراها قبل ما يوافق. */
+function payMoveWarning(from, target) {
+  const order = ['renewals', 'payments', 'paid', 'renewed'];
+  const lines = [];
+  if (order.indexOf(target) < order.indexOf(from)) {
+    if (from === 'renewed') lines.push('• سجل «تم التجديد» هيتشال وتاريخ الرخصة هيرجع للقديم');
+    if (from === 'renewed' || from === 'paid') lines.push('• تاريخ الدفع هيتشال من الطلب');
+    if (target === 'renewals') lines.push('• السيارة هترجع لِتبويب «الفحص» بحالة «' + NOT_INSPECTED + '»');
+  }
+  if (target === 'renewed' && from !== 'renewed') {
+    lines.push('• الرخصة هتتجدد 3 سنين من تاريخ اليوم');
+  }
+  return lines.length ? '\n\n' + lines.join('\n') : '';
+}
+
+/* نقل سيارة واحدة لأي مرحلة — بيمشي بالخطوات المطلوبة بالترتيب. */
+async function payMoveOne(car, target) {
+  if (!car) return 'failed';
+  let stage = payStageOf(car.id);
+  if (stage === target) return 'skipped';
+
+  /* ١) الرجوع خطوات لورا لحد ما نوصل للمرحلة المطلوبة أو للي قبلها */
+  if (target === 'renewals') {
+    if (stage === 'renewed') {
+      const it = payItemOfCar(car.id);
+      if (!it) return 'failed';
+      const r = await PAY_ITEM_ACTION.back2(it, car, true);
+      if (r !== 'done') return r;
+      stage = 'paid';
+    }
+    if (stage === 'paid') {
+      const it = payItemOfCar(car.id);
+      if (!it) return 'failed';
+      const r = await PAY_ITEM_ACTION.back(it, car, true);
+      if (r !== 'done') return r;
+      stage = 'payments';
+    }
+    if (stage === 'payments') {
+      const it = payItemOfCar(car.id);
+      if (!it) return 'failed';
+      return await PAY_ITEM_ACTION.cancel(it, car, true);
+    }
+    /* مفيش طلب من الأساس — نرجّع حالة الفحص بس */
+    if (car.inspectionStatus !== NOT_INSPECTED) {
+      const before = car.inspectionStatus;
+      car.inspectionStatus = NOT_INSPECTED;
+      const saved = await saveData([car.id]);
+      if (saved === false) {
+        car.inspectionStatus = before;
+        await saveData([car.id]);
+        return 'failed';
+      }
+    }
+    return 'done';
+  }
+
+  /* ٢) ضمان وجود طلب في «تحت الدفع» قبل أي خطوة قدام */
+  if (stage === 'renewals') {
+    if (!window.YahmaPayments || typeof window.YahmaPayments.requestPayment !== 'function') return 'failed';
+    await window.YahmaPayments.requestPayment(car);
+    stage = 'payments';
+  }
+
+  if (target === 'payments') {
+    if (stage === 'renewed') {
+      const it = payItemOfCar(car.id);
+      if (!it) return 'failed';
+      const r = await PAY_ITEM_ACTION.back2(it, car, true);
+      if (r !== 'done') return r;
+      stage = 'paid';
+    }
+    if (stage === 'paid') {
+      const it = payItemOfCar(car.id);
+      if (!it) return 'failed';
+      const r = await PAY_ITEM_ACTION.back(it, car, true);
+      if (r !== 'done') return r;
+      stage = 'payments';
+    }
+    return stage === 'payments' ? 'done' : 'failed';
+  }
+
+  if (target === 'paid') {
+    if (stage === 'renewed') {
+      const it = payItemOfCar(car.id);
+      if (!it) return 'failed';
+      const r = await PAY_ITEM_ACTION.back2(it, car, true);
+      if (r !== 'done') return r;
+      stage = 'paid';
+    }
+    if (stage === 'payments') {
+      const it = payItemOfCar(car.id);
+      if (!it) return 'failed';
+      const r = await PAY_ITEM_ACTION.paid(it, car, true);
+      if (r !== 'done') return r;
+      stage = 'paid';
+    }
+    return stage === 'paid' ? 'done' : 'failed';
+  }
+
+  if (target === 'renewed') {
+    if (stage === 'payments') {
+      const it = payItemOfCar(car.id);
+      if (!it) return 'failed';
+      const r = await PAY_ITEM_ACTION.paid(it, car, true);
+      if (r !== 'done') return r;
+      stage = 'paid';
+    }
+    if (stage === 'paid') {
+      const it = payItemOfCar(car.id);
+      if (!it) return 'failed';
+      const r = await PAY_ITEM_ACTION.renew(it, car, true);
+      if (r !== 'done') return r;
+      stage = 'renewed';
+    }
+    return stage === 'renewed' ? 'done' : 'failed';
+  }
+
+  return 'failed';
+}
+
+/* النسخة الجماعية: تأكيد واحد، تنفيذ واحد واحد، تقرير بالأرقام. */
+async function runPayMove(tab, target) {
+  if (!payMovableRole()) {
+    alert('النقل بين مراحل الدورة متاح للمدير والإداري فقط.');
+    return;
+  }
+  const items = selectedPayRows(tab);
+  if (!items.length) { alert('لم تحدّد أي سيارة. علّم على سيارة واحدة على الأقل.'); return; }
+  if (!PAY_TAB_LABELS[target]) return;
+
+  let from = tab;
+  const plates = items.map(function (r) { return (r.car && r.car.plate) || r.item.plate || '—'; });
+  const warn = payMoveWarning(from, target);
+  if (!confirm('نقل ' + items.length + ' سيارة إلى «' + PAY_TAB_LABELS[target] + '»؟\n'
+    + plates.join('، ') + warn + '\n\nمتابعة؟')) return;
+
+  let moved = 0, skipped = 0;
+  const failed = [];
+  for (const row of items) {
+    const plate = (row.car && row.car.plate) || row.item.plate || String(row.item.id);
+    try {
+      const car = (row.car && row.car.id) ? row.car
+        : (Array.isArray(fleet) ? fleet.find(function (c) { return String(c.id) === String(row.item.carId); }) : null);
+      const res = await payMoveOne(car, target);
+      if (res === 'done') moved++;
+      else if (res === 'failed') failed.push(plate);
+      else skipped++;
+    } catch (e) {
+      yahmaErr(e, 'router-payments-bulk.js:runPayMove:' + target);
+      failed.push(plate);
+    }
+  }
+  PAY_SELECTIONS[tab] = new Set();
+  alert(payBulkReport(items.length, moved, skipped, failed));
+  if (typeof log === 'function') {
+    try { log('نقل مرحلة — ' + (PAY_TAB_LABELS[tab] || tab), 'إلى ' + PAY_TAB_LABELS[target] + ': ' + moved + ' اتنفذت'); }
+    catch (e) { yahmaErr(e, 'router-payments-bulk.js:runPayMove:log'); }
+  }
+  render();
+}
+
 function payBulkBarFor(tab) {
   const actions = PAY_TAB_ACTIONS[tab] || [];
   /* bar بيظهر بـcanBulk بس. Ehrenutzer «مشاهدة» مالوش شريط
@@ -157,11 +359,22 @@ function payBulkBarFor(tab) {
       + '" data-pay-tab="' + tab + '" title="' + escapeHtml(a.title || a.label) + '">'
       + escapeHtml(a.label) + '</button>';
   }).join('');
+  /* مجموعة «نقل المحددة (إداري)» — للمدير والإداري بس.
+     بتظهر في التلات تبويبات وبتنقل لأي مرحلة من الأربعة. */
+  const moveBtns = payMovableRole() ? PAY_CYCLE.filter(function (t) { return t !== tab; }).map(function (t) {
+    return '<button type="button" class="btn btn-ghost btn-small" data-pay-move="' + t
+      + '" data-pay-tab="' + tab + '" title="نقل المحددة إلى «' + PAY_TAB_LABELS[t] + '»">'
+      + PAY_TAB_LABELS[t] + '</button>';
+  }).join('') : '';
+  const moveGroup = moveBtns
+    ? '<div class="admin-transfer-group" style="display:inline-flex;gap:4px;align-items:center;background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:6px;flex-wrap:wrap;">'
+      + '<span style="font-size:11px;font-weight:bold;color:#0e8f8d">نقل المحددة (إداري):</span>' + moveBtns + '</div>'
+    : '';
   /* display:none من الأول زي شريط «الفحص» — الشريط يظهر مع أول
      تحديد، مش مع أول رسم. */
   return '<div class="bulk-bar" id="pay-bulk-bar-' + tab + '" style="display:none">'
     + '<div class="bulk-bar-info"><span id="pay-bulk-count-' + tab + '">0 محددة</span></div>'
-    + '<div class="bulk-bar-actions">' + btns
+    + '<div class="bulk-bar-actions">' + btns + moveGroup
     + '<button type="button" class="btn btn-ghost btn-small" data-pay-clear="' + tab + '">إلغاء التحديد</button>'
     + '</div></div>';
 }
@@ -396,6 +609,13 @@ function bindPaySelection(content, tab) {
     if (b._payBound) return;
     b._payBound = true;
     b.onclick = function () { runPayBulk(b.dataset.payTab, b.dataset.payAct); };
+  });
+
+  /* أزرار «نقل المحددة (إداري)» — لأي مرحلة من الأربعة */
+  content.querySelectorAll('[data-pay-move]').forEach(function (b) {
+    if (b._payMoveBound) return;
+    b._payMoveBound = true;
+    b.onclick = function () { runPayMove(b.dataset.payTab, b.dataset.payMove); };
   });
 }
 

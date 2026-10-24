@@ -46,69 +46,48 @@
     const today = new Date(); today.setHours(0,0,0,0);
     return d.getTime() < today.getTime() ? 'لم يفحص' : 'تم الفحص';
   }
+  /* نقل السيارات المحددة لأي مرحلة في الدورة — «إداري» و«مدير النظام».
+     بيتنادى من شريط «الفحص» (3 أزرار) ومن التلات تبويبات التانية
+     (شريط الدفع). المنطق نفسه في payMoveOne — مسار واحد للحقيقة. */
   async function adminMoveSelectedCars(ctx, targetTab){
-    if(typeof currentRole!=="undefined" && currentRole!=="admin"){
-      alert("هذا الإجراء متاح لمدير النظام فقط."); return;
+    if(typeof currentRole!=="undefined" && currentRole!=="admin" && currentRole!=="manager"){
+      alert("هذا الإجراء متاح لمدير النظام والإداري فقط."); return;
     }
     const cars=[...ctx.selectedRenIds].map(id=>fleet.find(c=>String(c.id)===String(id))).filter(Boolean);
     if(!cars.length){ alert("يرجى تحديد سيارة واحدة على الأقل."); return; }
-    const tabNames = { payments: "تحت الدفع", paid: "تم الدفع", renewed: "تم التجديد" };
+    const tabNames = { renewals: "الفحص", payments: "تحت الدفع", paid: "تم الدفع", renewed: "تم التجديد" };
     const targetName = tabNames[targetTab] || targetTab;
-    if(!confirm("هل تريد بالتأكيد نقل " + cars.length + " سيارة إلى تبويب «" + targetName + "»؟")) return;
-    
-    // 1. تحديث الحالات في الذاكرة وحفظ دفعة واحدة
-    cars.forEach(function(c){ c.inspectionStatus = "تم الفحص"; });
-    try{ await saveData(cars.map(c=>c.id)); }catch(_){}
-    if(!window.YahmaPayments){ alert("تعذر الوصول لوحدة الدفع."); return; }
+    if (typeof window.payMoveOne !== "function") { alert("تعذّر تحميل منطق النقل — أعد تحميل الصفحة."); return; }
+    const ORDER = ["renewals","payments","paid","renewed"];
+    const fromStage = (typeof window.payStageOf === "function")
+      ? cars.map(c=>window.payStageOf(c.id)).reduce((a,b)=>ORDER.indexOf(b)<ORDER.indexOf(a)?b:a, "renewed")
+      : "renewals";
+    const warn = typeof window.payMoveWarning === "function"
+      ? window.payMoveWarning(fromStage, targetTab)
+      : "";
+    if(!confirm("نقل " + cars.length + " سيارة إلى «" + targetName + "»؟\n"
+      + cars.slice(0, 8).map(c=>c.plate||'—').join("، ") + (cars.length>8?'…':'') + warn + "\n\nمتابعة؟")) return;
 
-    let moved=0; const failed=[];
-
-    if (targetTab === "payments") {
-      const bRes = await window.YahmaPayments.requestPayment(cars);
-      moved = (bRes && bRes.moved) || cars.length;
-    } else {
-      // تنفيذ بالتوازي بدفعات 8 سيارات مع تأجيل saveData للنهاية
-      const CHUNK = 8;
-      for (let i = 0; i < cars.length; i += CHUNK) {
-        const batch = cars.slice(i, i + CHUNK);
-        await Promise.all(batch.map(async function(car) {
-          try {
-            var pList = window.YahmaPayments.localByStatus("pending");
-            var pItem = pList.find(function(p){ return String(p.carId)===String(car.id); });
-            if (!pItem) {
-              await window.YahmaPayments.requestPayment(car);
-              pList = window.YahmaPayments.localByStatus("pending");
-              pItem = pList.find(function(p){ return String(p.carId)===String(car.id); });
-            }
-            if (targetTab === "paid") {
-              if (window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.paid) {
-                await window.PAY_ITEM_ACTION.paid(pItem || { id: car.id, carId: car.id }, car, true, true);
-              }
-            } else if (targetTab === "renewed") {
-              if (window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.paid) {
-                await window.PAY_ITEM_ACTION.paid(pItem || { id: car.id, carId: car.id }, car, true, true);
-              }
-              var paidList = window.YahmaPayments.localByStatus("paid");
-              var paidItem = paidList.find(function(p){ return String(p.carId)===String(car.id); }) || pItem || { id: car.id, carId: car.id };
-              if (window.PAY_ITEM_ACTION && window.PAY_ITEM_ACTION.renew) {
-                await window.PAY_ITEM_ACTION.renew(paidItem, car, true, true);
-              }
-            }
-            moved++;
-          } catch(err) {
-            console.error("Failed to move car:", car.plate, err);
-            failed.push(car.plate || car.id);
-          }
-        }));
+    let moved=0, skipped=0; const failed=[];
+    for (const car of cars) {
+      try {
+        const res = await window.payMoveOne(car, targetTab);
+        if (res === "done") moved++;
+        else if (res === "failed") failed.push(car.plate || car.id);
+        else skipped++;
+      } catch (err) {
+        if (typeof yahmaErr === "function") yahmaErr(err, "renewals-ui-bulk.js:adminMoveSelectedCars");
+        failed.push(car.plate || car.id);
       }
-      try { await saveData(cars.map(c=>c.id)); } catch(_) {}
     }
 
     ctx.selectedRenIds.clear();
-    var msg = "✓ تم نقل " + moved + " سيارة بنجاح إلى تبويب «" + targetName + "».";
-    if(failed.length) msg += "\nفشل نقل: " + failed.join("، ");
-    alert(msg);
-    if(typeof log==="function"){ try{ log("نقل سيارات جماعي", moved + " سيارة إلى " + targetName); }catch(_){} }
+    const parts = [];
+    if (moved) parts.push(moved + " اتنقلت");
+    if (skipped) parts.push(skipped + " اتخطّت (كانت في نفس المرحلة)");
+    if (failed.length) parts.push(failed.length + " فشلت: " + failed.slice(0,6).join("، ") + (failed.length>6?" (+"+(failed.length-6)+")":""));
+    alert("من " + cars.length + " محددة: " + (parts.join(" · ") || "مفيش حاجة اتغيّرت."));
+    if(typeof log==="function"){ try{ log("نقل بين مراحل الدورة", moved + " سيارة إلى " + targetName); }catch(_){} }
     if(typeof render==="function") render();
   }
 
