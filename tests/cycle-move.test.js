@@ -85,6 +85,80 @@ test('النقل الجماعي: تأكيد واحد ورسم واحد', () => {
   assert.ok(/selectedPayRows\(tab\)/.test(body), 'التحديد مش بيتقرا من خريطة الصفوف');
 });
 
+test('مفيش نداء للإجراءات الجماعية ناقص ctx — ولا طريقة تانية للتعطيل الصامت', () => {
+  const code = read('modules/renewals-ui-bulk.js');
+  assert.ok(!/renSelectedCars\(\s*\)/.test(code),
+    'renSelectedCars() من غير ctx — بيرمي TypeError والزر بيموت صامت');
+  assert.ok(!/renPlates\(cars\)/.test(code), 'renPlates(cars) من غير ctx');
+  assert.ok(!/renBulkApply\(cars,/.test(code), 'renBulkApply(cars, …) من غير ctx');
+  assert.ok(!/renBulkApply\(withDate,/.test(code), 'renBulkApply(withDate, …) من غير ctx');
+  assert.ok(!/inspectionFromLicense\(\s*c\s*\)/.test(code), 'inspectionFromLicense(c) من غير ctx');
+  assert.ok(!/pendingCarIds\(\s*\)/.test(code), 'pendingCarIds() من غير ctx');
+  assert.ok(!/bulkAdvanceToPayment\(\s*cars\s*\)/.test(code), 'bulkAdvanceToPayment(cars) من غير ctx');
+});
+
+test('«تم الفحص» الجماعي بينقل فعلًا لِتحت الدفع (مش بيموت صامت)', async () => {
+  const payments = makeFakePayments();
+  const calls = { render: 0, alerts: [] };
+  const sandbox = {
+    console, setTimeout, clearTimeout, Date, Math, JSON, Promise,
+    fleet: [],
+    YahmaPayments: payments,
+    saveData: async () => true,
+    render: () => { calls.render++; },
+    alert: (m) => { calls.alerts.push(String(m)); },
+    confirm: () => true,
+    log: () => {},
+    yahmaErr: () => {}
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  sandbox.self = sandbox;
+  const ctx = vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'modules/renewals-ui-bulk.js'), 'utf8'), ctx,
+    { filename: 'modules/renewals-ui-bulk.js' });
+
+  const car = { id: 'c1', plate: 'ABC 123', inspectionStatus: 'لم يفحص' };
+  sandbox.fleet.push(car);
+  const ids = new Set(['c1']);
+  await sandbox.YahmaRenewalsBulk.bulkSetInspection({ selectedRenIds: ids }, 'تم الفحص', true);
+
+  assert.strictEqual(car.inspectionStatus, 'تم الفحص', 'حالة الفحص ما اتغيرتش');
+  assert.strictEqual(payments._rows.length, 1, 'مفيش طلب دفع اتسجّل — السيارة ما اتنقلتش');
+  assert.strictEqual(payments._rows[0].status, 'pending');
+  assert.strictEqual(ids.size, 0, 'التحديد ما اتشالش بعد التنفيذ');
+  assert.ok(calls.render >= 1, 'الشاشة ما اتحدثتش');
+});
+
+test('«لم يُفحص» الجماعي بيحفظ الحالة من غير ما ينقل', async () => {
+  const payments = makeFakePayments();
+  const sandbox = {
+    console, setTimeout, clearTimeout, Date, Math, JSON, Promise,
+    fleet: [],
+    YahmaPayments: payments,
+    saveData: async () => true,
+    render: () => {},
+    alert: () => {},
+    confirm: () => true,
+    log: () => {},
+    yahmaErr: () => {}
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  sandbox.self = sandbox;
+  const ctx = vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'modules/renewals-ui-bulk.js'), 'utf8'), ctx,
+    { filename: 'modules/renewals-ui-bulk.js' });
+
+  const car = { id: 'c2', plate: 'DEF 456', inspectionStatus: 'تم الفحص' };
+  sandbox.fleet.push(car);
+  const ids = new Set(['c2']);
+  await sandbox.YahmaRenewalsBulk.bulkSetInspection({ selectedRenIds: ids }, 'لم يفحص', false);
+
+  assert.strictEqual(car.inspectionStatus, 'لم يفحص');
+  assert.strictEqual(payments._rows.length, 0, '«لم يُفحص» المفروض ما ينقلش لتحت الدفع');
+});
+
 test('شريط الدفع للإداري: مجموعة نقل واحدة بدل الأزرار المكرّرة', () => {
   const code = read('core/router-payments-bulk.js');
   assert.ok(/const btns = moveBtns \? '' : actions\.map/.test(code),
@@ -114,10 +188,13 @@ function makeFakePayments() {
     localAll() { return this._rows.slice(); },
     localByStatus(s) { return this._rows.filter((r) => r.status === s); },
     isRenewed(r) { return String(r.note || '').indexOf('تم التجديد') === 0; },
-    async requestPayment(car) {
-      this._rows = this._rows.filter((r) => String(r.carId) !== String(car.id));
-      this._rows.push({ id: 'p-' + car.id, carId: String(car.id), status: 'pending', plate: car.plate, note: '' });
-      return { ok: true, moved: 1 };
+    async requestPayment(input) {
+      const cars = Array.isArray(input) ? input : [input];
+      cars.forEach((car) => {
+        this._rows = this._rows.filter((r) => String(r.carId) !== String(car.id));
+        this._rows.push({ id: 'p-' + car.id, carId: String(car.id), status: 'pending', plate: car.plate, note: '' });
+      });
+      return { ok: true, moved: cars.length };
     },
     async rememberCarState() {},
     prevStateOf() { return this._snapshot; },

@@ -33,7 +33,7 @@
     if(ok===false) alert('تعذر الحفظ على بعض السيارات — تحقق من الاتصال ثم أعد المحاولة.');
     else alert(doneMsg);
     if(logLabel && typeof window.log==='function'){
-      try{ window.log(logLabel, cars.length+' سيارة: '+renPlates(cars)); }catch(_){yahmaErr(_,'renewals-ui.js:255');}
+      try{ window.log(logLabel, cars.length+' سيارة: '+renPlates(ctx, cars)); }catch(_){yahmaErr(_,'renewals-ui.js:255');}
     }
     render();
   }
@@ -92,13 +92,13 @@
   }
 
   async function bulkInspectionFromLicenses(ctx){
-    const cars = renSelectedCars();
+    const cars = renSelectedCars(ctx);
     if(!cars.length) return;
-    const withDate = cars.filter(c => !!inspectionFromLicense(c));
+    const withDate = cars.filter(c => !!inspectionFromLicense(ctx, c));
     if(!withDate.length){ alert('لا توجد سيارة بتاريخ رخصة صالح لتطبيق القاعدة.'); return; }
-    const expired = withDate.filter(c => inspectionFromLicense(c) === 'لم يفحص').length;
+    const expired = withDate.filter(c => inspectionFromLicense(ctx, c) === 'لم يفحص').length;
     if(!confirm('ضبط حالة الفحص من تاريخ الرخصة لـ '+withDate.length+' سيارة؟\n• منتهية ⇐ لم يفحص: '+expired+'\n• سارية ⇐ تم الفحص: '+(withDate.length-expired)+'\n• بدون تاريخ رخصة: تُترك كما هي ('+(cars.length-withDate.length)+')')) return;
-    await renBulkApply(withDate, c=>{ c.inspectionStatus = inspectionFromLicense(c); },
+    await renBulkApply(ctx, withDate, c=>{ c.inspectionStatus = inspectionFromLicense(ctx, c); },
       'تم تحديث فحص '+withDate.length+' سيارة من الرخص', 'فحص من الرخص');
   }
   /* ===== الانتقال للمرحلة التالية: الفحص ← تحت الدفع =====
@@ -152,7 +152,7 @@
 
     // ❸ نقل الطلبات دفعة واحدة فائقة السرعة
     let moved = 0;
-    const already = pendingCarIds();
+    const already = pendingCarIds(ctx);
     const toMove = cars.filter(c => already.indexOf(String(c.id)) < 0);
     const skipped = cars.length - toMove.length;
 
@@ -173,42 +173,42 @@
   }
 
   async function bulkSetInspection(ctx, value, advanceToPayment){
-    const cars=renSelectedCars();
+    const cars=renSelectedCars(ctx);
     if(!cars.length) return;
     const question = advanceToPayment
       ? 'تعيين حالة الفحص «تم الفحص» ونقل '+cars.length+' سيارة لِتبويب «تحت الدفع»؟'
       : 'تعيين حالة الفحص «'+value+'» لـ '+cars.length+' سيارة؟';
-    if(!confirm(question+'\n'+renPlates(cars))) return;
-    if(advanceToPayment){ await bulkAdvanceToPayment(cars); return; }
-    await renBulkApply(cars, c=>{ c.inspectionStatus=value; }, 'تم تحديث فحص '+cars.length+' سيارة', 'تحديث فحص جماعي');
+    if(!confirm(question+'\n'+renPlates(ctx, cars))) return;
+    if(advanceToPayment){ await bulkAdvanceToPayment(ctx, cars); return; }
+    await renBulkApply(ctx, cars, c=>{ c.inspectionStatus=value; }, 'تم تحديث فحص '+cars.length+' سيارة', 'تحديث فحص جماعي');
   }
   async function bulkRenewLicense(ctx){
-    const cars=renSelectedCars();
+    const cars=renSelectedCars(ctx);
     if(!cars.length) return;
     const def=defaultLicenseExpiry();
     const raw=prompt('تاريخ انتهاء الرخصة الجديد لـ '+cars.length+' سيارة (YYYY-MM-DD):', def);
     if(!raw) return;
     const val=normalizeDateValue(raw)||raw;
-    if(!confirm('ضبط انتهاء الرخصة على '+val+' لـ '+cars.length+' سيارة؟\n'+renPlates(cars))) return;
-    await renBulkApply(cars, c=>{ c.licenseExpiry=val; if(!c.licenseStatus||String(c.licenseStatus).includes('منته')) c.licenseStatus='نشط'; },
+    if(!confirm('ضبط انتهاء الرخصة على '+val+' لـ '+cars.length+' سيارة؟\n'+renPlates(ctx, cars))) return;
+    await renBulkApply(ctx, cars, c=>{ c.licenseExpiry=val; if(!c.licenseStatus||String(c.licenseStatus).includes('منته')) c.licenseStatus='نشط'; },
       'تم تجديد رخصة '+cars.length+' سيارة (انتهاء '+val+')', 'تجديد رخص جماعي');
   }
   async function bulkSetLicenseStatus(ctx){
-    const cars=renSelectedCars();
+    const cars=renSelectedCars(ctx);
     if(!cars.length) return;
     const raw=prompt('حالة الرخصة الجديدة ('+cars.length+' سيارة):\nنشط / ملغى / موقوف / منتهي','نشط');
     if(!raw) return;
     const val=raw.trim();
     if(!['نشط','ملغى','موقوف','منتهي'].includes(val)){ alert('القيمة يجب أن تكون: نشط أو ملغى أو موقوف أو منتهي'); return; }
-    if(!confirm('تعيين حالة الرخصة «'+val+'» لـ '+cars.length+' سيارة؟\n'+renPlates(cars))) return;
-    await renBulkApply(cars, c=>{ c.licenseStatus=val; }, 'تم تحديث حالة رخصة '+cars.length+' سيارة', 'تحديث رخص جماعي');
+    if(!confirm('تعيين حالة الرخصة «'+val+'» لـ '+cars.length+' سيارة؟\n'+renPlates(ctx, cars))) return;
+    await renBulkApply(ctx, cars, c=>{ c.licenseStatus=val; }, 'تم تحديث حالة رخصة '+cars.length+' سيارة', 'تحديث رخص جماعي');
   }
   async function bulkSetInsurance(ctx, value){
-    const cars=renSelectedCars();
+    const cars=renSelectedCars(ctx);
     if(!cars.length) return;
     const label=value==='ساري'?'ساري':'لا يوجد';
-    if(!confirm('تعيين التأمين «'+label+'» لـ '+cars.length+' سيارة؟\n'+renPlates(cars))) return;
-    await renBulkApply(cars, c=>{ c.insuranceStatus=value; }, 'تم تحديث تأمين '+cars.length+' سيارة', 'تحديث تأمين جماعي');
+    if(!confirm('تعيين التأمين «'+label+'» لـ '+cars.length+' سيارة؟\n'+renPlates(ctx, cars))) return;
+    await renBulkApply(ctx, cars, c=>{ c.insuranceStatus=value; }, 'تم تحديث تأمين '+cars.length+' سيارة', 'تحديث تأمين جماعي');
   }
   global.YahmaRenewalsBulk = {
     deleteRenCars,
