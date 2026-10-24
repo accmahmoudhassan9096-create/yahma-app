@@ -187,13 +187,16 @@ function payStageOf(carId) {
 function payMoveWarning(from, target) {
   const order = ['renewals', 'payments', 'paid', 'renewed'];
   const lines = [];
+  const forward = order.indexOf(target) > order.indexOf(from);
   if (order.indexOf(target) < order.indexOf(from)) {
     if (from === 'renewed') lines.push('• سجل «تم التجديد» هيتشال وتاريخ الرخصة هيرجع للقديم');
     if (from === 'renewed' || from === 'paid') lines.push('• تاريخ الدفع هيتشال من الطلب');
     if (target === 'renewals') lines.push('• السيارة هترجع لِتبويب «الفحص» بحالة «' + NOT_INSPECTED + '»');
   }
-  if (target === 'renewed' && from !== 'renewed') {
-    lines.push('• الرخصة هتتجدد 3 سنين من تاريخ اليوم');
+  if (forward) {
+    if (target === 'payments') lines.push('• هيتعمل طلب دفع جديد في «تحت الدفع»');
+    if (target === 'paid') lines.push('• هيتسجل دفع تجديد الفحص للمحددة');
+    if (target === 'renewed') lines.push('• الرخصة هتتجدد 3 سنين من تاريخ اليوم');
   }
   return lines.length ? '\n\n' + lines.join('\n') : '';
 }
@@ -239,9 +242,22 @@ async function payMoveOne(car, target) {
     return 'done';
   }
 
-  /* ٢) ضمان وجود طلب في «تحت الدفع» قبل أي خطوة قدام */
+  /* ٢) ضمان وجود طلب في «تحت الدفع» قبل أي خطوة قدام.
+     نفس ترتيب bulkAdvanceToPayment: حالة الفحص الأول (وحفظ)،
+     وبعدين تسجيل الطلب — عشان لو الحفظ فشل ما نعملش طلب
+     لسيارة لسه «لم يفحص». */
   if (stage === 'renewals') {
     if (!window.YahmaPayments || typeof window.YahmaPayments.requestPayment !== 'function') return 'failed';
+    if (car.inspectionStatus !== 'تم الفحص') {
+      const before = car.inspectionStatus;
+      car.inspectionStatus = 'تم الفحص';
+      const saved = await saveData([car.id]);
+      if (saved === false) {
+        car.inspectionStatus = before;
+        await saveData([car.id]);
+        return 'failed';
+      }
+    }
     await window.YahmaPayments.requestPayment(car);
     stage = 'payments';
   }
@@ -349,18 +365,11 @@ function payBulkBarFor(tab) {
   /* bar بيظهر بـcanBulk بس. Ehrenutzer «مشاهدة» مالوش شريط
      خالص —Checks ميتsummatش من غير حاجة تعمل بيها. */
   if (!actions.length || !canBulkHere()) return '';
-  const btns = actions.map(function (a) {
-    /* canBulk بيحدد وجود الشريط. الإجراء المدمر (رجوع/إلغاء)
-       بياخد canDelete = المدير بس. */
-    const granted = a.kind !== 'destructive' || canDeleteHere();
-    if (!granted) return '';
-    const cls = a.kind === 'destructive' ? 'btn-ghost' : 'btn-primary';
-    return '<button type="button" class="btn ' + cls + ' btn-small" data-pay-act="' + escapeHtml(a.act)
-      + '" data-pay-tab="' + tab + '" title="' + escapeHtml(a.title || a.label) + '">'
-      + escapeHtml(a.label) + '</button>';
-  }).join('');
   /* مجموعة «نقل المحددة (إداري)» — للمدير والإداري بس.
-     بتظهر في التلات تبويبات وبتنقل لأي مرحلة من الأربعة. */
+     بتظهر في التلات تبويبات وبتنقل لأي مرحلة من الأربعة.
+     لما المجموعة تكون ظاهرة بنستغنى عن أزرار الخطوة الواحدة فوقها:
+     «رجوع لِتحت الدفع» و«تحت الدفع» في المجموعة نفس الحاجة بالظبط،
+     و«تم الدفع» كان بيظهر مرتين في نفس الشريط. */
   const moveBtns = payMovableRole() ? PAY_CYCLE.filter(function (t) { return t !== tab; }).map(function (t) {
     return '<button type="button" class="btn btn-ghost btn-small" data-pay-move="' + t
       + '" data-pay-tab="' + tab + '" title="نقل المحددة إلى «' + PAY_TAB_LABELS[t] + '»">'
@@ -370,6 +379,16 @@ function payBulkBarFor(tab) {
     ? '<div class="admin-transfer-group" style="display:inline-flex;gap:4px;align-items:center;background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:6px;flex-wrap:wrap;">'
       + '<span style="font-size:11px;font-weight:bold;color:#0e8f8d">نقل المحددة (إداري):</span>' + moveBtns + '</div>'
     : '';
+  const btns = moveBtns ? '' : actions.map(function (a) {
+    /* canBulk بيحدد وجود الشريط. الإجراء المدمر (رجوع/إلغاء)
+       بياخد canDelete = المدير بس. */
+    const granted = a.kind !== 'destructive' || canDeleteHere();
+    if (!granted) return '';
+    const cls = a.kind === 'destructive' ? 'btn-ghost' : 'btn-primary';
+    return '<button type="button" class="btn ' + cls + ' btn-small" data-pay-act="' + escapeHtml(a.act)
+      + '" data-pay-tab="' + tab + '" title="' + escapeHtml(a.title || a.label) + '">'
+      + escapeHtml(a.label) + '</button>';
+  }).join('');
   /* display:none من الأول زي شريط «الفحص» — الشريط يظهر مع أول
      تحديد، مش مع أول رسم. */
   return '<div class="bulk-bar" id="pay-bulk-bar-' + tab + '" style="display:none">'

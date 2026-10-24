@@ -85,6 +85,12 @@ test('النقل الجماعي: تأكيد واحد ورسم واحد', () => {
   assert.ok(/selectedPayRows\(tab\)/.test(body), 'التحديد مش بيتقرا من خريطة الصفوف');
 });
 
+test('شريط الدفع للإداري: مجموعة نقل واحدة بدل الأزرار المكرّرة', () => {
+  const code = read('core/router-payments-bulk.js');
+  assert.ok(/const btns = moveBtns \? '' : actions\.map/.test(code),
+    'أزرار الخطوة الواحدة لازم تتشال لما مجموعة النقل تظهر — منع التكرار');
+});
+
 test('النقل من شريط «الفحص» بيستخدم نفس المنطق', () => {
   const bulk = read('modules/renewals-ui-bulk.js');
   assert.ok(/currentRole!=="admin" && currentRole!=="manager"/.test(bulk),
