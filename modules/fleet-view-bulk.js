@@ -12,26 +12,29 @@
 (function (global) {
   'use strict';
   function updateBulkBar(ctx){
-    const bar=ctx.$('bulk-bar');
-    const n=ctx.selectedIds.size;
+    if(!ctx || !ctx.selectedIds) return;
+    const bar = typeof ctx.$ === 'function' ? ctx.$('bulk-bar') : document.getElementById('bulk-bar');
+    const n = ctx.selectedIds.size;
     if(!bar) return;
     bar.style.display = n>0 ? 'flex' : 'none';
-    const cnt=ctx.$('bulk-count');
+    const cnt = typeof ctx.$ === 'function' ? ctx.$('bulk-count') : document.getElementById('bulk-count');
     if(cnt) cnt.textContent = n + ' محددة';
-    const head=ctx.$('bulk-head-check');
-    const allVisible=ctx.getFilteredRows();
+    const head = typeof ctx.$ === 'function' ? ctx.$('bulk-head-check') : document.getElementById('bulk-head-check');
+    const allVisible = typeof ctx.getFilteredRows === 'function' ? ctx.getFilteredRows() : [];
     if(head){
       head.checked = allVisible.length>0 && allVisible.every(c=>ctx.selectedIds.has(String(c.id)));
       head.indeterminate = ctx.selectedIds.size>0 && !head.checked;
     }
-    const selAll=ctx.$('bulk-select-all');
+    const selAll = typeof ctx.$ === 'function' ? ctx.$('bulk-select-all') : document.getElementById('bulk-select-all');
     if(selAll) selAll.checked = head ? head.checked : false;
   }
   function getSelectedCars(ctx){
-    return fleet.filter(c=>ctx.selectedIds.has(String(c.id)));
+    if(!ctx || !ctx.selectedIds) return [];
+    const list = (typeof fleet !== 'undefined' && Array.isArray(fleet)) ? fleet : ((typeof window !== 'undefined' && window.fleet) || []);
+    return list.filter(c=>ctx.selectedIds.has(String(c.id)));
   }
   async function bulkRenewLicense(ctx){
-    const cars=getSelectedCars();
+    const cars=getSelectedCars(ctx);
     if(!cars.length) return;
     const defaultDate=defaultLicenseExpiry();
     const newDate=prompt('تاريخ انتهاء الرخصة الجديد لـ '+cars.length+' سيارة (YYYY-MM-DD):', defaultDate);
@@ -39,12 +42,12 @@
     const normalized=normalizeDateValue(newDate)||newDate;
     cars.forEach(c=>{ c.licenseExpiry=normalized; if(!c.licenseStatus||c.licenseStatus==='منتهي') c.licenseStatus='نشط'; });
     const ids=cars.map(c=>c.id);
-    ctx.selectedIds.clear();
-    await saveData(ids); ctx.draw(); updateBulkBar();
+    if(ctx && ctx.selectedIds) ctx.selectedIds.clear();
+    await saveData(ids); if(ctx && ctx.draw) ctx.draw(); updateBulkBar(ctx);
     alert('تم تجديد رخصة '+cars.length+' سيارة');
   }
   async function bulkRenewCard(ctx){
-    const cars=getSelectedCars();
+    const cars=getSelectedCars(ctx);
     if(!cars.length) return;
     const defaultDate=addDays(todayStr(),365);
     const newDate=prompt('تاريخ انتهاء الكارت الجديد لـ '+cars.length+' سيارة (YYYY-MM-DD):', defaultDate);
@@ -52,12 +55,12 @@
     const normalized=normalizeDateValue(newDate)||newDate;
     cars.forEach(c=>{ c.cardExpiry=normalized; if(!c.cardStatus||c.cardStatus.includes('ملغ')||c.cardStatus.includes('موقوف')) c.cardStatus='نشط'; });
     const ids=cars.map(c=>c.id);
-    ctx.selectedIds.clear();
-    await saveData(ids); ctx.draw(); updateBulkBar();
+    if(ctx && ctx.selectedIds) ctx.selectedIds.clear();
+    await saveData(ids); if(ctx && ctx.draw) ctx.draw(); updateBulkBar(ctx);
     alert('تم تجديد كارت '+cars.length+' سيارة');
   }
   async function bulkSetStatus(ctx){
-    const cars=getSelectedCars();
+    const cars=getSelectedCars(ctx);
     if(!cars.length) return;
     const status=prompt('الحالة الجديدة (نشط / تحت الصيانة / خارج الخدمة):', 'نشط');
     if(!status) return;
@@ -66,12 +69,12 @@
     if(!allowed.includes(s)){ alert('الحالة يجب أن تكون: نشط أو تحت الصيانة أو خارج الخدمة'); return; }
     cars.forEach(c=>{ c.carStatus=s; });
     const ids=cars.map(c=>c.id);
-    ctx.selectedIds.clear();
-    await saveData(ids); ctx.draw(); updateBulkBar();
+    if(ctx && ctx.selectedIds) ctx.selectedIds.clear();
+    await saveData(ids); if(ctx && ctx.draw) ctx.draw(); updateBulkBar(ctx);
     alert('تم تحديث حالة '+cars.length+' سيارة');
   }
   async function bulkSetInspection(ctx){
-    const cars=getSelectedCars();
+    const cars=getSelectedCars(ctx);
     if(!cars.length) return;
     const status=prompt('حالة الفحص الجديدة (تم الفحص / لم يفحص):', 'تم الفحص');
     if(!status) return;
@@ -80,14 +83,14 @@
     if(!allowed.includes(s)){ alert('القيمة يجب أن تكون: تم الفحص أو لم يفحص'); return; }
     cars.forEach(c=>{ c.inspectionStatus=s; });
     const ids=cars.map(c=>c.id);
-    ctx.selectedIds.clear();
-    await saveData(ids); ctx.draw(); updateBulkBar();
+    if(ctx && ctx.selectedIds) ctx.selectedIds.clear();
+    await saveData(ids); if(ctx && ctx.draw) ctx.draw(); updateBulkBar(ctx);
     alert('تم تحديث فحص '+cars.length+' سيارة');
   }
   function bulkExportSelected(ctx){
-    const cars=getSelectedCars();
+    const cars=getSelectedCars(ctx);
     if(!cars.length){ alert('لا توجد سيارات محددة'); return; }
-    ctx.exportRows(cars);
+    if(ctx && ctx.exportRows) ctx.exportRows(cars);
   }
 
   async function fleetAdminMoveSelectedCars(ctx, targetTab){
@@ -95,7 +98,7 @@
       alert("هذا الإجراء متاح لمدير النظام فقط.");
       return;
     }
-    const cars = getSelectedCars();
+    const cars = getSelectedCars(ctx);
     if(!cars.length){ alert("يرجى تحديد سيارة واحدة على الأقل."); return; }
     const tabNames = { renewals: "الفحص", payments: "تحت الدفع", paid: "تم الدفع", renewed: "تم التجديد" };
     const targetName = tabNames[targetTab] || targetTab;
@@ -167,9 +170,9 @@
       }
     }
 
-    ctx.selectedIds.clear();
-    ctx.draw();
-    updateBulkBar();
+    if(ctx && ctx.selectedIds) ctx.selectedIds.clear();
+    if(ctx && ctx.draw) ctx.draw();
+    updateBulkBar(ctx);
     var msg = "✓ تم نقل " + moved + " سيارة بنجاح إلى تبويب «" + targetName + "».";
     if(failed.length) msg += "\nفشل نقل: " + failed.join("، ");
     alert(msg);

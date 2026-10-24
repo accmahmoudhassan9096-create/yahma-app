@@ -291,3 +291,15 @@ test('النقل لقدام بيحفظ حالة الفحص والرخصة (مش 
   assert.strictEqual(car.licenseStatus, 'نشط', 'حالة الرخصة المفروض تبقى «نشط» بعد التجديد');
 });
 
+test('fleet-view-bulk.js: getSelectedCars و updateBulkBar بيستلموا ctx صراحة وما بيرموش خطأ', () => {
+  const code = read('modules/fleet-view-bulk.js');
+  // التأكد من عدم وجود أي استدعاء عارٍ لـ getSelectedCars() بدون ctx
+  const bareGetSelected = [...code.matchAll(/\bgetSelectedCars\s*\(\s*\)/g)];
+  assert.strictEqual(bareGetSelected.length, 0, 'يوجد استدعاء لـ getSelectedCars() بدون تمرير ctx!');
+
+  // التأكد من عدم وجود أي استدعاء عارٍ لـ updateBulkBar() بدون ctx
+  const bareUpdateBulk = [...code.matchAll(/\bupdateBulkBar\s*\(\s*\)/g)];
+  assert.strictEqual(bareUpdateBulk.length, 0, 'يوجد استدعاء لـ updateBulkBar() بدون تمرير ctx!');
+});
+
+
