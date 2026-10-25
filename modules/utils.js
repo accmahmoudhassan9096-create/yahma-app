@@ -370,6 +370,43 @@
 
   function todayStr() { return new Date().toISOString().slice(0, 10); }
 
+  /* ===== إعادة المحاولة =====
+
+     أول تحميل بعد الدخول كان أحيانًا يطلع «لم تظهر البيانات»: الجلسة
+     بتترجّع من التخزين بشكل غير متزامن، أو الشبكة بتقطع لحظة، فطلب
+     السيارات بيرجع فاضي/بيفشل مرة واحدة — والتطبيق كان بيستسلم
+     ويفضل على الشاشة الفاضية لحد ما المستخدم يعمل ريفرش بنفسه.
+
+     retryAsync بتعيد تنفيذ المهمة بعدد محاولات وبتأخير متزايد،
+     وبتقبل shouldRetry عشان نقرر نعيد ولا لأ حسب النتيجة أو الخطأ. */
+  function retryAsync(task, options) {
+    const opts = options || {};
+    const attempts = Math.max(1, Number(opts.attempts) || 3);
+    const delays = (Array.isArray(opts.delays) && opts.delays.length) ? opts.delays : [600, 1500];
+    const shouldRetry = typeof opts.shouldRetry === 'function'
+      ? opts.shouldRetry
+      : function (info) { return !!info.error; };
+    let attempt = 0;
+    function wait(ms) {
+      return new Promise(function (resolve) { setTimeout(resolve, ms); });
+    }
+    function run() {
+      attempt += 1;
+      return Promise.resolve().then(task).then(function (value) {
+        if (attempt < attempts && shouldRetry({ error: null, value: value, attempt: attempt })) {
+          return wait(delays[Math.min(attempt - 1, delays.length - 1)]).then(run);
+        }
+        return value;
+      }, function (error) {
+        if (attempt < attempts && shouldRetry({ error: error, value: undefined, attempt: attempt })) {
+          return wait(delays[Math.min(attempt - 1, delays.length - 1)]).then(run);
+        }
+        throw error;
+      });
+    }
+    return run();
+  }
+
   /* ===== البحث في الجداول =====
 
      المشكلة: البحث كان بيجمع كل الحقول (ومنها الرقم التسلسلي ورقم
@@ -442,7 +479,8 @@
     carStatusOut, carStatusActive, carStatusMatch, carStatusReady, normStatus,
     brandKey, canonicalBrand, REGION_DEFS, regionOfBranch, CITY_COORDS, cityOfBranch,
     CHURN_DOCS, CHURN_BUCKETS, carChurn, churnStats,
-    normalizeSearchText, plateMatchesQuery, carMatchesSearch
+    normalizeSearchText, plateMatchesQuery, carMatchesSearch,
+    retryAsync
   };
   global.YahmaUtils = api;
   Object.assign(global, api);

@@ -366,6 +366,7 @@
     "normalizeSearchText",
     "plateMatchesQuery",
     "regionOfBranch",
+    "retryAsync",
     "textTag",
     "todayStr",
     "uid"

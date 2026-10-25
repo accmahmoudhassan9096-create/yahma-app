@@ -80,11 +80,26 @@
     return car;
   }
 
+  /* الجلسة بتترجّع من التخزين بشكل غير متزامن بعد فتح الصفحة.
+     لو سألنا السحابة قبل ما تجهز، الطلب بيرجع فاضي (RLS) والتطبيق
+     كان بيرسم شاشة فاضية. بنستنى لحد 1.2 ثانية قبل ما نعتبرها منتهية. */
+  async function waitForSession(client, timeoutMs) {
+    const started = Date.now();
+    const limit = Number(timeoutMs) || 1200;
+    for (;;) {
+      try {
+        const { data } = await client.auth.getSession();
+        if (data && data.session && data.session.user) return true;
+      } catch (_) { /* لسه بيتأسس — نعيد المحاولة */ }
+      if (Date.now() - started >= limit) return false;
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+
   async function fetchAllVehicles(client, table = 'vehicles') {
     if (!client) throw new Error('عميل Supabase غير جاهز');
-    const { data: authData, error: authError } = await client.auth.getSession();
-    if (authError) throw authError;
-    if (!authData?.session?.user) {
+    const hasSession = await waitForSession(client, 1200);
+    if (!hasSession) {
       markSessionExpired('انتهت جلسة الدخول؛ سجّل الدخول مجددًا لمزامنة السيارات');
       throw new Error('انتهت جلسة الدخول؛ سجّل الدخول مجددًا لمزامنة السيارات');
     }
@@ -196,8 +211,26 @@
     if (needsCloudFetch) {
       try {
         if (global.supabaseReady && global.supabaseClient) {
-          const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة الاتصال بـ Supabase بعد 30 ثانية')), 30000));
-          const cloudRows = await Promise.race([fetchAllVehicles(global.supabaseClient), timeout]);
+          /* ⭐ إعادة محاولة: أول طلب بعد الدخول كان بيرجع فاضي أحيانًا
+             (الجلسة لسه بتترجّع/الشبكة بتقطع لحظة) فالتطبيق كان
+             بيستسلم ويعرض «لم تظهر البيانات» لحد ريفرش يدوي.
+             دلوقتي بنجرّب 3 مرات بتأخير متزايد، وبنعيد كمان لو
+             رجعت صفر سيارات (مش خطأ صريح). */
+          const fetchOnce = () => Promise.race([
+            fetchAllVehicles(global.supabaseClient),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة الاتصال بـ Supabase بعد 30 ثانية')), 30000))
+          ]);
+          const cloudRows = (typeof retryAsync === 'function')
+            ? await retryAsync(fetchOnce, {
+                attempts: 3,
+                delays: [500, 1200],
+                shouldRetry: info => !!info.error || !(Array.isArray(info.value) && info.value.length)
+              })
+            : await fetchOnce();
+          if (cloudRows?.length) {
+            global.__yahmaSessionExpired = false;
+            global.__yahmaSessionExpiredMsg = '';
+          }
           if (cloudRows?.length) {
             fleet = (typeof scopeFleetToUser==='function') ? scopeFleetToUser(cloudRows.map(fromVehicleRow)) : cloudRows.map(fromVehicleRow);
             setFleet(context, fleet);

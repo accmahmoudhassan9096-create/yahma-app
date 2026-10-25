@@ -382,6 +382,20 @@ function activateAuthenticatedSession(user){
         try{ if(typeof migrateInspectionStatus==='function') await migrateInspectionStatus(); }catch(_){yahmaErr(_,'auth-boot.js:169');}
         try{ if(typeof migrateHijriDatesToGregorian==='function') await migrateHijriDatesToGregorian(); }catch(_){yahmaErr(_,'auth-boot.js:hijri');}
         if(typeof render==='function') render();
+        /* ⭐ شبكة أمان: لو الأسطول فضل فاضي بعد أول تحميل (طلب ضاع أو
+           الجلسة كانت لسه بتجهز) بنعيد تحميل واحد إجباري بعد لحظة،
+           بدل ما المستخدم يشوف «لم تظهر البيانات» ويعمل ريفرش بنفسه. */
+        try{
+          if(window.currentUser && window.supabaseReady
+             && typeof fleet!=='undefined' && Array.isArray(fleet) && !fleet.length){
+            setTimeout(function(){
+              Promise.resolve()
+                .then(function(){ return loadData(true); })
+                .then(function(){ if(typeof render==='function') render(); })
+                .catch(function(e){ yahmaErr(e,'auth-boot.js:empty-retry'); });
+            }, 1200);
+          }
+        }catch(_){ yahmaErr(_,'auth-boot.js:empty-retry-check'); }
       });
     }catch(error){
       console.error('تعذر تهيئة حساب المستخدم',error);
