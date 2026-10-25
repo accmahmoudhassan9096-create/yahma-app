@@ -652,15 +652,31 @@ function diagnose() {
   /* تعديل الطلب على السحابة بمفتاح واحد — كل نداءات الرجوع
      بتمر من هنا عشان مسار واحد: البحث عن UUID لو المفتاح نصي،
      وكتابة الخطأ في نفس الرسالة اللي الواجهة بتقراها. */
+  /* الصف المستهدف في الكاش المحلي: بالـid الأول، ولو مش موجود
+     بـcarId كاحتياط للسجلات القديمة. */
+  function findLocalRow(list, id, carId) {
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i].id) === String(id)) return list[i];
+    }
+    if (!carId) return null;
+    for (var j = 0; j < list.length; j++) {
+      if (String(list[j].carId) === String(carId)) return list[j];
+    }
+    return null;
+  }
+
   async function patchCloud(id, carId, fields) {
     if (!tableReady()) return { ok: true, local: true };
     try {
       var cloudId = await resolveAnyCloudId(id, carId);
       var query = global.supabaseClient.from('inspection_payments').update(fields);
-      if (carId) {
-        query = query.eq('car_id', String(carId)).in('status', ['pending', 'paid']);
-      } else if (cloudId) {
+      /* ⭐ الصف المحدد أولًا. التعديل بـcar_id كان بيلمس كل صفوف
+         العربية (طلب قديم متجدّد + طلب جديد)، فتعديل صف كان
+         بيغيّر صف تاني — وده اللي كان بينقل سيارات لتبويب غلط. */
+      if (cloudId) {
         query = query.eq('id', cloudId);
+      } else if (carId) {
+        query = query.eq('car_id', String(carId)).in('status', ['pending', 'paid']);
       }
       var res = await query;
       if (res && res.error) {
