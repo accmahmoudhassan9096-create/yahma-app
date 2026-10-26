@@ -226,7 +226,10 @@ function renderFollowUp(content){
         else if(want==='نشط' && (raw.includes('ملغ')||raw.includes('موقوف'))) return false;
       }
       if(!activeFQ && !val('fu-card-condition') && !val('fu-card-status') && !val('fu-ins-status') && !q){
-        if(cardDisplayStatus(c.cardExpiry,c.cardStatus).level !== 'red') return false;
+        const lvl = cardDisplayStatus(c.cardExpiry,c.cardStatus).level;
+        const raw = norm(c.cardStatus);
+        /* افتراضيًا: المنتهي + الملغي + اللي بدون تاريخ، مش بس الأحمر */
+        if(lvl === 'green' && !raw.includes('ملغ') && !raw.includes('موقوف')) return false;
       }
       if(val('fu-card-condition') && cardDisplayStatus(c.cardExpiry,c.cardStatus).level!==val('fu-card-condition')) return false;
       /* فلتر انتهاء البطاقة خلال شهر محدد (yyyy-mm) */
