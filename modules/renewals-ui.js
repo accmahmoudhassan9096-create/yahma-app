@@ -100,6 +100,7 @@ function renderRenewals(content, mode='inspection'){
         ${isOpsInspection ? '' : `
         <label>الفرع<select id="ren-branch">${optionList(uniq('branch'),'كل الفروع')}</select></label>
         <label>حالة السيارة<select id="ren-car-status"><option value="">كل الحالات</option><option>تحت الصيانة</option><option>حجز</option><option>متاحة للايجار</option><option>محولة غير مستلمة</option><option>مسروقة</option><option>للبيع</option><option>مؤجرة</option><option>خدمة</option><option>مفقودة</option></select></label>
+        ${(!insuranceMode)?`<label>تنتهي بطاقة خلال<select id="ren-card-exp-month"><option value="">كل الشهور</option></select></label>`:''}
         <label>المالك<select id="ren-owner">${optionList(uniq('owner'),'كل الملاك')}</select></label>
         <label>الماركة<select id="ren-brand">${optionList(uniq('brand'),'كل الماركات')}</select></label>
         <label>الموديل (السنة)<select id="ren-model">${optionList(uniq('model'),'كل الموديلات')}</select></label>
@@ -227,6 +228,8 @@ function renderRenewals(content, mode='inspection'){
       if(val('ren-brand') && (typeof canonicalBrand==='function'?canonicalBrand(c.brand)!==val('ren-brand'):!eq(c.brand,val('ren-brand')))) return false;
       if(val('ren-model') && !eq(c.model,val('ren-model'))) return false;
       if(val('ren-car-status') && !carStatusMatch(c.carStatus,val('ren-car-status'))) return false;
+      /* فلتر انتهاء البطاقة خلال شهر محدد (yyyy-mm) */
+      if(val('ren-card-exp-month') && String(c.cardExpiry||'').slice(0,7)!==val('ren-card-exp-month')) return false;
       if(val('ren-insp-status') && inspectionDisplayStatus(c.inspectionStatus).level!==val('ren-insp-status')) return false;
       if(val('ren-insurance-status') && textTag(c.insuranceStatus).level!==val('ren-insurance-status')) return false;
       if(val('ren-lic-condition') && dateStatus(c.licenseExpiry).level!==val('ren-lic-condition')) return false;
@@ -556,9 +559,17 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
     if(prev) prev.disabled=page<=1;
     if(next) next.disabled=page>=pages;
     document.querySelectorAll('#ren-quick .quick-filter').forEach(b=>b.classList.toggle('active',b.dataset.rq===activeRQ));
+    /* خيارات فلتر انتهاء البطاقة — شهور حقيقية من البيانات */
+    const sel=$('ren-card-exp-month');
+    if(sel){
+      const kept=sel.value;
+      const months=[...new Set(fleet.map(c=>{const d=String(c.cardExpiry||'');const m=d.match(/^(\d{4}-\d{2})/);return m?m[1]:'';}).filter(Boolean))].sort();
+      const names=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+      sel.innerHTML='<option value="">كل الشهور</option>'+months.map(ym=>`<option value="${ym}"${ym===kept?' selected':''}>${names[Number(ym.slice(5,7))-1]||ym} ${ym.slice(0,4)}</option>`).join('');
+    }
   }
 
-  ['ren-branch','ren-car-status','ren-owner','ren-brand','ren-model','ren-insp-status','ren-lic-condition','ren-lic-status','ren-insurance-status'].forEach(id=>{
+  ['ren-branch','ren-car-status','ren-card-exp-month','ren-owner','ren-brand','ren-model','ren-insp-status','ren-lic-condition','ren-lic-status','ren-insurance-status'].forEach(id=>{
     $(id)?.addEventListener('change',()=>{page=1;draw();});
   });
   (function(){let t=null;$('ren-search')?.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{page=1;draw()},180);});})();
@@ -566,7 +577,7 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
     b.addEventListener('click',()=>{activeRQ=activeRQ===b.dataset.rq?'':b.dataset.rq;page=1;draw();});
   });
   $('ren-clear')?.addEventListener('click',()=>{
-    ['ren-search','ren-branch','ren-car-status','ren-owner','ren-brand','ren-model','ren-insp-status','ren-lic-condition','ren-lic-status','ren-insurance-status'].forEach(id=>{if($(id)) $(id).value='';});
+    ['ren-search','ren-branch','ren-car-status','ren-card-exp-month','ren-owner','ren-brand','ren-model','ren-insp-status','ren-lic-condition','ren-lic-status','ren-insurance-status'].forEach(id=>{if($(id)) $(id).value='';});
     activeRQ=''; selectedRenIds.clear(); page=1; draw();
   });
   $('ren-pager-prev')?.addEventListener('click',()=>{page=Math.max(1,page-1);draw();});
