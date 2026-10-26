@@ -82,6 +82,7 @@ function renderFollowUp(content){
         <label>الموديل (السنة)<select id="fu-model">${optionList(uniq('model'),'كل الموديلات')}</select></label>
         <label>حالة الكارت (سجل)<select id="fu-card-status"><option value="">كل الحالات</option><option>نشط</option><option>ملغى</option><option>موقوف</option></select></label>
         <label>صلاحية الكارت<select id="fu-card-condition"><option value="">كل الحالات</option><option value="green">ساري</option><option value="amber">قريب الانتهاء</option><option value="red">منتهي / ملغى</option><option value="grey">غير محدد</option></select></label>
+        <label>تنتهي البطاقة خلال<select id="fu-card-exp-month"><option value="">كل الشهور</option></select></label>
         <label>حالة التأمين<select id="fu-ins-status"><option value="">كل الحالات</option><option value="green">ساري</option><option value="red">منتهي / لا يوجد</option><option value="grey">غير محدد</option></select></label>
       </div>
       <div class="filter-footer">
@@ -228,6 +229,8 @@ function renderFollowUp(content){
         if(cardDisplayStatus(c.cardExpiry,c.cardStatus).level !== 'red') return false;
       }
       if(val('fu-card-condition') && cardDisplayStatus(c.cardExpiry,c.cardStatus).level!==val('fu-card-condition')) return false;
+      /* فلتر انتهاء البطاقة خلال شهر محدد (yyyy-mm) */
+      if(val('fu-card-exp-month') && String(c.cardExpiry||'').slice(0,7)!==val('fu-card-exp-month')) return false;
       if(val('fu-ins-status') && textTag(c.insuranceStatus).level!==val('fu-ins-status')) return false;
       if(activeFQ){
         const card=cardDisplayStatus(c.cardExpiry,c.cardStatus).level;
@@ -460,9 +463,17 @@ function renderFollowUp(content){
     if(prev) prev.disabled=page<=1;
     if(next) next.disabled=page>=pages;
     document.querySelectorAll('#fu-quick .quick-filter').forEach(b=>b.classList.toggle('active',b.dataset.fq===activeFQ));
+    /* خيارات فلتر انتهاء البطاقة — شهور من البيانات الفعلية */
+    const msel=$('fu-card-exp-month');
+    if(msel){
+      const kept=msel.value;
+      const months=[...new Set(fleet.map(c=>{const d=String(c.cardExpiry||'');const m=d.match(/^(\d{4}-\d{2})/);return m?m[1]:'';}).filter(Boolean))].sort();
+      const names=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+      msel.innerHTML='<option value="">كل الشهور</option>'+months.map(ym=>`<option value="${ym}"${ym===kept?' selected':''}>${names[Number(ym.slice(5,7))-1]||ym} ${ym.slice(0,4)}</option>`).join('');
+    }
   }
 
-  ['fu-branch','fu-car-status','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition','fu-ins-status'].forEach(id=>{
+  ['fu-branch','fu-car-status','fu-card-exp-month','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition','fu-ins-status'].forEach(id=>{
     $(id)?.addEventListener('change',()=>{page=1;draw();});
   });
   (function(){let t=null;$('fu-search')?.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{page=1;draw()},180);});})();
@@ -470,7 +481,7 @@ function renderFollowUp(content){
     b.addEventListener('click',()=>{activeFQ=activeFQ===b.dataset.fq?'':b.dataset.fq;page=1;draw();});
   });
   $('fu-clear')?.addEventListener('click',()=>{
-    ['fu-search','fu-branch','fu-car-status','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition','fu-ins-status'].forEach(id=>{if($(id)) $(id).value='';});
+    ['fu-search','fu-branch','fu-car-status','fu-card-exp-month','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition','fu-ins-status'].forEach(id=>{if($(id)) $(id).value='';});
     activeFQ=''; selectedFuIds.clear(); page=1; draw();
   });
   $('fu-bulk-delete')?.addEventListener('click',()=>deleteFuCars([...selectedFuIds]));
