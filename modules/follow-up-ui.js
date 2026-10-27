@@ -52,10 +52,7 @@ function renderFollowUp(content){
         <strong>تأمين منتهي:</strong> <span class="wa-count">${needIns}</span>
       </div>
       <div class="wa-toolbar-actions">
-        <button class="btn btn-whatsapp" id="btn-wa-card">واتساب — الكارت</button>
-        <button class="btn btn-whatsapp" id="btn-wa-ins">واتساب — التأمين</button>
-        <button class="btn btn-ghost" id="btn-copy-card">نسخ قائمة الكارت</button>
-        <!-- أزرار التصدير القديمة (fu-export-*) اتشالت — التصدير من شريط yx. -->
+        <!-- واتساب تم إزالته -->
         <button class="btn btn-primary btn-small" id="fu-upload-btn" title="رفع شيت الكروت — يحدّث بيانات الكارت فقط">📥 رفع شيت الكروت</button>
         <input type="file" id="file-fu-upload" accept=".xlsx,.xls,.csv" style="display:none">
       </div>
@@ -67,8 +64,6 @@ function renderFollowUp(content){
         <button type="button" class="quick-filter" data-fq="card_ok">✅ كارت ساري</button>
         <button type="button" class="quick-filter" data-fq="card_expired">🔴 كارت منتهي</button>
         <button type="button" class="quick-filter" data-fq="card_soon">🟡 كارت قريب</button>
-        <button type="button" class="quick-filter" data-fq="ins_bad">⚠️ تأمين غير ساري</button>
-        <button type="button" class="quick-filter" data-fq="ins_ok">✅ تأمين ساري</button>
         <button type="button" class="quick-filter" data-fq="active">🟢 سيارة نشطة</button>
         <button type="button" class="quick-filter" data-fq="maintenance">🔧 تحت الصيانة</button>
         <button type="button" class="quick-filter" data-fq="out">⛔ خارج الخدمة</button>
@@ -83,7 +78,6 @@ function renderFollowUp(content){
         <label>حالة الكارت (سجل)<select id="fu-card-status"><option value="">كل الحالات</option><option>نشط</option><option>ملغى</option><option>موقوف</option></select></label>
         <label>صلاحية الكارت<select id="fu-card-condition"><option value="">كل الحالات</option><option value="green">ساري</option><option value="amber">قريب الانتهاء</option><option value="red">منتهي / ملغى</option><option value="grey">غير محدد</option></select></label>
         <label>تنتهي البطاقة خلال<select id="fu-card-exp-month"><option value="">كل الشهور</option></select></label>
-        <label>حالة التأمين<select id="fu-ins-status"><option value="">كل الحالات</option><option value="green">ساري</option><option value="red">منتهي / لا يوجد</option><option value="grey">غير محدد</option></select></label>
       </div>
       <div class="filter-footer">
         <span id="fu-filter-count">عرض 0 من ${fleet.length}</span>
@@ -234,7 +228,6 @@ function renderFollowUp(content){
       if(val('fu-card-condition') && cardDisplayStatus(c.cardExpiry,c.cardStatus).level!==val('fu-card-condition')) return false;
       /* فلتر انتهاء البطاقة خلال شهر محدد (yyyy-mm) */
       if(val('fu-card-exp-month') && String(c.cardExpiry||'').slice(0,7)!==val('fu-card-exp-month')) return false;
-      if(val('fu-ins-status') && textTag(c.insuranceStatus).level!==val('fu-ins-status')) return false;
       if(activeFQ){
         const card=cardDisplayStatus(c.cardExpiry,c.cardStatus).level;
         const ins=textTag(c.insuranceStatus).level;
@@ -476,7 +469,7 @@ function renderFollowUp(content){
     }
   }
 
-  ['fu-branch','fu-car-status','fu-card-exp-month','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition','fu-ins-status'].forEach(id=>{
+  ['fu-branch','fu-car-status','fu-card-exp-month','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition'].forEach(id=>{
     $(id)?.addEventListener('change',()=>{page=1;draw();});
   });
   (function(){let t=null;$('fu-search')?.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{page=1;draw()},180);});})();
@@ -484,7 +477,7 @@ function renderFollowUp(content){
     b.addEventListener('click',()=>{activeFQ=activeFQ===b.dataset.fq?'':b.dataset.fq;page=1;draw();});
   });
   $('fu-clear')?.addEventListener('click',()=>{
-    ['fu-search','fu-branch','fu-car-status','fu-card-exp-month','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition','fu-ins-status'].forEach(id=>{if($(id)) $(id).value='';});
+    ['fu-search','fu-branch','fu-car-status','fu-card-exp-month','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition'].forEach(id=>{if($(id)) $(id).value='';});
     activeFQ=''; selectedFuIds.clear(); page=1; draw();
   });
   $('fu-bulk-delete')?.addEventListener('click',()=>deleteFuCars([...selectedFuIds]));
