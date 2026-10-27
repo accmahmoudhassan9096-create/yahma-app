@@ -460,10 +460,7 @@
     if (/^\d+$/.test(q)) {
       const serial = onlyDigits(car.serial);
       const card = onlyDigits(car.cardNumber);
-      if (q.length >= 6) {
-        return (!!serial && serial.indexOf(q) > -1) || (!!card && card.indexOf(q) > -1);
-      }
-      return serial === q || card === q;
+      return (!!serial && serial === q) || (!!card && card === q) || (!!serial && serial.indexOf(q) > -1) || (!!card && card.indexOf(q) > -1);
     }
     if (!car._searchHayN) {
       car._searchHayN = SEARCH_TEXT_FIELDS.map(f => normalizeSearchText(car[f])).join(' ');
