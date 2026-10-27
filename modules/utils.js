@@ -458,9 +458,11 @@
     if (!q) return true;
     if (plateMatchesQuery(car.plate, q)) return true;
     if (/^\d+$/.test(q)) {
+      // أقل من 6 أرقام = لوحات فقط؛ 6+ = تسلسل/بطاقة مسموح به
+      if (q.length < 6) return plateMatchesQuery(car.plate, query);
       const serial = onlyDigits(car.serial);
       const card = onlyDigits(car.cardNumber);
-      return (!!serial && serial === q) || (!!card && card === q) || (!!serial && serial.indexOf(q) > -1) || (!!card && card.indexOf(q) > -1);
+      return (!!serial && (serial === q || serial.indexOf(q) > -1)) || (!!card && (card === q || card.indexOf(q) > -1));
     }
     if (!car._searchHayN) {
       car._searchHayN = SEARCH_TEXT_FIELDS.map(f => normalizeSearchText(car[f])).join(' ');
