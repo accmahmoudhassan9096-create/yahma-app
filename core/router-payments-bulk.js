@@ -153,8 +153,9 @@ function payCheckCell(tab, itemId, plate) {
    وحالة الفحص يبقى هو هو اللي بيحصل لو المستخدم عملها بإيده. */
 
 function payMovableRole() {
-  // يدوي فقط — لا نقل جماعي بين التبويبات
-  return false;
+  const r = (typeof currentRole !== 'undefined' ? currentRole
+    : (typeof window !== 'undefined' ? window.currentRole : ''));
+  return r === 'admin' || r === 'manager';
 }
 
 function payItemOfCar(carId) {
