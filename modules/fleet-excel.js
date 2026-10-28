@@ -339,7 +339,7 @@
     out.detected = true;
     const col = (...keys) => headers.find(h => keys.some(k => normalizeHeader(k) === normalizeHeader(h))) || null;
     const cPlate = col('رقم السيارة'), cBrand = col('الماركه'), cType = col('النوع'),
-      cYear = col('الموديل'), cCompany = col('الشركه');
+      cYear = col('الموديل'), cCompany = col('الشركه'), cStatusCol = col('حالة السيارة');
     const yearOk = v => /^\d{4}$/.test(String(v ?? '').trim()) && +String(v).trim() >= 1990 && +String(v).trim() <= 2027;
     rows.forEach(row => {
       const plate = String(row[cPlate] ?? '').trim();
@@ -352,8 +352,10 @@
         brand: (typeof canonicalBrand === 'function' && brand) ? canonicalBrand(brand) : brand,
         type: cType ? String(row[cType] ?? '').trim() : '',
         model: (cYear && yearOk(row[cYear])) ? String(row[cYear]).trim() : '',
+        carStatus: (cStatusCol ? String(row[cStatusCol] ?? '').trim() : ''),
         transferDone: 'نعم', transferFrom: company,
-        transferDate: '', transferStatus: '', transferNotes: ''
+        transferDate: '', transferStatus: (cStatusCol ? (String(row[cStatusCol] ?? '').includes('محولة') || String(row[cStatusCol] ?? '').includes('للبيع') || String(row[cStatusCol] ?? '').includes('خارج') ? 'مكتمل' : '') : ''),
+        transferNotes: ''
       };
       out.active.push(car);
       if (company) out.byCompany[company] = (out.byCompany[company] || 0) + 1;
