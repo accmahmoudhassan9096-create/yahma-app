@@ -53,6 +53,8 @@ function renderFollowUp(content){
       </div>
       <div class="wa-toolbar-actions">
         <button class="btn btn-whatsapp" id="btn-wa-card">واتساب — الكارت</button>
+        <button class="btn btn-ghost btn-small" id="ren-export-xlsx">📥 تصدير Excel</button>
+        <button class="btn btn-ghost btn-small" id="ren-export-pdf">📄 تصدير PDF</button>
         <button class="btn btn-primary btn-small" id="fu-upload-btn" title="رفع شيت الكروت — يحدّث بيانات الكارت فقط">📥 رفع شيت الكروت</button>
         <input type="file" id="file-fu-upload" accept=".xlsx,.xls,.csv" style="display:none">
       </div>
