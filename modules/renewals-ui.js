@@ -139,6 +139,8 @@ function renderRenewals(content, mode='inspection'){
           </div>
         `:""}
         <button class="btn btn-ghost btn-small" id="ren-bulk-clear">إلغاء التحديد</button>
+        <button class="btn btn-primary btn-small" id="ren-upload-renewed">📥 رفع شيت التجديد</button>
+        <input type="file" id="file-ren-renewed" accept=".xlsx,.xls,.csv" style="display:none">
       </div>
     </div>`:''}
     <div class="table-scroll" style="max-height:calc(100vh - 320px)">
