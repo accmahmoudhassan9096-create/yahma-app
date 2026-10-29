@@ -52,13 +52,14 @@ function renderFollowUp(content){
         <strong>تأمين منتهي:</strong> <span class="wa-count">${needIns}</span>
       </div>
       <div class="wa-toolbar-actions">
-        <!-- واتساب تم إزالته -->
+        <button class="btn btn-whatsapp" id="btn-wa-card">واتساب — الكارت</button>
         <button class="btn btn-primary btn-small" id="fu-upload-btn" title="رفع شيت الكروت — يحدّث بيانات الكارت فقط">📥 رفع شيت الكروت</button>
         <input type="file" id="file-fu-upload" accept=".xlsx,.xls,.csv" style="display:none">
       </div>
     </div>
     <div class="filter-panel">
       <div class="filter-panel-title"><strong>🔎 فلاتر الكارت والتأمين</strong><span>صفِّ النتائج حسب أي بند — ثم صدّر Excel أو PDF</span></div>
+    ${needCard > 10 ? `<div class="alert-banner" style="background:#fff0f0;border:1px solid #d32f2f;color:#d32f2f;padding:8px 12px;border-radius:6px;margin-bottom:8px;font-weight:bold;">⚠️ تنبيه: ${needCard} سيارة بحاجة فحص فورًا — مسؤولية مشرف الفرع</div>` : ''}
       <div class="quick-filters" id="fu-quick">
         <button type="button" class="quick-filter" data-fq="card_bad">🪪 كارت يحتاج متابعة</button>
         <button type="button" class="quick-filter" data-fq="card_ok">✅ كارت ساري</button>
@@ -137,7 +138,7 @@ function renderFollowUp(content){
   function buildCardWAMessage(){
     const list=fleet.filter(c=>cardDisplayStatus(c.cardExpiry,c.cardStatus).level!=='green')
       .sort((a,b)=> (daysFromNow(a.cardExpiry)??9999)-(daysFromNow(b.cardExpiry)??9999));
-    const lines=['🪪 *تقرير الكروت التي تحتاج متابعة*', 'التاريخ: '+fmtDate(new Date()), 'العدد: *'+list.length+'* سيارة', '————————————'];
+    const lines=['🪪 *مطلوب الفحص في أسرع وقت — مسؤولية مشرف الفرع*', 'التاريخ: '+fmtDate(new Date()), 'العدد: *'+list.length+'* سيارة (منتهي كارت)', '————————————'];
     if(!list.length) lines.push('✅ لا توجد كروت تحتاج متابعة.');
     else list.forEach((c,i)=>{
       const st=cardDisplayStatus(c.cardExpiry,c.cardStatus);
