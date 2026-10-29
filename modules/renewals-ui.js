@@ -622,6 +622,7 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
      الربط هنا بيفضل آمن لو رجعت تاني، والتصدير شغال من شريط yx. */
   $('ren-export-xlsx')?.addEventListener('click',()=>exportRen('xlsx'));
   $('ren-export-pdf')?.addEventListener('click',()=>exportRen('pdf'));
+  $("ren-upload-renewed")?.addEventListener('click',()=>{const fi=$("file-ren-renewed");if(fi){fi.click();}});
   $('ren-bulk-delete')?.addEventListener('click',()=>deleteRenCars([...selectedRenIds]));
   $('ren-insp-from-lic')?.addEventListener('click',bulkInspectionFromLicenses);
   $('ren-bulk-insp-yes')?.addEventListener('click',()=>bulkSetInspection('تم الفحص', true));
