@@ -36,7 +36,7 @@
   /* حالة الواجهة: التقرير المفتوح والفرع المختار.
      مش بنخزّنها في localStorage — التقارير شاشة عرض، وأول ما تدخل
      التبويب لازم تبدأ من الملخص التنفيذي. */
-  var state = { report: 'overview', branch: '' };
+  var state = { report: 'weekly', branch: '' };
 
   /* ============ أدوات صغيرة ============ */
 
@@ -1185,7 +1185,140 @@
     };
   }
 
+  /* ============ تقرير الأسبوع ============
+     تقرير واحد متوقف لكل مسؤول: أوراق منتهية بالفرع + حركة
+     الدفعات آخر 7 أيام + ملخص بالأرقام. كل الأرقام محسوبة
+     من الأسطول المحمّل ودفاتر المخزن — مش من السيرفر. */
+  function buildWeekly(model, list) {
+    var u = global.YahmaUtils || {};
+    var daysLeftL = daysLeft;
+    var fmtDateL = function (v) {
+      if (!v) return '—';
+      try { var f = typeof u.fmtDate === 'function' ? u.fmtDate(v) : ''; return f && f !== '؟' ? f : String(v).slice(0, 10); } catch (_) { return String(v).slice(0, 10); }
+    };
+    var carById = {};
+    (list || []).forEach(function (car) { if (car && car.id) carById[String(car.id)] = car; });
+
+    /* — أوراق منتهية بالفرع — */
+    var byBranch = {};
+    function bRec(name) {
+      if (!name || !String(name).trim()) name = 'بدون فرع';
+      if (!byBranch[name]) byBranch[name] = { total: 0, card: 0, ins: 0, lic: 0, ready: 0 };
+      return byBranch[name];
+    }
+    var needCardTotal = 0, needInsTotal = 0, needLicTotal = 0;
+    (list || []).forEach(function (car) {
+      if (!car) return;
+      var rec = bRec(car.branch);
+      rec.total++;
+      if (readinessOf(car).ready) rec.ready++;
+
+      var cardBad = !!car.cardExpiry && (daysLeftL(car.cardExpiry) < 0);
+      var licBad = !!car.licenseExpiry && (daysLeftL(car.licenseExpiry) < 0);
+      var insBad = false;
+      if (typeof u.textTag === 'function') {
+        var insTag = u.textTag(car.insuranceStatus);
+        insBad = !!insTag && insTag.level === 'red';
+      } else {
+        insBad = !!car.insuranceExpiry && (daysLeftL(car.insuranceExpiry) < 0);
+      }
+      if (cardBad) { rec.card++; needCardTotal++; }
+      if (insBad) { rec.ins++; needInsTotal++; }
+      if (licBad) { rec.lic++; needLicTotal++; }
+    });
+    var branchRowsWeekly = Object.keys(byBranch).map(function (name) {
+      var r = byBranch[name];
+      return { name: name, total: r.total, card: r.card, ins: r.ins, lic: r.lic, ready: r.ready };
+    }).sort(function (a, b) {
+      var wa = a.card * 3 + a.ins * 2 + a.lic, wb = b.card * 3 + b.ins * 2 + b.lic;
+      return wb - wa || b.total - a.total;
+    });
+
+    /* — دفعات آخر 7 أيام — */
+    var weekMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    var weekRows = [];
+    var weekCounts = { insp: 0, pending: 0, paid: 0, renewed: 0 };
+    try {
+      var p = global.YahmaPayments;
+      var isRen = (p && typeof p.isRenewed === 'function') ? p.isRenewed : function () { return false; };
+      var doneStampL = (p && typeof p.doneStamp === 'function') ? p.doneStamp : function () { return null; };
+      function weeklyPush(items, stage, tsOf) {
+        (items || []).forEach(function (x) {
+          if (!x) return;
+          var ts = tsOf(x);
+          var t = ts ? new Date(ts).getTime() : NaN;
+          if (isNaN(t) || t < weekMs) return;
+          var car = carById[String(x.carId)];
+          weekCounts[stage]++;
+          weekRows.push({
+            at: t,
+            plate: (car && car.plate) || '—',
+            branch: (car && car.branch) || '—',
+            stage: stage,
+            stamp: ts
+          });
+        });
+      }
+      if (p && typeof p.localByStatus === 'function') {
+        weeklyPush(p.localByStatus('pending'), 'تحت الدفع', function (x) { return x.requestedAt; });
+        var allPaid = p.localByStatus('paid') || [];
+        weeklyPush(allPaid.filter(function (x) { return !isRen(x); }), 'تم الدفع', function (x) { return x.paidAt || x.requestedAt; });
+        weeklyPush(allPaid.filter(isRen), 'تم التجديد', function (x) { return x.renewedLicense ? x.requestedAt : (doneStampL(x) || x.paidAt || x.requestedAt); });
+      }
+    } catch (_) {}
+    weekRows.sort(function (a, b) { return b.at - a.at; });
+    var weekShown = weekRows.slice(0, 100);
+
+    /* — ملخص بالأرقام — */
+    var sumRows = [
+      ['دفعات اتحرّكت آخر 7 أيام', weekRows.length],
+      ['— تحت الدفع', weekCounts.pending],
+      ['— تم الدفع', weekCounts.paid],
+      ['— تم التجديد', weekCounts.renewed],
+      ['كروت منتهية (الأسطول المفلتر)', needCardTotal],
+      ['تأمين منتهي (الأسطول المفلتر)', needInsTotal],
+      ['رخص منتهية (الأسطول المفلتر)', needLicTotal],
+      ['جاهزة للتأجير', model.ready],
+      ['تنازلات مكتملة', model.transfers.done]
+    ];
+
+    return {
+      title: 'تقرير الأسبوع',
+      subtitle: 'ملخص أسبوعي: الأوراق المنتهية بالفرع + حركة الدفعات آخر 14 أيام — جاهز للطباعة والإرسال للإدارة.',
+      kpis: [
+        { label: 'إجمالي (المفلتر)', value: num(model.total) },
+        { label: 'كارت منتهي', value: num(needCardTotal), cls: 'bad' },
+        { label: 'تأمين منتهي', value: num(needInsTotal), cls: 'bad' },
+        { label: 'رخص منتهية', value: num(needLicTotal), cls: 'warn' },
+        { label: 'دفعات الأسبوع', value: num(weekRows.length), cls: weekRows.length ? 'good' : '' },
+        { label: 'تجديدات الأسبوع', value: num(weekCounts.renewed), cls: weekCounts.renewed ? 'good' : '' }
+      ],
+      sections: [
+        {
+          title: 'الأوراق المنتهية حسب الفرع',
+          note: 'مرتّب حسب الثقل: الكارت المنتهي أثقل الحالات — التأمين بعده.',
+          headers: ['الفرع', 'السيارات', 'كارت منتهي', 'تأمين منتهي', 'رخصة منتهية', 'جاهزة'],
+          rows: branchRowsWeekly.map(function (r) { return [r.name, r.total, r.card, r.ins, r.lic, r.ready]; }),
+          foot: ['الإجمالي', model.total, needCardTotal, needInsTotal, needLicTotal, model.ready]
+        },
+        {
+          title: 'حركة الدفعات — آخر 7 أيام',
+          note: 'آخر 100 حركة. التاريخ بالتنسيق يوم/شهر/سنة.',
+          headers: ['اللوحة', 'الفرع', 'المرحلة', 'التاريخ'],
+          rows: weekShown.map(function (r) { return [r.plate, r.branch, r.stage, fmtDateL(r.stamp)]; })
+        },
+        {
+          title: 'ملخص الأسبوع بالأرقام',
+          note: 'الأعداد الأساسية اللي تخص الإدارة من النظرة السريعة.',
+          headers: ['البند', 'العدد'],
+          rows: sumRows
+        }
+      ]
+    };
+  }
+
   var REPORTS = [
+    { id: 'weekly', label: 'تقرير الأسبوع', build: buildWeekly },
     { id: 'overview', label: 'ملخص تنفيذي', build: buildOverview },
     { id: 'readiness', label: 'الجاهزية حسب الفرع', build: buildReadiness },
     { id: 'pipeline', label: 'دورة الفحص والمدفوعات', build: buildPipeline },
