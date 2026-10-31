@@ -139,7 +139,10 @@ async function renewLicenseFromPaid(item, car, content, opts){
   if(!car){alert('لم تعد السيارة موجودة في الأسطول.');return 'skipped';}
   const suggested=paySuggestedLicenseDate();
   let raw;
-  if(opts.silentDate){
+  if(opts.licenseExpiry){
+    /* الشيتات (رفع «تم التجديد»): التاريخ جاي من ملف المستخدم — من غير prompt */
+    raw = opts.licenseExpiry;
+  }else if(opts.silentDate){
     raw = suggested;
   }else{
     raw = prompt('تاريخ انتهاء الرخصة الجديد لـ '+car.plate+' (YYYY-MM-DD):', suggested);

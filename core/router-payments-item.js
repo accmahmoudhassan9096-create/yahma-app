@@ -261,7 +261,12 @@ const PAY_ITEM_ACTION = {
      الجماعية — الـprompt لكل سيارة مش عملي في حلقة. */
   async renew(item, car, quiet) {
     const content = document.getElementById('content');
-    return renewLicenseFromPaid(item, car, content, { silentDate: !!quiet, quiet: !!quiet });
+    /* النسختين الجماعية والمفردة بتمرر true/false — الرفع من شيت
+       (تم التجديد) بيمرر object فيه quiet=true و licenseExpiry من الملف */
+    const applyOpts = (quiet && typeof quiet === 'object')
+      ? Object.assign({ quiet: true }, quiet)
+      : { silentDate: !!quiet, quiet: !!quiet };
+    return renewLicenseFromPaid(item, car, content, applyOpts);
   },
 
   /* «تم التجديد» ⇐ «تم الدفع»: سجل «تم التجديد» يتشال وتاريخ

@@ -623,6 +623,88 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
   $('ren-export-xlsx')?.addEventListener('click',()=>exportRen('xlsx'));
   $('ren-export-pdf')?.addEventListener('click',()=>exportRen('pdf'));
   $("ren-upload-renewed")?.addEventListener('click',()=>{const fi=$("file-ren-renewed");if(fi){fi.click();}});
+  /* زر «رفع شيت التجديد»: الملف فيه لوحات سيارات خلص رخصها.
+     بنمطق اللوحة بكل صيغها (عادي ومعكوس زي ملف التنازلات)،
+     واللي لسه في «تم الدفع» بنسجّلها «تم التجديد» فتشال من
+     «تم الدفع» وظهرت هنا. اللي في «تحت الدفع» مش بيتنقل تلقائي —
+     قاعدة «النقل يديوي بس»، لازم تنقلها من الشريط الجماعي الأول. */
+  $('file-ren-renewed')?.addEventListener('change',async e=>{
+    const file=e.target.files[0]; if(!file) return;
+    if(!(await ensureXlsxReady())){ alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.'); e.target.value=''; return; }
+    let rows;
+    try{
+      const buf=await file.arrayBuffer();
+      const wb=XLSX.read(buf,{type:'array',cellDates:true});
+      rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    }catch(err){ alert('تعذر قراءة الملف. تأكد أنه ملف إكسيل أو CSV صحيح.'); e.target.value=''; return; }
+    e.target.value='';
+    if(!Array.isArray(rows)||!rows.length){ alert('الملف فارغ أو لا يحتوي على بيانات.'); return; }
+    const normH=s=>String(s??'').replace(/[ً-ْ]/g,'').replace(/[إأآٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,'').trim().toLowerCase();
+    const plateKeys=['رقماللوحه','اللوحه','رقمالسياره','السياره','رقمالسيارة'];
+    const pCol=Object.keys(rows[0]||{}).find(h=>plateKeys.includes(normH(h)));
+    if(!pCol){ alert('مفيش عمود «رقم اللوحة» (أو «رقم السيارة») في الملف.'); return; }
+    const P=window.YahmaPayments;
+    if(!P||typeof P.markLicenseRenewed!=='function'){ alert('مخزن الدفعات غير مجهّز.'); return; }
+    const variantOf=(window.YahmaFleetExcel&&window.YahmaFleetExcel.transferPlateVariants)?window.YahmaFleetExcel.transferPlateVariants:(p)=>[normalizePlateKey(p)];
+    /* عمود تاريخ الرخصة الجديد اختياري — لو موجود نستعمله بدل التاريخ المقترح (+3 سنين) */
+    const dateKeys=['انتهاءالرخصه','تاريخانتهاءالرخصه','انتهاءالرخصهالجديد','تاريخالرخصه','الرخصه'];
+    const dCol=Object.keys(rows[0]||{}).find(h=>dateKeys.includes(normH(h)))||null;
+    const carOf=p=>fleet.find(c=>String(c.id)===String(p.carId));
+    const paidNotRen=P.localByStatus('paid').filter(p=>!P.isRenewed(p));
+    const alreadyRen=P.localByStatus('paid').filter(P.isRenewed);
+    const pend=P.localByStatus('pending');
+    const mapBy=new Map(list=>{const m=new Map();list.forEach(p=>{const c=carOf(p);if(!c)return;variantOf(c.plate).forEach(k=>{if(k&&!m.has(k))m.set(k,p);});});return m;});
+    const paidMap=mapBy(paidNotRen), renMap=mapBy(alreadyRen), pendMap=mapBy(pend);
+    const hits=[],pendHits=[],already=[],misses=[];
+    rows.forEach(r=>{
+      const plate=String(r[pCol]??'').trim(); if(!plate) return;
+      const vs=variantOf(plate);
+      const renHit=vs.map(k=>renMap.get(k)).find(Boolean);
+      if(renHit){ already.push(plate); return; }
+      const paidHit=vs.map(k=>paidMap.get(k)).find(Boolean);
+      if(paidHit){ hits.push({row:paidHit,car:carOf(paidHit),plate,licDate:dCol?String(r[dCol]??'').trim():''}); return; }
+      if(vs.map(k=>pendMap.get(k)).find(Boolean)){ pendHits.push(plate); return; }
+      misses.push(plate);
+    });
+    if(!hits.length&&!already.length&&!pendHits.length&&!misses.length){ alert('مفيش أرقام لوحات مقروءة في عمود «رقم اللوحة».'); return; }
+    if(!hits.length){
+      alert('مفيش سيارة من الملف موجودة في «تم الدفع» حاليًا.\n'
+        +(pendHits.length?('في «تحت الدفع» ('+pendHits.length+' سيارة) — لازم تنقلها يدوي للـ «تم الدفع» الأول من الشريط الجماعي.\n'):'')
+        +(already.length?('متجددة من قبل: '+already.length+'.\n'):'')
+        +(misses.length?('مش موجودة في الأسطول: '+misses.length+' — آخرها '+misses.slice(0,5).join('، ')):''));
+      return;
+    }
+    const ok=confirm('معاينة رفع شيت التجديد:\n'
+      +'• موجودة في «تم الدفع» → هتسجّل «تم التجديد»: '+hits.length+'\n'
+      +(pendHits.length?('• في «تحت الدفع» (مش هتتنقل تلقائي — انقلها يدوي): '+pendHits.length+'\n'):'')
+      +(already.length?('• متجددة من قبل (هتتجاهل): '+already.length+'\n'):'')
+      +(misses.length?('• مش موجودة (هتتجاهل): '+misses.length+'\n'):'')
+      +'\nمتابعة؟');
+    if(!ok) return;
+    /* نداء واحد للمنطق: بيمشي من المسار الموحّد
+       PAY_ITEM_ACTION.renew — يسجّل الحالة القديمة + تاريخ الرخصة
+       + سجل «تم التجديد»، مش مكالمتين منفصلتين. */
+    if(!window.PAY_ITEM_ACTION||typeof window.PAY_ITEM_ACTION.renew!=='function'){
+      alert('مسار التجديد غير مجهّز (router-payments-item.js مش محمّل). اعمل تحديث للصفحة.');
+      return;
+    }
+    let done=0,failed=0,skipped=0;
+    for(const h of hits){
+      try{
+        const r=await window.PAY_ITEM_ACTION.renew(h.row,h.car,{quiet:true,licenseExpiry:h.licDate||undefined});
+        if(r==='done') done++; else skipped++;
+      }
+      catch(err){ failed++; try{yahmaErr(err,'renewals-ui.js:file-ren-renewed');}catch(_){console.error(err);} }
+    }
+    try{ if(typeof P.sync==='function') await P.sync(); }catch(_){}
+    if(typeof render==='function') render();
+    alert('تم تسجيل «تم التجديد»: '+done+' سيارة'
+      +(failed?(" — فشل "+failed):'')
+      +(skipped?(" — اتخطت "+skipped):'')
+      +(already.length?('\nمتجددة من قبل: '+already.length):'')
+      +(pendHits.length?('\nفي «تحت الدفع» مش اتأثرت ('+pendHits.length+') — انقلها يدوي لو عايز.'):'')
+      +(misses.length?('\nمش موجودة: '+misses.length+' — آخرها '+misses.slice(0,5).join('، ')):''));
+  });
   $('ren-bulk-delete')?.addEventListener('click',()=>deleteRenCars([...selectedRenIds]));
   $('ren-insp-from-lic')?.addEventListener('click',bulkInspectionFromLicenses);
   $('ren-bulk-insp-yes')?.addEventListener('click',()=>bulkSetInspection('تم الفحص', true));

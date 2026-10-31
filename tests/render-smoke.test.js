@@ -177,25 +177,112 @@ test('دوال الرسم: مفيش اسم مستخدم ومش معرّف (Refer
 
   const problems = [];
 
+  /* ===== قناع سلاسل متعمق — مهم =====
+     الـregex البسيط ``..`` بيتلخبط مع الـnested templates
+     (`..${cond ? `..` : ''}..`) فبيقفل على الباكتكس الغلط ويسيب
+     أجزاء من الـHTML مكشوفة، وكلمات زي accept= بتتصادف معرفات
+     كود — إيجابیات كاذبة. السكانير ده ماشي حرف بحرف: محتوى
+     الـtemplate بيتمسّح، وكود ${..} بيفضل ظاهر (ده كود حقيقي)،
+     وسلاسل ' و \" جوّاها بتتمسّح كمان. نفس الطول بالظبط عشان
+     أرقام الأسطر تفضل صح. */
+  function maskBackticks(input) {
+    const chars = input.split('');
+    function maskStr(i, q) {
+      i++;
+      while (i < chars.length) {
+        if (chars[i] === '\\') { chars[i] = ' '; if (chars[i + 1] !== undefined) chars[i + 1] = ' '; i += 2; continue; }
+        if (chars[i] === q) return i + 1;
+        chars[i] = ' '; i++;
+      }
+      return i;
+    }
+    function maskTpl(i) {
+      i++;
+      while (i < chars.length) {
+        const c = chars[i];
+        if (c === '\\') { chars[i] = ' '; if (chars[i + 1] !== undefined) chars[i + 1] = ' '; i += 2; continue; }
+        if (c === '$' && chars[i + 1] === '{') {
+          let b = 1; i += 2;
+          while (i < chars.length && b > 0) {
+            const ch = chars[i];
+            if (ch === '`') { i = maskTpl(i); continue; }
+            if (ch === "'") { i = maskStr(i, "'"); continue; }
+            if (ch === '"') { i = maskStr(i, '"'); continue; }
+            if (ch === '/') { const e = maskRegex(i); if (e !== null) { i = e; b = Math.max(b,0); continue; } i++; continue; }
+            if (ch === '{') b++;
+            else if (ch === '}') b--;
+            i++;
+          }
+          continue;
+        }
+        if (c === '`') return i + 1;
+        /* نستثني \n و \r — لو رح إمساحهم، أرقام الأسطر بتتببظ */
+        if (c === '\n' || c === '\r') { i++; continue; }
+        chars[i] = ' '; i++;
+      }
+      return i;
+    }
+    /* الـregex literals زي /"/g فيها علامة تنصيص مش سلسلة.
+       لو معرفناش نمسّحها، الاقتران بيتبوظ وكل السلاسل بعدها
+       بتبقى مكشوفة (إيجابيات كاذبة زي viewBox/fill/charset).
+       بنرجّع فهرسة الإغلاق، أو null لو مش regex للموضع ده. */
+    function maskRegex(i) {
+      /* السياق: Regex ليتبدأ بعد الافتتاحية / أو الرموز والكلمات المفتاحية */
+      let j = i - 1;
+      while (j >= 0 && (chars[j] === ' ' || chars[j] === '\n' || chars[j] === '\r')) j--;
+      let regexOkay;
+      if (j < 0) regexOkay = true;
+      else {
+        const pc = chars[j];
+        if (/[\w$)\]]/.test(pc)) {
+          /* بعد معرف أو إغلاق قوس: ممكن قسمة. بس لو الكلمة قبلها
+             keyword زي return/typeof → regex. نرجع بعد الكلمة. */
+          let k = j;
+          while (k >= 0 && /[\w$]/.test(chars[k])) k--;
+          const word = chars.slice(k + 1, j + 1).join('');
+          regexOkay = /^(return|typeof|instanceof|in|of|case|delete|void|new|throw|do|else|yield|await)$/.test(word)
+            && (k < 0 || !/[\w$]/.test(chars[k] || ''));
+        } else regexOkay = true;
+      }
+      if (!regexOkay) return null;
+      let m = i + 1, inClass = false, closed = false;
+      while (m < chars.length) {
+        const ch = chars[m];
+        if (ch === '\n' || ch === '\r') break;
+        if (ch === '\\') { m += 2; continue; }
+        if (ch === '[') inClass = true;
+        else if (ch === ']') inClass = false;
+        else if (ch === '/' && !inClass) { closed = true; break; }
+        m++;
+      }
+      if (!closed) return null;
+      for (let t = i + 1; t < m; t++) chars[t] = ' ';
+      m++;
+      while (m < chars.length && /^[a-z]$/i.test(chars[m])) m++;
+      return m;
+    }
+    let i = 0;
+    while (i < chars.length) {
+      const c = chars[i];
+      if (c === "'") { i = maskStr(i, "'"); continue; }
+      if (c === '"') { i = maskStr(i, '"'); continue; }
+      if (c === '`') { i = maskTpl(i); continue; }
+      if (c === '/') { const e = maskRegex(i); if (e !== null) { i = e; continue; } i++; continue; }
+      i++;
+    }
+    return chars.join('');
+  }
+
+  const toMask = (s) => s
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length))
+    .replace(/^\s*\/\/.*$/gm, (m) => ' '.repeat(m.length));
+
   RENDER_FILES.forEach((rel) => {
     const p = path.join(ROOT, rel);
     if (!fs.existsSync(p)) return;
     const src = fs.readFileSync(p, 'utf8');
-
-    /* نشيل التعليقات والسلاسل عشان ما نحسبش كلمات من نص */
-    const code = src
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/^\s*\/\/.*$/gm, '')
-      .replace(/'(?:[^'\\]|\\.)*'/g, "''")
-      .replace(/"(?:[^"\\]|\\.)*"/g, '""')
-      .replace(/`(?:[^`\\]|\\.)*`/g, '``');
     /* نفس الطول عشان أرقام الأسطر تفضل صحيحة */
-    const codeMasked = src
-      .replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length))
-      .replace(/^\s*\/\/.*$/gm, (m) => ' '.repeat(m.length))
-      .replace(/'(?:[^'\\]|\\.)*'/g, (m) => "'" + ' '.repeat(Math.max(0, m.length - 2)) + "'")
-      .replace(/"(?:[^"\\]|\\.)*"/g, (m) => '"' + ' '.repeat(Math.max(0, m.length - 2)) + '"')
-      .replace(/`(?:[^`\\]|\\.)*`/g, (m) => '`' + ' '.repeat(Math.max(0, m.length - 2)) + '`');
+    const codeMasked = maskBackticks(toMask(src));
 
     /* أسماء معرَّفة جوّه نفس الملف (باراميترات، متغيرات محلية) */
     const local = new Set();
