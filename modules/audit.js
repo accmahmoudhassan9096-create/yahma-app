@@ -415,5 +415,77 @@
     loadData();
   }
 
+  /* ===== سجل حركة السيارة (Timeline في «ملف السيارة 360») =====
+     نافذة الـ360 بتطلب window.getCarAudit(id) — كانت مش معرّفة،
+     فالسجل كان فاضي دايمًا. بجمع من مصدرين:
+     1) دورة الدفع: تحت الدفع/تم الدفع/تم التجديد + مين عمل كل خطوة
+        (مع الوقت الحقيقي لكل مرحلة من الحقول المخزنة).
+     2) سجل النشاط (audit_logs): أي حركة الـdetail فيها لوحة السيارة.
+     الترتيب: الأحدث الأول، وبنحذف الازدواج بنفس العملية والوقت. */
+  var auditRowsCache = [];
+  function primeAuditCache() {
+    fetchAuditRows().then(function (rows) {
+      if (Array.isArray(rows) && rows.length) auditRowsCache = rows;
+    }).catch(function () {});
+  }
+  primeAuditCache();
+
+  function collectPaymentEvents(events, carId) {
+    var p = global.YahmaPayments;
+    if (!p || typeof p.localAll !== 'function') return;
+    var isRen = typeof p.isRenewed === 'function' ? p.isRenewed : function () { return false; };
+    var doneStampOf = typeof p.doneStamp === 'function' ? p.doneStamp : function () { return null; };
+    p.localAll().forEach(function (x) {
+      if (!x || x.carId === undefined) return;
+      if (String(x.carId) !== String(carId)) return;
+      var actor = String(x.userName || 'مستخدم').trim() || 'مستخدم';
+      if (x.requestedAt && x.status === 'pending') {
+        events.push({ at: x.requestedAt, action: 'طلب دفع الفحص ← «تحت الدفع»', detail: 'بواسطة: ' + actor });
+      }
+      if (x.paidAt) {
+        events.push({ at: x.paidAt, action: 'قبض الدفعة ← «تم الدفع»', detail: isRen(x) ? 'بواسطة: ' + actor : 'بواسطة: ' + actor });
+      }
+      var renewStamp = isRen(x) ? (doneStampOf(x) || x.paidAt) : null;
+      if (renewStamp) {
+        events.push({ at: renewStamp, action: 'اكتمال تجديد الرخصة ← «تم التجديد»', detail: 'بواسطة: ' + actor });
+      }
+    });
+  }
+
+  global.getCarAudit = function (carId) {
+    var plate = '';
+    if (typeof fleet !== 'undefined' && Array.isArray(fleet)) {
+      var found = fleet.find(function (c) { return String(c.id) === String(carId); });
+      plate = String((found && found.plate) || '').trim();
+    }
+    var events = [];
+    try { collectPaymentEvents(events, carId); } catch (_) {}
+    try {
+      var normPlate = plate.replace(/[\s]/g, '');
+      auditRowsCache.forEach(function (r) {
+        if (!r) return;
+        var hay = String((r.action || '') + ' ' + (r.detail || ''));
+        var hayNorm = hay.replace(/[\s]/g, '');
+        if (normPlate && hayNorm.includes(normPlate)) {
+          var who;
+          try { who = resolveDisplayName(r, null); } catch (_) { who = r.user_name || r.user_email || 'مستخدم'; }
+          events.push({ at: r.created_at, action: r.action || 'حركة', detail: 'بواسطة: ' + who + (r.detail ? ' — ' + r.detail : '') });
+        }
+      });
+    } catch (_) {}
+    var filtered = events.filter(function (e) {
+      return e && e.at && !isNaN(new Date(e.at).getTime());
+    }).sort(function (a, b) { return new Date(b.at).getTime() - new Date(a.at).getTime(); });
+    var seen = new Map();
+    var unique = [];
+    filtered.forEach(function (e) {
+      var key = String(e.action) + '|' + String(e.at).slice(0, 16);
+      if (seen.has(key)) return;
+      seen.set(key, 1);
+      unique.push({ at: e.at, action: e.action, detail: e.detail, displayAt: fmtDateTime(e.at) });
+    });
+    return unique;
+  };
+
   global.YahmaAudit = { render: renderAuditPage };
 })(window);
