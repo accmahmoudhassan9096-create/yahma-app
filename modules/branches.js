@@ -88,7 +88,8 @@
       tb.querySelectorAll('[data-branch-cars]').forEach(btn => btn.onclick = () => {
         window.pendingFleetBranch = btn.dataset.branchCars || '';
         document.querySelector('.nav-item[data-tab="fleet"]')?.click();
-        if (ff) { ff.value = btn.dataset.branchCars || ''; ff.dispatchEvent(new Event('change', { bubbles: true })); }
+        const ffBranch = $('ff-branch');
+        if (ffBranch) { ffBranch.value = btn.dataset.branchCars || ''; ffBranch.dispatchEvent(new Event('change', { bubbles: true })); }
         if (typeof render === 'function') render();
       });
       tb.querySelectorAll('[data-del]').forEach(btn => btn.onclick = () => {
