@@ -191,21 +191,63 @@ function downloadBlob(blob, filename){
 /* ===== سجل التنبيهات المرسلة عبر واتساب =====
    كل نداء sharePdfOnWhatsApp بيتسجل هنا (المصدر الوحيد لإرسال
    الواتساب في النظام — التنبيهات المركزية وتبويب المتابعة وغيرها،
-   فسجل واحد بيلقطهم كلهم). تخزين محلي بحد 200 حركة. */
+   فسجل واحد بيلقطهم كلهم). تخزين محلي بحد 200 حركة.
+   تأكيد الاستلام (#6): بعد الإرسال، مسؤول يقدر يوثّق على الحركة
+   «مين استلم» + ملاحظة — بيتخزن مع الحركة وتظهر في سجل ال🕘. */
 const WA_HIST_KEY = 'yahma-wa-history-v1';
+function currentSenderName(){
+  try{
+    if (typeof currentUserName !== 'undefined' && currentUserName && currentUserName.trim()) return currentUserName.trim();
+    const last = localStorage.getItem('yahma_last_user_name');
+    if (last && last.trim()) return last.trim();
+  }catch(_){}
+  return '';
+}
+function readWaHistory(){
+  try{ const l=JSON.parse(localStorage.getItem(WA_HIST_KEY)||'[]'); return Array.isArray(l)?l:[]; }catch(_){ return []; }
+}
+function writeWaHistory(list){
+  try{ localStorage.setItem(WA_HIST_KEY, JSON.stringify(list)); }catch(_){yahmaErr(_,'pdf-share.js:writeWaHistory');}
+}
 function recordWaHistory(entry){
   try{
-    let list=[];
-    try{ list=JSON.parse(localStorage.getItem(WA_HIST_KEY)||'[]'); }catch(_){ list=[]; }
-    if(!Array.isArray(list)) list=[];
-    list.unshift({ at: new Date().toISOString(), title: String(entry.title||''), count: entry.rowsCount||0, phone: String(entry.phone||''), pdfOk: !!entry.pdfOk });
+    const list=readWaHistory();
+    list.unshift({
+      at: new Date().toISOString(),
+      title: String(entry.title||''),
+      count: entry.rowsCount||0,
+      phone: String(entry.phone||''),
+      pdfOk: !!entry.pdfOk,
+      by: String(entry.by||''),
+      confirmedBy: '', confirmedAt: null, confirmedNote: ''
+    });
     if(list.length>200) list=list.slice(0,200);
-    localStorage.setItem(WA_HIST_KEY, JSON.stringify(list));
+    writeWaHistory(list);
   }catch(_){yahmaErr(_,'pdf-share.js:recordWaHistory');}
 }
 window.YahmaWAHistoryLog={
-  list: function(){ try{ const l=JSON.parse(localStorage.getItem(WA_HIST_KEY)||'[]'); return Array.isArray(l)?l:[]; }catch(_){ return []; } },
-  clear: function(){ try{ localStorage.removeItem(WA_HIST_KEY); }catch(_){} }
+  list: readWaHistory,
+  clear: function(){ try{ localStorage.removeItem(WA_HIST_KEY); }catch(_){} },
+  /* توثيق الاستلام: at = مفتاح الحركة (وقت الإرسال ISO) */
+  confirm: function(atIso, patch){
+    const list=readWaHistory();
+    const e=list.find(r=>r && r.at===atIso);
+    if(!e) return false;
+    e.confirmedBy=String((patch&&patch.by)||'').trim();
+    e.confirmedAt=(patch&&patch.at)||new Date().toISOString();
+    e.confirmedNote=String((patch&&patch.note)||'').trim();
+    writeWaHistory(list);
+    return true;
+  },
+  /* إلغاء توثيق الاستلام (لو اتكتب بالغلط) */
+  unconfirm: function(atIso){
+    const list=readWaHistory();
+    const e=list.find(r=>r && r.at===atIso);
+    if(!e) return false;
+    e.confirmedBy=''; e.confirmedAt=null; e.confirmedNote='';
+    writeWaHistory(list);
+    return true;
+  }
 };
 
 async function sharePdfOnWhatsApp(opts){
@@ -217,7 +259,7 @@ async function sharePdfOnWhatsApp(opts){
   const caption=opts.caption||('مرفق: '+title);
   const filename=((opts.filename||title)+'').replace(/[\\/:*?"<>|]+/g,'_')+'.pdf';
   /* بيتسجل مرة واحدة قبل العودة من أي مسار ناجح */
-  const histEntry={ title: title, rowsCount: rows.length, phone: phone };
+  const histEntry={ title: title, rowsCount: rows.length, phone: phone, by: currentSenderName() };
 
   const loading=document.createElement('div');
   loading.style.cssText='position:fixed;inset:0;background:rgba(13,24,54,.5);z-index:2147483647;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Tahoma,Arial,sans-serif;font-size:16px;font-weight:700';

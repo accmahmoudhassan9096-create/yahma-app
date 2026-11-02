@@ -708,7 +708,7 @@ body.dark-mode #tv-clock{background:rgba(10,60,66,.9);border:1px solid #16535A}
 .home-task-history-btn{border:0;background:none;color:var(--muted);font:inherit;font-size:11px;font-weight:700;cursor:pointer;padding:4px 8px;border-radius:8px;transition:background .12s}
 .home-task-history-btn:hover{background:var(--grey-soft);color:var(--ink)}
 .wa-history-overlay{position:fixed;inset:0;background:rgba(13,24,54,.55);z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px}
-.wa-history-modal{background:var(--panel);border-radius:14px;padding:18px 20px;max-width:820px;width:100%;box-shadow:var(--shadow-lg)}
+.wa-history-modal{background:var(--panel);border-radius:14px;padding:18px 20px;max-width:940px;width:100%;box-shadow:var(--shadow-lg)}
 .wa-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
 .wa-history-head h3{margin:0;font-size:15px}
 .wa-history-actions{display:flex;gap:8px}
@@ -718,6 +718,17 @@ body.dark-mode #tv-clock{background:rgba(10,60,66,.9);border:1px solid #16535A}
 .wa-history-table .wh-ok{color:var(--green);font-weight:700;white-space:nowrap}
 .wa-history-table .wh-bad{color:var(--amber);font-weight:700;white-space:nowrap}
 .wa-history-table .wh-empty{text-align:center;padding:22px 10px;color:var(--muted)}
+.wh-confirm-cell{white-space:nowrap}
+.wh-confirm-btn{border:1px solid #B8D4D3;background:#EAF5F4;color:#0E6E6C;font:inherit;font-size:10.5px;font-weight:700;cursor:pointer;padding:4px 8px;border-radius:8px;transition:filter .12s}
+.wh-confirm-btn:hover{filter:brightness(.95)}
+.wh-unconfirm-btn{border:1px solid var(--line);background:var(--panel);color:var(--muted);font:inherit;font-size:11px;cursor:pointer;padding:2px 6px;border-radius:6px;margin-right:4px}
+.wh-unconfirm-btn:hover{color:var(--red);border-color:var(--red-soft);background:var(--red-soft)}
+.wh-confirmed{display:inline-block;background:var(--green-soft);color:var(--green);font-size:10.5px;font-weight:800;padding:4px 8px;border-radius:8px;white-space:nowrap}
+.wh-confirmed-row td{background:rgba(30,156,107,.05)}
+body.dark-mode .wh-confirm-btn{background:#123f33;color:#7ee1c4;border-color:#265047}
+body.dark-mode .wh-unconfirm-btn{background:var(--panel);color:#9aa6c4;border-color:#374151}
+body.dark-mode .wh-confirmed{background:#123f33;color:#7ee1c4}
+body.dark-mode .wh-confirmed-row td{background:rgba(30,156,107,.08)}
 body.dark-mode .wa-history-modal{background:#172033;border:1px solid #374151}
 body.dark-mode .home-task-history-btn{color:#9aa6c4}
 body.dark-mode .home-task-history-btn:hover{background:#243247;color:#e5eaf5}

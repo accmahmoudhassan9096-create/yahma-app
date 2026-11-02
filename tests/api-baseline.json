@@ -328,7 +328,9 @@
   ],
   "YahmaWAHistoryLog": [
     "clear",
-    "list"
+    "confirm",
+    "list",
+    "unconfirm"
   ],
   "YahmaUndo": [
     "MAX_ENTRIES",

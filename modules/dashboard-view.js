@@ -460,46 +460,78 @@ function bindDashboardEvents(content, context, state) {
   content.querySelector('#btn-wa-history')?.addEventListener('click', () => {
     const esc2 = (v) => escapeHtml(v == null ? '' : String(v));
     const rows = (window.YahmaWAHistoryLog && window.YahmaWAHistoryLog.list()) || [];
-    const ov = document.createElement('div');
+    let ov = document.createElement('div');
     ov.className = 'wa-history-overlay';
     const fmtWhen = (iso) => {
       try { return new Date(iso).toLocaleString('ar-EG', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' }); }
       catch (_) { return iso || '—'; }
     };
-    const rowsHtml = rows.length ? rows.map(r => `
-      <tr>
+    const buildRows = (list) => list.length ? list.map(r => {
+      const confirmed = r.confirmedBy || r.confirmedAt;
+      return `
+      <tr${confirmed ? ' class="wh-confirmed-row"' : ''}>
         <td class="wh-when">${esc2(fmtWhen(r.at))}</td>
         <td>${esc2(r.title || '—')}</td>
         <td class="wh-count">${r.count == null ? '—' : esc2(r.count)}</td>
+        <td>${r.by ? esc2(r.by) : '—'}</td>
         <td>${r.phone ? esc2(r.phone) : 'اختيار جهة اتصال'}</td>
         <td class="${r.pdfOk ? 'wh-ok' : 'wh-bad'}">${r.pdfOk ? '✅ مرفق PDF' : '⚠️ نص فقط'}</td>
-      </tr>`).join('')
-      : `<tr><td colspan="5" class="wh-empty">لم تُرسل أي تنبيهات واتساب بعد — سجّل أول تنبيه من زر 💬 جنب المهام أو من تبويب بطاقات التشغيل.</td></tr>`;
-    ov.innerHTML = `
+        <td class="wh-confirm-cell">${
+          confirmed
+            ? '<span class="wh-confirmed" title="' + esc2(r.confirmedNote || '') + '">✔ استلم: ' + esc2(r.confirmedBy || '—') + (r.confirmedAt ? ' · ' + esc2(fmtWhen(r.confirmedAt)) : '') + '</span>'
+              + '<button type="button" class="wh-unconfirm-btn" data-wa-unconfirm="' + esc2(r.at || '') + '" title="إلغاء التوثيق (لو اتسجل بالغلط)">↩</button>'
+            : '<button type="button" class="wh-confirm-btn" data-wa-confirm="' + esc2(r.at || '') + '" title="توثيق مستلم التنبيه">✔ تأكيد الاستلام</button>'
+        }</td>
+      </tr>`;
+    }).join('')
+      : `<tr><td colspan="7" class="wh-empty">لم تُرسل أي تنبيهات واتساب بعد — سجّل أول تنبيه من زر 💬 جنب المهام أو من تبويب بطاقات التشغيل.</td></tr>`;
+    const buildModal = (list) => `
       <div class="wa-history-modal" dir="rtl">
         <div class="wa-history-head">
           <h3>🕘 سجل التنبيهات المرسلة</h3>
           <div class="wa-history-actions">
-            ${rows.length ? '<button type="button" class="btn btn-ghost btn-small" id="btn-wa-history-clear">مسح السجل</button>' : ''}
+            ${list.length ? '<button type="button" class="btn btn-ghost btn-small" id="btn-wa-history-clear">مسح السجل</button>' : ''}
             <button type="button" class="btn btn-ghost btn-small" id="btn-wa-history-close">إغلاق ✕</button>
           </div>
         </div>
-        <p class="muted-small">التنبيهات المرسلة عبر واتساب من كل الشاشات — المحلي على هذا الجهاز (آخر 200).</p>
+        <p class="muted-small">التنبيهات المرسلة عبر واتساب من كل الشاشات — المحلي على هذا الجهاز (آخر 200). «تأكيد الاستلام» بتوثّق مين استلم التقرير وامتى.</p>
         <div class="table-scroll" style="max-height:55vh">
           <table class="fleet-table wa-history-table">
-            <thead><tr><th>التاريخ والوقت</th><th>التقرير</th><th>العدد</th><th>المستلم</th><th>الحالة</th></tr></thead>
-            <tbody>${rowsHtml}</tbody>
+            <thead><tr><th>التاريخ والوقت</th><th>التقرير</th><th>العدد</th><th>المرسل</th><th>المستلم على الواتساب</th><th>الحالة</th><th>اعتماد الاستلام</th></tr></thead>
+            <tbody>${buildRows(list)}</tbody>
           </table>
         </div>
       </div>`;
+    ov.innerHTML = buildModal(rows);
     document.body.appendChild(ov);
-    ov.querySelector('#btn-wa-history-close')?.addEventListener('click', () => ov.remove());
+    const redraw = () => {
+      const fresh = (window.YahmaWAHistoryLog && window.YahmaWAHistoryLog.list()) || [];
+      ov.innerHTML = buildModal(fresh);
+      bind();
+    };
+    const confirmOne = (atIso) => {
+      const entry = ((window.YahmaWAHistoryLog && window.YahmaWAHistoryLog.list()) || []).find(r => r && r.at === atIso);
+      const who = prompt('مين اللي أكد استلام التنبيه؟\nاسم المسؤول المستلم:', (entry && entry.confirmedBy) || '') || '';
+      if (!who.trim()) return;
+      const note = prompt('ملاحظة (اختياري):\nمثال: استلم التقرير في الجروب وأقر بالفرشلة', '') || '';
+      if (window.YahmaWAHistoryLog.confirm(atIso, { by: who.trim(), note: note.trim() })) redraw();
+      else alert('تعذر توثيق الاستلام — الحركة مش موجودة.');
+    };
+    const bind = () => {
+      ov.querySelector('#btn-wa-history-close')?.addEventListener('click', () => ov.remove());
+      ov.querySelector('#btn-wa-history-clear')?.addEventListener('click', () => {
+        if (!confirm('مسح سجل التنبيهات كله من هذا الجهاز؟')) return;
+        if (window.YahmaWAHistoryLog) window.YahmaWAHistoryLog.clear();
+        ov.remove();
+      });
+      ov.querySelectorAll('[data-wa-confirm]').forEach(b => b.addEventListener('click', () => confirmOne(b.getAttribute('data-wa-confirm'))));
+      ov.querySelectorAll('[data-wa-unconfirm]').forEach(b => b.addEventListener('click', () => {
+        if (!confirm('إلغاء توثيق الاستلام لهذا التنبيه؟')) return;
+        if (window.YahmaWAHistoryLog.unconfirm(b.getAttribute('data-wa-unconfirm'))) redraw();
+      }));
+    };
+    bind();
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
-    ov.querySelector('#btn-wa-history-clear')?.addEventListener('click', () => {
-      if (!confirm('مسح سجل التنبيهات كله من هذا الجهاز؟')) return;
-      if (window.YahmaWAHistoryLog) window.YahmaWAHistoryLog.clear();
-      ov.remove();
-    });
   });
   // Animate bars after paint
   requestAnimationFrame(() => {
