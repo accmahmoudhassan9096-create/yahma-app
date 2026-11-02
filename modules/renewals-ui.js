@@ -113,6 +113,7 @@ function renderRenewals(content, mode='inspection'){
       <div class="filter-footer">
         <span id="ren-filter-count">عرض 0 من ${fleet.length}</span>
         <button class="btn btn-ghost btn-small" id="ren-clear">↺ مسح الفلاتر</button>
+        <button class="btn btn-ghost btn-small" id="btn-scan-console" title="وضع المسح الشامل — شاشة الرادار والمؤشر للفرع">🛰 وضع المسح الشامل</button>
       <button class="btn btn-ghost btn-small" id="ren-export-xlsx">📥 تصدير Excel</button>
       <button class="btn btn-ghost btn-small" id="ren-export-pdf">📄 تصدير PDF</button>
         <button class="btn btn-primary btn-small" id="ren-upload-btn" title="رفع شيت ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'} — ${insuranceMode?'يحدّث: حالة التأمين، الشركة، الانتهاء، اللون، المدينة، الرقم التسلسلي، المالك، الفرع، حالة السيارة':licenseMode?'يحدّث تاريخ وحالة الرخصة فقط':'يحدّث: حالة الفحص، الرقم التسلسلي، رقم الحاسب الآلي، اسم الشركة، والملاحظات'}">📥 رفع شيت ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</button>
@@ -185,6 +186,11 @@ function renderRenewals(content, mode='inspection'){
   `;
 
   document.getElementById('btn-wa-inspection')?.addEventListener('click', shareUninspectedWhatsApp);
+  document.getElementById('btn-scan-console')?.addEventListener('click', () => {
+    if (window.YahmaScanConsole && typeof window.YahmaScanConsole.open === 'function') {
+      window.YahmaScanConsole.open(licenseMode ? 'license' : insuranceMode ? 'insurance' : 'inspection');
+    }
+  });
   document.getElementById('btn-copy-inspection')?.addEventListener('click', copyUninspectedList);
 
   const $=id=>document.getElementById(id);

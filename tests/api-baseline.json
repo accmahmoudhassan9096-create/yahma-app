@@ -332,6 +332,11 @@
     "list",
     "unconfirm"
   ],
+  "YahmaScanConsole": [
+    "close",
+    "isOpen",
+    "open"
+  ],
   "YahmaUndo": [
     "MAX_ENTRIES",
     "__busy",

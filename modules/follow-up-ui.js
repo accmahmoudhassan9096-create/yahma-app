@@ -85,6 +85,7 @@ function renderFollowUp(content){
       <div class="filter-footer">
         <span id="fu-filter-count">عرض 0 من ${fleet.length}</span>
         <button class="btn btn-ghost btn-small" id="fu-clear">↺ مسح الفلاتر</button>
+        <button class="btn btn-ghost btn-small" id="btn-scan-console" title="وضع المسح الشامل — شاشة الرادار والمؤشر للفرع">🛰 وضع المسح الشامل</button>
       </div>
     </div>
     ${canBulk?`<div class="bulk-bar" id="fu-bulk-bar" style="display:none">
@@ -488,6 +489,9 @@ function renderFollowUp(content){
   $('fu-bulk-card-status')?.addEventListener('click',bulkSetCardStatus);
   $('fu-bulk-ins-ok')?.addEventListener('click',bulkSetInsurance);
   $('fu-bulk-clear')?.addEventListener('click',()=>{selectedFuIds.clear();draw();});
+  document.getElementById('btn-scan-console')?.addEventListener('click',()=>{
+    if (window.YahmaScanConsole && typeof window.YahmaScanConsole.open === 'function') window.YahmaScanConsole.open('card');
+  });
   $('fu-pager-prev')?.addEventListener('click',()=>{page=Math.max(1,page-1);draw();});
   $('fu-pager-next')?.addEventListener('click',()=>{page++;draw();});
   $('fu-pager-size')?.addEventListener('change',e=>{pageSize=parseInt(e.target.value,10)||0;page=1;draw();});
