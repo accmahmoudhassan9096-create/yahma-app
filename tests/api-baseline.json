@@ -320,6 +320,12 @@
   "YahmaTransfers": [
     "render"
   ],
+  "YahmaTV": [
+    "active",
+    "enter",
+    "exit",
+    "toggle"
+  ],
   "YahmaUndo": [
     "MAX_ENTRIES",
     "__busy",

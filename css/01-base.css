@@ -686,6 +686,23 @@ a,.link,.text-primary{color:#078E8B;}
 body.dark-mode .home-cta{background:linear-gradient(160deg,#123836,#1a2f2e);border-color:#2a4a48}
 body.dark-mode .home-task{background:var(--panel)}
 body.dark-mode .home-task-wa{background:#123f33;color:#7ee1c4;border-color:#265047}
+
+/* ===== وضع الشاشة الكبيرة (TV Mode) — زر 📺 في الشريط العلوي =====
+   يخفي الشريط الجانبي وأزرار الإجراءات، ويكبّر المحتوى، مع ساعة
+   ثابتة في الركن. الخروج: نفس الزر أو Esc أو خروج ملء الشاشة. */
+#btn-tv.active{background:#D2EFE4;color:#0B7A78;border-color:#9FD5C7}
+body.tv-mode .sidebar{display:none!important}
+body.tv-mode .topbar-actions .btn,
+body.tv-mode .topbar-actions .top-dd,
+body.tv-mode .topbar-actions .topbar-user-wrap{display:none!important}
+body.tv-mode .topbar-actions #btn-tv{display:inline-flex!important}
+body.tv-mode .topbar-titles{display:none!important}
+body.tv-mode .notify-slot{display:none!important}
+body.tv-mode .content{padding:34px 40px;zoom:1.34}
+#tv-clock{position:fixed;top:16px;left:20px;z-index:1250;background:rgba(6,38,44,.86);color:#F2FBF9;padding:10px 20px 12px;border-radius:14px;box-shadow:0 8px 26px rgba(0,20,20,.35);display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none}
+#tv-clock b{font-size:30px;font-weight:800;letter-spacing:1px;font-variant-numeric:tabular-nums;line-height:1.1}
+#tv-clock small{font-size:12.5px;font-weight:700;opacity:.82}
+body.dark-mode #tv-clock{background:rgba(10,60,66,.9);border:1px solid #16535A}
 body.dark-mode .home-donut-hole{background:var(--panel)}
 
 
