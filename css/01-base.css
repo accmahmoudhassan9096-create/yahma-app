@@ -639,6 +639,11 @@ a,.link,.text-primary{color:#078E8B;}
 .home-task-n.alert{background:var(--red-soft);color:var(--red)}
 .home-task-label{flex:1;font-size:12.5px;font-weight:600;color:var(--ink)}
 .home-task-arrow{color:var(--muted);font-size:12px}
+.home-task-row{display:flex;gap:6px;align-items:stretch;margin-bottom:6px}
+.home-task-row:last-child{margin-bottom:0}
+.home-task-row .home-task{margin-bottom:0}
+.home-task-wa{flex:0 0 40px;border:1px solid var(--line);border-radius:10px;background:var(--green-soft);color:var(--green);font-size:16px;cursor:pointer;transition:filter .12s}
+.home-task-wa:hover{filter:brightness(.95)}
 .home-link-all{margin-top:10px;border:0;background:transparent;color:var(--navy);font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:0}
 .home-reasons{display:flex;flex-direction:column;gap:11px}
 .home-reason-top{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;font-size:12.5px;margin-bottom:5px}
@@ -680,6 +685,7 @@ a,.link,.text-primary{color:#078E8B;}
 }
 body.dark-mode .home-cta{background:linear-gradient(160deg,#123836,#1a2f2e);border-color:#2a4a48}
 body.dark-mode .home-task{background:var(--panel)}
+body.dark-mode .home-task-wa{background:#123f33;color:#7ee1c4;border-color:#265047}
 body.dark-mode .home-donut-hole{background:var(--panel)}
 
 

@@ -268,10 +268,11 @@ function computeDashboardState(fleet) {
     const licSoon = renLic;
     const overdue = tasks.filter(t => t.status !== 'done' && t.dueDate && t.dueDate < today).length;
     todayTasks = [
-      { n: needInsp, label: 'سيارات تحتاج فحص', go: 'renewals', alert: false },
-      { n: cardSoon, label: 'بطاقات تشغيل منتهية', go: 'inspections', alert: false },
-      { n: licSoon, label: 'رخص سير منتهية', go: 'license-renewals', alert: false },
-      { n: overdue, label: 'مهام متأخرة', go: 'preparation', alert: true }
+      { n: needInsp, label: 'سيارات تحتاج فحص', go: 'renewals', alert: false, kind: 'inspection' },
+      { n: cardSoon, label: 'بطاقات تشغيل منتهية', go: 'inspections', alert: false, kind: 'card' },
+      { n: licSoon, label: 'رخص سير منتهية', go: 'license-renewals', alert: false, kind: 'license' },
+      { n: countRenIns, label: 'تأمين منتهي', go: 'insurance-renewals', alert: false, kind: 'insurance' },
+      { n: overdue, label: 'مهام متأخرة', go: 'preparation', alert: true, kind: null }
     ].filter(x => x.n > 0);
     if (!todayTasks.length) {
       todayTasks = [{ n: 0, label: 'لا توجد مهام عاجلة اليوم', go: 'preparation', alert: false }];

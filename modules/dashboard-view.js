@@ -129,11 +129,14 @@ function dashboardTemplate(state) {
         </div>
         <div class="home-tasks">
           ${todayTasks.map(t => `
-            <button type="button" class="home-task" data-go="${t.go}">
-              <span class="home-task-n ${t.alert ? 'alert' : ''}">${t.n}</span>
-              <span class="home-task-label">${escapeHtml(t.label)}</span>
-              <span class="home-task-arrow">←</span>
-            </button>`).join('')}
+            <div class="home-task-row">
+              <button type="button" class="home-task" data-go="${t.go}">
+                <span class="home-task-n ${t.alert ? 'alert' : ''}">${t.n}</span>
+                <span class="home-task-label">${escapeHtml(t.label)}</span>
+                <span class="home-task-arrow">←</span>
+              </button>
+              ${t.kind ? `<button type="button" class="home-task-wa" data-wa-task="${t.kind}" title="واتساب + PDF — تنبيه المستلمين بالسيارات دي" aria-label="واتساب ${escapeHtml(t.label)}">💬</button>` : ''}
+            </div>`).join('')}
         </div>
         <button type="button" class="home-link-all" data-go="preparation">عرض كل المهام ←</button>
       </div>
@@ -287,10 +290,13 @@ function bindDashboardEvents(content, context, state) {
                 btn._bound = true;
                 btn.onclick = () => {
                   try { map.closePopup(); } catch(_){yahmaErr(_,'dashboard.js:738');}
+                  /* نفس مبدأ دليل الفروع: pendingFleetBranch + نقرة
+                     ملاحة الأسطول ويكفي — مفيش render() إضافي،
+                     لأن الرسم الثاني بيتم بعد استهلاك الـpending
+                     فيعيد بناء الأسطول بفلاتر فاضية ويظهر كل السيارات. */
                   window.pendingFleetBranch = btn.dataset.regionBranch;
                   const nav = document.querySelector('.nav-item[data-tab="fleet"]');
                   if (nav) nav.click();
-                  if (typeof render === 'function') render();
                 };
               }
             } catch(_){yahmaErr(_,'dashboard.js:745');}
@@ -397,6 +403,54 @@ function bindDashboardEvents(content, context, state) {
       const tab = el.getAttribute('data-go');
       const filter = el.getAttribute('data-filter') || null;
       if (tab) goTab(tab, filter);
+    });
+  });
+
+  /* زر واتساب جنب كل تنبيه — نفس تسلسل sharePdfOnWhatsApp
+     اللي بيستعمله تبويب بطاقات التشغيل: PDF مرفق + رسالة نصية
+     fallback لو مشاركة الملف فشلت. */
+  content.querySelectorAll('[data-wa-task]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (typeof sharePdfOnWhatsApp !== 'function' || typeof fleetForTab !== 'function' || typeof fleet === 'undefined') return;
+      const kind = btn.getAttribute('data-wa-task');
+      const fmt = (v) => (typeof fmtDate === 'function' ? fmtDate(v) : (v || '—'));
+      const today = (typeof todayStr === 'function' ? todayStr() : new Date().toISOString().slice(0, 10));
+      const cfg = {
+        card: { tab: 'inspections', head: '🪪 *كروت منتهية — مطلوب الفحص في أسرع وقت — مسؤولية مشرف الفرع*', file: 'كروت-' + today, cap: '🪪 تقرير الكروت (', title: 'تقرير الكروت التي تحتاج متابعة',
+          headers: ['رقم اللوحة', 'الماركة', 'الفرع', 'حالة السيارة', 'حالة الكارت', 'انتهاء الكارت'],
+          row: c => [c.plate || '—', c.brand || '—', c.branch || '—', c.carStatus || '—', (c.cardExpiry || c.cardStatus ? (typeof cardDisplayStatus === 'function' ? cardDisplayStatus(c.cardExpiry, c.cardStatus).label : '—') : '—'), c.cardExpiry ? fmt(c.cardExpiry) : '—'],
+          line: c => (c.plate || '—') + ' | الكارت: ' + (typeof cardDisplayStatus === 'function' ? cardDisplayStatus(c.cardExpiry, c.cardStatus).label : '—') + (c.cardExpiry ? ' | ينتهي: ' + fmt(c.cardExpiry) : '') + ' | الفرع: ' + (c.branch || '—') },
+        inspection: { tab: 'renewals', head: '🔍 *سيارات تحتاج فحص — مطلوب في أسرع وقت*', file: 'فحص-' + today, cap: '🔍 تقرير الفحص (', title: 'تقرير السيارات التي تحتاج فحص',
+          headers: ['رقم اللوحة', 'الماركة', 'الفرع', 'حالة السيارة', 'حالة الفحص'],
+          row: c => [c.plate || '—', c.brand || '—', c.branch || '—', c.carStatus || '—', c.inspectionStatus || '—'],
+          line: c => (c.plate || '—') + ' | الفحص: ' + (c.inspectionStatus || '—') + ' | الفرع: ' + (c.branch || '—') },
+        license: { tab: 'license-renewals', head: '📄 *رخص سير منتهية — مطلوب التجديد فورًا*', file: 'رخص-' + today, cap: '📄 تقرير الرخص (', title: 'تقرير الرخص المنتهية',
+          headers: ['رقم اللوحة', 'الماركة', 'الفرع', 'حالة السيارة', 'انتهاء الرخصة', 'حالة الرخصة'],
+          row: c => [c.plate || '—', c.brand || '—', c.branch || '—', c.carStatus || '—', c.licenseExpiry ? fmt(c.licenseExpiry) : '—', (typeof dateStatus === 'function' ? dateStatus(c.licenseExpiry).label : '—')],
+          line: c => (c.plate || '—') + ' | الرخصة: ' + (c.licenseExpiry ? fmt(c.licenseExpiry) : '—') + ' | الفرع: ' + (c.branch || '—') },
+        insurance: { tab: 'insurance-renewals', head: '🛡️ *تأمين غير ساري — مطلوب المتابعة*', file: 'تأمين-' + today, cap: '🛡️ تقرير التأمين (', title: 'تقرير التأمين غير الساري',
+          headers: ['رقم اللوحة', 'الماركة', 'الفرع', 'المالك', 'حالة السيارة', 'التأمين'],
+          row: c => [c.plate || '—', c.brand || '—', c.branch || '—', c.owner || '—', c.carStatus || '—', (typeof textTag === 'function' ? textTag(c.insuranceStatus).label : '—')],
+          line: c => (c.plate || '—') + ' | التأمين: ' + (typeof textTag === 'function' ? textTag(c.insuranceStatus).label : '—') + ' | الفرع: ' + (c.branch || '—') }
+      }[kind];
+      if (!cfg) return;
+      const list = fleetForTab(cfg.tab, fleet);
+      const phone = (prompt('رقم واتساب المستلم (اختياري)\nمثال: 2010xxxxxxxx\nاتركه فارغًا لاختيار جهة الاتصال:', '') || '').trim();
+      const lines = [cfg.head, 'التاريخ: ' + fmt(new Date()), 'العدد: *' + list.length + '* سيارة', '————————————'];
+      if (!list.length) lines.push('✅ لا توجد سيارات تحتاج متابعة في هذا البند.');
+      else list.forEach((c, i) => lines.push((i + 1) + ') ' + cfg.line(c)));
+      lines.push('————————————', 'مرسل من نظام إدارة الأسطول');
+      await sharePdfOnWhatsApp({
+        title: cfg.title,
+        subtitle: 'إجمالي: ' + list.length + ' سيارة',
+        headers: cfg.headers,
+        rows: list.map(cfg.row),
+        phone: phone,
+        filename: cfg.file,
+        caption: cfg.cap + list.length + ') — مرفق PDF',
+        fallbackText: lines.join('\n')
+      });
     });
   });
   // Animate bars after paint

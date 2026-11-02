@@ -85,12 +85,14 @@
       }).join('') : '<tr><td colspan="10"><div class="empty">لا توجد فروع — أضف فرعًا أو استورد تحديثات من Excel</div></td></tr>';
 
       tb.querySelectorAll('[data-edit]').forEach(btn => btn.onclick = () => openBranchModal(btn.dataset.edit));
+      /* عرض سيارات الفرع: نكتب pendingFleetBranch ونكفي — نقرة
+         ملاحة الأسطول نفسها بتستدعي render() وتستهلك الـpending
+         وتضبط فلتر الفرع والصفوف. ممنوع أي set يدوي أو render()
+         إضافي هنا: الـrender الثاني بيتبع استهلاك الـpending
+         ومبيعيد بناء الأسطول فاضي فتظهر كل السيارات (3900+). */
       tb.querySelectorAll('[data-branch-cars]').forEach(btn => btn.onclick = () => {
         window.pendingFleetBranch = btn.dataset.branchCars || '';
         document.querySelector('.nav-item[data-tab="fleet"]')?.click();
-        const ffBranch = $('ff-branch');
-        if (ffBranch) { ffBranch.value = btn.dataset.branchCars || ''; ffBranch.dispatchEvent(new Event('change', { bubbles: true })); }
-        if (typeof render === 'function') render();
       });
       tb.querySelectorAll('[data-del]').forEach(btn => btn.onclick = () => {
         if (!confirm('حذف هذا الفرع من الدليل؟ (لن تُحذف السيارات)')) return;
