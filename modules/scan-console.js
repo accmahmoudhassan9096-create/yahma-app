@@ -177,9 +177,16 @@
       return String(hay).toLowerCase().indexOf(q) >= 0;
     });
     var items = buildRows(filtered, modeCfg);
-    /* رادار بنفس الفلترة لكن بلا شرائح الماركة، وترتيب الأحدث:
-       الرادار يعرض كل السيارات في النطاق (زي الغرفة كوحدة رصد)، والبحث يقلّص الجدول بس. */
+    /* رادار بنفس الفلترة لكن بلا شرائح الماركة. حدود أداء:
+       الرادار 150 نقطة كحد أقصى (الأخطر أولًا) — والجدول 250 صف
+       مع تلميح بالباقي؛ فرع محدد أو بحث يقلّصان القائمة طبيعيًا. */
     var radarCars = buildRows(cars.filter(function (c) { return !q || ([c.plate, c.brand, c.branch, c.owner].join(' ').toLowerCase().indexOf(q) >= 0); }), modeCfg);
+    var radarTotal = radarCars.length;
+    var radarTruncated = radarTotal > 150;
+    if (radarTruncated) radarCars = radarCars.slice(0, 150);
+    var totalItems = items.length;
+    var itemsTruncated = items.length > 250;
+    if (itemsTruncated) items = items.slice(0, 250);
 
     var elapsed = '';
     if (state.scanning && state.startedAt) {
@@ -198,7 +205,7 @@
     var headTitle = modeCfg.head + (state.branch ? ' — فرع ' + state.branch : '');
     var today = new Date().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' });
 
-    var rowsHtml = items.length ? items.map(function (item) {
+    var rowsHtml = items.length ? (items.map(function (item) {
       var c = item.car;
       return '<tr>'
         + '<td><span class="scan-plate"><b>' + esc(c.plate || '—') + '</b><i>SAU</i></span></td>'
@@ -207,7 +214,11 @@
         + '<td>' + esc(c.notes || '—') + '</td>'
         + '<td class="scan-actions"><button type="button" class="scan-view-btn" data-scan-view="' + esc(c.id) + '">عرض 👁</button></td>'
         + '</tr>';
-    }).join('') : '<tr><td colspan="5" class="scan-empty">لا سيارات مطابقة — ' + esc(modeCfg.head) + ' في هذا النطاق.</td></tr>';
+    }).join('')
+      + (itemsTruncated
+        ? '<tr><td colspan="5" class="scan-empty">عرض أول 250 من ' + totalItems + ' — اختر فرعًا من القائمة أو ابحث برقم اللوحة لتقليل القائمة.</td></tr>'
+        : '')
+      ) : '<tr><td colspan="5" class="scan-empty">لا سيارات مطابقة — ' + esc(modeCfg.head) + ' في هذا النطاق.</td></tr>';
 
     ov.innerHTML = ''
       + '<div class="scan-console" dir="rtl">'
@@ -235,7 +246,7 @@
       + '<div class="scan-count c-pink"><b>' + totals.unknown + '</b><small>' + esc(modeCfg.unit) + ' غير محدد</small></div>'
       + '</div>'
       + '</div>'
-      + '<div class="scan-radar-card">' + radarSvg(radarCars) + '<p class="scan-radar-hint">اضغط على أي نقطة لعرض السيارة — الأخضر منجز · الأصفر عاجل · الرمادي غير محدد</p></div>'
+      + '<div class="scan-radar-card">' + radarSvg(radarCars) + '<p class="scan-radar-hint">اضغط على أي نقطة لعرض السيارة — الأخضر منجز · الأصفر عاجل · الرمادي غير محدد' + (radarTruncated ? ' (أول 150 نقطة من ' + radarTotal + ')' : '') + '</p></div>'
       + '</div>'
       + '<div class="scan-toolbar">'
       + '<div class="scan-chips">' + chips + '</div>'
