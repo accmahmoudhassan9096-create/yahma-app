@@ -125,6 +125,7 @@ function dashboardTemplate(state) {
       <div class="home-card">
         <div class="home-card-head">
           <h3>مهامي اليوم</h3>
+          <button type="button" class="home-task-history-btn" id="btn-wa-history" title="سجل التنبيهات المرسلة عبر واتساب">🕘 سجل التنبيهات</button>
           <span class="home-badge">${todayCount || todayTasks.length}</span>
         </div>
         <div class="home-tasks">
@@ -451,6 +452,53 @@ function bindDashboardEvents(content, context, state) {
         caption: cfg.cap + list.length + ') — مرفق PDF',
         fallbackText: lines.join('\n')
       });
+    });
+  });
+
+  /* سجل التنبيهات المرسلة عبر واتساب — يقرأ من YahmaWAHistoryLog
+     (بيتسجل تلقائيًا داخل sharePdfOnWhatsApp من كل شاشة). */
+  content.querySelector('#btn-wa-history')?.addEventListener('click', () => {
+    const esc2 = (v) => escapeHtml(v == null ? '' : String(v));
+    const rows = (window.YahmaWAHistoryLog && window.YahmaWAHistoryLog.list()) || [];
+    const ov = document.createElement('div');
+    ov.className = 'wa-history-overlay';
+    const fmtWhen = (iso) => {
+      try { return new Date(iso).toLocaleString('ar-EG', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' }); }
+      catch (_) { return iso || '—'; }
+    };
+    const rowsHtml = rows.length ? rows.map(r => `
+      <tr>
+        <td class="wh-when">${esc2(fmtWhen(r.at))}</td>
+        <td>${esc2(r.title || '—')}</td>
+        <td class="wh-count">${r.count == null ? '—' : esc2(r.count)}</td>
+        <td>${r.phone ? esc2(r.phone) : 'اختيار جهة اتصال'}</td>
+        <td class="${r.pdfOk ? 'wh-ok' : 'wh-bad'}">${r.pdfOk ? '✅ مرفق PDF' : '⚠️ نص فقط'}</td>
+      </tr>`).join('')
+      : `<tr><td colspan="5" class="wh-empty">لم تُرسل أي تنبيهات واتساب بعد — سجّل أول تنبيه من زر 💬 جنب المهام أو من تبويب بطاقات التشغيل.</td></tr>`;
+    ov.innerHTML = `
+      <div class="wa-history-modal" dir="rtl">
+        <div class="wa-history-head">
+          <h3>🕘 سجل التنبيهات المرسلة</h3>
+          <div class="wa-history-actions">
+            ${rows.length ? '<button type="button" class="btn btn-ghost btn-small" id="btn-wa-history-clear">مسح السجل</button>' : ''}
+            <button type="button" class="btn btn-ghost btn-small" id="btn-wa-history-close">إغلاق ✕</button>
+          </div>
+        </div>
+        <p class="muted-small">التنبيهات المرسلة عبر واتساب من كل الشاشات — المحلي على هذا الجهاز (آخر 200).</p>
+        <div class="table-scroll" style="max-height:55vh">
+          <table class="fleet-table wa-history-table">
+            <thead><tr><th>التاريخ والوقت</th><th>التقرير</th><th>العدد</th><th>المستلم</th><th>الحالة</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('#btn-wa-history-close')?.addEventListener('click', () => ov.remove());
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+    ov.querySelector('#btn-wa-history-clear')?.addEventListener('click', () => {
+      if (!confirm('مسح سجل التنبيهات كله من هذا الجهاز؟')) return;
+      if (window.YahmaWAHistoryLog) window.YahmaWAHistoryLog.clear();
+      ov.remove();
     });
   });
   // Animate bars after paint

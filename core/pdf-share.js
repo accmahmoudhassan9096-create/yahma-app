@@ -188,6 +188,26 @@ function downloadBlob(blob, filename){
   a.click();
   setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 4000);
 }
+/* ===== سجل التنبيهات المرسلة عبر واتساب =====
+   كل نداء sharePdfOnWhatsApp بيتسجل هنا (المصدر الوحيد لإرسال
+   الواتساب في النظام — التنبيهات المركزية وتبويب المتابعة وغيرها،
+   فسجل واحد بيلقطهم كلهم). تخزين محلي بحد 200 حركة. */
+const WA_HIST_KEY = 'yahma-wa-history-v1';
+function recordWaHistory(entry){
+  try{
+    let list=[];
+    try{ list=JSON.parse(localStorage.getItem(WA_HIST_KEY)||'[]'); }catch(_){ list=[]; }
+    if(!Array.isArray(list)) list=[];
+    list.unshift({ at: new Date().toISOString(), title: String(entry.title||''), count: entry.rowsCount||0, phone: String(entry.phone||''), pdfOk: !!entry.pdfOk });
+    if(list.length>200) list=list.slice(0,200);
+    localStorage.setItem(WA_HIST_KEY, JSON.stringify(list));
+  }catch(_){yahmaErr(_,'pdf-share.js:recordWaHistory');}
+}
+window.YahmaWAHistoryLog={
+  list: function(){ try{ const l=JSON.parse(localStorage.getItem(WA_HIST_KEY)||'[]'); return Array.isArray(l)?l:[]; }catch(_){ return []; } },
+  clear: function(){ try{ localStorage.removeItem(WA_HIST_KEY); }catch(_){} }
+};
+
 async function sharePdfOnWhatsApp(opts){
   const title=opts.title||'تقرير الأسطول';
   const headers=opts.headers||[];
@@ -196,6 +216,8 @@ async function sharePdfOnWhatsApp(opts){
   const phone=(opts.phone||'').trim();
   const caption=opts.caption||('مرفق: '+title);
   const filename=((opts.filename||title)+'').replace(/[\\/:*?"<>|]+/g,'_')+'.pdf';
+  /* بيتسجل مرة واحدة قبل العودة من أي مسار ناجح */
+  const histEntry={ title: title, rowsCount: rows.length, phone: phone };
 
   const loading=document.createElement('div');
   loading.style.cssText='position:fixed;inset:0;background:rgba(13,24,54,.5);z-index:2147483647;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Tahoma,Arial,sans-serif;font-size:16px;font-weight:700';
@@ -214,6 +236,7 @@ async function sharePdfOnWhatsApp(opts){
       if(navigator.canShare && navigator.canShare({files:[file]})){
         loading.remove();
         await navigator.share({files:[file], title:title, text:caption});
+        recordWaHistory(Object.assign({}, histEntry, { pdfOk:true }));
         return;
       }
     }catch(shareErr){
@@ -236,6 +259,8 @@ async function sharePdfOnWhatsApp(opts){
   const msg = pdfOk
     ? (caption+'\n\nتم تنزيل الملف: '+filename+'\nأرفقه من مجلد التنزيلات 📎')
     : ((opts.fallbackText||caption)+'\n\n(تعذر إنشاء PDF تلقائيًا — استخدم نافذة الطباعة إن ظهرت)');
+
+  recordWaHistory(Object.assign({}, histEntry, { pdfOk: pdfOk }));
 
   // افتح واتساب دائمًا (بعد التنزيل)
   setTimeout(()=>{

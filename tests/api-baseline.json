@@ -326,6 +326,10 @@
     "exit",
     "toggle"
   ],
+  "YahmaWAHistoryLog": [
+    "clear",
+    "list"
+  ],
   "YahmaUndo": [
     "MAX_ENTRIES",
     "__busy",
