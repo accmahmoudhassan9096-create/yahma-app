@@ -13,20 +13,28 @@
   function setBadge(version, hasUpdate) {
     CURRENT = version || '';
     var badge = document.getElementById('yahma-version-badge');
-    if (!badge) return;
+    var footer = document.getElementById('app-footer-version');
     var short = CURRENT ? CURRENT.replace('yahma-shell-v', 'v') : '—';
-    badge.innerHTML = 'الإصدار <b>' + (short || '—') + '</b>';
-    badge.title = 'إصدار التطبيق: ' + (CURRENT || 'غير معروف') + ' — اضغط لازمّاك على أحدث نسخة';
+    if (badge) {
+      badge.innerHTML = 'الإصدار <b>' + (short || '—') + '</b>';
+      badge.title = 'إصدار التطبيق: ' + (CURRENT || 'غير معروف') + ' — اضغط لازمّاك على أحدث نسخة';
+    }
+    if (footer) {
+      footer.innerHTML = 'الإصدار <b>' + (short || '—') + '</b>';
+      footer.title = 'إصدار التطبيق: ' + (CURRENT || 'غير معروف');
+    }
     try { global.__yahmaVersion = CURRENT; } catch(_){yahmaErr(_,'app-version.js:20');}
     try {
-      if (!badge.getAttribute('role')) badge.setAttribute('role', 'button');
-      badge.setAttribute('tabindex', '0');
-      badge.style.cursor = 'pointer';
-      if (!badge.__yahmaBound) {
-        badge.__yahmaBound = true;
-        var hard = function (e) { if (e) e.preventDefault(); askHardRefresh(); };
-        badge.addEventListener('click', hard);
-        badge.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') hard(e); });
+      if (badge) {
+        if (!badge.getAttribute('role')) badge.setAttribute('role', 'button');
+        badge.setAttribute('tabindex', '0');
+        badge.style.cursor = 'pointer';
+        if (!badge.__yahmaBound) {
+          badge.__yahmaBound = true;
+          var hard = function (e) { if (e) e.preventDefault(); askHardRefresh(); };
+          badge.addEventListener('click', hard);
+          badge.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') hard(e); });
+        }
       }
     } catch(_){yahmaErr(_,'app-version.js:31');}
   }
