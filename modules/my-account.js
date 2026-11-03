@@ -262,6 +262,8 @@
       if (problem) { setStatus(status, problem, true); return; }
 
       btn.disabled = true;
+      var btnText = btn.textContent;
+      btn.textContent = 'جارِ الحفظ...';
       setStatus(status, 'جارِ الحفظ...');
       try {
         var r = await global.supabaseClient.from('profiles').update(values).eq('id', global.currentUser.id);
@@ -276,6 +278,7 @@
         setStatus(status, 'تعذر الحفظ: ' + ((e && e.message) || e), true);
       }
       btn.disabled = false;
+      btn.textContent = btnText;
     };
 
     /* ===== تغيير كلمة المرور ===== */
@@ -292,6 +295,8 @@
       if (!auth || !email) { setStatus(status, 'تعذر تحميل بيانات الجلسة.', true); return; }
 
       btn.disabled = true;
+      var pwBtnText = btn.textContent;
+      btn.textContent = 'جارِ التغيير...';
       setStatus(status, 'جارِ التأكيد...');
 
       /* ❶ نتأكد من الحالية — بدونها أي جلسة مفتوحة على جهاز
@@ -300,6 +305,7 @@
       if (check.error) {
         setStatus(status, 'كلمة المرور الحالية غلط.', true);
         btn.disabled = false;
+        btn.textContent = pwBtnText;
         return;
       }
 
@@ -308,6 +314,7 @@
       if (done.error) {
         setStatus(status, 'تعذر تغيير كلمة المرور: ' + (done.error.message || done.error), true);
         btn.disabled = false;
+        btn.textContent = pwBtnText;
         return;
       }
       get('ma-pw-current').value = '';
@@ -315,6 +322,7 @@
       get('ma-pw-confirm').value = '';
       setStatus(status, 'تم تغيير كلمة المرور بنجاح.');
       btn.disabled = false;
+      btn.textContent = pwBtnText;
     };
   }
 
