@@ -96,11 +96,18 @@
       });
       tb.querySelectorAll('[data-del]').forEach(btn => btn.onclick = () => {
         if (!confirm('حذف هذا الفرع من الدليل؟ (لن تُحذف السيارات)')) return;
-        replaceBranches(getBranches().filter(x => x.id !== btn.dataset.del));
-        saveBranches();
-        draw();
-        const count = document.getElementById('count-branches');
-        if (count) count.textContent = getBranches().length;
+        btn.disabled = true;
+        btn.textContent = 'جارِ الحذف...';
+        try {
+          replaceBranches(getBranches().filter(x => x.id !== btn.dataset.del));
+          saveBranches();
+          draw();
+          const count = document.getElementById('count-branches');
+          if (count) count.textContent = getBranches().length;
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'حذف';
+        }
       });
       tb.querySelectorAll('[data-mail-sum]').forEach(btn => btn.onclick = () => emailBranch(btn.dataset.mailSum, 'summary'));
       tb.querySelectorAll('[data-mail-insp]').forEach(btn => btn.onclick = () => emailBranch(btn.dataset.mailInsp, 'insp'));
