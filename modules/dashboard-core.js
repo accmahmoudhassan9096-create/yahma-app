@@ -97,32 +97,6 @@ function computeDashboardState(fleet) {
   const countRenCard = tabCount('inspections');
   const renCard = countRenCard !== null ? countRenCard : fleet.filter(c => (typeof cardDisplayStatus === 'function' ? cardDisplayStatus(c.cardExpiry, c.cardStatus).level === 'red' : false)).length;
 
-  /* ===== سيارات منتهية／تقترب من الانتهاء (لوحة التحكم) =====
-     تجلب السيارات اللي الرخصة/التأمين/الكارت منتهية أو تنتهى خلال 30/7 أيام.
-     تُعرض في بطاقة منفصلة في الشاشة الرئيسية. */
-  const DAY = 86400000;
-  const now = Date.now();
-  const daysLeft = (iso) => { if (!iso) return null; const d = new Date(iso).getTime(); if (isNaN(d)) return null; return Math.round((d - now) / DAY); };
-  const expiringCars = [];
-  fleet.forEach(c => {
-    ['licenseExpiry', 'insuranceExpiry', 'cardExpiry'].forEach(field => {
-      const dl = daysLeft(c[field]);
-      if (dl === null) return;
-      if (dl >= 0 && dl <= 30) {
-        expiringCars.push({
-          plate: c.plate || '—',
-          branch: c.branch || '—',
-          field,
-          label: field === 'licenseExpiry' ? 'رخصة' : field === 'insuranceExpiry' ? 'تأمين' : 'كارت تشغيل',
-          expiry: c[field],
-          daysLeft: dl,
-          urgent: dl <= 7
-        });
-      }
-    });
-  });
-  expiringCars.sort((a, b) => a.daysLeft - b.daysLeft);
-
   let finalReview = 0;
   // مراجعة نهائية
   try {

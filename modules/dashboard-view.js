@@ -10,7 +10,7 @@
 
 /* ===== القالب ===== */
 function dashboardTemplate(state) {
-  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg } = state;
+  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, fmtTime, gaugeSvg, histBase, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg } = state;
   return `
   <div class="home-dash">
     <!-- Hero -->
@@ -43,23 +43,6 @@ function dashboardTemplate(state) {
         <div class="hero-gauge-sub">${ready.toLocaleString('en')} من ${total.toLocaleString('en')} سيارة</div>
       </div>
       <div class="home-hero-car hero-car-clean" aria-hidden="true"><video class="home-hero-car-img home-hero-video" autoplay muted loop playsinline preload="metadata" poster="assets/dashboard-hero.png"><source src="assets/hero-video.mp4" type="video/mp4"></video></div>
-    </div>
-
-    <!-- كرت منتهي／تقترب من الانتهاء (UI فقط) -->
-    <div class="home-card home-expiry-card" id="home-expiry-card">
-      <div class="home-card-head">
-        <h3>⚠ وثائق تقترب من الانتهاء</h3>
-        <span class="home-badge" id="home-expiry-count">0</span>
-      </div>
-      <div class="home-expiry-list" id="home-expiry-list">
-        ${expiringCars.length ? expiringCars.map(e => `
-          <div class="home-expiry-item ${e.urgent ? 'urgent' : 'warning'}" data-go="fleet" data-plate="${escapeHtml(e.plate)}">
-            <span class="home-expiry-plate">${escapeHtml(e.plate)}</span>
-            <span class="home-expiry-label">${escapeHtml(e.label)}</span>
-            <span class="home-expiry-days">${e.daysLeft} يوم${e.urgent ? ' — عاجل' : ''}</span>
-            <span class="home-expiry-date">${new Date(e.expiry).toLocaleDateString('ar-EG')}</span>
-          </div>`).join('') : '<div class="empty">لا توجد وثائق تقترب من الانتهاء خلال 30 يوم 🎉</div>'}
-      </div>
     </div>
 
     <!-- KPI row -->
@@ -840,23 +823,6 @@ function bindDashboardEvents(content, context, state) {
       roleEl.textContent = map[window.currentRole] || window.currentRole;
     }
   } catch(e){yahmaErr(e,'dashboard.js:996');}
-
-  /* بطاقة الوثائق المنتهية: الضغط على أي سيارة ينقل للأسطول ويبحث عنها */
-  content.querySelectorAll('#home-expiry-list [data-go]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const plate = btn.getAttribute('data-plate');
-      if (!plate) return;
-      try {
-        setCurrentTab('fleet');
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        document.querySelector('.nav-item[data-tab="fleet"]')?.classList.add('active');
-        const inp = document.getElementById('fleet-search');
-        if (inp) { inp.value = plate; inp.dispatchEvent(new Event('input')); }
-        if (typeof render === 'function') render();
-      } catch(_) {}
-    });
-  });
 }
 
   global.YahmaDashboardView = {
