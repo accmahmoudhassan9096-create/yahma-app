@@ -4,6 +4,40 @@
 
 ---
 
+## نشر مباشر من الجهاز (wrangler) — أسرع طريقة
+
+المشروع فيه `wrangler.toml` (static assets only) و`.assetsignore`، يعني تقدر تنشر أو ترجّع من غير ما تفتح الـ Dashboard خالص:
+
+```bash
+# نشر الكود الحالي على الإنتاج
+npx wrangler deploy
+
+# معاينة بدون نشر (يتحقق من الإعدادات)
+npx wrangler deploy --dry-run
+
+# قائمة النسخ المنشورة
+npx wrangler versions list --name yahma-app
+
+# رجوع فوري لنسخة قديمة
+npx wrangler rollback --name yahma-app
+
+# متابعة اللوجز لايف
+npx wrangler tail --name yahma-app
+```
+
+| البند | القيمة |
+|---|---|
+| اسم الـ Worker | `yahma-app` |
+| الـ Assets | جذر المستودع (`directory = "."`) |
+| المستثنى من النشر | `.git`, `.github`, `node_modules`, `.wrangler*`, `wrangler.toml`, `.assetsignore`, `.env*` |
+| مسار غير موجود | 404 (مش بيرجّع `index.html`) — نفس السلوك الحالي |
+
+> **مهم:** وجود `.assetsignore` **بيلغي** الاستثناءات الافتراضية بتاعة wrangler، فكل استثناء لازم يكون مكتوب فيه صريح.
+>
+> ولو الـ GitHub integration شغّال، أي push لسه بينشر تلقائي — والاتنين بيستخدموا نفس `wrangler.toml` فالنتيجة واحدة.
+
+---
+
 ## الطريقة الأولى (موصى بها): ربط GitHub مباشرة — نشر تلقائي لكل push
 
 1. سجّل في [dash.cloudflare.com](https://dash.cloudflare.com) وافتح **Workers & Pages**.
