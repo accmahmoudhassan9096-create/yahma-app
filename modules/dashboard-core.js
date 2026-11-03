@@ -388,7 +388,6 @@ function computeDashboardState(fleet) {
  total,
  trend,
  trendSvg,
-  expiringCars,
   };
 }
 
