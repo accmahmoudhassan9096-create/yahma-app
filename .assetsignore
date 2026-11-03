@@ -1,0 +1,28 @@
+# ملفات مش لازم تتنشر مع الموقع (صيغة .gitignore)
+#
+# مهم: وجود الملف ده **بيلغي** قائمة الاستثناءات الافتراضية بتاعة
+# wrangler (node_modules / .git / .wrangler)، عشان كده لازم نكتبها
+# هنا صريحة — من غيرها الـ .git كله بيتنشر مع الموقع.
+
+# git
+.git/
+**/.git/
+.gitignore
+
+# أدوات ومخرجات محلية
+node_modules/
+**/node_modules/
+.wrangler/
+**/.wrangler/
+.wrangler-dryrun/
+
+# ملفات الإعداد نفسها
+wrangler.toml
+.assetsignore
+.github/
+
+# توكنات/أسرار محلية لو اتحطت في المجلد بالغلط
+*.token
+*-token.txt
+.env
+.env.*

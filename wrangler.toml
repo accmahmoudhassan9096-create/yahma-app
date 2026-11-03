@@ -1,0 +1,34 @@
+# ===== wrangler.toml — نشر «يهماء» على Cloudflare Workers =====
+#
+# الموقع ملفات ثابتة (HTML/CSS/JS) + Service Worker. مفيش سيرفر ولا
+# دالة Worker مكتوبة بإيد — عشان كده الإعداد هنا «static assets only»:
+# مفيش `main`، والـ Worker بيخدم الملفات اللي في `directory` زي ما هي.
+#
+# النشر المباشر من الجهاز:
+#   npx wrangler deploy
+#
+# معاينة بدون نشر (بيتحقق من الإعدادات ويطبع الملفات):
+#   npx wrangler deploy --dry-run
+#
+# الرجوع لنسخة قديمة:
+#   npx wrangler versions list   --name yahma-app
+#   npx wrangler rollback        --name yahma-app
+#
+# ملاحظة مهمة: الـ repo ده **مالوش** package.json بقصد (شوف
+# .github/workflows/verify.yml) — Cloudflare Pages بيعتبره مشروع Node
+# ويحاول يعمل build فبيفشل. الملف ده (wrangler.toml) هو الطريقة
+# الصح لتعريف النشر، ومش بيعمل نفس المشكلة.
+
+name = "yahma-app"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+[assets]
+# الموقع كله من جذر الـ repo. الملفات اللي مش لازم تتنشر مستثناة في
+# .assetsignore (نفس صيغة .gitignore).
+directory = "."
+
+# نفس سلوك الإنتاج الحالي: أي مسار مش موجود بيرجّع 404 فاضي
+# (مش بيرجّع index.html). لو حوّلناه لـ "single-page-application"
+# أي رابط غلط هيظهر كأنه الصفحة الرئيسية.
+not_found_handling = "none"
