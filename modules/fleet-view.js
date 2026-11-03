@@ -150,6 +150,15 @@
         <button class="btn btn-danger btn-small" id="bulk-clear-sel">إلغاء التحديد</button>
       </div>
     </div>
+    ${fleet.length === 0 ? `
+    <div class="fleet-empty-state" style="text-align:center;padding:56px 20px;color:#666;background:#fafafa;border:1px dashed #ddd;border-radius:12px;margin:24px auto;max-width:420px;">
+      <div style="font-size:56px;margin-bottom:16px;display:block;">🚗</div>
+      <div style="font-size:18px;font-weight:bold;margin-bottom:8px;">لا توجد سيارات في الأسطول بعد</div>
+      <div style="font-size:14px;margin-bottom:24px;line-height:1.5;">ابدأ بإضافة سيارة جديدة عبر الزر «إضافة سيارة» في الشريط العلوي.</div>
+      <button type="button" class="btn btn-primary" id="fleet-empty-add-car" style="padding:10px 24px;">إضافة سيارة أولى</button>
+    </div>
+    ` : ''
+    }
     <div class="filter-panel" id="fleet-filter-panel">
       <div class="filter-panel-title"><div><strong>🔎 فلاتر الأسطول</strong><span>كل فلتر مستقل ويمكن دمج أكثر من فلتر معًا</span></div><button type="button" class="btn btn-ghost btn-small fleet-filter-toggle" id="fleet-filter-toggle" aria-expanded="false">إظهار الفلاتر <span aria-hidden="true">⌄</span></button></div>
       <div class="filter-panel-body" id="fleet-filter-body">
@@ -818,6 +827,12 @@
     document.querySelectorAll('#fleet-view-toggle button').forEach(b=>b.classList.toggle('active', b.dataset.view===fleetView));
   };
   document.querySelectorAll('#fleet-view-toggle button').forEach(b=>b.addEventListener('click',()=>{ fleetView=b.dataset.view; applyView(); }));
+
+  // زر إضافة سيارة أولى من حالة الفراغ
+  $('fleet-empty-add-car')?.addEventListener('click',()=>{
+    try{ openModal(null); }catch(_){yahmaErr(_,'fleet-view.js:empty-add-car');}
+  });
+
   applyView();
   draw();
   updateBulkBar();

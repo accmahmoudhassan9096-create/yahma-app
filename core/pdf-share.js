@@ -413,6 +413,7 @@ document.getElementById('btn-save').addEventListener('click', ()=>window.YahmaVe
   log,
   closeModal,
   render,
+  saveButton: document.getElementById('btn-save'),
   alert: message => alert(message)
 }));
 

@@ -20,8 +20,30 @@
     } else {
       context.fleet.push({ id: context.uid(), ...data });
     }
+
+    /* حالة التحميل على زر الحفظ عشان المستخدم يعرف إن العملية جارية */
+    const saveButton = context.saveButton || document.getElementById('btn-save');
+    let restored = false;
+    function restoreButton() {
+      if (restored) return;
+      restored = true;
+      if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.textContent = 'حفظ';
+      }
+    }
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.textContent = 'جارِ الحفظ...';
+    }
+
     const savedId = editingId || context.fleet[context.fleet.length - 1].id;
-    const saved = await context.saveData([savedId]);
+    let saved;
+    try {
+      saved = await context.saveData([savedId]);
+    } finally {
+      restoreButton();
+    }
     if (!saved && context.supabaseReady) {
       context.alert('تعذر حفظ السيارة على Supabase. البيانات محفوظة محليًا فقط.');
       return;
