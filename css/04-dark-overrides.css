@@ -2042,3 +2042,52 @@ body.dark-mode .fn-h2h-side{color:#f1f5f9}
 body.dark-mode .fn-h2h-side.winner .fn-h2h-val{color:#34d399}
 body.dark-mode .fn-h2h-vs-badge{background:#7f1d1d;color:#fca5a5}
 body.dark-mode .fn-h2h-bar-track{background:#1e293b}
+
+/* كروت خط الأنابيب النشطة عند الفلترة */
+.fn-pipe-card[data-contract-filter]{cursor:pointer}
+.fn-pipe-card.active-filter{border-color:var(--navy,#0284c7);box-shadow:0 0 0 2px var(--navy,#0284c7),var(--shadow-md);background:#f0fdf4}
+.fn-filter-active-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;background:#10b981;color:#fff;margin-right:6px}
+body.dark-mode .fn-pipe-card.active-filter{border-color:#38bdf8;box-shadow:0 0 0 2px #38bdf8,var(--shadow-md);background:#0f2744}
+
+/* مؤشر صعود وهبوط الفروع في العقود المفتوحة والتصفية */
+.fn-rise-fall-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow-sm)}
+.fn-rise-fall-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:8px}
+.fn-rise-summary-pills{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fn-rise-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.fn-rise-pill.green{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
+.fn-rise-pill.red{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+.fn-rise-pill.blue{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+body.dark-mode .fn-rise-pill.green{background:#064e3b;color:#a7f3d0;border-color:#047857}
+body.dark-mode .fn-rise-pill.red{background:#7f1d1d;color:#fecaca;border-color:#991b1b}
+body.dark-mode .fn-rise-pill.blue{background:#1e3a8a;color:#bfdbfe;border-color:#1d4ed8}
+
+.fn-rise-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;margin-top:14px}
+.fn-branch-growth-card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;transition:transform .15s,border-color .15s}
+.fn-branch-growth-card:hover{transform:translateY(-2px);border-color:var(--navy)}
+.fn-branch-growth-top{display:flex;align-items:center;justify-content:space-between}
+.fn-branch-growth-name{font-size:12.5px;font-weight:800;color:var(--ink)}
+.fn-growth-badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:3px}
+.fn-growth-badge.rise{background:#ecfdf5;color:#059669}
+.fn-growth-badge.fall{background:#fef2f2;color:#dc2626}
+.fn-growth-badge.neutral{background:var(--grey-soft);color:var(--muted)}
+.fn-growth-bar-wrap{display:flex;align-items:center;gap:4px;height:14px;background:var(--grey-soft);border-radius:6px;overflow:hidden;padding:2px}
+.fn-growth-bar-open{height:100%;background:linear-gradient(90deg,#10b981,#059669);border-radius:4px;min-width:2px;transition:width .3s}
+.fn-growth-bar-close{height:100%;background:linear-gradient(90deg,#f87171,#ef4444);border-radius:4px;min-width:2px;transition:width .3s}
+.fn-growth-sub-counts{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-weight:600}
+.fn-growth-sub-counts b{color:var(--ink)}
+
+body.dark-mode .fn-rise-fall-wrap{background:#172236;border-color:#2a3b56}
+body.dark-mode .fn-branch-growth-card{background:#111a2c;border-color:#2a3b56}
+body.dark-mode .fn-branch-growth-card:hover{border-color:#38bdf8}
+body.dark-mode .fn-branch-growth-name{color:#f1f5f9}
+body.dark-mode .fn-growth-badge.rise{background:#064e3b;color:#34d399}
+body.dark-mode .fn-growth-badge.fall{background:#7f1d1d;color:#f87171}
+body.dark-mode .fn-growth-badge.neutral{background:#1e293b;color:#94a3b8}
+body.dark-mode .fn-growth-bar-wrap{background:#1e293b}
+body.dark-mode .fn-growth-sub-counts b{color:#f1f5f9}
+
+/* كروت تقرير إجمالي المقبوضات */
+.fn-receipts-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.fn-receipt-stream-card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px}
+body.dark-mode .fn-receipt-stream-card{background:#111a2c;border-color:#2a3b56}
+
