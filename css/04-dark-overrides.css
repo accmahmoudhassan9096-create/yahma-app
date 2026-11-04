@@ -2049,42 +2049,114 @@ body.dark-mode .fn-h2h-bar-track{background:#1e293b}
 .fn-filter-active-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;background:#10b981;color:#fff;margin-right:6px}
 body.dark-mode .fn-pipe-card.active-filter{border-color:#38bdf8;box-shadow:0 0 0 2px #38bdf8,var(--shadow-md);background:#0f2744}
 
-/* مؤشر صعود وهبوط الفروع في العقود المفتوحة والتصفية */
-.fn-rise-fall-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow-sm)}
-.fn-rise-fall-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:8px}
-.fn-rise-summary-pills{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.fn-rise-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
-.fn-rise-pill.green{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
-.fn-rise-pill.red{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
-.fn-rise-pill.blue{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
-body.dark-mode .fn-rise-pill.green{background:#064e3b;color:#a7f3d0;border-color:#047857}
-body.dark-mode .fn-rise-pill.red{background:#7f1d1d;color:#fecaca;border-color:#991b1b}
-body.dark-mode .fn-rise-pill.blue{background:#1e3a8a;color:#bfdbfe;border-color:#1d4ed8}
+/* لوحة صعود وهبوط الفروع التفاعلية الفسيحة (Growth Suite) */
+.fn-growth-suite-wrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:var(--shadow-sm)}
+.fn-growth-suite-head{display:flex;flex-direction:column;gap:4px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
 
-.fn-rise-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;margin-top:14px}
-.fn-branch-growth-card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;transition:transform .15s,border-color .15s}
-.fn-branch-growth-card:hover{transform:translateY(-2px);border-color:var(--navy)}
-.fn-branch-growth-top{display:flex;align-items:center;justify-content:space-between}
-.fn-branch-growth-name{font-size:12.5px;font-weight:800;color:var(--ink)}
-.fn-growth-badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:3px}
-.fn-growth-badge.rise{background:#ecfdf5;color:#059669}
-.fn-growth-badge.fall{background:#fef2f2;color:#dc2626}
-.fn-growth-badge.neutral{background:var(--grey-soft);color:var(--muted)}
-.fn-growth-bar-wrap{display:flex;align-items:center;gap:4px;height:14px;background:var(--grey-soft);border-radius:6px;overflow:hidden;padding:2px}
-.fn-growth-bar-open{height:100%;background:linear-gradient(90deg,#10b981,#059669);border-radius:4px;min-width:2px;transition:width .3s}
-.fn-growth-bar-close{height:100%;background:linear-gradient(90deg,#f87171,#ef4444);border-radius:4px;min-width:2px;transition:width .3s}
-.fn-growth-sub-counts{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-weight:600}
-.fn-growth-sub-counts b{color:var(--ink)}
+.fn-growth-kpi-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:16px}
+.fn-growth-kpi-card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
+.fn-growth-kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--navy)}
+.fn-growth-kpi-card.active{border-color:var(--navy);box-shadow:0 0 0 2px var(--navy);background:#f0fdf4}
+.fn-gkpi-icon{font-size:22px;line-height:1}
+.fn-gkpi-info{display:flex;flex-direction:column;gap:2px}
+.fn-gkpi-title{font-size:11px;font-weight:700;color:var(--muted)}
+.fn-gkpi-val{font-size:15px;font-weight:800;color:var(--ink)}
+.fn-gkpi-val small{font-size:11px;font-weight:600;color:var(--muted)}
+.fn-growth-kpi-card.kpi-rise{border-right:4px solid #10b981}
+.fn-growth-kpi-card.kpi-fall{border-right:4px solid #ef4444}
+.fn-growth-kpi-card.kpi-neutral{border-right:4px solid #94a3b8}
+.fn-growth-kpi-card.kpi-star{border-right:4px solid #0ea5e9}
+.fn-growth-kpi-card.kpi-frown{border-right:4px solid #f59e0b}
 
-body.dark-mode .fn-rise-fall-wrap{background:#172236;border-color:#2a3b56}
-body.dark-mode .fn-branch-growth-card{background:#111a2c;border-color:#2a3b56}
-body.dark-mode .fn-branch-growth-card:hover{border-color:#38bdf8}
-body.dark-mode .fn-branch-growth-name{color:#f1f5f9}
-body.dark-mode .fn-growth-badge.rise{background:#064e3b;color:#34d399}
-body.dark-mode .fn-growth-badge.fall{background:#7f1d1d;color:#f87171}
-body.dark-mode .fn-growth-badge.neutral{background:#1e293b;color:#94a3b8}
-body.dark-mode .fn-growth-bar-wrap{background:#1e293b}
-body.dark-mode .fn-growth-sub-counts b{color:#f1f5f9}
+.fn-growth-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;background:var(--paper);padding:10px 14px;border-radius:10px;border:1px solid var(--line)}
+.fn-growth-tabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fn-gtab{padding:6px 12px;border-radius:20px;font-size:11.5px;font-weight:700;border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer;transition:all .15s}
+.fn-gtab:hover,.fn-gtab.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.fn-gtab.gtab-rise.active{background:#059669;border-color:#059669;color:#fff}
+.fn-gtab.gtab-fall.active{background:#dc2626;border-color:#dc2626;color:#fff}
+.fn-gtab.gtab-neutral.active{background:#64748b;border-color:#64748b;color:#fff}
+
+.fn-growth-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fn-gsearch-wrap input{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;min-width:180px;font-family:inherit}
+.fn-gsearch-wrap input:focus{outline:none;border-color:var(--navy)}
+.fn-gsort-select{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer}
+.fn-gview-switch{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.fn-gview-btn{background:var(--panel);border:none;padding:6px 12px;font-size:11.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s}
+.fn-gview-btn.active{background:var(--navy);color:#fff}
+
+/* كروت الفروع التفاعلية */
+.fn-growth-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.fn-branch-card-v2{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:12px;transition:transform .15s,box-shadow .15s,border-color .15s}
+.fn-branch-card-v2:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--navy)}
+.fn-bcard-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.fn-bcard-title-wrap{display:flex;align-items:center;gap:6px}
+.fn-bcard-rank{font-size:11px;font-weight:800;color:var(--muted);background:var(--grey-soft);padding:2px 6px;border-radius:6px}
+.fn-bcard-name{font-size:14px;font-weight:800;color:var(--navy);text-align:right}
+.fn-growth-badge-v2{font-size:11.5px;font-weight:800;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.fn-growth-badge-v2.rise{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
+.fn-growth-badge-v2.fall{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+.fn-growth-badge-v2.neutral{background:var(--grey-soft);color:var(--muted);border:1px solid var(--line)}
+
+.fn-bcard-meter{display:flex;flex-direction:column;gap:6px}
+.fn-bmeter-labels{display:flex;align-items:center;justify-content:space-between;font-size:11.5px}
+.fn-bmeter-track{display:flex;height:12px;background:var(--grey-soft);border-radius:6px;overflow:hidden;padding:1px}
+.fn-bmeter-fill-open{height:100%;background:linear-gradient(90deg,#10b981,#059669);border-radius:4px;min-width:2px;transition:width .3s}
+.fn-bmeter-fill-close{height:100%;background:linear-gradient(90deg,#f87171,#ef4444);border-radius:4px;min-width:2px;transition:width .3s}
+
+.fn-bcard-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px;background:var(--paper);border-radius:8px;border:1px solid var(--line)}
+.fn-bstat{display:flex;flex-direction:column;gap:2px;text-align:center}
+.fn-bstat-k{font-size:10px;color:var(--muted);font-weight:700}
+.fn-bstat-v{font-size:12px;color:var(--ink);font-weight:800}
+
+.fn-bcard-foot{display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid var(--line)}
+.fn-quick-filter-branch{background:none;border:none;padding:4px 8px;font-size:11.5px;font-weight:700;color:var(--navy);cursor:pointer;border-radius:6px;transition:background .15s}
+.fn-quick-filter-branch:hover{background:var(--paper);text-decoration:underline}
+
+/* جدول الصعود والهبوط البياني */
+.fn-growth-table th{white-space:nowrap;font-size:12px}
+.fn-growth-table td{font-size:12px}
+.fn-tbl-diverge-wrap{display:flex;align-items:center;height:22px;background:var(--grey-soft);border-radius:6px;position:relative;overflow:hidden}
+.fn-tbl-divider{width:2px;height:100%;background:var(--line);position:absolute;left:50%;top:0;z-index:2}
+.fn-tbl-half{flex:1;height:100%;position:relative;display:flex;align-items:center}
+.fn-tbl-half.left{justify-content:flex-end}
+.fn-tbl-half.right{justify-content:flex-start}
+.fn-tbl-bar-fill{height:100%;transition:width .3s}
+.fn-tbl-bar-fill.rise{background:linear-gradient(90deg,#10b981,#059669);border-radius:0 4px 4px 0}
+.fn-tbl-bar-fill.fall{background:linear-gradient(90deg,#ef4444,#dc2626);border-radius:4px 0 0 4px}
+.fn-tbl-val-label{font-size:10px;font-weight:800;padding:0 4px;z-index:3;position:absolute}
+.fn-tbl-val-label.rise{right:4px;color:#047857}
+.fn-tbl-val-label.fall{left:4px;color:#dc2626}
+.fn-tbl-val-label.neutral{right:4px;color:var(--muted)}
+
+/* Dark Mode Overrides for Growth Suite */
+body.dark-mode .fn-growth-suite-wrap{background:#172236;border-color:#2a3b56}
+body.dark-mode .fn-growth-kpi-card{background:#111a2c;border-color:#2a3b56}
+body.dark-mode .fn-growth-kpi-card:hover{border-color:#38bdf8}
+body.dark-mode .fn-growth-kpi-card.active{border-color:#38bdf8;box-shadow:0 0 0 2px #38bdf8;background:#0f2744}
+body.dark-mode .fn-gkpi-val{color:#f1f5f9}
+body.dark-mode .fn-growth-toolbar{background:#111a2c;border-color:#2a3b56}
+body.dark-mode .fn-gtab{background:#172236;border-color:#2a3b56;color:#94a3b8}
+body.dark-mode .fn-gtab:hover,body.dark-mode .fn-gtab.active{background:#38bdf8;color:#0f172a;border-color:#38bdf8}
+body.dark-mode .fn-gsearch-wrap input{background:#172236;border-color:#2a3b56;color:#f1f5f9}
+body.dark-mode .fn-gsort-select{background:#172236;border-color:#2a3b56;color:#f1f5f9}
+body.dark-mode .fn-gview-btn{background:#172236;color:#94a3b8}
+body.dark-mode .fn-gview-btn.active{background:#38bdf8;color:#0f172a}
+body.dark-mode .fn-branch-card-v2{background:#111a2c;border-color:#2a3b56}
+body.dark-mode .fn-branch-card-v2:hover{border-color:#38bdf8}
+body.dark-mode .fn-bcard-rank{background:#1e293b;color:#cbd5e1}
+body.dark-mode .fn-bcard-name{color:#38bdf8}
+body.dark-mode .fn-growth-badge-v2.rise{background:#064e3b;color:#34d399;border-color:#047857}
+body.dark-mode .fn-growth-badge-v2.fall{background:#7f1d1d;color:#f87171;border-color:#991b1b}
+body.dark-mode .fn-growth-badge-v2.neutral{background:#1e293b;color:#94a3b8;border-color:#2a3b56}
+body.dark-mode .fn-bmeter-track{background:#1e293b}
+body.dark-mode .fn-bcard-stats-row{background:#172236;border-color:#2a3b56}
+body.dark-mode .fn-bstat-v{color:#f1f5f9}
+body.dark-mode .fn-quick-filter-branch{color:#38bdf8}
+body.dark-mode .fn-quick-filter-branch:hover{background:#1e293b}
+body.dark-mode .fn-tbl-diverge-wrap{background:#1e293b}
+body.dark-mode .fn-tbl-divider{background:#334155}
+body.dark-mode .fn-tbl-val-label.rise{color:#34d399}
+body.dark-mode .fn-tbl-val-label.fall{color:#f87171}
 
 /* كروت تقرير إجمالي المقبوضات */
 .fn-receipts-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}

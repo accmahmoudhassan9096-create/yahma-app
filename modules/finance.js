@@ -1,9 +1,9 @@
-/* ===== modules/finance.js — تبويب «المالية» v343 =====
+/* ===== modules/finance.js — تبويب «المالية» v344 =====
    يومية مالية متكاملة ومربوطة بأسطول المنصة وقاعدة بيانات Supabase:
    - رفع وتخزين ملفات اليومية (محلياً وسحابياً على Supabase)
    - ربط إيرادات الحركات مع أسطول سيارات المنصة وتحديث حالتها تلقائياً
    - فلترة حسب فروع المنصة، الأيام والشهور، ونوع العقد والحركات
-   - كشف صعود وهبوط الفروع في العقود المفتوحة والتصفية ورسوم بيانية متجهة فائقة
+   - كشف صعود وهبوط الفروع التفاعلي (بطاقات فسيحة + جدول بياني لمقارنة العقود والتصفية)
    - تقرير إجمالي المقبوضات الشامل للشركة مع تصدير Excel و PDF
 */
 (function (global) {
@@ -42,6 +42,10 @@
     branch: '',
     period: 'all', // 'all' | 'latest' | 'month:YYYY-MM' | 'date:YYYY-MM-DD'
     contractFilter: 'all', // 'all' | 'opened' | 'extended' | 'closed' | 'discounts'
+    growthFilter: 'all',   // 'all' | 'rise' | 'fall' | 'neutral'
+    growthView: 'cards',   // 'cards' | 'table'
+    growthSort: 'net_desc',// 'net_desc' | 'net_asc' | 'opened_desc' | 'closed_desc' | 'in_desc'
+    growthSearch: '',
     search: '',    // نص بحث سريع في الحركات (لوحة / عميل / عقد)
     darkMode: (typeof document !== 'undefined' && document.body && document.body.classList.contains('dark-mode')) || false,
     cloudStatus: 'checking', // 'online' | 'offline' | 'checking'
@@ -1498,7 +1502,8 @@
   function computeBranchGrowthStats(rows) {
     var branchMap = {};
     (rows || []).forEach(function (r) {
-      var b = String(r[F_BRANCH] || 'غير محدد').trim();
+      var b = String(r[F_BRANCH] || '').trim();
+      if (!b || b === 'غير محدد' || b === 'undefined' || b === 'null') return;
       if (!branchMap[b]) branchMap[b] = { name: b, branch: b, opened: 0, closed: 0, extended: 0, in: 0, out: 0, moves: 0 };
       var mov = String(r[F_MOVEMENT] || '').trim();
       if (/مقدم عقد|عقد جديد|فتح عقد|افتتاح/.test(mov)) {
@@ -1515,139 +1520,277 @@
     return Object.keys(branchMap).map(function (k) { return branchMap[k]; });
   }
 
-  /* ─── مخطط صعود وهبوط الفروع في العقود المفتوحة والتصفية (Diverging Growth & Trajectory) ─── */
-  function renderBranchRiseAndFallChart(branchesList) {
-    if (!branchesList || !branchesList.length) {
-      return '<div class="rp-muted" style="text-align:center;padding:20px">لا توجد بيانات كافية</div>';
-    }
+  /* ─── لوحة صعود وهبوط الفروع التفاعلية المتقدمة (Interactive Branch Growth Suite) ─── */
+  function renderBranchRiseAndFallChart(branchesList, customOpts) {
+    var opts = customOpts || state;
+    var curFilter = opts.growthFilter || 'all'; // 'all' | 'rise' | 'fall' | 'neutral'
+    var curView   = opts.growthView   || 'cards'; // 'cards' | 'table'
+    var curSort   = opts.growthSort   || 'net_desc';
+    var curSearch = (opts.growthSearch || '').trim().toLowerCase();
 
-    var list = branchesList.map(function (b) {
-      var opened = Number(b.opened) || 0;
-      var closed = Number(b.closed) || 0;
-      var netContracts = opened - closed;
-      var trend = netContracts > 0 ? 'rise' : (netContracts < 0 ? 'fall' : 'neutral');
+    var validList = (branchesList || []).filter(function (b) {
+      var nm = String(b.branch || b.name || '').trim();
+      return nm && nm !== 'غير محدد' && nm !== 'undefined' && nm !== 'null';
+    }).map(function (b) {
+      var op = Number(b.opened) || 0;
+      var cl = Number(b.closed) || 0;
+      var nt = op - cl;
+      var tr = nt > 0 ? 'rise' : (nt < 0 ? 'fall' : 'neutral');
       return {
         name: b.branch || b.name,
-        opened: opened,
-        closed: closed,
+        opened: op,
+        closed: cl,
         extended: Number(b.extended) || 0,
-        netContracts: netContracts,
-        trend: trend,
-        totalIn: Number(b.in) || 0
+        net: nt,
+        trend: tr,
+        in: Number(b.in) || 0,
+        out: Number(b.out) || 0,
+        moves: Number(b.moves) || 0
       };
     });
 
-    // فرز الفروع حسب صافي نمو العقود (الأكثر صعوداً أولاً)
-    list.sort(function (a, b) {
-      if (b.netContracts !== a.netContracts) return b.netContracts - a.netContracts;
+    if (!validList.length) {
+      return '<div class="rp-muted" style="text-align:center;padding:30px">لا توجد بيانات فروع كافية لعرض مؤشر الصعود والهبوط</div>';
+    }
+
+    var sortedByNet = validList.slice().sort(function (a, b) {
+      if (b.net !== a.net) return b.net - a.net;
       return b.opened - a.opened;
     });
 
-    var risingCount = list.filter(function (x) { return x.netContracts > 0; }).length;
-    var fallingCount = list.filter(function (x) { return x.netContracts < 0; }).length;
-    var topRiser = list[0];
-    var topFaller = list[list.length - 1];
+    var totalRisingCount = validList.filter(function (x) { return x.net > 0; }).length;
+    var totalFallingCount = validList.filter(function (x) { return x.net < 0; }).length;
+    var totalNeutralCount = validList.filter(function (x) { return x.net === 0; }).length;
 
-    var maxMag = list.reduce(function (mx, x) {
-      return Math.max(mx, Math.abs(x.netContracts), x.opened, x.closed);
-    }, 1);
-    if (maxMag <= 0) maxMag = 1;
+    var netOpenedSum = validList.filter(function (x) { return x.net > 0; }).reduce(function (s, x) { return s + x.net; }, 0);
+    var netClosedSum = Math.abs(validList.filter(function (x) { return x.net < 0; }).reduce(function (s, x) { return s + x.net; }, 0));
 
-    // رسم SVG متقن بمحور مركزي صفري يوضح الصعود يميناً والهبوط يساراً
-    var W = 680, rowH = 34, padT = 32, padB = 25, padL = 130, padR = 100;
-    var plotW = W - padL - padR;
-    var midX = padL + (plotW / 2);
-    var H = padT + (list.length * rowH) + padB;
+    var topRiser = sortedByNet[0];
+    var topFaller = sortedByNet[sortedByNet.length - 1];
 
-    var svgParts = [
-      '<svg viewBox="0 0 ' + W + ' ' + H + '" class="fn-svg-chart" style="width:100%;height:auto;max-height:460px;display:block">'
-      + '<defs>'
-      + '  <linearGradient id="rf-rise-grad" x1="0" y1="0" x2="1" y2="0">'
-      + '    <stop offset="0%" stop-color="#10b981"/>'
-      + '    <stop offset="100%" stop-color="#059669"/>'
-      + '  </linearGradient>'
-      + '  <linearGradient id="rf-fall-grad" x1="1" y1="0" x2="0" y2="0">'
-      + '    <stop offset="0%" stop-color="#ef4444"/>'
-      + '    <stop offset="100%" stop-color="#b91c1c"/>'
-      + '  </linearGradient>'
-      + '</defs>'
-      + '<line x1="' + midX + '" y1="' + padT + '" x2="' + midX + '" y2="' + (H - padB) + '" stroke="var(--line,#cbd5e1)" stroke-width="2" stroke-dasharray="4,3"/>'
-      + '<text x="' + midX + '" y="' + (padT - 12) + '" text-anchor="middle" font-size="11" font-weight="800" fill="var(--muted,#64748b)">محور التعادل (0)</text>'
-      + '<text x="' + (midX + 70) + '" y="' + (padT - 12) + '" text-anchor="start" font-size="11" font-weight="800" fill="#10b981">▲ منطقة الصعود (عقود جديدة +)</text>'
-      + '<text x="' + (midX - 70) + '" y="' + (padT - 12) + '" text-anchor="end" font-size="11" font-weight="800" fill="#ef4444">▼ منطقة الهبوط (تصفية أكثر -)</text>'
-    ];
+    // تصفية حسب الفلتر والبحث
+    var displayList = validList.slice();
+    if (curFilter === 'rise') {
+      displayList = displayList.filter(function (x) { return x.net > 0; });
+    } else if (curFilter === 'fall') {
+      displayList = displayList.filter(function (x) { return x.net < 0; });
+    } else if (curFilter === 'neutral') {
+      displayList = displayList.filter(function (x) { return x.net === 0; });
+    }
 
-    list.forEach(function (b, idx) {
-      var y = padT + (idx * rowH);
-      var barY = y + 7;
-      var barH = 20;
+    if (curSearch) {
+      displayList = displayList.filter(function (x) {
+        return x.name.toLowerCase().includes(curSearch);
+      });
+    }
 
-      if (idx % 2 === 1) {
-        svgParts.push('<rect x="10" y="' + y + '" width="' + (W - 20) + '" height="' + rowH + '" fill="var(--grey-soft,#f8fafc)" rx="4" opacity="0.6"/>');
+    // الترتيب
+    displayList.sort(function (a, b) {
+      if (curSort === 'net_desc') {
+        if (b.net !== a.net) return b.net - a.net;
+        return b.opened - a.opened;
       }
-
-      svgParts.push('<text x="' + (midX - (plotW / 2) - 8) + '" y="' + (barY + 14) + '" text-anchor="end" font-size="11" font-weight="700" fill="var(--ink,#1e293b)">' + esc(b.name) + '</text>');
-
-      var halfW = (plotW / 2) - 20;
-      var barLen = (Math.abs(b.netContracts) / maxMag) * halfW;
-      if (barLen < 3 && b.netContracts !== 0) barLen = 3;
-
-      if (b.netContracts > 0) {
-        svgParts.push('<rect x="' + midX + '" y="' + barY + '" width="' + barLen.toFixed(1) + '" height="' + barH + '" fill="url(#rf-rise-grad)" rx="4"/>');
-        svgParts.push('<text x="' + (midX + barLen + 6) + '" y="' + (barY + 14) + '" font-size="11" font-weight="800" fill="#047857">▲ +' + b.netContracts + '</text>');
-      } else if (b.netContracts < 0) {
-        var startX = midX - barLen;
-        svgParts.push('<rect x="' + startX.toFixed(1) + '" y="' + barY + '" width="' + barLen.toFixed(1) + '" height="' + barH + '" fill="url(#rf-fall-grad)" rx="4"/>');
-        svgParts.push('<text x="' + (startX - 6) + '" y="' + (barY + 14) + '" text-anchor="end" font-size="11" font-weight="800" fill="#dc2626">▼ ' + b.netContracts + '</text>');
-      } else {
-        svgParts.push('<circle cx="' + midX + '" cy="' + (barY + 10) + '" r="5" fill="#94a3b8"/>');
-        svgParts.push('<text x="' + (midX + 12) + '" y="' + (barY + 14) + '" font-size="10" font-weight="700" fill="#64748b">ثبات 0</text>');
+      if (curSort === 'net_asc') {
+        if (a.net !== b.net) return a.net - b.net;
+        return b.closed - a.closed;
       }
-
-      var detailX = W - 15;
-      svgParts.push('<text x="' + detailX + '" y="' + (barY + 14) + '" text-anchor="end" font-size="10" font-weight="600" fill="var(--muted,#64748b)">📝 ' + b.opened + ' | 🏁 ' + b.closed + '</text>');
+      if (curSort === 'opened_desc') return b.opened - a.opened;
+      if (curSort === 'closed_desc') return b.closed - a.closed;
+      if (curSort === 'in_desc') return b.in - a.in;
+      return 0;
     });
 
-    svgParts.push('</svg>');
+    var maxMagnitude = validList.reduce(function (mx, x) {
+      return Math.max(mx, Math.abs(x.net), x.opened, x.closed);
+    }, 1);
+    if (maxMagnitude <= 0) maxMagnitude = 1;
 
-    var cardsHtml = '<div class="fn-rise-grid">'
-      + list.slice(0, 8).map(function (b) {
-        var badgeCls = b.trend === 'rise' ? 'rise' : (b.trend === 'fall' ? 'fall' : 'neutral');
-        var badgeTxt = b.trend === 'rise' ? ('▲ صعود +' + b.netContracts) : (b.trend === 'fall' ? ('▼ هبوط ' + b.netContracts) : '● ثبات 0');
-        var totalActivity = Math.max(1, b.opened + b.closed);
-        var openPct = Math.round((b.opened / totalActivity) * 100);
-        var closePct = 100 - openPct;
-
-        return '<div class="fn-branch-growth-card">'
-          + '<div class="fn-branch-growth-top">'
-          + '  <span class="fn-branch-growth-name">' + esc(b.name) + '</span>'
-          + '  <span class="fn-growth-badge ' + badgeCls + '">' + badgeTxt + '</span>'
-          + '</div>'
-          + '<div class="fn-growth-bar-wrap" title="أخضر: عقود جديدة (' + b.opened + ') | أحمر: تصفية (' + b.closed + ')">'
-          + '  <div class="fn-growth-bar-open" style="width:' + openPct + '%"></div>'
-          + '  <div class="fn-growth-bar-close" style="width:' + closePct + '%"></div>'
-          + '</div>'
-          + '<div class="fn-growth-sub-counts">'
-          + '  <span>📝 جديد: <b>' + b.opened + '</b></span>'
-          + '  <span>🏁 تصفية: <b>' + b.closed + '</b></span>'
-          + '  <span>🔄 تمديد: <b>' + b.extended + '</b></span>'
-          + '</div>'
-          + '</div>';
-      }).join('')
-      + '</div>';
-
-    return '<div class="fn-rise-fall-wrap">'
-      + '<div class="fn-rise-fall-head">'
-      + '  <div class="fn-chart-title">⚖️ مؤشر صعود وهبوط الفروع في العقود المفتوحة الجديدة والتصفية</div>'
-      + '  <div class="fn-rise-summary-pills">'
-      + '    <span class="fn-rise-pill green">🟢 ' + risingCount + ' فرع في صعود</span>'
-      + '    <span class="fn-rise-pill red">🔴 ' + fallingCount + ' فرع في هبوط</span>'
-      + (topRiser && topRiser.netContracts > 0 ? '<span class="fn-rise-pill blue">👑 الأعلى نمواً: ' + esc(topRiser.name) + ' (+' + topRiser.netContracts + ')</span>' : '')
-      + (topFaller && topFaller.netContracts < 0 ? '<span class="fn-rise-pill red">📉 الأكثر تصفية: ' + esc(topFaller.name) + ' (' + topFaller.netContracts + ')</span>' : '')
+    // شريط الإحصائيات العلوي
+    var headerKpis = '<div class="fn-growth-kpi-bar">'
+      + '<div class="fn-growth-kpi-card kpi-rise' + (curFilter === 'rise' ? ' active' : '') + '" data-growth-filter="rise" title="اضغط لعرض الفروع الصاعدة فقط">'
+      + '  <div class="fn-gkpi-icon">🟢</div>'
+      + '  <div class="fn-gkpi-info">'
+      + '    <div class="fn-gkpi-title">فروع في صعود (نمو عقود)</div>'
+      + '    <div class="fn-gkpi-val">' + totalRisingCount + ' <small>فرع (+' + netOpenedSum + ' عقد صافي)</small></div>'
       + '  </div>'
       + '</div>'
-      + '<div style="overflow-x:auto;padding-bottom:10px">' + svgParts.join('') + '</div>'
-      + cardsHtml
+      + '<div class="fn-growth-kpi-card kpi-fall' + (curFilter === 'fall' ? ' active' : '') + '" data-growth-filter="fall" title="اضغط لعرض الفروع الهابطة فقط">'
+      + '  <div class="fn-gkpi-icon">🔴</div>'
+      + '  <div class="fn-gkpi-info">'
+      + '    <div class="fn-gkpi-title">فروع في هبوط (تصفيات أكثر)</div>'
+      + '    <div class="fn-gkpi-val">' + totalFallingCount + ' <small>فرع (-' + netClosedSum + ' عقد تصفية)</small></div>'
+      + '  </div>'
+      + '</div>'
+      + '<div class="fn-growth-kpi-card kpi-neutral' + (curFilter === 'neutral' ? ' active' : '') + '" data-growth-filter="neutral" title="اضغط لعرض الفروع المتعادلة فقط">'
+      + '  <div class="fn-gkpi-icon">⚪</div>'
+      + '  <div class="fn-gkpi-info">'
+      + '    <div class="fn-gkpi-title">فروع في تعادل / ثبات</div>'
+      + '    <div class="fn-gkpi-val">' + totalNeutralCount + ' <small>فروع متوازنة</small></div>'
+      + '  </div>'
+      + '</div>'
+      + (topRiser && topRiser.net > 0 ? (
+        '<div class="fn-growth-kpi-card kpi-star fn-branch-btn" data-branch="' + esc(topRiser.name) + '" title="اضغط لفحص كارت الفرع">'
+        + '  <div class="fn-gkpi-icon">👑</div>'
+        + '  <div class="fn-gkpi-info">'
+        + '    <div class="fn-gkpi-title">الفرع الأكثر صعوداً</div>'
+        + '    <div class="fn-gkpi-val" style="color:#047857">' + esc(topRiser.name) + ' <small>(+' + topRiser.net + ' عقد)</small></div>'
+        + '  </div>'
+        + '</div>'
+      ) : '')
+      + (topFaller && topFaller.net < 0 ? (
+        '<div class="fn-growth-kpi-card kpi-frown fn-branch-btn" data-branch="' + esc(topFaller.name) + '" title="اضغط لفحص كارت الفرع">'
+        + '  <div class="fn-gkpi-icon">📉</div>'
+        + '  <div class="fn-gkpi-info">'
+        + '    <div class="fn-gkpi-title">الفرع الأكثر تصفية</div>'
+        + '    <div class="fn-gkpi-val" style="color:#b91c1c">' + esc(topFaller.name) + ' <small>(' + topFaller.net + ' عقد)</small></div>'
+        + '  </div>'
+        + '</div>'
+      ) : '')
+      + '</div>';
+
+    // شريط التحكم التفاعلي
+    var toolbarHtml = '<div class="fn-growth-toolbar">'
+      + '<div class="fn-growth-tabs">'
+      + '  <button type="button" class="fn-gtab' + (curFilter === 'all' ? ' active' : '') + '" data-growth-filter="all">🌟 جميع الفروع (' + validList.length + ')</button>'
+      + '  <button type="button" class="fn-gtab gtab-rise' + (curFilter === 'rise' ? ' active' : '') + '" data-growth-filter="rise">🟢 الصاعدة (' + totalRisingCount + ')</button>'
+      + '  <button type="button" class="fn-gtab gtab-fall' + (curFilter === 'fall' ? ' active' : '') + '" data-growth-filter="fall">🔴 الهابطة (' + totalFallingCount + ')</button>'
+      + '  <button type="button" class="fn-gtab gtab-neutral' + (curFilter === 'neutral' ? ' active' : '') + '" data-growth-filter="neutral">⚪ المتعادلة (' + totalNeutralCount + ')</button>'
+      + '</div>'
+      + '<div class="fn-growth-actions">'
+      + '  <div class="fn-gsearch-wrap">'
+      + '    <input type="search" id="fn-growth-search-input" placeholder="🔍 بحث باسم الفرع…" value="' + esc(curSearch) + '">'
+      + '  </div>'
+      + '  <select id="fn-growth-sort-select" class="fn-gsort-select">'
+      + '    <option value="net_desc"' + (curSort === 'net_desc' ? ' selected' : '') + '>الأعلى صعوداً أولاً ⬆️</option>'
+      + '    <option value="net_asc"' + (curSort === 'net_asc' ? ' selected' : '') + '>الأعلى هبوطاً أولاً ⬇️</option>'
+      + '    <option value="opened_desc"' + (curSort === 'opened_desc' ? ' selected' : '') + '>الأكثر عقوداً جديدة 📝</option>'
+      + '    <option value="closed_desc"' + (curSort === 'closed_desc' ? ' selected' : '') + '>الأكثر تصفية 🏁</option>'
+      + '    <option value="in_desc"' + (curSort === 'in_desc' ? ' selected' : '') + '>الأعلى مقبوضات 💰</option>'
+      + '  </select>'
+      + '  <div class="fn-gview-switch">'
+      + '    <button type="button" class="fn-gview-btn' + (curView === 'cards' ? ' active' : '') + '" data-growth-view="cards" title="عرض البطاقات التفاعلية">🗂️ بطاقات</button>'
+      + '    <button type="button" class="fn-gview-btn' + (curView === 'table' ? ' active' : '') + '" data-growth-view="table" title="عرض الجدول البياني">📊 جدول</button>'
+      + '  </div>'
+      + '</div>'
+      + '</div>';
+
+    var contentHtml = '';
+
+    if (curView === 'cards') {
+      var cards = displayList.map(function (b, idx) {
+        var badgeCls = b.trend === 'rise' ? 'rise' : (b.trend === 'fall' ? 'fall' : 'neutral');
+        var badgeIcon = b.trend === 'rise' ? '▲ صعود +' : (b.trend === 'fall' ? '▼ هبوط ' : '● تعادل ');
+        var badgeTxt = badgeIcon + Math.abs(b.net) + (b.trend !== 'neutral' ? ' عقد' : '');
+
+        var totalAct = Math.max(1, b.opened + b.closed);
+        var openPct = Math.round((b.opened / totalAct) * 100);
+        var closePct = 100 - openPct;
+
+        return '<div class="fn-branch-card-v2">'
+          + '<div class="fn-bcard-head">'
+          + '  <div class="fn-bcard-title-wrap">'
+          + '    <span class="fn-bcard-rank">#' + (idx + 1) + '</span>'
+          + '    <button type="button" class="fn-branch-btn fn-bcard-name" data-branch="' + esc(b.name) + '">' + esc(b.name) + '</button>'
+          + '  </div>'
+          + '  <span class="fn-growth-badge-v2 ' + badgeCls + '">' + badgeTxt + '</span>'
+          + '</div>'
+          + '<div class="fn-bcard-meter">'
+          + '  <div class="fn-bmeter-labels">'
+          + '    <span style="color:#059669;font-weight:700">📝 جديد: ' + b.opened + ' (' + openPct + '%)</span>'
+          + '    <span style="color:#dc2626;font-weight:700">🏁 تصفية: ' + b.closed + ' (' + closePct + '%)</span>'
+          + '  </div>'
+          + '  <div class="fn-bmeter-track">'
+          + '    <div class="fn-bmeter-fill-open" style="width:' + openPct + '%" title="عقود جديدة: ' + b.opened + '"></div>'
+          + '    <div class="fn-bmeter-fill-close" style="width:' + closePct + '%" title="عقود مصفاة: ' + b.closed + '"></div>'
+          + '  </div>'
+          + '</div>'
+          + '<div class="fn-bcard-stats-row">'
+          + '  <div class="fn-bstat"><span class="fn-bstat-k">🔄 التمديدات</span><b class="fn-bstat-v">' + b.extended + '</b></div>'
+          + '  <div class="fn-bstat"><span class="fn-bstat-k">💰 المقبوضات</span><b class="fn-bstat-v">' + cur(b.in) + '</b></div>'
+          + '  <div class="fn-bstat"><span class="fn-bstat-k">📋 إجمالي الحركات</span><b class="fn-bstat-v">' + b.moves + '</b></div>'
+          + '</div>'
+          + '<div class="fn-bcard-foot">'
+          + '  <button type="button" class="fn-quick-filter-branch" data-branch="' + esc(b.name) + '">🔍 فلترة حركات الفرع في اليومية</button>'
+          + '</div>'
+          + '</div>';
+      });
+
+      contentHtml = '<div class="fn-growth-cards-grid">' + cards.join('') + '</div>';
+    } else {
+      var tableRows = displayList.map(function (b, idx) {
+        var badgeCls = b.trend === 'rise' ? 'rise' : (b.trend === 'fall' ? 'fall' : 'neutral');
+        var badgeTxt = b.trend === 'rise' ? ('▲ صعود +' + b.net) : (b.trend === 'fall' ? ('▼ هبوط ' + b.net) : '● ثبات 0');
+
+        var barWidthPct = Math.min(100, Math.round((Math.abs(b.net) / maxMagnitude) * 100));
+        if (barWidthPct < 4 && b.net !== 0) barWidthPct = 4;
+
+        var barHtml = '';
+        if (b.net > 0) {
+          barHtml = '<div class="fn-tbl-diverge-wrap">'
+            + '  <div class="fn-tbl-half left"></div>'
+            + '  <div class="fn-tbl-divider"></div>'
+            + '  <div class="fn-tbl-half right">'
+            + '    <div class="fn-tbl-bar-fill rise" style="width:' + barWidthPct + '%"></div>'
+            + '    <span class="fn-tbl-val-label rise">+' + b.net + '</span>'
+            + '  </div>'
+            + '</div>';
+        } else if (b.net < 0) {
+          barHtml = '<div class="fn-tbl-diverge-wrap">'
+            + '  <div class="fn-tbl-half left">'
+            + '    <span class="fn-tbl-val-label fall">' + b.net + '</span>'
+            + '    <div class="fn-tbl-bar-fill fall" style="width:' + barWidthPct + '%"></div>'
+            + '  </div>'
+            + '  <div class="fn-tbl-divider"></div>'
+            + '  <div class="fn-tbl-half right"></div>'
+            + '</div>';
+        } else {
+          barHtml = '<div class="fn-tbl-diverge-wrap">'
+            + '  <div class="fn-tbl-half left"></div>'
+            + '  <div class="fn-tbl-divider"></div>'
+            + '  <div class="fn-tbl-half right"><span class="fn-tbl-val-label neutral">0</span></div>'
+            + '</div>';
+        }
+
+        return '<tr>'
+          + '<td style="font-weight:700;color:var(--muted)">#' + (idx + 1) + '</td>'
+          + '<td><button type="button" class="fn-branch-btn" data-branch="' + esc(b.name) + '">' + esc(b.name) + '</button></td>'
+          + '<td><span class="fn-growth-badge-v2 ' + badgeCls + '">' + badgeTxt + '</span></td>'
+          + '<td style="min-width:180px;padding:4px 8px">' + barHtml + '</td>'
+          + '<td><b style="color:#059669">📝 ' + b.opened + '</b></td>'
+          + '<td><b style="color:#dc2626">🏁 ' + b.closed + '</b></td>'
+          + '<td><b style="color:' + (b.net >= 0 ? '#059669' : '#dc2626') + '">' + (b.net > 0 ? ('+' + b.net) : b.net) + '</b></td>'
+          + '<td>🔄 ' + b.extended + '</td>'
+          + '<td><b>' + cur(b.in) + '</b></td>'
+          + '<td><button type="button" class="rp-btn fn-quick-filter-branch" data-branch="' + esc(b.name) + '" style="font-size:11px;padding:3px 8px">فحص الفرع</button></td>'
+          + '</tr>';
+      });
+
+      contentHtml = '<div class="rp-scroll">'
+        + '<table class="rp-table fn-growth-table">'
+        + '<thead><tr>'
+        + '  <th>#</th>'
+        + '  <th>الفرع</th>'
+        + '  <th>الحالة</th>'
+        + '  <th style="text-align:center">مؤشر التباعد (هبوط ◀ | ▶ صعود)</th>'
+        + '  <th>عقود جديدة</th>'
+        + '  <th>عقود مصفاة</th>'
+        + '  <th>صافي النمو</th>'
+        + '  <th>تمديدات</th>'
+        + '  <th>إجمالي المقبوضات</th>'
+        + '  <th>إجراء</th>'
+        + '</tr></thead>'
+        + '<tbody>' + tableRows.join('') + '</tbody>'
+        + '</table></div>';
+    }
+
+    return '<div class="fn-growth-suite-wrap">'
+      + '<div class="fn-growth-suite-head">'
+      + '  <div class="fn-chart-title">⚖️ لوحة صعود وهبوط الفروع في العقود المفتوحة والتصفية (Net Contract Growth)</div>'
+      + '  <div class="muted-small">تحليل تفاعلي يكشف الفروع التي يتوسع أسطولها (عقود جديدة) مقابل الفروع ذات معدلات التصفية المرتفعة</div>'
+      + '</div>'
+      + headerKpis
+      + toolbarHtml
+      + contentHtml
       + '</div>';
   }
 
@@ -2836,6 +2979,55 @@
         renderFinance(host);
       });
     }
+
+    /* تفاعلات لوحة صعود وهبوط الفروع (فلترة / تبديل العرض / ترتيب / بحث / فلترة فرع) */
+    host.querySelectorAll('[data-growth-filter]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var gf = btn.getAttribute('data-growth-filter');
+        if (gf) {
+          state.growthFilter = (state.growthFilter === gf && gf !== 'all') ? 'all' : gf;
+          renderFinance(host);
+        }
+      });
+    });
+
+    host.querySelectorAll('[data-growth-view]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var gv = btn.getAttribute('data-growth-view');
+        if (gv) {
+          state.growthView = gv;
+          renderFinance(host);
+        }
+      });
+    });
+
+    var gSort = host.querySelector('#fn-growth-sort-select');
+    if (gSort) {
+      gSort.addEventListener('change', function () {
+        state.growthSort = gSort.value || 'net_desc';
+        renderFinance(host);
+      });
+    }
+
+    var gSearch = host.querySelector('#fn-growth-search-input');
+    if (gSearch) {
+      gSearch.addEventListener('input', function () {
+        state.growthSearch = gSearch.value || '';
+        renderFinance(host);
+      });
+    }
+
+    host.querySelectorAll('.fn-quick-filter-branch').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var b = btn.getAttribute('data-branch');
+        if (b) {
+          state.branch = b;
+          renderFinance(host);
+        }
+      });
+    });
 
     var rBtn = host.querySelector('#fn-reset-filters-btn');
     if (rBtn) {
