@@ -1874,3 +1874,13 @@ body.dark-mode .rp-btn{background:#111827}
 .fn-del-date:hover{color:#ef4444}
 body.dark-mode .fn-upload-btn{background:#2FA36B;color:#fff}
 body.dark-mode .fn-date-tag{background:#1e293b;border-color:#334155;color:#e2e8f0}
+
+.fn-cloud-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:700;border:1px solid var(--line);background:var(--paper);color:var(--navy)}
+.fn-cloud-badge.online{background:rgba(11,170,134,.1);border-color:#0baa86;color:#0baa86}
+.fn-cloud-badge.offline{background:rgba(234,179,8,.1);border-color:#eab308;color:#b45309}
+.fn-sync-btn{background:var(--paper);border:1px solid var(--line);color:var(--ink);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.fn-sync-btn:hover{border-color:var(--navy);color:var(--navy)}
+body.dark-mode .fn-cloud-badge{background:#1e293b;color:#94a3b8}
+body.dark-mode .fn-cloud-badge.online{background:rgba(46,211,160,.12);border-color:#2ea36b;color:#2ea36b}
+body.dark-mode .fn-cloud-badge.offline{background:rgba(234,179,8,.15);border-color:#ca8a04;color:#facc15}
+body.dark-mode .fn-sync-btn{background:#111827;border-color:#334155;color:#e2e8f0}
