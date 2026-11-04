@@ -1,606 +1,564 @@
-/* ===== modules/finance.js — تبويب «المالية» =====
-   تبويب مالي متكامل لإدارة وتحليل الأسطول:
-   - مؤشرات الأداء المالي وإجمالي الدخل المتوقع.
-   - إيرادات التأجير اليومية والشهرية وتفصيل التسعير لكل فرع وسيارة.
-   - مصروفات الصيانة ومراكز الخدمة والورش.
-   - متابعة رسوم الفحص والتجديد ومراحل السداد.
-   - تصدير كامل إلى Excel و PDF.
+/* ===== modules/finance.js — تبويب «المالية» v338 =====
+   يومية مالية مستقلة:
+   - رفع ملف اليومية (XLS/XLSX/CSV) يوميًا
+   - تخزين البيانات في localStorage بمفتاح التاريخ
+   - تقارير تفصيلية: ملخص يومي / فروع / دفع وحسابات / حركات / مستخدمون
+   - تصدير Excel / PDF
 */
 (function (global) {
   'use strict';
 
-  var state = { view: 'overview', branch: '' };
+  /* ─── ثوابت ─── */
+  var STORE_KEY = 'yahma-finance-journal-v1';
+  var DEMO_DATE = '2026-11-03';
 
+  /* حقول الصف بحسب الترتيب في finance-sample.js */
+  var F_ID       = 0;
+  var F_SEQ      = 1;
+  var F_BRANCH   = 2;
+  var F_DATE     = 3;
+  var F_CID      = 4;
+  var F_CLIENT   = 5;
+  var F_PLATE    = 6;
+  var F_MOVEMENT = 7;
+  var F_OPTYPE   = 8;
+  var F_CATEGORY = 9;
+  var F_IN       = 10;
+  var F_OUT      = 11;
+  var F_CONTRACT = 12;
+  var F_PAPER    = 13;
+  var F_DESC     = 14;
+  var F_PAYMETHOD= 15;
+  var F_ACCOUNT  = 16;
+  var F_APPROVED = 17;
+  var F_AUTHNO   = 18;
+  var F_USER     = 19;
+
+  /* ─── حالة التبويب ─── */
+  var state = { view: 'summary' };
+
+  var VIEWS = [
+    { id: 'summary',   label: 'الملخص اليومي'          },
+    { id: 'branches',  label: 'تحليل الفروع'            },
+    { id: 'payments',  label: 'طرق الدفع والحسابات'     },
+    { id: 'movements', label: 'أنواع الحركات'           },
+    { id: 'users',     label: 'كشف المستخدمين'         }
+  ];
+
+  /* ─── أدوات مساعدة ─── */
   function num(val) {
     var n = Number(val);
-    if (!isFinite(n)) return '0';
-    return n.toLocaleString('en-US');
+    return isFinite(n) ? n.toLocaleString('en-US') : '0';
   }
-
-  function currency(val) {
+  function cur(val) {
     return num(Math.round(Number(val) || 0)) + ' ر.س';
   }
-
   function esc(str) {
     if (str == null) return '';
     return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
-
-  function getFleet() {
-    if (typeof fleet !== 'undefined' && Array.isArray(fleet)) return fleet;
-    if (global.fleet && Array.isArray(global.fleet)) return global.fleet;
-    if (global.YahmaAppContext && typeof global.YahmaAppContext.getFleet === 'function') {
-      try { return global.YahmaAppContext.getFleet() || []; } catch (_) {}
-    }
-    return [];
+  function excelDateToISO(serial) {
+    if (!serial || isNaN(serial)) return '';
+    var n = Math.floor(Number(serial));
+    var d = new Date((n - 25569) * 86400 * 1000);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0, 10);
+  }
+  function groupBy(rows, keyFn) {
+    var map = {};
+    rows.forEach(function (r) {
+      var k = keyFn(r) || 'غير محدد';
+      if (!map[k]) map[k] = [];
+      map[k].push(r);
+    });
+    return map;
+  }
+  function sortedKeys(map) {
+    return Object.keys(map).sort();
+  }
+  function sumField(rows, idx) {
+    return rows.reduce(function (s, r) { return s + (Number(r[idx]) || 0); }, 0);
+  }
+  function netOf(rows) {
+    return sumField(rows, F_IN) - sumField(rows, F_OUT);
   }
 
-  function branchList(cars) {
-    var counts = {};
-    (cars || []).forEach(function (c) {
-      var b = String((c && c.branch) || '').trim();
-      if (!b) b = 'غير محدد';
-      counts[b] = (counts[b] || 0) + 1;
+  /* ─── خزن البيانات ─── */
+  function loadStore() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+  function saveStore(store) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
+  }
+  function getAllRows(store) {
+    var all = [];
+    Object.keys(store).forEach(function (d) {
+      (store[d] || []).forEach(function (r) { all.push(r); });
     });
-    return Object.keys(counts).sort().map(function (k) {
-      return { name: k, count: counts[k] };
-    });
+    return all;
   }
 
-  var VIEWS = [
-    { id: 'overview', label: 'الملخص المالي العام' },
-    { id: 'revenue', label: 'إيرادات وتسعير الأسطول' },
-    { id: 'maintenance', label: 'مصروفات الصيانة والورش' },
-    { id: 'fees', label: 'رسوم الفحص والخدمات' }
+  /* تحميل البيانات التجريبية إن كان المخزن فارغًا */
+  function ensureDemoData(store) {
+    if (Object.keys(store).length > 0) return store;
+    if (!global.yahmaFinanceSample || !global.yahmaFinanceSample.length) return store;
+    store[DEMO_DATE] = global.yahmaFinanceSample;
+    saveStore(store);
+    return store;
+  }
+
+  /* ─── تحليل ملف Excel ─── */
+  /* أسماء الأعمدة المتوقعة (28 عمود) */
+  var COLS = [
+    'رقم السند','تسلسل الفرع','اسم الفرع','التاريخ والوقت',
+    'هوية العميل','اسم العميل','رقم اللوحة','نوع الحركة',
+    'نوع العملية','العملية','قبض','صرف',
+    'رقم العقد','العقد الورقي','البـيـان','طريقة الدفع',
+    'من حساب','معتمد','رقم الموافقة','أضيف بواسطة',
+    'تاريخ الإضافة','عُدل بواسطة','تاريخ التعديل','معلومات الجهاز',
+    'اسم المورد','الرقم الضريبي','مركز التكلفة','فرع العقد'
   ];
 
-  function buildFinancialModel(cars) {
-    var total = cars.length;
-    var rentedCars = 0;
-    var availableCars = 0;
-    var underMaintCars = 0;
-    var dailyRateSum = 0;
-    var dailyPricedCount = 0;
-    var rentedDailySum = 0;
-    var monthlyRateSum = 0;
-    var monthlyPricedCount = 0;
-    var maintCostSum = 0;
-    var maintCarsCount = 0;
-
-    cars.forEach(function (car) {
-      if (!car) return;
-      var status = String(car.carStatus || '').trim();
-      if (status === 'مؤجرة') rentedCars++;
-      else if (status === 'متاحة للايجار') availableCars++;
-      else if (status === 'تحت الصيانة') underMaintCars++;
-
-      var dr = Number(car.dailyRate) || 0;
-      if (dr > 0) {
-        dailyRateSum += dr;
-        dailyPricedCount++;
-        if (status === 'مؤجرة') {
-          rentedDailySum += dr;
-        }
-      }
-
-      var mr = Number(car.monthlyRate) || 0;
-      if (mr > 0) {
-        monthlyRateSum += mr;
-        monthlyPricedCount++;
-      }
-
-      var mc = Number(car.maintenanceCost) || 0;
-      if (mc > 0) {
-        maintCostSum += mc;
-        maintCarsCount++;
-      }
-    });
-
-    var avgDaily = dailyPricedCount ? Math.round(dailyRateSum / dailyPricedCount) : 0;
-    var avgMonthly = monthlyPricedCount ? Math.round(monthlyRateSum / monthlyPricedCount) : (avgDaily * 30);
-    var avgMaint = maintCarsCount ? Math.round(maintCostSum / maintCarsCount) : 0;
-    var utilRate = total ? Math.round((rentedCars / total) * 100) : 0;
-    var projectedMonthly = rentedDailySum > 0 ? (rentedDailySum * 30) : (dailyRateSum * 30);
-
-    var pendingPayments = [];
-    var paidPayments = [];
-    var renewedPayments = [];
-    try {
-      if (typeof global.loadInspectionPayments === 'function') pendingPayments = global.loadInspectionPayments() || [];
-    } catch (_) {}
-    try {
-      if (typeof global.loadPaidInspections === 'function') paidPayments = global.loadPaidInspections() || [];
-    } catch (_) {}
-    try {
-      if (typeof global.loadRenewedInspections === 'function') renewedPayments = global.loadRenewedInspections() || [];
-    } catch (_) {}
-
-    return {
-      total: total,
-      rentedCars: rentedCars,
-      availableCars: availableCars,
-      underMaintCars: underMaintCars,
-      utilRate: utilRate,
-      dailyRateSum: dailyRateSum,
-      dailyPricedCount: dailyPricedCount,
-      avgDaily: avgDaily,
-      rentedDailySum: rentedDailySum,
-      monthlyRateSum: monthlyRateSum,
-      monthlyPricedCount: monthlyPricedCount,
-      avgMonthly: avgMonthly,
-      projectedMonthly: projectedMonthly,
-      maintCostSum: maintCostSum,
-      maintCarsCount: maintCarsCount,
-      avgMaint: avgMaint,
-      pendingCount: pendingPayments.length,
-      paidCount: paidPayments.length,
-      renewedCount: renewedPayments.length,
-      cars: cars
-    };
-  }
-
-  function getOverviewView(model, cars) {
-    var branchMap = {};
-    cars.forEach(function (car) {
-      if (!car) return;
-      var b = String(car.branch || '').trim() || 'غير محدد';
-      if (!branchMap[b]) {
-        branchMap[b] = { name: b, total: 0, rented: 0, dailySum: 0, monthlySum: 0, maintSum: 0 };
-      }
-      var bm = branchMap[b];
-      bm.total++;
-      if (String(car.carStatus || '').trim() === 'مؤجرة') bm.rented++;
-      bm.dailySum += (Number(car.dailyRate) || 0);
-      bm.monthlySum += (Number(car.monthlyRate) || 0);
-      bm.maintSum += (Number(car.maintenanceCost) || 0);
-    });
-
-    var rows = Object.keys(branchMap).sort().map(function (k) {
-      var item = branchMap[k];
-      var uPct = item.total ? Math.round((item.rented / item.total) * 100) : 0;
-      var estMonth = item.monthlySum > 0 ? item.monthlySum : (item.dailySum * 30);
-      return [
-        item.name,
-        num(item.total),
-        num(item.rented),
-        uPct + '%',
-        currency(item.dailySum),
-        currency(estMonth),
-        currency(item.maintSum)
-      ];
-    });
-
-    var foot = [
-      'الإجمالي العام',
-      num(model.total),
-      num(model.rentedCars),
-      model.utilRate + '%',
-      currency(model.dailyRateSum),
-      currency(model.projectedMonthly),
-      currency(model.maintCostSum)
-    ];
-
-    return {
-      title: 'الملخص المالي العام',
-      subtitle: 'نظرة شاملة على الأداء المالي، العوائد التشغيلية، ومصروفات الصيانة عبر الفروع.',
-      kpis: [
-        { label: 'إجمالي القيمة اليومية', value: currency(model.dailyRateSum), hint: 'متوسط: ' + currency(model.avgDaily), cls: 'good' },
-        { label: 'العائد اليومي الفعلي', value: currency(model.rentedDailySum), hint: num(model.rentedCars) + ' سيارة مؤجرة حالياً', cls: 'good' },
-        { label: 'العائد الشهري المقدر', value: currency(model.projectedMonthly), hint: 'بناءً على عقود التأجير', cls: '' },
-        { label: 'مصروفات الصيانة المسجلة', value: currency(model.maintCostSum), hint: num(model.maintCarsCount) + ' سيارة خضعت للصيانة', cls: model.maintCostSum ? 'warn' : '' },
-        { label: 'نسبة تشغيل الأسطول', value: model.utilRate + '%', hint: num(model.rentedCars) + ' من ' + num(model.total) + ' سيارة', cls: model.utilRate >= 70 ? 'good' : 'warn' },
-        { label: 'طلبات الفحص والدفع', value: num(model.pendingCount + model.paidCount + model.renewedCount), hint: num(model.pendingCount) + ' معلقة / ' + num(model.paidCount) + ' مسددة', cls: '' }
-      ],
-      sections: [
-        {
-          title: 'الأداء المالي ومؤشرات الإيرادات حسب الفروع',
-          headers: ['الفرع', 'إجمالي السيارات', 'سيارات مؤجرة', 'نسبة التشغيل', 'إجمالي القيمة اليومية', 'الإيراد الشهري المقدر', 'مصروفات الصيانة'],
-          rows: rows,
-          foot: foot
-        }
-      ]
-    };
-  }
-
-  function getRevenueView(model, cars) {
-    var branchMap = {};
-    cars.forEach(function (car) {
-      if (!car) return;
-      var b = String(car.branch || '').trim() || 'غير محدد';
-      if (!branchMap[b]) {
-        branchMap[b] = { name: b, total: 0, priced: 0, minDaily: 999999, maxDaily: 0, dailySum: 0, monthlySum: 0 };
-      }
-      var bm = branchMap[b];
-      bm.total++;
-      var dr = Number(car.dailyRate) || 0;
-      if (dr > 0) {
-        bm.priced++;
-        bm.dailySum += dr;
-        if (dr < bm.minDaily) bm.minDaily = dr;
-        if (dr > bm.maxDaily) bm.maxDaily = dr;
-      }
-      bm.monthlySum += (Number(car.monthlyRate) || 0);
-    });
-
-    var branchRows = Object.keys(branchMap).sort().map(function (k) {
-      var item = branchMap[k];
-      var avg = item.priced ? Math.round(item.dailySum / item.priced) : 0;
-      var minStr = item.priced ? currency(item.minDaily) : '—';
-      var maxStr = item.priced ? currency(item.maxDaily) : '—';
-      var estMonth = item.monthlySum > 0 ? item.monthlySum : (item.dailySum * 30);
-      return [
-        item.name,
-        num(item.total),
-        num(item.priced),
-        minStr,
-        currency(avg),
-        maxStr,
-        currency(item.dailySum),
-        currency(estMonth)
-      ];
-    });
-
-    var carRows = cars.slice(0, 150).map(function (c) {
-      return [
-        c.plate || '—',
-        (c.brand || '') + ' ' + (c.model || ''),
-        c.year || '—',
-        c.branch || '—',
-        c.carStatus || 'غير محدد',
-        currency(c.dailyRate || 0),
-        currency(c.monthlyRate || (Number(c.dailyRate || 0) * 30)),
-        c.minDailyRate ? currency(c.minDailyRate) : '—'
-      ];
-    });
-
-    return {
-      title: 'إيرادات وتسعير الأسطول',
-      subtitle: 'تحليل سياسات التسعير، متوسطات الأسعار اليومية والشهرية، والقيمة التعاقدية.',
-      kpis: [
-        { label: 'إجمالي القيمة اليومية', value: currency(model.dailyRateSum), hint: 'لكل الأسطول المتاح والمؤجر', cls: 'good' },
-        { label: 'متوسط سعر اليوم', value: currency(model.avgDaily), hint: 'لكل سيارة مسعرة', cls: '' },
-        { label: 'متوسط سعر الشهر', value: currency(model.avgMonthly), hint: 'لكل سيارة مسعرة', cls: '' },
-        { label: 'سيارات مسعرة يومياً', value: num(model.dailyPricedCount) + ' / ' + num(model.total), hint: 'نسبة التغطية ' + (model.total ? Math.round((model.dailyPricedCount / model.total) * 100) : 0) + '%', cls: '' },
-        { label: 'سيارات مؤجرة تدر دخلاً', value: num(model.rentedCars), hint: currency(model.rentedDailySum) + ' يومياً', cls: 'good' },
-        { label: 'سيارات متاحة للإيجار', value: num(model.availableCars), hint: 'جاهزة للتشغيل الفوري', cls: '' }
-      ],
-      sections: [
-        {
-          title: 'متوسطات وسياسات التسعير حسب الفروع',
-          headers: ['الفرع', 'إجمالي السيارات', 'المسعرة', 'أدنى سعر يوم', 'متوسط سعر اليوم', 'أعلى سعر يوم', 'القيمة اليومية للفرع', 'الدخل الشهري المتوقع'],
-          rows: branchRows,
-          foot: ['الإجمالي', num(model.total), num(model.dailyPricedCount), '—', currency(model.avgDaily), '—', currency(model.dailyRateSum), currency(model.projectedMonthly)]
-        },
-        {
-          title: 'قائمة تسعير السيارات (أول 150 سيارة)',
-          headers: ['اللوحة', 'الماركة والموديل', 'سنة الصنع', 'الفرع', 'الحالة', 'سعر اليوم', 'سعر الشهر', 'الحد الأدنى لليوم'],
-          rows: carRows
-        }
-      ]
-    };
-  }
-
-  function getMaintenanceView(model, cars) {
-    var branchMap = {};
-    var workshopMap = {};
-
-    cars.forEach(function (car) {
-      if (!car) return;
-      var b = String(car.branch || '').trim() || 'غير محدد';
-      if (!branchMap[b]) {
-        branchMap[b] = { name: b, total: 0, maintCount: 0, costSum: 0, underMaint: 0 };
-      }
-      var bm = branchMap[b];
-      bm.total++;
-      if (String(car.carStatus || '').trim() === 'تحت الصيانة') bm.underMaint++;
-      var mc = Number(car.maintenanceCost) || 0;
-      if (mc > 0) {
-        bm.maintCount++;
-        bm.costSum += mc;
-      }
-
-      var ws = String(car.workshop || '').trim();
-      if (ws && ws !== 'غير محددة' && ws !== 'غير محدد' && mc > 0) {
-        if (!workshopMap[ws]) {
-          workshopMap[ws] = { name: ws, count: 0, costSum: 0 };
-        }
-        workshopMap[ws].count++;
-        workshopMap[ws].costSum += mc;
-      }
-    });
-
-    var branchRows = Object.keys(branchMap).sort().map(function (k) {
-      var item = branchMap[k];
-      var avg = item.maintCount ? Math.round(item.costSum / item.maintCount) : 0;
-      return [
-        item.name,
-        num(item.total),
-        num(item.maintCount),
-        currency(item.costSum),
-        currency(avg),
-        num(item.underMaint)
-      ];
-    });
-
-    var wsRows = Object.keys(workshopMap).map(function (k) { return workshopMap[k]; })
-      .sort(function (a, b) { return b.costSum - a.costSum; })
-      .map(function (ws) {
-        var avg = ws.count ? Math.round(ws.costSum / ws.count) : 0;
-        var pct = model.maintCostSum ? Math.round((ws.costSum / model.maintCostSum) * 100) : 0;
-        return [
-          ws.name,
-          num(ws.count),
-          currency(ws.costSum),
-          currency(avg),
-          pct + '%'
-        ];
-      });
-
-    return {
-      title: 'مصروفات الصيانة ومراكز الخدمة',
-      subtitle: 'حصر تكاليف الصيانة الدورية والطارئة، متوسط الفواتير، ومراكز الخدمة الأكثر استهلاكاً.',
-      kpis: [
-        { label: 'إجمالي مصروفات الصيانة', value: currency(model.maintCostSum), hint: 'المسجلة في بطاقات السيارات', cls: model.maintCostSum ? 'warn' : '' },
-        { label: 'سيارات خضعت للصيانة', value: num(model.maintCarsCount), hint: 'من أصل ' + num(model.total) + ' سيارة', cls: '' },
-        { label: 'متوسط تكلفة الصيانة', value: currency(model.avgMaint), hint: 'لكل سيارة مسجلة بتكلفة', cls: '' },
-        { label: 'تحت الصيانة حالياً', value: num(model.underMaintCars), hint: 'خارج التشغيل المؤقت', cls: model.underMaintCars ? 'bad' : 'good' },
-        { label: 'مراكز الخدمة والورش', value: num(Object.keys(workshopMap).length), hint: 'ورش مسجلة بالبيانات', cls: '' },
-        { label: 'نسبة أسطول خضع للصيانة', value: (model.total ? Math.round((model.maintCarsCount / model.total) * 100) : 0) + '%', hint: 'معدل دورة الصيانة', cls: '' }
-      ],
-      sections: [
-        {
-          title: 'تكاليف الصيانة ومتوسط الفاتورة حسب الفروع',
-          headers: ['الفرع', 'إجمالي السيارات', 'سيارات خضعت للصيانة', 'إجمالي التكلفة', 'متوسط التكلفة للسيارة', 'تحت الصيانة حالياً'],
-          rows: branchRows,
-          foot: ['الإجمالي', num(model.total), num(model.maintCarsCount), currency(model.maintCostSum), currency(model.avgMaint), num(model.underMaintCars)]
-        },
-        {
-          title: 'توزيع المصروفات حسب الورش ومراكز الخدمة',
-          headers: ['الورشة / مركز الخدمة', 'عدد السيارات', 'إجمالي التكلفة', 'متوسط الفاتورة', 'النسبة من المصروفات'],
-          rows: wsRows.length ? wsRows : [['لا توجد ورش مسجلة بتكاليف صيانة بعد', '—', '—', '—', '—']]
-        }
-      ]
-    };
-  }
-
-  function getFeesView(model, cars) {
-    var branchMap = {};
-    cars.forEach(function (car) {
-      if (!car) return;
-      var b = String(car.branch || '').trim() || 'غير محدد';
-      if (!branchMap[b]) {
-        branchMap[b] = { name: b, total: 0, needInsp: 0, needLic: 0, needIns: 0 };
-      }
-      var bm = branchMap[b];
-      bm.total++;
-      var st = String(car.inspectionStatus || '').trim();
-      if (st.includes('مطلوب') || st.includes('تحتاج') || st.includes('منتهي')) bm.needInsp++;
-      var lst = String(car.licenseStatus || '').trim();
-      if (lst.includes('منتهي') || lst.includes('تجديد')) bm.needLic++;
-      var ist = String(car.insuranceStatus || '').trim();
-      if (ist.includes('منتهي') || ist.includes('ساري قريباً')) bm.needIns++;
-    });
-
-    var rows = Object.keys(branchMap).sort().map(function (k) {
-      var item = branchMap[k];
-      var estFee = item.needInsp * 100;
-      return [
-        item.name,
-        num(item.total),
-        num(item.needInsp),
-        num(item.needLic),
-        num(item.needIns),
-        currency(estFee)
-      ];
-    });
-
-    return {
-      title: 'رسوم الفحص وتجديد الوثائق',
-      subtitle: 'حصر ومتابعة رسوم الفحص الدوري، رخص السير، ووثائق الأسطول المتطلبة للسداد.',
-      kpis: [
-        { label: 'معاملات تحت الدفع', value: num(model.pendingCount), hint: 'بانتظار سداد الرسوم', cls: model.pendingCount ? 'warn' : 'good' },
-        { label: 'معاملات تم سدادها', value: num(model.paidCount), hint: 'جاهزة لإكمال التجديد', cls: 'good' },
-        { label: 'معاملات تم تجديدها', value: num(model.renewedCount), hint: 'مكتملة ومؤكدة بالكامل', cls: 'good' },
-        { label: 'رسوم الفحص المسددة (تقديري)', value: currency(model.paidCount * 100), hint: 'بمعدل 100 ر.س للفحص', cls: 'good' },
-        { label: 'رسوم الفحص المعلقة (تقديري)', value: currency(model.pendingCount * 100), hint: 'بانتظار السداد', cls: model.pendingCount ? 'warn' : '' },
-        { label: 'إجمالي المعاملات الإجرائية', value: num(model.pendingCount + model.paidCount + model.renewedCount), hint: 'دورة الفحص والدفع الكاملة', cls: '' }
-      ],
-      sections: [
-        {
-          title: 'الوثائق المتطلبة للمتابعة والرسوم التقديرية حسب الفروع',
-          headers: ['الفرع', 'إجمالي السيارات', 'تحتاج فحص دوري', 'رخص منتهية', 'تأمين للمتابعة', 'رسوم الفحص التقديرية'],
-          rows: rows
-        }
-      ]
-    };
-  }
-
-  function exportData(title, headers, rows, format) {
-    if (!rows || !rows.length) {
-      try { global.alert('لا توجد بيانات لتصديرها في هذا الجدول.'); } catch (_) {}
-      return;
+  function parseXlsxFile(file, callback) {
+    if (typeof global.ensureXlsxReady === 'function') {
+      global.ensureXlsxReady(function () { doParseFile(file, callback); });
+    } else {
+      doParseFile(file, callback);
     }
-    var api = global.YahmaExport;
-    if (!api) {
-      try { global.alert('وحدة التصدير لم تُحمَّل بعد — أعد تحميل الصفحة.'); } catch (_) {}
-      return;
-    }
-    var cleanTitle = String(title || 'تقرير مالي').replace(/[^\u0600-\u06FFa-zA-Z0-9_-]/g, '_');
-    var filename = 'المالية_' + cleanTitle + '_' + (new Date().toISOString().slice(0, 10));
+  }
 
-    if (format === 'pdf') {
-      if (typeof api.exportTablePdf === 'function') {
-        api.exportTablePdf({
-          title: 'المالية — ' + title,
-          subtitle: 'تقرير مالي مستخرج من نظام إدارة أسطول يهماء',
-          headers: headers,
-          rows: rows,
-          filename: filename + '.pdf'
+  function doParseFile(file, callback) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        var data = new Uint8Array(e.target.result);
+        var wb = global.XLSX.read(data, { type: 'array' });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var raw = global.XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+        /* إيجاد صف الرأس */
+        var headerRow = -1;
+        for (var i = 0; i < Math.min(10, raw.length); i++) {
+          var row = raw[i];
+          if (row && (String(row[0]).indexOf('رقم السند') !== -1 || String(row[2]).indexOf('اسم الفرع') !== -1)) {
+            headerRow = i;
+            break;
+          }
+        }
+
+        /* بناء خريطة الأعمدة */
+        var colMap = {};
+        if (headerRow >= 0) {
+          raw[headerRow].forEach(function (h, ci) {
+            var hh = String(h).trim();
+            COLS.forEach(function (col, fi) {
+              if (hh === col || hh.replace(/\s+/g,'') === col.replace(/\s+/g,'')) {
+                colMap[fi] = ci;
+              }
+            });
+          });
+        } else {
+          COLS.forEach(function (_, fi) { colMap[fi] = fi; });
+        }
+
+        var dataStart = headerRow >= 0 ? headerRow + 1 : 1;
+        var rows = [];
+        for (var ri = dataStart; ri < raw.length; ri++) {
+          var src = raw[ri];
+          if (!src || src.every(function (c) { return c === '' || c == null; })) continue;
+          var mapped = [];
+          for (var fi = 0; fi < 20; fi++) {
+            var ci = (colMap[fi] != null) ? colMap[fi] : fi;
+            mapped.push(src[ci] != null ? src[ci] : '');
+          }
+          rows.push(mapped);
+        }
+
+        /* تجميع حسب التاريخ */
+        var byDate = {};
+        rows.forEach(function (r) {
+          var key = excelDateToISO(r[F_DATE]) || DEMO_DATE;
+          if (!byDate[key]) byDate[key] = [];
+          byDate[key].push(r);
         });
-      }
-      return;
-    }
 
-    if (typeof api.exportRowsToExcel === 'function') {
-      Promise.resolve(api.exportRowsToExcel(filename + '.xlsx', title, headers, rows))
-        .catch(function (err) {
-          try { global.alert('تعذر تصدير Excel: ' + ((err && err.message) || err)); } catch (_) {}
-        });
-    }
+        callback(null, byDate, rows.length);
+      } catch (err) {
+        callback(err, null, 0);
+      }
+    };
+    reader.onerror = function () { callback(new Error('فشل قراءة الملف'), null, 0); };
+    reader.readAsArrayBuffer(file);
   }
 
-  function renderFinance(content) {
-    var host = content || document.getElementById('content');
-    if (!host) return;
-
-    var title = document.getElementById('topbar-title');
-    var sub = document.getElementById('topbar-sub');
-    if (title) title.textContent = 'المالية';
-    if (sub) sub.textContent = 'مؤشرات الإيرادات المتوقعة، إيجارات الأسطول، وتكاليف الصيانة والرسوم.';
-
-    var all = getFleet();
-    if (!all.length) {
-      global._yahmaCurrentPdfData = null;
-      host.innerHTML = '<div class="panel"><h3>لا توجد بيانات بعد</h3>'
-        + '<p class="muted-small">لم يتم تحميل أي سيارة. افتح «الأسطول» أو انتظر اكتمال المزامنة ثم ارجع لقسم المالية.</p></div>';
-      return;
-    }
-
-    var branches = branchList(all);
-    if (state.branch) {
-      var known = branches.some(function (b) { return b.name === state.branch; });
-      if (!known) state.branch = '';
-    }
-
-    var scoped = state.branch
-      ? all.filter(function (car) { return String((car && car.branch) || '').trim() === state.branch; })
-      : all;
-
-    var model = buildFinancialModel(scoped);
-
-    var viewData;
-    if (state.view === 'revenue') viewData = getRevenueView(model, scoped);
-    else if (state.view === 'maintenance') viewData = getMaintenanceView(model, scoped);
-    else if (state.view === 'fees') viewData = getFeesView(model, scoped);
-    else viewData = getOverviewView(model, scoped);
-
-    /* بناء رأس الصفحة والأزرار */
-    var tabsHtml = VIEWS.map(function (v) {
-      return '<button type="button" class="rp-tab' + (v.id === state.view ? ' active' : '') + '" data-fn-tab="' + v.id + '">'
-        + esc(v.label) + '</button>';
+  /* ─── بناء واجهة الرفع ─── */
+  function buildUploadBar(store) {
+    var dates = Object.keys(store).sort().reverse();
+    var tagsHtml = dates.map(function (d) {
+      return '<span class="fn-date-tag">' + esc(d)
+        + ' <button type="button" class="fn-del-date" data-date="' + esc(d) + '" title="حذف">✕</button></span>';
     }).join('');
 
-    var optionsHtml = ['<option value="">كل الفروع (' + num(all.length) + ' سيارة)</option>'];
-    branches.forEach(function (b) {
-      optionsHtml.push('<option value="' + esc(b.name) + '"' + (state.branch === b.name ? ' selected' : '') + '>'
-        + esc(b.name) + ' (' + num(b.count) + ')</option>');
+    return '<div class="fn-upload-bar">'
+      + '<input type="file" id="fn-file" accept=".xlsx,.xls,.csv" style="display:none">'
+      + '<button type="button" class="rp-btn fn-upload-btn" id="fn-upload-btn">📤 رفع اليومية</button>'
+      + '<span id="fn-upload-status" class="fn-status"></span>'
+      + '</div>'
+      + (tagsHtml ? '<div class="fn-dates-row">' + tagsHtml + '</div>' : '');
+  }
+
+  /* ─── الملخص اليومي ─── */
+  function buildSummary(store) {
+    var dates = Object.keys(store).sort().reverse();
+    if (!dates.length) {
+      return { kpis: [], sections: [{ title: 'لا توجد بيانات', headers: [], rows: [] }] };
+    }
+
+    var allRows = getAllRows(store);
+    var totalIn  = sumField(allRows, F_IN);
+    var totalOut = sumField(allRows, F_OUT);
+    var net      = totalIn - totalOut;
+
+    var kpis = [
+      { label: 'إجمالي القبض',   value: cur(totalIn),       cls: 'kpi-green' },
+      { label: 'إجمالي الصرف',   value: cur(totalOut),      cls: 'kpi-red'   },
+      { label: 'الصافي',         value: cur(net),           cls: net >= 0 ? 'kpi-blue' : 'kpi-red' },
+      { label: 'عدد الحركات',    value: num(allRows.length),cls: '' },
+      { label: 'عدد الأيام',     value: num(dates.length),  cls: '' },
+      { label: 'آخر يوم مرفوع', value: esc(dates[0]),      cls: '' }
+    ];
+
+    var rows = dates.map(function (d) {
+      var dr = store[d] || [];
+      var di = sumField(dr, F_IN);
+      var do_ = sumField(dr, F_OUT);
+      return [d, num(dr.length), cur(di), cur(do_), cur(di - do_)];
     });
 
-    var kpisHtml = (viewData.kpis || []).map(function (kpi) {
-      return '<div class="rp-kpi ' + esc(kpi.cls || '') + '">'
-        + '<span>' + esc(kpi.label) + '</span>'
-        + '<b>' + esc(kpi.value) + '</b>'
-        + (kpi.hint ? '<small>' + esc(kpi.hint) + '</small>' : '')
+    return {
+      kpis: kpis,
+      sections: [{
+        title: 'ملخص الأيام المرفوعة',
+        headers: ['التاريخ', 'عدد الحركات', 'إجمالي القبض', 'إجمالي الصرف', 'الصافي'],
+        rows: rows
+      }]
+    };
+  }
+
+  /* ─── تحليل الفروع ─── */
+  function buildBranches(store) {
+    var allRows = getAllRows(store);
+    if (!allRows.length) return { kpis: [], sections: [{ title: 'لا توجد بيانات', headers: [], rows: [] }] };
+
+    var byBranch = groupBy(allRows, function (r) { return String(r[F_BRANCH] || '').trim() || 'غير محدد'; });
+    var keys = sortedKeys(byBranch);
+
+    var rows = keys.map(function (b) {
+      var br = byBranch[b];
+      var bi = sumField(br, F_IN);
+      var bo = sumField(br, F_OUT);
+      return [esc(b), num(br.length), cur(bi), cur(bo), cur(bi - bo)];
+    });
+
+    var totIn  = sumField(allRows, F_IN);
+    var totOut = sumField(allRows, F_OUT);
+
+    return {
+      kpis: [
+        { label: 'عدد الفروع',   value: num(keys.length),  cls: '' },
+        { label: 'إجمالي القبض', value: cur(totIn),         cls: 'kpi-green' },
+        { label: 'إجمالي الصرف', value: cur(totOut),        cls: 'kpi-red'   },
+        { label: 'الصافي',       value: cur(totIn - totOut),cls: 'kpi-blue'  }
+      ],
+      sections: [{
+        title: 'تقرير الفروع',
+        headers: ['الفرع', 'عدد الحركات', 'قبض', 'صرف', 'صافي'],
+        rows: rows,
+        foot: ['الإجمالي', num(allRows.length), cur(totIn), cur(totOut), cur(totIn - totOut)]
+      }]
+    };
+  }
+
+  /* ─── طرق الدفع والحسابات ─── */
+  function buildPayments(store) {
+    var allRows = getAllRows(store);
+    if (!allRows.length) return { kpis: [], sections: [{ title: 'لا توجد بيانات', headers: [], rows: [] }] };
+
+    var byMethod  = groupBy(allRows, function (r) { return String(r[F_PAYMETHOD] || '').trim() || 'غير محدد'; });
+    var byAccount = groupBy(allRows, function (r) { return String(r[F_ACCOUNT]   || '').trim() || 'غير محدد'; });
+
+    function mkRows(map) {
+      return sortedKeys(map).map(function (k) {
+        var gr = map[k];
+        var gi = sumField(gr, F_IN);
+        var go = sumField(gr, F_OUT);
+        return [esc(k), num(gr.length), cur(gi), cur(go)];
+      });
+    }
+
+    var totIn = sumField(allRows, F_IN);
+    var totOut= sumField(allRows, F_OUT);
+
+    return {
+      kpis: [
+        { label: 'عدد طرق الدفع',  value: num(Object.keys(byMethod).length),  cls: '' },
+        { label: 'عدد الحسابات',   value: num(Object.keys(byAccount).length), cls: '' },
+        { label: 'إجمالي القبض',   value: cur(totIn),                         cls: 'kpi-green' },
+        { label: 'إجمالي الصرف',   value: cur(totOut),                        cls: 'kpi-red'   }
+      ],
+      sections: [
+        { title: 'طرق الدفع',  headers: ['الطريقة','عدد الحركات','قبض','صرف'], rows: mkRows(byMethod)  },
+        { title: 'الحسابات',   headers: ['الحساب', 'عدد الحركات','قبض','صرف'], rows: mkRows(byAccount) }
+      ]
+    };
+  }
+
+  /* ─── أنواع الحركات ─── */
+  function buildMovements(store) {
+    var allRows = getAllRows(store);
+    if (!allRows.length) return { kpis: [], sections: [{ title: 'لا توجد بيانات', headers: [], rows: [] }] };
+
+    var byMovement = groupBy(allRows, function (r) { return String(r[F_MOVEMENT] || '').trim() || 'غير محدد'; });
+    var byCategory = groupBy(allRows, function (r) { return String(r[F_CATEGORY] || '').trim() || 'غير محدد'; });
+
+    function mkRows(map) {
+      return sortedKeys(map).map(function (k) {
+        var gr = map[k];
+        var gi = sumField(gr, F_IN);
+        var go = sumField(gr, F_OUT);
+        return [esc(k), num(gr.length), cur(gi), cur(go), cur(gi - go)];
+      });
+    }
+
+    return {
+      kpis: [
+        { label: 'أنواع الحركات', value: num(Object.keys(byMovement).length), cls: '' },
+        { label: 'فئات العمليات', value: num(Object.keys(byCategory).length), cls: '' }
+      ],
+      sections: [
+        { title: 'حسب نوع الحركة', headers: ['نوع الحركة','عدد','قبض','صرف','صافي'], rows: mkRows(byMovement)  },
+        { title: 'حسب فئة العملية', headers: ['الفئة',     'عدد','قبض','صرف','صافي'], rows: mkRows(byCategory) }
+      ]
+    };
+  }
+
+  /* ─── كشف المستخدمين ─── */
+  function buildUsers(store) {
+    var allRows = getAllRows(store);
+    if (!allRows.length) return { kpis: [], sections: [{ title: 'لا توجد بيانات', headers: [], rows: [] }] };
+
+    var byUser = groupBy(allRows, function (r) { return String(r[F_USER] || '').trim() || 'غير محدد'; });
+
+    var rows = sortedKeys(byUser).map(function (u) {
+      var ur = byUser[u];
+      var ui = sumField(ur, F_IN);
+      var uo = sumField(ur, F_OUT);
+      return [esc(u), num(ur.length), cur(ui), cur(uo), cur(ui - uo)];
+    });
+
+    rows.sort(function (a, b) {
+      return (parseFloat(String(b[2]).replace(/[^0-9.]/g,'')) || 0)
+           - (parseFloat(String(a[2]).replace(/[^0-9.]/g,'')) || 0);
+    });
+
+    return {
+      kpis: [
+        { label: 'عدد المستخدمين', value: num(Object.keys(byUser).length), cls: '' }
+      ],
+      sections: [{
+        title: 'كشف المستخدمين',
+        headers: ['المستخدم', 'عدد الحركات', 'قبض', 'صرف', 'صافي'],
+        rows: rows
+      }]
+    };
+  }
+
+  /* ─── تصدير ─── */
+  function exportData(title, headers, rows, type) {
+    if (type === 'xlsx') {
+      if (typeof global.YahmaExport !== 'undefined' && global.YahmaExport.exportRowsToExcel) {
+        global.YahmaExport.exportRowsToExcel(rows, headers, title + '.xlsx');
+        return;
+      }
+      if (typeof global.ensureXlsxReady === 'function') {
+        global.ensureXlsxReady(function () {
+          var ws = global.XLSX.utils.aoa_to_sheet([headers].concat(rows));
+          var wb = global.XLSX.utils.book_new();
+          global.XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+          global.XLSX.writeFile(wb, title + '.xlsx');
+        });
+      }
+      return;
+    }
+    if (type === 'pdf') {
+      if (typeof global.YahmaExport !== 'undefined' && global.YahmaExport.exportTablePdf) {
+        global.YahmaExport.exportTablePdf(title, headers, rows);
+        return;
+      }
+      var win = window.open('', '_blank');
+      if (!win) return;
+      var rowsHtml = rows.map(function (r) {
+        return '<tr>' + r.map(function (c) { return '<td>' + esc(String(c)) + '</td>'; }).join('') + '</tr>';
+      }).join('');
+      win.document.write('<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8">'
+        + '<title>' + esc(title) + '</title>'
+        + '<style>body{font-family:Arial,sans-serif;font-size:12px}table{width:100%;border-collapse:collapse}'
+        + 'th,td{border:1px solid #ccc;padding:4px 6px}th{background:#f2f2f2}</style>'
+        + '</head><body><h3>' + esc(title) + '</h3><table>'
+        + '<thead><tr>' + headers.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead>'
+        + '<tbody>' + rowsHtml + '</tbody></table></body></html>');
+      win.document.close();
+      win.focus();
+      win.print();
+    }
+  }
+
+  /* ─── الدالة الرئيسية ─── */
+  function renderFinance(host) {
+    if (!host) return;
+
+    var store = ensureDemoData(loadStore());
+
+    /* حساب بيانات العرض الحالي */
+    var viewData;
+    if      (state.view === 'branches')  viewData = buildBranches(store);
+    else if (state.view === 'payments')  viewData = buildPayments(store);
+    else if (state.view === 'movements') viewData = buildMovements(store);
+    else if (state.view === 'users')     viewData = buildUsers(store);
+    else                                 viewData = buildSummary(store);
+
+    /* تبويبات */
+    var tabsHtml = VIEWS.map(function (v) {
+      return '<button type="button" class="rp-tab' + (v.id === state.view ? ' active' : '')
+        + '" data-fn-tab="' + v.id + '">' + esc(v.label) + '</button>';
+    }).join('');
+
+    /* مؤشرات KPI */
+    var kpisHtml = (viewData.kpis || []).map(function (k) {
+      return '<div class="rp-kpi ' + esc(k.cls || '') + '">'
+        + '<span>' + esc(k.label) + '</span><b>' + esc(k.value) + '</b>'
+        + (k.hint ? '<small>' + esc(k.hint) + '</small>' : '')
         + '</div>';
     }).join('');
 
+    /* جداول التقارير */
     var sectionsHtml = (viewData.sections || []).map(function (sec, idx) {
-      var headers = sec.headers || [];
-      var rows = sec.rows || [];
-      var foot = sec.foot;
-
-      var thHtml = headers.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('');
-      var trHtml = rows.map(function (row) {
-        return '<tr>' + row.map(function (cell) { return '<td>' + esc(cell) + '</td>'; }).join('') + '</tr>';
+      var thHtml = (sec.headers || []).map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('');
+      var tbHtml = (sec.rows    || []).map(function (row) {
+        return '<tr>' + row.map(function (c) { return '<td>' + esc(String(c)) + '</td>'; }).join('') + '</tr>';
       }).join('');
-
-      var tfHtml = '';
-      if (foot && foot.length) {
-        tfHtml = '<tfoot><tr>' + foot.map(function (c) { return '<td>' + esc(c) + '</td>'; }).join('') + '</tr></tfoot>';
-      }
+      var tfHtml = (sec.foot && sec.foot.length)
+        ? '<tfoot><tr>' + sec.foot.map(function (c) { return '<td>' + esc(String(c)) + '</td>'; }).join('') + '</tr></tfoot>'
+        : '';
 
       return '<div class="rp-card">'
         + '<div class="rp-card-head">'
         + '<div class="rp-card-title"><h3>' + esc(sec.title) + '</h3></div>'
         + '<div class="rp-card-actions">'
         + '<button type="button" class="rp-btn" data-fn-xlsx="' + idx + '">تصدير Excel</button>'
-        + '<button type="button" class="rp-btn" data-fn-pdf="' + idx + '">تصدير PDF</button>'
-        + '</div>'
-        + '</div>'
-        + '<div class="rp-scroll">'
-        + '<table class="rp-table">'
+        + '<button type="button" class="rp-btn" data-fn-pdf="'  + idx + '">تصدير PDF</button>'
+        + '</div></div>'
+        + '<div class="rp-scroll"><table class="rp-table">'
         + '<thead><tr>' + thHtml + '</tr></thead>'
-        + '<tbody>' + trHtml + '</tbody>'
+        + '<tbody>' + tbHtml + '</tbody>'
         + tfHtml
-        + '</table>'
-        + '</div>'
-        + '</div>';
+        + '</table></div></div>';
     }).join('');
 
-    host.innerHTML = '<div class="rp-head">'
-      + '<div class="rp-head-text"><h2>المالية والتحصيل</h2>'
-      + '<div class="muted-small">' + esc(viewData.subtitle) + '</div></div>'
-      + '<label class="rp-filter"><span>الفرع</span>'
-      + '<select id="fn-branch">' + optionsHtml.join('') + '</select></label>'
+    /* ─── HTML الكامل ─── */
+    host.innerHTML =
+        '<div class="fn-upload-wrap">' + buildUploadBar(store) + '</div>'
+      + '<div class="rp-head">'
+      + '<div class="rp-head-text"><h2>المالية — اليومية</h2>'
+      + '<div class="muted-small">بيانات مستقلة من ملفات اليومية المرفوعة</div></div>'
       + '</div>'
       + '<div class="rp-tabs">' + tabsHtml + '</div>'
       + '<div class="rp-kpis">' + kpisHtml + '</div>'
       + sectionsHtml;
 
-    /* ربط الأحداث */
-    host.querySelectorAll('[data-fn-tab]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var tabId = btn.getAttribute('data-fn-tab');
-        if (tabId && tabId !== state.view) {
-          state.view = tabId;
-          renderFinance(host);
-        }
-      });
-    });
+    /* ─── ربط الأحداث ─── */
 
-    var branchSelect = host.querySelector('#fn-branch');
-    if (branchSelect) {
-      branchSelect.addEventListener('change', function () {
-        state.branch = String(branchSelect.value || '');
-        renderFinance(host);
+    /* زر رفع الملف */
+    var uploadBtn = host.querySelector('#fn-upload-btn');
+    var fileInput = host.querySelector('#fn-file');
+    var statusEl  = host.querySelector('#fn-upload-status');
+
+    if (uploadBtn && fileInput) {
+      uploadBtn.addEventListener('click', function () { fileInput.click(); });
+      fileInput.addEventListener('change', function () {
+        var file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        statusEl.textContent = '⏳ جاري المعالجة…';
+        parseXlsxFile(file, function (err, byDate, count) {
+          if (err) {
+            statusEl.textContent = '❌ خطأ: ' + (err.message || 'فشل القراءة');
+            return;
+          }
+          var freshStore = loadStore();
+          Object.keys(byDate).forEach(function (d) {
+            freshStore[d] = byDate[d];
+          });
+          saveStore(freshStore);
+          statusEl.textContent = '✅ تم رفع ' + count + ' حركة بنجاح';
+          setTimeout(function () { renderFinance(host); }, 800);
+        });
       });
     }
 
+    /* حذف يوم */
+    host.querySelectorAll('.fn-del-date').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var d = btn.getAttribute('data-date');
+        if (!d) return;
+        if (!confirm('حذف بيانات يوم ' + d + '؟')) return;
+        var s = loadStore();
+        delete s[d];
+        saveStore(s);
+        renderFinance(host);
+      });
+    });
+
+    /* تبويبات */
+    host.querySelectorAll('[data-fn-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-fn-tab');
+        if (id && id !== state.view) { state.view = id; renderFinance(host); }
+      });
+    });
+
+    /* تصدير */
     host.querySelectorAll('[data-fn-xlsx]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var idx = Number(btn.getAttribute('data-fn-xlsx')) || 0;
         var sec = (viewData.sections || [])[idx];
-        if (sec) exportData(sec.title, sec.headers, sec.rows, 'xlsx');
+        if (sec) exportData(sec.title, sec.headers || [], sec.rows || [], 'xlsx');
       });
     });
-
     host.querySelectorAll('[data-fn-pdf]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var idx = Number(btn.getAttribute('data-fn-pdf')) || 0;
         var sec = (viewData.sections || [])[idx];
-        if (sec) exportData(sec.title, sec.headers, sec.rows, 'pdf');
+        if (sec) exportData(sec.title, sec.headers || [], sec.rows || [], 'pdf');
       });
     });
 
-    /* مزود PDF العام للشريط العلوي */
-    var primarySection = (viewData.sections || [])[0];
-    if (primarySection) {
+    /* مزود PDF للشريط العلوي */
+    var primary = (viewData.sections || [])[0];
+    if (primary) {
       global._yahmaCurrentPdfData = function () {
-        return {
-          title: 'المالية — ' + primarySection.title,
-          subtitle: viewData.subtitle,
-          headers: primarySection.headers || [],
-          rows: primarySection.rows || []
-        };
+        return { title: 'المالية — ' + primary.title, headers: primary.headers || [], rows: primary.rows || [] };
       };
     }
   }
 
-  global.YahmaFinance = { render: renderFinance };
+  /* ─── تسجيل عمومي ─── */
+  global.YahmaFinance  = { render: renderFinance };
   global.renderFinance = renderFinance;
+
 })(typeof window !== 'undefined' ? window : globalThis);

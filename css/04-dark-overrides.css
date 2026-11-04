@@ -1861,3 +1861,16 @@ body.dark-mode #yahma-version-badge.is-update{
 body.dark-mode .rp-table th{background:#28313E}
 body.dark-mode .rp-table tbody tr:hover td{background:rgba(46,211,160,.06)}
 body.dark-mode .rp-btn{background:#111827}
+
+/* ===== المالية — أسلوب رفع اليومية والوسوم ===== */
+.fn-upload-wrap{margin-bottom:14px;background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:14px 18px}
+.fn-upload-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.fn-upload-btn{background:var(--navy);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.fn-upload-btn:hover{opacity:.9;color:#fff;border-color:transparent}
+.fn-status{font-size:12px;font-weight:600;color:var(--muted)}
+.fn-dates-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.fn-date-tag{display:inline-flex;align-items:center;gap:6px;background:var(--grey-soft);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11.5px;color:var(--ink);font-weight:600}
+.fn-del-date{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0 2px;line-height:1}
+.fn-del-date:hover{color:#ef4444}
+body.dark-mode .fn-upload-btn{background:#2FA36B;color:#fff}
+body.dark-mode .fn-date-tag{background:#1e293b;border-color:#334155;color:#e2e8f0}
