@@ -48,10 +48,21 @@ drop policy if exists "finance_journal_insert" on public.finance_daily_journal;
 create policy "finance_journal_insert" on public.finance_daily_journal
   for insert to authenticated with check (true);
 
+-- التعديل متاح للمستخدمين المسجلين
+drop policy if exists "finance_journal_update" on public.finance_daily_journal;
+create policy "finance_journal_update" on public.finance_daily_journal
+  for update to authenticated using (true) with check (true);
+
 -- الحذف للمدير والإداري فقط
 drop policy if exists "finance_journal_delete" on public.finance_daily_journal;
 create policy "finance_journal_delete" on public.finance_daily_journal
-  for delete to authenticated using (public.yahma_is_ops_or_admin());
+  for delete to authenticated using (
+    exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid()
+        and p.role in ('admin', 'manager', 'ops')
+    )
+  );
 
 comment on table public.finance_daily_journal is
   'اليومية المالية السحابية — تخزين الحركات المالية اليومية المرفوعة من ملفات Excel';

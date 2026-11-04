@@ -1,4 +1,4 @@
-﻿/* تصدير — بنفسجي فاتح هادي */
+/* تصدير — بنفسجي فاتح هادي */
 .topbar-actions .tb-export,
 .topbar-actions #btn-dd-export,
 .topbar-actions #dd-export > button{
@@ -1884,3 +1884,126 @@ body.dark-mode .fn-cloud-badge{background:#1e293b;color:#94a3b8}
 body.dark-mode .fn-cloud-badge.online{background:rgba(46,211,160,.12);border-color:#2ea36b;color:#2ea36b}
 body.dark-mode .fn-cloud-badge.offline{background:rgba(234,179,8,.15);border-color:#ca8a04;color:#facc15}
 body.dark-mode .fn-sync-btn{background:#111827;border-color:#334155;color:#e2e8f0}
+
+/* ===== تحسينات لوحة تحكم المالية والرسوم البيانية ===== */
+.fn-filters-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px}
+.fn-filter-item{display:flex;align-items:center;gap:8px}
+.fn-filter-item label{font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
+.fn-filter-item select{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:12px;font-weight:600;min-width:180px;cursor:pointer}
+.fn-filter-item select:focus{outline:none;border-color:var(--navy)}
+
+/* كروت خط أنابيب العمليات والعقود (مفتوحة / تمديد / مغلقة) */
+.fn-pipeline{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:16px}
+.fn-pipe-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.fn-pipe-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.fn-pipe-card::before{content:'';position:absolute;top:0;right:0;left:0;height:4px;background:#64748b}
+.fn-pipe-card.pipe-open::before{background:linear-gradient(90deg,#0ea5e9,#0284c7)}
+.fn-pipe-card.pipe-renew::before{background:linear-gradient(90deg,#10b981,#059669)}
+.fn-pipe-card.pipe-close::before{background:linear-gradient(90deg,#f59e0b,#d97706)}
+.fn-pipe-card.pipe-out::before{background:linear-gradient(90deg,#ef4444,#dc2626)}
+.fn-pipe-card.pipe-net::before{background:linear-gradient(90deg,#8b5cf6,#6d28d9)}
+.fn-pipe-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.fn-pipe-title{font-size:12px;font-weight:700;color:var(--muted)}
+.fn-pipe-icon{font-size:16px}
+.fn-pipe-count{font-size:24px;font-weight:800;color:var(--navy);line-height:1.2}
+.fn-pipe-sub{font-size:11.5px;color:var(--muted);margin-top:4px;display:flex;justify-content:space-between;align-items:center}
+.fn-pipe-sub b{color:var(--ink);font-weight:700}
+
+/* شبكة الرسوم البيانية */
+.fn-charts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:16px}
+@media(max-width:960px){.fn-charts-grid{grid-template-columns:1fr}}
+
+.fn-chart-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow-sm)}
+.fn-chart-card.full-width{grid-column:1/-1}
+.fn-chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.fn-chart-title{font-size:13.5px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:6px}
+.fn-chart-subtitle{font-size:11px;color:var(--muted);font-weight:600}
+
+/* أعمدة المقارنة المالية اليومية */
+.fn-bars-wrap{display:flex;align-items:flex-end;gap:12px;height:170px;padding:16px 8px 30px;overflow-x:auto;direction:ltr}
+.fn-bar-group{flex:1;min-width:54px;max-width:85px;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;position:relative}
+.fn-bar-columns{display:flex;align-items:flex-end;gap:4px;width:100%;height:100%;justify-content:center}
+.fn-bar-col{width:16px;border-radius:4px 4px 0 0;position:relative;transition:height .3s,opacity .15s}
+.fn-bar-col:hover{opacity:.85}
+.fn-bar-in{background:linear-gradient(180deg,#10b981,#059669)}
+.fn-bar-out{background:linear-gradient(180deg,#ef4444,#dc2626)}
+.fn-bar-date{position:absolute;bottom:-24px;font-size:10px;font-weight:700;color:var(--muted);white-space:nowrap;direction:rtl}
+.fn-bar-val{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:800;color:var(--ink);white-space:nowrap}
+
+/* توزيع الحركات وطرق الدفع والتقدم */
+.fn-progress-list{display:flex;flex-direction:column;gap:10px}
+.fn-prog-row{display:flex;flex-direction:column;gap:4px}
+.fn-prog-label{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;color:var(--ink)}
+.fn-prog-label span{color:var(--muted);font-size:11px;font-weight:600}
+.fn-prog-track{height:9px;background:var(--grey-soft);border-radius:6px;overflow:hidden;display:flex}
+.fn-prog-bar{height:100%;border-radius:6px;transition:width .4s}
+
+/* روابط الفروع التفاعلية */
+.fn-branch-btn{background:none;border:none;padding:0;font-family:inherit;font-size:inherit;font-weight:700;color:var(--navy);cursor:pointer;text-decoration:underline;text-underline-offset:3px;display:inline-flex;align-items:center;gap:4px;transition:color .15s}
+.fn-branch-btn:hover{color:#0284c7}
+
+/* كارت الفرع المنبثق (Branch Detail Modal) */
+.fn-modal-backdrop{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(15,23,42,.6);backdrop-filter:blur(3px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;animation:fnFadeIn .2s ease-out}
+.fn-modal-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;width:100%;max-width:760px;max-height:90vh;overflow-y:auto;padding:24px 28px;box-shadow:var(--shadow-lg);position:relative;animation:fnSlideUp .25s ease-out}
+.fn-modal-close{position:absolute;top:18px;left:18px;background:var(--grey-soft);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+.fn-modal-close:hover{background:#fee2e2;color:#dc2626}
+.fn-modal-header{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.fn-modal-header h3{margin:0 0 6px;font-size:18px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:8px}
+.fn-modal-header p{margin:0;font-size:12px;color:var(--muted)}
+.fn-modal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px}
+.fn-modal-stat{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.fn-modal-stat-title{font-size:11px;color:var(--muted);font-weight:700}
+.fn-modal-stat-val{font-size:16px;font-weight:800;color:var(--navy);margin-top:2px}
+.fn-modal-section{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.fn-modal-section h4{margin:0 0 10px;font-size:13px;font-weight:800;color:var(--navy)}
+
+@keyframes fnFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fnSlideUp{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* Dark Mode Overrides for Finance Analytics */
+body.dark-mode .fn-filters-bar{background:#172236;border-color:#2a3b56}
+body.dark-mode .fn-filter-item select{background:#111a2c;border-color:#33486a;color:#f1f5f9}
+body.dark-mode .fn-pipe-card{background:#172236;border-color:#2a3b56}
+body.dark-mode .fn-pipe-count{color:#f1f5f9}
+body.dark-mode .fn-chart-card{background:#172236;border-color:#2a3b56}
+body.dark-mode .fn-chart-title{color:#f1f5f9}
+body.dark-mode .fn-prog-track{background:#1e293b}
+body.dark-mode .fn-branch-btn{color:#38bdf8}
+body.dark-mode .fn-branch-btn:hover{color:#7dd3fc}
+body.dark-mode .fn-modal-box{background:#172236;border-color:#2a3b56}
+body.dark-mode .fn-modal-close{background:#1e293b;color:#cbd5e1}
+body.dark-mode .fn-modal-close:hover{background:#7f1d1d;color:#fca5a5}
+body.dark-mode .fn-modal-header h3{color:#f1f5f9}
+body.dark-mode .fn-modal-stat{background:#111a2c;border-color:#2a3b56}
+body.dark-mode .fn-modal-stat-val{color:#f1f5f9}
+body.dark-mode .fn-modal-section h4{color:#f1f5f9}
+
+/* Modern SVG Charts Layout & Dark Mode (Doughnut, Gauge, Waterfall, Radar) */
+.fn-chart-tabs-nav{display:flex;align-items:center;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px}
+.fn-chart-tab-pill{padding:5px 12px;border-radius:20px;font-size:11.5px;font-weight:700;border:1px solid var(--line);background:var(--paper);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.fn-chart-tab-pill.active,.fn-chart-tab-pill:hover{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+.fn-doughnut-container{display:flex;align-items:center;gap:18px;justify-content:center;flex-wrap:wrap;padding:8px 0}
+.fn-doughnut-svg-wrap{flex:0 0 150px;display:flex;align-items:center;justify-content:center}
+.fn-doughnut-legend{flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px}
+.fn-doughnut-legend-item{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;padding:5px 8px;border-radius:6px;transition:background .15s}
+.fn-doughnut-legend-item:hover{background:var(--paper)}
+.fn-doughnut-dot{width:10px;height:10px;border-radius:50%;flex:0 0 10px}
+.fn-doughnut-label{flex:1;color:var(--ink);font-weight:600;font-size:11.5px}
+.fn-doughnut-val{font-size:12px;color:var(--navy);font-weight:800;white-space:nowrap}
+.fn-doughnut-val small{font-size:10.5px;color:var(--muted);font-weight:600}
+
+.fn-rank-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:10.5px;font-weight:800;background:var(--grey-soft);color:var(--navy);margin-left:4px}
+.fn-rank-1{background:#fef3c7;color:#b45309}
+.fn-rank-2{background:#e0f2fe;color:#0369a1}
+.fn-rank-3{background:#ecfdf5;color:#047857}
+
+body.dark-mode .fn-chart-tab-pill{background:#111a2c;border-color:#2a3b56;color:#94a3b8}
+body.dark-mode .fn-chart-tab-pill.active,body.dark-mode .fn-chart-tab-pill:hover{background:#38bdf8;color:#0f172a;border-color:#38bdf8}
+body.dark-mode .fn-doughnut-legend-item:hover{background:#111a2c}
+body.dark-mode .fn-doughnut-label{color:#f1f5f9}
+body.dark-mode .fn-doughnut-val{color:#38bdf8}
+body.dark-mode .fn-rank-badge{background:#1e293b;color:#cbd5e1}
+body.dark-mode .fn-rank-1{background:#78350f;color:#fde68a}
+body.dark-mode .fn-rank-2{background:#0c4a6e;color:#bae6fd}
+body.dark-mode .fn-rank-3{background:#064e3b;color:#a7f3d0}
