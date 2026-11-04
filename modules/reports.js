@@ -256,6 +256,31 @@
     });
 
     model.notReady = model.prep + model.out;
+
+    /* توزيع الفروع للرسم البياني */
+    model.byBranch = Object.keys(model.branches)
+      .map(function (name) { return { name: name, count: model.branches[name].total }; })
+      .sort(function (a, b) { return b.count - a.count; })
+      .slice(0, 8);
+
+    /* حالة الوثائق الإجمالية للرسم البياني */
+    model.docStatus = {
+      card: model.docs.card.expired + model.docs.card.d30,
+      license: model.docs.license.expired + model.docs.license.d30,
+      insurance: model.insurance.expired + model.insurance.soon,
+      inspection: model.inspection.expired + model.inspection.soon
+    };
+
+    /* توزيع الأعمار للرسم البياني */
+    var now = new Date().getFullYear();
+    var ageMap = {};
+    Object.keys(model.years).forEach(function (y) {
+      var age = now - Number(y);
+      var key = age <= 3 ? '0–3 سنوات' : age <= 5 ? '4–5 سنوات' : age <= 8 ? '6–8 سنوات' : 'أكثر من 8 سنوات';
+      ageMap[key] = (ageMap[key] || 0) + model.years[y].count;
+    });
+    model.ageBrackets = Object.keys(ageMap).map(function (k) { return { label: k, count: ageMap[k] }; });
+
     return model;
   }
 
@@ -1317,6 +1342,277 @@
     };
   }
 
+  /* ============ دوال الرسوم البيانية SVG (تقارير مرئية) ============ */
+  function escAttr(v) { return String(v == null ? '' : v).replace(/"/g, '&quot;'); }
+
+  function barValue(max, val) { return max <= 0 ? 0 : Math.round((val / max) * 1000) / 10; }
+
+  /* رسم مخطط أعمدة (Column Chart) */
+  function svgColumnChart(labels, values, title, color) {
+    if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var max = Math.max.apply(null, values.concat([1]));
+    var W = 320, H = 160, padL = 40, padR = 15, padT = 25, padB = 30;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var step = plotW / Math.max(1, labels.length - 1);
+    var bars = '', labs = '', maxLbl = '';
+    values.forEach(function (v, i) {
+      var h = Math.max(3, (v / max) * plotH);
+      var x = padL + i * step;
+      var y = H - padB - h;
+      bars += '<rect x="' + (x - step / 3) + '" y="' + y + '" width="' + (step * 0.6) + '" height="' + h + '" fill="' + (color || '#0284c7') + '" rx="2"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></rect>';
+      labs += '<text x="' + x + '" y="' + (H - padB + 13) + '" text-anchor="middle" font-size="9" fill="#64748b">' + esc(String(labels[i]).slice(0, 12)) + '</text>';
+    });
+    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:150px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/>' + bars + labs + '</svg><div class="rp-chart-note">' + num(values.reduce(function (a, b) { return a + b; }, 0)) + ' إجمالي</div></div>';
+  }
+
+  /* رسم مخطط أعمدة أفقية (Bar Chart) */
+  function svgBarChart(labels, values, title, color) {
+    if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var max = Math.max.apply(null, values.concat([1]));
+    var W = 320, H = 170, padL = 90, padR = 15, padT = 20, padB = 20;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var step = plotH / Math.max(1, labels.length - 1);
+    var bars = '', labs = '', vals = '';
+    values.forEach(function (v, i) {
+      var w = Math.max(3, (v / max) * plotW);
+      var y = padT + i * step;
+      bars += '<rect x="' + padL + '" y="' + (y - step / 3) + '" width="' + w + '" height="' + (step * 0.6) + '" fill="' + (color || '#0ea5e9') + '" rx="2"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></rect>';
+      labs += '<text x="' + (padL - 6) + '" y="' + (y + 4) + '" text-anchor="end" font-size="9" fill="#64748b" title="' + esc(labels[i]) + '">' + esc(String(labels[i]).slice(0, 14)) + '</text>';
+      vals += '<text x="' + (padL + w + 5) + '" y="' + (y + 4) + '" font-size="9" fill="#1e293b" font-weight="700">' + num(v) + '</text>';
+    });
+    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:160px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/>' + bars + labs + vals + '</svg></div>';
+  }
+
+  /* رسم مخطط خطي (Line Chart) */
+  function svgLineChart(labels, values, title, color) {
+    if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var max = Math.max.apply(null, values.concat([1]));
+    var W = 320, H = 150, padL = 35, padR = 15, padT = 20, padB = 25;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var step = plotW / Math.max(1, values.length - 1);
+    var pts = '', line = '', dots = '', labs = '';
+    values.forEach(function (v, i) {
+      var x = padL + i * step;
+      var y = H - padB - (v / max) * plotH;
+      pts.push({ x: x, y: y });
+      dots += '<circle cx="' + x + '" cy="' + y + '" r="3" fill="' + (color || '#6366f1') + '" stroke="#fff" stroke-width="1.5"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></circle>';
+      labs += '<text x="' + x + '" y="' + (H - padB + 13) + '" text-anchor="middle" font-size="9" fill="#64748b">' + esc(String(labels[i]).slice(0, 10)) + '</text>';
+    });
+    for (var i = 0; i < pts.length; i++) line += (i === 0 ? 'M' : 'L') + pts[i].x + ' ' + pts[i].y + ' ';
+    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:140px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/><polyline points="' + line.trim() + '" fill="none" stroke="' + (color || '#6366f1') + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' + dots + labs + '</svg></div>';
+  }
+
+  /* رسم مخطط مساحة (Area Chart) */
+  function svgAreaChart(labels, values, title, color) {
+    if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var max = Math.max.apply(null, values.concat([1]));
+    var W = 320, H = 150, padL = 35, padR = 15, padT = 20, padB = 25;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var step = plotW / Math.max(1, values.length - 1);
+    var pts = '', area = '', dots = '', labs = '';
+    values.forEach(function (v, i) {
+      var x = padL + i * step;
+      var y = H - padB - (v / max) * plotH;
+      pts.push({ x: x, y: y });
+      dots += '<circle cx="' + x + '" cy="' + y + '" r="2.5" fill="' + (color || '#059669') + '" stroke="#fff" stroke-width="1"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></circle>';
+      labs += '<text x="' + x + '" y="' + (H - padB + 13) + '" text-anchor="middle" font-size="9" fill="#64748b">' + esc(String(labels[i]).slice(0, 10)) + '</text>';
+    });
+    for (var i = 0; i < pts.length; i++) area += (i === 0 ? 'M' : 'L') + pts[i].x + ' ' + pts[i].y + ' ';
+    area += 'L ' + pts[pts.length - 1].x + ' ' + (H - padB) + ' L ' + pts[0].x + ' ' + (H - padB) + ' Z';
+    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:140px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/><path d="' + area.trim() + '" fill="' + (color || '#059669') + '" opacity="0.25"/><polyline points="' + area.trim().replace(/L [\d.]+ [\d.]+ Z$/, '') + '" fill="none" stroke="' + (color || '#059669') + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' + dots + labs + '</svg></div>';
+  }
+
+  /* رسم مخطط دائري (Pie Chart) */
+  function svgPieChart(labels, values, title) {
+    if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var total = values.reduce(function (a, b) { return a + b; }, 0);
+    if (total <= 0) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var W = 200, H = 170, cx = 90, cy = 90, r = 55;
+    var colors = ['#ef4444', '#0ea5e9', '#10b981', '#f59e0b', '#6366f1', '#8b5cf6', '#ec4899'];
+    var start = -90, slices = '', legend = '';
+    values.forEach(function (v, i) {
+      var pct = (v / total) * 360;
+      var end = start + pct;
+      var x1 = cx + r * Math.cos(start * Math.PI / 180);
+      var y1 = cy + r * Math.sin(start * Math.PI / 180);
+      var x2 = cx + r * Math.cos(end * Math.PI / 180);
+      var y2 = cy + r * Math.sin(end * Math.PI / 180);
+      var large = pct > 180 ? 1 : 0;
+      slices += '<path d="M ' + cx + ' ' + cy + ' L ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2 + ' Z" fill="' + colors[i % colors.length] + '" opacity="0.9"><title>' + esc(labels[i]) + ': ' + num(v) + ' (' + Math.round(v / total * 100) + '%)</title></path>';
+      legend += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:50%;display:inline-block;background:' + colors[i % colors.length] + '"></span><span>' + esc(labels[i]) + '</span><b style="margin-left:auto">' + Math.round(v / total * 100) + '%</b></div>';
+      start = end;
+    });
+    return '<div class="rp-chart-card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start"><div style="flex:1;min-width:150px"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:180px;display:block;margin:0 auto"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#e2e8f0" stroke-width="2"/>' + slices + '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" font-size="16" font-weight="800" fill="#1e293b">' + num(total) + '</text></svg></div><div style="flex:1;min-width:140px">' + legend + '</div></div>';
+  }
+
+  /* رسم مخطط دونات (Doughnut Chart) */
+  function svgDoughnutChart(labels, values, title) {
+    if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var total = values.reduce(function (a, b) { return a + b; }, 0);
+    if (total <= 0) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var W = 200, H = 170, cx = 90, cy = 90, r = 45, inner = 28;
+    var colors = ['#ef4444', '#0ea5e9', '#10b981', '#f59e0b', '#6366f1', '#8b5cf6', '#ec4899'];
+    var start = -90, slices = '', legend = '';
+    values.forEach(function (v, i) {
+      var pct = (v / total) * 360;
+      var end = start + pct;
+      var x1 = cx + r * Math.cos(start * Math.PI / 180);
+      var y1 = cy + r * Math.sin(start * Math.PI / 180);
+      var x2 = cx + r * Math.cos(end * Math.PI / 180);
+      var y2 = cy + r * Math.sin(end * Math.PI / 180);
+      var xi1 = cx + inner * Math.cos(start * Math.PI / 180);
+      var yi1 = cy + inner * Math.sin(start * Math.PI / 180);
+      var xi2 = cx + inner * Math.cos(end * Math.PI / 180);
+      var yi2 = cy + inner * Math.sin(end * Math.PI / 180);
+      var large = pct > 180 ? 1 : 0;
+      slices += '<path d="M ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2 + ' L ' + xi2 + ' ' + yi2 + ' A ' + inner + ' ' + inner + ' 0 ' + large + ' 0 ' + xi1 + ' ' + yi1 + ' Z" fill="' + colors[i % colors.length] + '" opacity="0.9"><title>' + esc(labels[i]) + ': ' + num(v) + ' (' + Math.round(v / total * 100) + '%)</title></path>';
+      legend += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:50%;display:inline-block;background:' + colors[i % colors.length] + '"></span><span>' + esc(labels[i]) + '</span><b style="margin-left:auto">' + Math.round(v / total * 100) + '%</b></div>';
+      start = end;
+    });
+    return '<div class="rp-chart-card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start"><div style="flex:1;min-width:150px"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:180px;display:block;margin:0 auto"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#e2e8f0" stroke-width="2"/>' + slices + '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" font-size="14" font-weight="800" fill="#1e293b">' + num(total) + '</text></svg></div><div style="flex:1;min-width:140px">' + legend + '</div></div>';
+  }
+
+  /* رسم مخطط شلال (Waterfall Chart) */
+  function svgWaterfallChart(labels, values, title) {
+    if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var W = 320, H = 150, padL = 35, padR = 15, padT = 20, padB = 25;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var step = plotW / Math.max(1, values.length);
+    var maxVal = Math.max.apply(null, values.concat([Math.abs(Math.min.apply(null, values.concat([0]))) || 1, 1]));
+    var scale = plotH / maxVal;
+    var bars = '', line = '', labs = '', acc = 0;
+    values.forEach(function (v, i) {
+      var h = Math.max(3, Math.abs(v) * scale);
+      var x = padL + i * step;
+      var base = H - padB - acc * scale;
+      var y = v >= 0 ? base - h : base;
+      bars += '<rect x="' + (x - step / 3) + '" y="' + y + '" width="' + (step * 0.6) + '" height="' + h + '" fill="' + (v >= 0 ? '#10b981' : '#ef4444') + '" rx="2"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></rect>';
+      labs += '<text x="' + x + '" y="' + (H - padB + 13) + '" text-anchor="middle" font-size="9" fill="#64748b">' + esc(String(labels[i]).slice(0, 10)) + '</text>';
+      acc += v;
+    });
+    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:140px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/><line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 3"/>' + bars + labs + '</svg></div>';
+  }
+
+  /* رسم مخطط رادار (Radar Chart) */
+  function svgRadarChart(labels, values, title) {
+    if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var W = 200, H = 170, cx = 90, cy = 85, r = 50;
+    var n = labels.length;
+    var angles = [], pts = '', grid = '', axes = '', dots = '', labs = '';
+    for (var i = 0; i < n; i++) {
+      var a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+      angles.push(a);
+      var ax = cx + r * Math.cos(a);
+      var ay = cy + r * Math.sin(a);
+      axes += '<line x1="' + cx + '" y1="' + cy + '" x2="' + ax + '" y2="' + ay + '" stroke="#cbd5e1" stroke-width="1"/>';
+      labs += '<text x="' + (cx + (r + 14) * Math.cos(a)) + '" y="' + (cy + (r + 12) * Math.sin(a)) + '" text-anchor="' + (Math.cos(a) > 0.1 ? 'start' : Math.cos(a) < -0.1 ? 'end' : 'middle') + '" font-size="9" fill="#64748b">' + esc(String(labels[i]).slice(0, 10)) + '</text>';
+    }
+    for (var lvl = 0.25; lvl <= 1; lvl += 0.25) {
+      var g = '';
+      for (var i = 0; i < n; i++) {
+        var a = angles[i];
+        var x = cx + r * lvl * Math.cos(a);
+        var y = cy + r * lvl * Math.sin(a);
+        g += (i === 0 ? 'M' : 'L') + x + ' ' + y + ' ';
+      }
+      g += 'Z';
+      grid += '<polygon points="' + g.trim() + '" fill="none" stroke="#e2e8f0" stroke-width="1"/>';
+    }
+    values.forEach(function (v, i) {
+      var a = angles[i];
+      var pct = Math.min(1, Math.max(0, v / 100));
+      var x = cx + r * pct * Math.cos(a);
+      var y = cy + r * pct * Math.sin(a);
+      pts += (i === 0 ? 'M' : 'L') + x + ' ' + y + ' ';
+      dots += '<circle cx="' + x + '" cy="' + y + '" r="3" fill="#8b5cf6" stroke="#fff" stroke-width="1.5"><title>' + esc(labels[i]) + ': ' + num(v) + '%</title></circle>';
+    });
+    pts += 'Z';
+    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:150px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/>' + grid + axes + '<polygon points="' + pts.trim() + '" fill="#8b5cf6" opacity="0.2" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"/>' + dots + labs + '</svg></div>';
+  }
+
+  /* رسم مؤشر عداد (Gauge Chart) */
+  function svgGaugeChart(value, title, min, max, good, warn) {
+    if (min == null) min = 0;
+    if (max == null) max = 100;
+    var pct = (value - min) / (max - min);
+    pct = Math.min(1, Math.max(0, pct));
+    var W = 200, H = 130, cx = 90, cy = 110, r = 55;
+    var startAngle = 180, endAngle = 360;
+    var angle = startAngle + pct * (endAngle - startAngle);
+    var colors = ['#ef4444', '#f59e0b', '#10b981'];
+    var stops = colors.map(function (c, i) { return '<stop offset="' + (i / 2) * 100 + '%" stop-color="' + c + '"/>'; }).join('');
+    var rad = (angle * Math.PI) / 180;
+    var nx = cx + r * Math.cos(rad);
+    var ny = cy + r * Math.sin(rad);
+    var label = pct >= good ? 'ممتاز' : (pct >= warn ? 'مقبول' : 'يحتاج متابعة');
+    var labelColor = pct >= good ? '#10b981' : (pct >= warn ? '#f59e0b' : '#ef4444');
+    return '<div class="rp-chart-card" style="text-align:center"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:180px;display:block;margin:0 auto"><defs><linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">' + stops + '</linearGradient></defs><path d="M ' + (cx - r) + ' ' + cy + ' A ' + r + ' ' + r + ' 0 0 1 ' + (cx + r) + ' ' + cy + '" fill="none" stroke="url(#gaugeGrad)" stroke-width="12" stroke-linecap="round"/><path d="M ' + cx + ' ' + cy + ' L ' + nx + ' ' + ny + '" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/><circle cx="' + cx + '" cy="' + cy + '" r="5" fill="#1e293b"/><text x="' + cx + '" y="' + (cy - 8) + '" text-anchor="middle" font-size="20" font-weight="800" fill="#1e293b">' + num(value) + '</text><text x="' + cx + '" y="' + (cy + 18) + '" text-anchor="middle" font-size="10" font-weight="700" fill="' + labelColor + '">' + esc(label) + '</text></svg></div>';
+  }
+
+  /* بناء كارتات الرسوم البيانية حسب نوع التقرير */
+  function buildCharts(model) {
+    var total = model.total || 0;
+    var ready = model.ready || 0;
+    var notReady = Math.max(0, total - ready);
+    var branches = model.byBranch || [];
+    var docs = model.docStatus || { card: 0, license: 0, insurance: 0, inspection: 0 };
+
+    var charts = [];
+
+    /* 1. جاهزية الأسطول - د낮nut */
+    charts.push(svgDoughnutChart(['جاهزة', 'غير جاهزة'], [ready, notReady], 'جاهزية الأسطول'));
+
+    /* 2. توزيع الفروع - أعمدة */
+    if (branches.length) {
+      var bLabels = branches.map(function (b) { return b.name || '—'; });
+      var bValues = branches.map(function (b) { return b.count || 0; });
+      charts.push(svgColumnChart(bLabels, bValues, 'توزيع السيارات حسب الفرع', '#0284c7'));
+    }
+
+    /* 3. حالة الوثائق - مخطط دائري */
+    var docTotal = docs.card + docs.license + docs.insurance + docs.inspection;
+    if (docTotal > 0) {
+      charts.push(svgPieChart(['كارت', 'رخصة', 'تأمين', 'فحص'], [docs.card, docs.license, docs.insurance, docs.inspection], 'حالة الوثائق'));
+    }
+
+    /* 4. مؤشر الجاهزية - عداد */
+    var readyPct = total ? Math.round((ready / total) * 100) : 0;
+    charts.push(svgGaugeChart(readyPct, 'مؤشر الجاهزية العامة', 0, 100, 70, 40));
+
+    /* 5. أعمار الأسطول - أعمدة */
+    if (model.ageBrackets && model.ageBrackets.length) {
+      var aLabels = model.ageBrackets.map(function (a) { return a.label || '—'; });
+      var aValues = model.ageBrackets.map(function (a) { return a.count || 0; });
+      charts.push(svgBarChart(aLabels, aValues, 'توزيع أعمار السيارات', '#6366f1'));
+    }
+
+    /* 6. خط جاهزية شهري - خطي (إذا توفر) */
+    if (model.monthlyReadiness && model.monthlyReadiness.length) {
+      var mLabels = model.monthlyReadiness.map(function (m) { return m.month || '—'; });
+      var mValues = model.monthlyReadiness.map(function (m) { return m.pct || 0; });
+      charts.push(svgLineChart(mLabels, mValues, 'اتجاه الجاهزية الشهرية', '#6366f1'));
+    }
+
+    /* 7. مصروفات - شلال */
+    if (model.finFlow && model.finFlow.length) {
+      var fLabels = model.finFlow.map(function (f) { return f.label || '—'; });
+      var fValues = model.finFlow.map(function (f) { return f.value || 0; });
+      charts.push(svgWaterfallChart(fLabels, fValues, 'تدفق المالي'));
+    }
+
+    /* 8. توازن العمليات - رادار */
+    if (model.opsBalance && model.opsBalance.length) {
+      var oLabels = model.opsBalance.map(function (o) { return o.label || '—'; });
+      var oValues = model.opsBalance.map(function (o) { return o.value || 0; });
+      charts.push(svgRadarChart(oLabels, oValues, 'توازن العمليات'));
+    }
+
+    return '<div class="rp-charts-section">' +
+      '<div class="rp-section-head"><h3>📊 الرسوم البيانية</h3><span class="muted-small">رسوم بيانية توضيحية لبيانات الأسطول الحالية</span></div>' +
+      '<div class="rp-charts-grid">' + charts.join('') + '</div>' +
+      '</div>';
+  }
+
   var REPORTS = [
     { id: 'weekly', label: 'تقرير الأسبوع', build: buildWeekly },
     { id: 'overview', label: 'ملخص تنفيذي', build: buildOverview },
@@ -1437,7 +1733,18 @@
         + esc(b.name) + ' (' + num(b.count) + ')</option>');
     });
 
-    return '<div class="rp-head">'
+    return '<style>'
+      + '.rp-charts-section{margin:16px 0 24px 0;padding:14px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px}'
+      + '.rp-section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}'
+      + '.rp-section-head h3{margin:0;font-size:16px;font-weight:800;color:#1e293b;display:flex;align-items:center;gap:8px}'
+      + '.rp-section-head .muted-small{font-size:11.5px;color:#64748b;margin-top:2px}'
+      + '.rp-charts-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-start}'
+      + '.rp-chart-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;width:calc(25% - 12px);min-width:170px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}'
+      + '.rp-chart-title{font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;text-align:center;width:100%}'
+      + '.rp-chart-note{font-size:11px;font-weight:700;color:#0284c7;margin-top:6px;text-align:center}'
+      + '.rp-empty{padding:20px;text-align:center;color:#94a3b8;font-size:13px}'
+      + '</style>'
+      + '<div class="rp-head">'
       + '<div class="rp-head-text"><h2>تقارير الأسطول</h2>'
       + '<div class="muted-small">أرقام مباشرة من بيانات الأسطول المحمّلة — بدون أي حساب على السيرفر.</div></div>'
       + '<label class="rp-filter"><span>الفرع</span>'
@@ -1445,6 +1752,7 @@
       + '</div>'
       + '<div class="rp-tabs">' + tabs + '</div>'
       + '<div class="rp-kpis">' + report.kpis.map(kpiHtml).join('') + '</div>'
+      + buildCharts(model)
       + report.sections.map(function (section, i) { return sectionHtml(section, i); }).join('');
   }
 
