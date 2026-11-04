@@ -784,6 +784,78 @@
       + '</div>';
   }
 
+  /* ===== رسوم بيانية إضافية للمقارنة ===== */
+
+  /* مخطط التреваMap (Treemap) - 비교 الفروع بالحجم واللون */
+  function renderSvgTreemapChart(items, title) {
+    if (!items || !items.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var W = 420, H = 280, pad = 8;
+    var total = items.reduce(function (s, it) { return s + (it.value || 0); }, 0);
+    if (total <= 0) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var colors = ['#0284c7', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'];
+    var html = '<div class="fn-chart-card"><div class="fn-chart-title">' + esc(title) + '</div><div style="display:flex;flex-wrap:wrap">';
+    var x = 0, y = 0, rowH = 0, colW = 0, used = 0;
+    items.forEach(function (it, i) {
+      var w = Math.max(60, (it.value / total) * (W - pad * 2));
+      var h = Math.max(40, rowH || 100);
+      var pct = Math.round((it.value / total) * 100);
+      html += '<div style="position:relative;width:' + w + 'px;height:' + h + 'px;background:' + colors[i % colors.length] + ';border-radius:6px;margin:' + pad + 'px;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.1)">';
+      html += '<div style="font-size:13px">' + esc(it.label || '—') + '</div>';
+      html += '<div style="font-size:10px;opacity:0.85">' + cur(it.value) + ' (' + pct + '%)</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+    return html;
+  }
+
+  /* مخطط الشمس المشرقة (Sunburst) - 비교 الفروع والفترات hierarchic */
+  function renderSvgSunburstChart(items, title) {
+    if (!items || !items.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var total = items.reduce(function (s, it) { return s + (it.value || 0); }, 0);
+    if (total <= 0) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var W = 300, H = 300, cx = 150, cy = 150, rOuter = 130, rInner = 70;
+    var colors = ['#0284c7', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'];
+    var start = -90, slices = '', legend = '';
+    items.forEach(function (it, i) {
+      var pct = (it.value / total) * 360;
+      var end = start + pct;
+      var x1 = cx + rOuter * Math.cos(start * Math.PI / 180);
+      var y1 = cy + rOuter * Math.sin(start * Math.PI / 180);
+      var x2 = cx + rOuter * Math.cos(end * Math.PI / 180);
+      var y2 = cy + rOuter * Math.sin(end * Math.PI / 180);
+      var xi1 = cx + rInner * Math.cos(start * Math.PI / 180);
+      var yi1 = cy + rInner * Math.sin(start * Math.PI / 180);
+      var xi2 = cx + rInner * Math.cos(end * Math.PI / 180);
+      var yi2 = cy + rInner * Math.sin(end * Math.PI / 180);
+      var large = pct > 180 ? 1 : 0;
+      slices += '<path d="M ' + x1 + ' ' + y1 + ' A ' + rOuter + ' ' + rOuter + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2 + ' L ' + xi2 + ' ' + yi2 + ' A ' + rInner + ' ' + rInner + ' 0 ' + large + ' 0 ' + xi1 + ' ' + yi1 + ' Z" fill="' + colors[i % colors.length] + '" opacity="0.9" stroke="#fff" stroke-width="2"><title>' + esc(it.label) + ': ' + cur(it.value) + ' (' + Math.round(it.value / total * 100) + '%)</title></path>';
+      legend += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:11px"><span style="width:10px;height:10px;border-radius:50%;display:inline-block;background:' + colors[i % colors.length] + '"></span><span>' + esc(it.label) + '</span><b style="margin-left:auto">' + Math.round(it.value / total * 100) + '%</b></div>';
+      start = end;
+    });
+    return '<div class="fn-chart-card"><div class="fn-chart-title">' + esc(title) + '</div><div style="display:flex;gap:12px"><div style="flex:1"><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:280px;display:block;margin:0 auto"><circle cx="' + cx + '" cy="' + cy + '" r="' + rOuter + '" fill="none" stroke="#e2e8f0" stroke-width="2"/>' + slices + '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" font-size="16" font-weight="800" fill="#1e293b">' + num(total) + '</text></svg></div><div style="flex:1">' + legend + '</div></div></div>';
+  }
+
+  /* مخطط الفقاعات (Bubble Chart) - مقارنة الفروع بعدد الحركات والقيمة */
+  function renderSvgBubbleChart(items, title) {
+    if (!items || !items.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
+    var W = 520, H = 300, padL = 60, padR = 40, padT = 40, padB = 50;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var maxVal = Math.max.apply(null, items.map(function (it) { return it.value || 0; }).concat([1]));
+    var maxCount = Math.max.apply(null, items.map(function (it) { return it.count || 0; }).concat([1]));
+    var colors = ['#0284c7', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+    var bubbles = '', labels = '', maxSize = 40;
+    items.forEach(function (it, i) {
+      var valPct = (it.value || 0) / maxVal;
+      var cntPct = (it.count || 0) / maxCount;
+      var r = 12 + valPct * maxSize;
+      var x = padL + (i / Math.max(1, items.length - 1)) * plotW;
+      var y = padT + plotH - cntPct * plotH;
+      bubbles += '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + colors[i % colors.length] + '" opacity="0.7" stroke="#fff" stroke-width="2"><title>' + esc(it.label) + '\nقبض: ' + cur(it.value) + '\nحركات: ' + num(it.count) + '</title></circle>';
+      labels += '<text x="' + x + '" y="' + (H - padB + 15) + '" text-anchor="middle" font-size="9" fill="#64748b" font-weight="600">' + esc(String(it.label).slice(0, 12)) + '</text>';
+    });
+    return '<div class="fn-chart-card"><div class="fn-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:280px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/><line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="#94a3b8" stroke-width="1"/><text x="' + padL + '" y="' + (H - padB + 30) + '" font-size="10" fill="#64748b">عدد الحركات ↓</text><text x="10" y="' + padT + '" font-size="10" fill="#64748b" transform="rotate(-90 10 ' + padT + ')">المقبوضات ↓</text>' + bubbles + labels + '</svg></div>';
+  }
+
   /* 4. شلال التدفق المالي (Waterfall Chart) */
   function renderSvgWaterfallChart(totalIn, totalOut, discountsOut, net) {
     var W = 360, H = 165, padL = 20, padR = 20, padT = 20, padB = 30;
@@ -1187,7 +1259,138 @@
       + '  <input type="search" id="fn-search-input" placeholder="اللوحة، العميل، العقد، المستخدم…" value="' + esc(state.search) + '">'
       + '</div>'
       + (state.branch || (state.period && state.period !== 'all') || state.search ? '<button type="button" class="rp-btn" id="fn-reset-filters-btn" style="font-size:11px;padding:4px 9px">✕ تفريغ الفلاتر</button>' : '')
+      + '<div class="fn-filter-item fn-compare-item">'
+      + '<label style="font-size:11px;font-weight:700;color:var(--muted)">مقارنة:</label>'
+      + '<button type="button" class="rp-btn cmp-btn' + (state.compareMode === 'branches' ? ' active' : '') + '" id="fn-cmp-branches">فرعين</button>'
+      + '<button type="button" class="rp-btn cmp-btn' + (state.compareMode === 'periods' ? ' active' : '') + '" id="fn-cmp-periods">فترتين</button>'
+      + '<button type="button" class="rp-btn cmp-btn' + (state.compareMode === 'none' ? ' active' : '') + '" id="fn-cmp-none">إيقاف</button>'
+      + '</div>'
       + '</div>';
+  }
+
+  /* شريط اختيار الفرعين للمقارنة */
+  function buildBranchPickers(store) {
+    var branches = getPlatformBranches();
+    var opts = ['<option value="">اختر فرعاً</option>'];
+    branches.forEach(function (b) {
+      opts.push('<option value="' + esc(b) + '"' + (state.compareBranchA === b ? ' selected' : '') + '>' + esc(b) + '</option>');
+    });
+    var optsB = ['<option value="">اختر فرعاً</option>'];
+    branches.forEach(function (b) {
+      optsB.push('<option value="' + esc(b) + '"' + (state.compareBranchB === b ? ' selected' : '') + '>' + esc(b) + '</option>');
+    });
+    return '<div class="fn-compare-bar" style="margin-top:8px;padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">'
+      + '<div style="flex:1;min-width:150px"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">الفرع الأول</label><select id="fn-cmp-branch-a" style="width:100%">' + opts.join('') + '</select></div>'
+      + '<div style="flex:1;min-width:150px"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">الفرع الثاني</label><select id="fn-cmp-branch-b" style="width:100%">' + optsB.join('') + '</select></div>'
+      + '<button type="button" class="rp-btn" id="fn-cmp-apply-branches" style="height:36px">تطبيق المقارنة</button>'
+      + '</div>'
+      + '</div>';
+  }
+
+  /* شريط اختيار الفترتين للمقارنة */
+  function buildPeriodPickers(store) {
+    var dates = Object.keys(store).sort().reverse();
+    var monthsMap = {};
+    dates.forEach(function (d) { monthsMap[d.slice(0, 7)] = true; });
+    var months = Object.keys(monthsMap).sort().reverse();
+
+    function buildPeriodOptions(selected) {
+      var opts = ['<option value="all">الكل</option>', '<option value="latest">أحدث يوم</option>'];
+      months.forEach(function (m) { opts.push('<option value="month:' + m + '">' + (selected === ('month:' + m) ? 'selected ' : '') + 'شهر ' + formatMonthName(m) + '</option>'); });
+      dates.forEach(function (d) { opts.push('<option value="date:' + d + '">' + (selected === ('date:' + d) ? 'selected ' : '') + 'يوم ' + d + '</option>'); });
+      return opts.join('');
+    }
+
+    return '<div class="fn-compare-bar" style="margin-top:8px;padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">'
+      + '<div style="flex:1;min-width:180px"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">الفترة الأولى</label><select id="fn-cmp-period-a" style="width:100%">' + buildPeriodOptions(state.comparePeriodA || 'all') + '</select></div>'
+      + '<div style="flex:1;min-width:180px"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">الفترة الثانية</label><select id="fn-cmp-period-b" style="width:100%">' + buildPeriodOptions(state.comparePeriodB || 'all') + '</select></div>'
+      + '<button type="button" class="rp-btn" id="fn-cmp-apply-periods" style="height:36px">تطبيق المقارنة</button>'
+      + '</div>'
+      + '</div>';
+  }
+
+  /* ===== مقارنة فرعين ===== */
+  function buildBranchesComparison(store) {
+    var a = state.compareBranchA || '';
+    var b = state.compareBranchB || '';
+    if (!a || !b || a === b) {
+      return { kpis: [], sections: [{ title: 'اختر فرعين مختلفين للمقارنة من شريط الفلاتر أعلاه', headers: [], rows: [] }] };
+    }
+    var ra = getAllRows(store, a, state.period);
+    var rb = getAllRows(store, b, state.period);
+    var aa = analyzeContracts(ra);
+    var ab = analyzeContracts(rb);
+    var raIn = sumField(ra, F_IN), raOut = sumField(ra, F_OUT);
+    var rbIn = sumField(rb, F_IN), rbOut = sumField(rb, F_OUT);
+    var rows = [
+      [esc(a), num(ra.length), cur(raIn), cur(raOut), cur(raIn - raOut), num(aa.opened.count), num(aa.closed.count)],
+      [esc(b), num(rb.length), cur(rbIn), cur(rbOut), cur(rbIn - rbOut), num(ab.opened.count), num(ab.closed.count)]
+    ];
+    var diffIn = raIn - rbIn, diffOut = raOut - rbOut, diffNet = (raIn - raOut) - (rbIn - rbOut);
+    var winner = diffNet > 0 ? a : (diffNet < 0 ? b : 'تساوي');
+    return {
+      kpis: [
+        { label: 'الفائز بصافي الدخل', value: esc(winner), cls: diffNet >= 0 ? 'kpi-green' : 'kpi-red' },
+        { label: 'الفرق في الصافي', value: cur(Math.abs(diffNet)), cls: '' },
+        { label: 'إجمالي قبض ' + esc(a), value: cur(raIn), cls: 'kpi-green' },
+        { label: 'إجمالي قبض ' + esc(b), value: cur(rbIn), cls: 'kpi-green' },
+        { label: 'إجمالي صرف ' + esc(a), value: cur(raOut), cls: 'kpi-red' },
+        { label: 'إجمالي صرف ' + esc(b), value: cur(rbOut), cls: 'kpi-red' }
+      ],
+      sections: [{
+        title: 'مقارنة مباشرة بين ' + esc(a) + ' و ' + esc(b) + ' (الفترة: ' + periodLabel(state.period) + ')',
+        headers: ['الفرع', 'عدد الحركات', 'إجمالي القبض', 'إجمالي الصرف', 'الصافي', 'عقود جديدة', 'عقود مغلقة'],
+        rows: rows,
+        foot: ['الفرق', '—', cur(diffIn), cur(diffOut), cur(diffNet), '—', '—']
+      }]
+    };
+  }
+
+  /* ===== مقارنة نفس الفرع في فترتين مختلفتين ===== */
+  function buildPeriodComparison(store, branch) {
+    var pA = state.comparePeriodA || 'all';
+    var pB = state.comparePeriodB || 'all';
+    if (!pA || !pB || pA === pB) {
+      return { kpis: [], sections: [{ title: 'اختر فترتين مختلفتين للمقارنة من شريط الفلاتر أعلاه', headers: [], rows: [] }] };
+    }
+    var ra = getAllRows(store, branch, pA);
+    var rb = getAllRows(store, branch, pB);
+    var aa = analyzeContracts(ra);
+    var ab = analyzeContracts(rb);
+    var raIn = sumField(ra, F_IN), raOut = sumField(ra, F_OUT);
+    var rbIn = sumField(rb, F_IN), rbOut = sumField(rb, F_OUT);
+    var rows = [
+      [periodLabel(pA), num(ra.length), cur(raIn), cur(raOut), cur(raIn - raOut), num(aa.opened.count), num(aa.closed.count)],
+      [periodLabel(pB), num(rb.length), cur(rbIn), cur(rbOut), cur(rbIn - rbOut), num(ab.opened.count), num(ab.closed.count)]
+    ];
+    var diffNet = (raIn - raOut) - (rbIn - rbOut);
+    var winner = diffNet > 0 ? periodLabel(pA) : (diffNet < 0 ? periodLabel(pB) : 'تساوي');
+    return {
+      kpis: [
+        { label: 'الفترة الأعلى ربحاً', value: esc(winner), cls: diffNet >= 0 ? 'kpi-green' : 'kpi-red' },
+        { label: 'الفرق في الصافي', value: cur(Math.abs(diffNet)), cls: '' },
+        { label: 'قبض ' + esc(periodLabel(pA)), value: cur(raIn), cls: 'kpi-green' },
+        { label: 'قبض ' + esc(periodLabel(pB)), value: cur(rbIn), cls: 'kpi-green' },
+        { label: 'صرف ' + esc(periodLabel(pA)), value: cur(raOut), cls: 'kpi-red' },
+        { label: 'صرف ' + esc(periodLabel(pB)), value: cur(rbOut), cls: 'kpi-red' }
+      ],
+      sections: [{
+        title: 'مقارنة ' + esc(branch) + ' بين ' + esc(periodLabel(pA)) + ' و ' + esc(periodLabel(pB)),
+        headers: ['الفترة', 'عدد الحركات', 'إجمالي القبض', 'إجمالي الصرف', 'الصافي', 'عقود جديدة', 'عقود مغلقة'],
+        rows: rows,
+        foot: ['الفرق', '—', cur(raIn - rbIn), cur(raOut - rbOut), cur(diffNet), '—', '—']
+      }]
+    };
+  }
+
+  function periodLabel(p) {
+    if (!p || p === 'all') return 'الكل';
+    if (p === 'latest') return 'أحدث يوم';
+    if (p.indexOf('month:') === 0) return 'شهر ' + formatMonthName(p.slice(6));
+    if (p.indexOf('date:') === 0) return 'يوم ' + p.slice(5);
+    return p;
   }
 
   /* ─── تقرير دورة العقود (عقود مفتوحة / تمديدات / تصفية) ─── */
@@ -2026,7 +2229,9 @@
     /* حساب بيانات العرض الحالي */
     if (state.view === 'fleet_revenue') state.view = 'summary';
     var viewData;
-    if      (state.view === 'branches')         viewData = buildBranches(store, state.branch);
+    if      (state.view === 'branches' && state.compareMode === 'branches') viewData = buildBranchesComparison(store);
+    else if (state.view === 'branches' && state.compareMode === 'periods') viewData = buildPeriodComparison(store, state.branch);
+    else if (state.view === 'branches')         viewData = buildBranches(store, state.branch);
     else if (state.view === 'payments')         viewData = buildPayments(store, state.branch);
     else if (state.view === 'movements')        viewData = buildMovements(store, state.branch);
     else if (state.view === 'users')            viewData = buildUsers(store, state.branch);
@@ -2101,6 +2306,8 @@
       + '<div class="muted-small">ربط مباشر مع أسطول المنصة وتحليل مالي شامل ورسوم بيانية</div></div>'
       + '</div>'
       + buildFiltersBar(store, platformBranches)
+      + (state.compareMode === 'branches' ? buildBranchPickers(store) : '')
+      + (state.compareMode === 'periods' ? buildPeriodPickers(store) : '')
       + '<div class="rp-tabs">' + tabsHtml + '</div>'
       + (viewData.pipelineHtml || '')
       + (viewData.chartsHtml || '')
@@ -2140,6 +2347,74 @@
       rBtn.addEventListener('click', function () {
         state.branch = '';
         state.period = 'all';
+        state.compareMode = 'none';
+        state.compareBranchA = '';
+        state.compareBranchB = '';
+        state.comparePeriodA = '';
+        state.comparePeriodB = '';
+        renderFinance(host);
+      });
+    }
+
+    /* أزرار وضع المقارنة */
+    var cmpBranches = host.querySelector('#fn-cmp-branches');
+    if (cmpBranches) {
+      cmpBranches.addEventListener('click', function () {
+        state.compareMode = 'branches';
+        state.comparePeriodA = '';
+        state.comparePeriodB = '';
+        renderFinance(host);
+      });
+    }
+    var cmpPeriods = host.querySelector('#fn-cmp-periods');
+    if (cmpPeriods) {
+      cmpPeriods.addEventListener('click', function () {
+        state.compareMode = 'periods';
+        state.compareBranchA = '';
+        state.compareBranchB = '';
+        renderFinance(host);
+      });
+    }
+    var cmpNone = host.querySelector('#fn-cmp-none');
+    if (cmpNone) {
+      cmpNone.addEventListener('click', function () {
+        state.compareMode = 'none';
+        state.compareBranchA = '';
+        state.compareBranchB = '';
+        state.comparePeriodA = '';
+        state.comparePeriodB = '';
+        renderFinance(host);
+      });
+    }
+
+    /* مقارنة فرع ضد فرع (اختيار الفرعين) */
+    var selA = host.querySelector('#fn-cmp-branch-a');
+    if (selA) {
+      selA.addEventListener('change', function () {
+        state.compareBranchA = selA.value || '';
+        renderFinance(host);
+      });
+    }
+    var selB = host.querySelector('#fn-cmp-branch-b');
+    if (selB) {
+      selB.addEventListener('change', function () {
+        state.compareBranchB = selB.value || '';
+        renderFinance(host);
+      });
+    }
+
+    /* مقارنة الفترتين (اختيار الفترتين) */
+    var selPA = host.querySelector('#fn-cmp-period-a');
+    if (selPA) {
+      selPA.addEventListener('change', function () {
+        state.comparePeriodA = selPA.value || '';
+        renderFinance(host);
+      });
+    }
+    var selPB = host.querySelector('#fn-cmp-period-b');
+    if (selPB) {
+      selPB.addEventListener('change', function () {
+        state.comparePeriodB = selPB.value || '';
         renderFinance(host);
       });
     }
