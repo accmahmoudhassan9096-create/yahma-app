@@ -1,4 +1,4 @@
-/* ===== modules/finance.js — تبويب «المالية» v340 =====
+/* ===== modules/finance.js — تبويب «المالية» v341 =====
    يومية مالية متكاملة ومربوطة بأسطول المنصة وقاعدة بيانات Supabase:
    - رفع وتخزين ملفات اليومية (محلياً وسحابياً على Supabase)
    - ربط إيرادات الحركات مع أسطول سيارات المنصة وتحديث حالتها تلقائياً
@@ -87,15 +87,49 @@
   function normPlate(p) {
     return String(p || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '').toLowerCase();
   }
-  function excelDateToISO(serial) {
-    if (!serial) return '';
-    if (typeof serial === 'string' && /^\d{4}-\d{2}-\d{2}/.test(serial)) {
-      return serial.slice(0, 10);
+  function extractDateFromFilename(name) {
+    if (!name) return '';
+    var s = String(name);
+    var mYMD = s.match(/(20\d\d)[-_/.](\d{1,2})[-_/.](\d{1,2})/);
+    if (mYMD) return mYMD[1] + '-' + (mYMD[2].length === 1 ? '0' : '') + mYMD[2] + '-' + (mYMD[3].length === 1 ? '0' : '') + mYMD[3];
+    var mDMY = s.match(/(\d{1,2})[-_/.](\d{1,2})[-_/.]?(20\d\d)?/);
+    if (mDMY) {
+      var d = mDMY[1].length === 1 ? '0' + mDMY[1] : mDMY[1];
+      var m = mDMY[2].length === 1 ? '0' + mDMY[2] : mDMY[2];
+      var y = mDMY[3] || '2026';
+      return y + '-' + m + '-' + d;
     }
-    var n = Math.floor(Number(serial));
-    if (isNaN(n) || n < 1000) return '';
-    var d = new Date((n - 25569) * 86400 * 1000);
-    return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+    return '';
+  }
+  function excelDateToISO(val, fallbackDate) {
+    if (!val) return fallbackDate || '';
+    if (val instanceof Date && !isNaN(val.getTime())) {
+      return val.toISOString().slice(0, 10);
+    }
+    var str = String(val).trim();
+    if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(str)) {
+      var parts = str.split(/[-/.]/);
+      var y = parts[0];
+      var m = parts[1].length === 1 ? '0' + parts[1] : parts[1];
+      var d = parts[2].slice(0, 2);
+      d = d.length === 1 ? '0' + d : d;
+      return y + '-' + m + '-' + d;
+    }
+    if (/^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}/.test(str)) {
+      var parts = str.split(/[-/.]/);
+      var d = parts[0].length === 1 ? '0' + parts[0] : parts[0];
+      var m = parts[1].length === 1 ? '0' + parts[1] : parts[1];
+      var y = parts[2].slice(0, 4);
+      return y + '-' + m + '-' + d;
+    }
+    var n = Number(str);
+    if (!isNaN(n) && n > 20000 && n < 60000) {
+      var dObj = new Date(Math.round((n - 25569) * 86400 * 1000));
+      if (!isNaN(dObj.getTime())) {
+        return dObj.toISOString().slice(0, 10);
+      }
+    }
+    return fallbackDate || '';
   }
   function groupBy(rows, keyFn) {
     var map = {};
@@ -374,11 +408,16 @@
   ];
 
   function parseXlsxFile(file, callback) {
-    if (typeof global.ensureXlsxReady === 'function') {
-      global.ensureXlsxReady(function () { doParseFile(file, callback); });
-    } else {
+    var p = (typeof global.ensureXlsxReady === 'function')
+      ? Promise.resolve(global.ensureXlsxReady())
+      : Promise.resolve(true);
+
+    p.then(function () {
       doParseFile(file, callback);
-    }
+    }).catch(function (err) {
+      console.warn('[Finance] ensureXlsxReady error:', err);
+      doParseFile(file, callback);
+    });
   }
 
   function doParseFile(file, callback) {
@@ -386,53 +425,102 @@
       callback(new Error('مكتبة الإكسيل غير محملة في الصفحة. يرجى تحديث الصفحة والمحاولة مرة أخرى.'), null, 0);
       return;
     }
-    var reader = new FileReader();
-    reader.onload = function (e) {
+
+    function processBuffer(buffer) {
       try {
-        var data = new Uint8Array(e.target.result);
-        var wb = global.XLSX.read(data, { type: 'array' });
+        var data = new Uint8Array(buffer);
+        var wb;
+        try {
+          wb = global.XLSX.read(data, { type: 'array', cellDates: false });
+        } catch (e1) {
+          try {
+            var text = new TextDecoder('utf-8').decode(data);
+            wb = global.XLSX.read(text, { type: 'string' });
+          } catch (e2) {
+            throw e1;
+          }
+        }
+
+        if (!wb || !wb.SheetNames || !wb.SheetNames.length) {
+          callback(new Error('الملف فارغ أو لا يحتوي على صفحات'), null, 0);
+          return;
+        }
+
         var ws = wb.Sheets[wb.SheetNames[0]];
         var raw = global.XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        if (!raw || !raw.length) {
+          callback(new Error('الملف لا يحتوي على صفوف بيانات'), null, 0);
+          return;
+        }
 
+        var fileFallbackDate = extractDateFromFilename(file && file.name) || DEMO_DATE;
+
+        /* البحث عن صف العناوين في أول 25 صف */
         var headerRow = -1;
-        for (var i = 0; i < Math.min(10, raw.length); i++) {
+        for (var i = 0; i < Math.min(25, raw.length); i++) {
           var row = raw[i];
-          if (row && (String(row[0]).indexOf('رقم السند') !== -1 || String(row[2]).indexOf('اسم الفرع') !== -1)) {
+          if (!row || !Array.isArray(row)) continue;
+          var joined = row.map(function (c) { return String(c || ''); }).join(' ');
+          if (/رقم السند|اسم الفرع|نوع الحركة|العملية|طريقة الدفع|رقم العقد|المقبوض|قبض|صرف/i.test(joined)) {
             headerRow = i;
             break;
           }
         }
 
+        /* مطابقة مرنة للأعمدة */
         var colMap = {};
         if (headerRow >= 0) {
           raw[headerRow].forEach(function (h, ci) {
-            var hh = String(h).trim();
-            COLS.forEach(function (col, fi) {
-              if (hh === col || hh.replace(/\s+/g,'') === col.replace(/\s+/g,'')) {
-                colMap[fi] = ci;
-              }
-            });
+            var hh = String(h || '').trim().replace(/\s+/g, '');
+            if (!hh) return;
+            if (/سند|رقمالسند/i.test(hh)) colMap[F_ID] = ci;
+            else if (/تسلسل|تسلسلالفرع/i.test(hh)) colMap[F_SEQ] = ci;
+            else if (/فرع|اسمالفرع/i.test(hh)) colMap[F_BRANCH] = ci;
+            else if (/تاريخ|التاريخ|الوقت/i.test(hh)) colMap[F_DATE] = ci;
+            else if (/هوية|رقمالهوية/i.test(hh)) colMap[F_CID] = ci;
+            else if (/عميل|اسمالعميل/i.test(hh)) colMap[F_CLIENT] = ci;
+            else if (/لوحة|رقماللوحة|سيارة/i.test(hh)) colMap[F_PLATE] = ci;
+            else if (/نوعالحركة|حركة/i.test(hh)) colMap[F_MOVEMENT] = ci;
+            else if (/نوعالعملية/i.test(hh)) colMap[F_OPTYPE] = ci;
+            else if (/العملية|تصنيف/i.test(hh)) colMap[F_CATEGORY] = ci;
+            else if (/قبض|مقبوض|إيراد|دائن/i.test(hh)) colMap[F_IN] = ci;
+            else if (/صرف|مصروف|مدين|خصم/i.test(hh)) colMap[F_OUT] = ci;
+            else if (/عقد|رقمالعقد/i.test(hh)) colMap[F_CONTRACT] = ci;
+            else if (/ورقي|عقدورقي/i.test(hh)) colMap[F_PAPER] = ci;
+            else if (/بيان|بيـان|وصف/i.test(hh)) colMap[F_DESC] = ci;
+            else if (/دفع|طريقةالدفع|سداد/i.test(hh)) colMap[F_PAYMETHOD] = ci;
+            else if (/حساب|منحساب/i.test(hh)) colMap[F_ACCOUNT] = ci;
+            else if (/معتمد|اعتماد/i.test(hh)) colMap[F_APPROVED] = ci;
+            else if (/موافقة|رقمالموافقة/i.test(hh)) colMap[F_AUTHNO] = ci;
+            else if (/مستخدم|أضيفبواسطة|محصل/i.test(hh)) colMap[F_USER] = ci;
           });
-        } else {
-          COLS.forEach(function (_, fi) { colMap[fi] = fi; });
+        }
+
+        for (var fi = 0; fi < 20; fi++) {
+          if (colMap[fi] == null) colMap[fi] = fi;
         }
 
         var dataStart = headerRow >= 0 ? headerRow + 1 : 1;
         var rows = [];
         for (var ri = dataStart; ri < raw.length; ri++) {
           var src = raw[ri];
-          if (!src || src.every(function (c) { return c === '' || c == null; })) continue;
+          if (!src || !Array.isArray(src) || src.every(function (c) { return c === '' || c == null; })) continue;
           var mapped = [];
           for (var fi = 0; fi < 20; fi++) {
-            var ci = (colMap[fi] != null) ? colMap[fi] : fi;
+            var ci = colMap[fi];
             mapped.push(src[ci] != null ? src[ci] : '');
           }
           rows.push(mapped);
         }
 
+        if (!rows.length) {
+          callback(new Error('لم يتم العثور على حركات صالحة في الشيت المرفوع'), null, 0);
+          return;
+        }
+
         var byDate = {};
         rows.forEach(function (r) {
-          var key = excelDateToISO(r[F_DATE]) || DEMO_DATE;
+          var key = excelDateToISO(r[F_DATE], fileFallbackDate) || fileFallbackDate;
           if (!byDate[key]) byDate[key] = [];
           byDate[key].push(r);
         });
@@ -441,10 +529,21 @@
       } catch (err) {
         callback(err, null, 0);
       }
-    };
-    reader.onerror = function () { callback(new Error('فشل قراءة الملف من القرص'), null, 0); };
-    reader.onabort = function () { callback(new Error('تم إيقاف قراءة الملف'), null, 0); };
-    reader.readAsArrayBuffer(file);
+    }
+
+    if (file && typeof file.arrayBuffer === 'function') {
+      file.arrayBuffer().then(processBuffer).catch(function () {
+        var reader = new FileReader();
+        reader.onload = function (e) { processBuffer(e.target.result); };
+        reader.onerror = function () { callback(new Error('فشل قراءة الملف من الجهاز'), null, 0); };
+        reader.readAsArrayBuffer(file);
+      });
+    } else {
+      var reader = new FileReader();
+      reader.onload = function (e) { processBuffer(e.target.result); };
+      reader.onerror = function () { callback(new Error('فشل قراءة الملف من الجهاز'), null, 0); };
+      reader.readAsArrayBuffer(file);
+    }
   }
 
   /* ─── قراءة شيت اليومية لا تعدل أسطول المنصة، بل التبويبات الأخرى هي التي تغذي المالية ─── */
@@ -1507,12 +1606,14 @@
         return;
       }
       if (typeof global.ensureXlsxReady === 'function') {
-        global.ensureXlsxReady(function () {
+        Promise.resolve(global.ensureXlsxReady()).then(function () {
+          if (!global.XLSX) return;
           var ws = global.XLSX.utils.aoa_to_sheet([cleanHeaders].concat(cleanRows));
           var wb = global.XLSX.utils.book_new();
           global.XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
           global.XLSX.writeFile(wb, title + '.xlsx');
         });
+        return;
       }
       return;
     }
@@ -1779,37 +1880,43 @@
         var file = fileInput.files && fileInput.files[0];
         if (!file) return;
 
-        /* منع الرفع المتكرر لو عملية سابقة لسه جارية */
-        if (statusEl && /جارٍ/.test(statusEl.textContent || '')) {
-          statusEl.textContent = '⚠️ هناك عملية رفع جارية بالفعل، يرجى الانتظار حتى تنتهي…';
-          return;
+        var fileName = file.name;
+        if (statusEl) {
+          statusEl.textContent = '⏳ جاري قراءة وتحليل ملف "' + esc(fileName) + '"…';
         }
 
-        statusEl.textContent = '⏳ جاري قراءة ملف "' + esc(file.name) + '"…';
-
         parseXlsxFile(file, function (err, byDate, count) {
+          try { fileInput.value = ''; } catch (_) {}
           if (err) {
-            statusEl.textContent = '❌ خطأ: ' + (err.message || 'فشل قراءة الملف');
+            if (statusEl) statusEl.textContent = '❌ خطأ: ' + (err.message || 'فشل قراءة الملف');
+            return;
+          }
+
+          var parsedDates = Object.keys(byDate || {});
+          if (!parsedDates.length) {
+            if (statusEl) statusEl.textContent = '⚠️ لم يتم العثور على حركات صالحة في الملف المرفوع';
             return;
           }
 
           var freshStore = loadStore();
-          Object.keys(byDate).forEach(function (d) {
+          parsedDates.forEach(function (d) {
             freshStore[d] = byDate[d];
           });
           saveStore(freshStore);
-          /* بعد الرفع، رجع الفترة ل "الكل" عشان يظهر اليوم اللي اترفع مع الأيام القديمة */
           state.period = 'all';
 
-          /* حفظ سحابي على Supabase بدون تعديل أسطول المنصة أو باقي التبويبات */
-          statusEl.textContent = '⏳ جاري الحفظ على السحابة… (' + count + ' حركة)';
+          if (statusEl) {
+            statusEl.textContent = '⏳ جاري الحفظ سحابياً ومحلياً… (' + count + ' حركة في ' + parsedDates.join('، ') + ')';
+          }
 
-          var datesToSave = Object.keys(byDate);
+          var datesToSave = parsedDates.slice();
           var dateIdx = 0;
           function saveNextDay() {
             if (dateIdx >= datesToSave.length) {
-              statusEl.textContent = '✅ تم حفظ اليومية بنجاح (' + count + ' حركة)';
-              setTimeout(function () { renderFinance(host); }, 1000);
+              if (statusEl) {
+                statusEl.textContent = '✅ تم حفظ اليومية بنجاح (' + count + ' حركة في ' + datesToSave.join('، ') + ')';
+              }
+              setTimeout(function () { renderFinance(host); }, 700);
               return;
             }
             var dk = datesToSave[dateIdx];
