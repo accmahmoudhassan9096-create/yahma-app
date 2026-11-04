@@ -1,4 +1,4 @@
-/* ===== modules/finance.js — تبويب «المالية» v341 =====
+/* ===== modules/finance.js — تبويب «المالية» v342 =====
    يومية مالية متكاملة ومربوطة بأسطول المنصة وقاعدة بيانات Supabase:
    - رفع وتخزين ملفات اليومية (محلياً وسحابياً على Supabase)
    - ربط إيرادات الحركات مع أسطول سيارات المنصة وتحديث حالتها تلقائياً
@@ -45,12 +45,14 @@
     darkMode: (typeof document !== 'undefined' && document.body && document.body.classList.contains('dark-mode')) || false,
     cloudStatus: 'checking', // 'online' | 'offline' | 'checking'
     cloudCount: 0,
-    modalBranch: null
+    modalBranch: null,
+    compareBranchA: '',
+    compareBranchB: ''
   };
 
   var VIEWS = [
     { id: 'summary',          label: 'الملخص والرسوم البيانية'    },
-    { id: 'branches',         label: 'تحليل الفروع'              },
+    { id: 'branches',         label: 'تحليل ومقارنة الفروع'       },
     { id: 'payments',         label: 'طرق الدفع والحسابات'       },
     { id: 'movements',        label: 'أنواع الحركات والعقود'     },
     { id: 'users',            label: 'كشف المستخدمين والمحصلين' },
@@ -1015,7 +1017,7 @@
       + '<div class="fn-chart-card">'
       + '  <div class="fn-chart-head">'
       + '    <div class="fn-chart-title">🏢 ترتيب الفروع إيراداً (مخطط الأشرطة - Bar Chart)</div>'
-      + '    <div class="fn-chart-subtitle">💡 اضغط على اسم الفرع لفتح كارت التحليل المتقدم</div>'
+      + '    <button type="button" class="fn-chart-tab-pill" data-fn-tab="branches" title="فتح المقارنات الشاملة بين الفروع">⚖️ مقارنة الفروع المتقدمة</button>'
       + '  </div>'
       + '  <div class="fn-progress-list">'
       +      branchList.map(function (b, idx) {
@@ -1307,7 +1309,286 @@
     };
   }
 
-  /* 2. تحليل الفروع */
+  /* ─── دوال مقارنات الفروع والرسوم البيانية المتقدمة (Branch Comparisons) ─── */
+
+  /* 1. المخطط العمودي المقارن للفروع (Grouped Column Chart) */
+  function renderBranchGroupedColumnChart(branchesList) {
+    if (!branchesList || !branchesList.length) {
+      return '<div class="rp-muted" style="text-align:center;padding:30px">لا توجد بيانات كافية</div>';
+    }
+    var list = branchesList.slice(0, 8);
+    var maxVal = list.reduce(function (mx, b) { return Math.max(mx, b.in, b.out, Math.max(0, b.net)); }, 1);
+    if (maxVal <= 0) maxVal = 1;
+
+    var W = 680, H = 220, padL = 45, padR = 25, padT = 25, padB = 40;
+    var plotW = W - padL - padR;
+    var plotH = H - padT - padB;
+    var baseY = padT + plotH;
+
+    var grpW = plotW / list.length;
+    var barW = Math.min(16, Math.max(8, (grpW - 14) / 3));
+
+    var gridLines = [0.25, 0.5, 0.75, 1.0].map(function (r) {
+      var gy = (baseY - r * plotH).toFixed(1);
+      var val = (Math.round((r * maxVal) / 100) / 10) + 'k';
+      return '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="var(--line,#e2e8f0)" stroke-dasharray="3 3" stroke-width="1" opacity="0.6"/>'
+        + '<text x="' + (padL - 6) + '" y="' + (Number(gy) + 3) + '" text-anchor="end" font-size="9" fill="var(--muted,#64748b)" font-weight="600">' + val + '</text>';
+    }).join('');
+
+    var groupsHtml = list.map(function (b, idx) {
+      var gx = padL + idx * grpW + (grpW - barW * 3 - 6) / 2;
+      var hIn = Math.max(4, Math.round((b.in / maxVal) * plotH));
+      var hOut = Math.max(3, Math.round((b.out / maxVal) * plotH));
+      var hNet = Math.max(3, Math.round((Math.max(0, b.net) / maxVal) * plotH));
+
+      var yIn = baseY - hIn;
+      var yOut = baseY - hOut;
+      var yNet = baseY - hNet;
+
+      var nameShort = b.name.length > 12 ? b.name.slice(0, 10) + '..' : b.name;
+
+      return '<g class="fn-svg-bar-grp">'
+        + '<title>' + esc(b.name) + ' | مقبوض: ' + cur(b.in) + ' | مصروف: ' + cur(b.out) + ' | صافي: ' + cur(b.net) + '</title>'
+        + '<rect x="' + gx.toFixed(1) + '" y="' + yIn.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + hIn.toFixed(1) + '" rx="3" fill="#10b981" />'
+        + '<rect x="' + (gx + barW + 2).toFixed(1) + '" y="' + yOut.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + hOut.toFixed(1) + '" rx="3" fill="#ef4444" />'
+        + '<rect x="' + (gx + (barW + 2) * 2).toFixed(1) + '" y="' + yNet.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + hNet.toFixed(1) + '" rx="3" fill="#0284c7" />'
+        + '<text x="' + (gx + barW / 2).toFixed(1) + '" y="' + (yIn - 4).toFixed(1) + '" text-anchor="middle" font-size="8.5" font-weight="800" fill="#059669">' + (b.in >= 1000 ? Math.round(b.in / 1000) + 'k' : b.in) + '</text>'
+        + '<text x="' + (gx + barW * 1.5 + 2).toFixed(1) + '" y="' + (baseY + 16) + '" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink,#1e293b)">' + esc(nameShort) + '</text>'
+        + '</g>';
+    }).join('');
+
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:220px;display:block">'
+      + gridLines
+      + '<line x1="' + padL + '" y1="' + baseY + '" x2="' + (W - padR) + '" y2="' + baseY + '" stroke="var(--line,#e2e8f0)" stroke-width="1.5"/>'
+      + groupsHtml
+      + '</svg>';
+  }
+
+  /* 2. المخطط الحلقي للحصص السوقية للفروع (Doughnut Market Share) */
+  function renderBranchMarketShareDoughnut(branchesList, totalIn) {
+    if (!branchesList || !branchesList.length) return '';
+    var colors = ['#10b981', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'];
+    var top5 = branchesList.slice(0, 5);
+    var sumTop5 = top5.reduce(function (s, b) { return s + b.in; }, 0);
+    var otherIn = Math.max(0, totalIn - sumTop5);
+
+    var slices = top5.map(function (b, i) {
+      var pct = totalIn > 0 ? Math.round((b.in / totalIn) * 100) : 0;
+      return { name: b.name, in: b.in, pct: pct, color: colors[i] };
+    });
+
+    if (otherIn > 0 && branchesList.length > 5) {
+      var otherPct = totalIn > 0 ? Math.round((otherIn / totalIn) * 100) : 0;
+      slices.push({ name: 'باقي الفروع (' + (branchesList.length - 5) + ')', in: otherIn, pct: otherPct, color: colors[5] });
+    }
+
+    var cx = 85, cy = 85, r = 58, strokeW = 22;
+    var circum = 2 * Math.PI * r;
+    var offset = 0;
+
+    var circlesHtml = slices.map(function (s) {
+      var len = (s.pct / 100) * circum;
+      var circle = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + s.color + '" stroke-width="' + strokeW + '" '
+        + 'stroke-dasharray="' + len.toFixed(1) + ' ' + (circum - len).toFixed(1) + '" '
+        + 'stroke-dashoffset="' + (-offset).toFixed(1) + '" '
+        + 'transform="rotate(-90 ' + cx + ' ' + cy + ')"><title>' + esc(s.name) + ': ' + cur(s.in) + ' (' + s.pct + '%)</title></circle>';
+      offset += len;
+      return circle;
+    }).join('');
+
+    var legendHtml = slices.map(function (s) {
+      return '<div class="fn-doughnut-legend-item">'
+        + '<span class="fn-doughnut-dot" style="background:' + s.color + '"></span>'
+        + '<span class="fn-doughnut-label">' + esc(s.name) + '</span>'
+        + '<b class="fn-doughnut-val">' + cur(s.in) + ' <small>(' + s.pct + '%)</small></b>'
+        + '</div>';
+    }).join('');
+
+    return '<div class="fn-doughnut-container">'
+      + '<div class="fn-doughnut-svg-wrap">'
+      + '  <svg viewBox="0 0 170 170" style="width:150px;height:150px;display:block">'
+      + '    <circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--line,#e2e8f0)" stroke-width="' + strokeW + '"/>'
+      +      circlesHtml
+      + '    <text x="' + cx + '" y="' + (cy - 3) + '" text-anchor="middle" font-size="16" font-weight="900" fill="var(--ink,#0f172a)">' + (totalIn >= 1000 ? Math.round(totalIn / 1000) + 'k' : num(totalIn)) + '</text>'
+      + '    <text x="' + cx + '" y="' + (cy + 15) + '" text-anchor="middle" font-size="10" font-weight="700" fill="var(--muted,#64748b)">إجمالي الدخل</text>'
+      + '  </svg>'
+      + '</div>'
+      + '<div class="fn-doughnut-legend">' + legendHtml + '</div>'
+      + '</div>';
+  }
+
+  /* 3. مقارنة هيكل ونشاط العقود بين الفروع (Operational Mix) */
+  function renderBranchOperationalMix(branchesList) {
+    var topList = branchesList.slice(0, 6);
+    return '<div class="fn-progress-list">'
+      + topList.map(function (b) {
+          var tot = (b.opened + b.extended + b.closed) || 1;
+          var extPct = Math.round((b.extended / tot) * 100);
+          var openPct = Math.round((b.opened / tot) * 100);
+          var closePct = Math.max(0, 100 - extPct - openPct);
+          return '<div class="fn-prog-row">'
+            + '<div class="fn-prog-label">'
+            + '  <button type="button" class="fn-branch-btn" data-branch="' + esc(b.name) + '">📍 ' + esc(b.name) + '</button>'
+            + '  <span>'
+            + '    <b style="color:#10b981">🔄 ' + b.extended + '</b> &nbsp;|&nbsp; '
+            + '    <b style="color:#0ea5e9">📝 ' + b.opened + '</b> &nbsp;|&nbsp; '
+            + '    <b style="color:#f59e0b">🏁 ' + b.closed + '</b>'
+            + '  </span>'
+            + '</div>'
+            + '<div class="fn-prog-track" style="height:10px" title="تمديد: ' + extPct + '% | جديد: ' + openPct + '% | تصفية: ' + closePct + '%">'
+            + '  <div style="width:' + extPct + '%;background:#10b981"></div>'
+            + '  <div style="width:' + openPct + '%;background:#0ea5e9"></div>'
+            + '  <div style="width:' + closePct + '%;background:#f59e0b"></div>'
+            + '</div>'
+            + '</div>';
+        }).join('')
+      + '<div style="display:flex;gap:12px;margin-top:10px;font-size:11px;font-weight:700;color:var(--muted);justify-content:center">'
+      + '  <span style="color:#10b981">■ تمديدات عقود</span>'
+      + '  <span style="color:#0ea5e9">■ عقود جديدة ومقدمات</span>'
+      + '  <span style="color:#f59e0b">■ تصفيات وإغلاق</span>'
+      + '</div>'
+      + '</div>';
+  }
+
+  /* 4. أداة المقارنة المباشرة رأس برأس (Head-to-Head Comparison) */
+  function renderHeadToHead(bA, bB, allBranches) {
+    if (!bA || !bB) {
+      return '<div class="rp-muted" style="text-align:center;padding:20px">يرجى اختيار فرعين للمقارنة</div>';
+    }
+
+    var metrics = [
+      { label: 'إجمالي المقبوضات', valA: bA.in, valB: bB.in, strA: cur(bA.in), strB: cur(bB.in), higherBetter: true },
+      { label: 'إجمالي المصروفات', valA: bA.out, valB: bB.out, strA: cur(bA.out), strB: cur(bB.out), higherBetter: false },
+      { label: 'صافي الربح الفعلي', valA: bA.net, valB: bB.net, strA: cur(bA.net), strB: cur(bB.net), higherBetter: true },
+      { label: 'نسبة هامش الربح', valA: bA.margin, valB: bB.margin, strA: bA.margin.toFixed(1) + '%', strB: bB.margin.toFixed(1) + '%', higherBetter: true },
+      { label: 'تمديدات العقود', valA: bA.extended, valB: bB.extended, strA: num(bA.extended) + ' تمديد', strB: num(bB.extended) + ' تمديد', higherBetter: true },
+      { label: 'عقود جديدة ومقدمات', valA: bA.opened, valB: bB.opened, strA: num(bA.opened) + ' عقد', strB: num(bB.opened) + ' عقد', higherBetter: true },
+      { label: 'إجمالي حركات اليومية', valA: bA.moves, valB: bB.moves, strA: num(bA.moves) + ' حركة', strB: num(bB.moves) + ' حركة', higherBetter: true }
+    ];
+
+    var rowsHtml = metrics.map(function (m) {
+      var max = Math.max(m.valA, m.valB, 1);
+      var pctA = Math.round((Math.max(0, m.valA) / max) * 100);
+      var pctB = Math.round((Math.max(0, m.valB) / max) * 100);
+
+      var winA = m.higherBetter ? m.valA > m.valB : m.valA < m.valB;
+      var winB = m.higherBetter ? m.valB > m.valA : m.valB < m.valA;
+
+      return '<div class="fn-h2h-row">'
+        + '<div class="fn-h2h-side side-a ' + (winA ? 'winner' : '') + '">'
+        + '  <span class="fn-h2h-val">' + m.strA + '</span>'
+        + (winA ? '<span class="fn-h2h-crown" title="متفوق في هذا المعيار">👑</span>' : '')
+        + '</div>'
+        + '<div class="fn-h2h-label">' + esc(m.label) + '</div>'
+        + '<div class="fn-h2h-side side-b ' + (winB ? 'winner' : '') + '">'
+        + (winB ? '<span class="fn-h2h-crown" title="متفوق في هذا المعيار">👑</span>' : '')
+        + '  <span class="fn-h2h-val">' + m.strB + '</span>'
+        + '</div>'
+        + '<div class="fn-h2h-bars">'
+        + '  <div class="fn-h2h-bar-track track-a"><div class="fn-h2h-bar-fill fill-a" style="width:' + pctA + '%;background:' + (winA ? '#10b981' : '#94a3b8') + '"></div></div>'
+        + '  <div class="fn-h2h-bar-track track-b"><div class="fn-h2h-bar-fill fill-b" style="width:' + pctB + '%;background:' + (winB ? '#0ea5e9' : '#94a3b8') + '"></div></div>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+
+    return '<div class="fn-h2h-card">'
+      + '<div class="fn-h2h-header">'
+      + '  <div class="fn-h2h-team team-a">'
+      + '    <div class="fn-h2h-icon" style="font-size:24px">🏢</div>'
+      + '    <div class="fn-h2h-team-name">' + esc(bA.name) + '</div>'
+      + '    <div class="fn-h2h-team-sub">إجمالي الدخل: ' + cur(bA.in) + '</div>'
+      + '  </div>'
+      + '  <div class="fn-h2h-vs-badge">VS</div>'
+      + '  <div class="fn-h2h-team team-b">'
+      + '    <div class="fn-h2h-icon" style="font-size:24px">🏢</div>'
+      + '    <div class="fn-h2h-team-name">' + esc(bB.name) + '</div>'
+      + '    <div class="fn-h2h-team-sub">إجمالي الدخل: ' + cur(bB.in) + '</div>'
+      + '  </div>'
+      + '</div>'
+      + '<div class="fn-h2h-list">' + rowsHtml + '</div>'
+      + '</div>';
+  }
+
+  /* تجميع لوحة رسوم مقارنة الفروع */
+  function buildBranchComparisonCharts(branchesStats, store, allRows) {
+    if (!branchesStats || !branchesStats.length) return '';
+
+    var totalIn = branchesStats.reduce(function (s, b) { return s + b.in; }, 0) || 1;
+
+    var branchNames = branchesStats.map(function (b) { return b.name; });
+    var branchA_name = state.compareBranchA && branchNames.indexOf(state.compareBranchA) >= 0
+      ? state.compareBranchA
+      : (branchNames[0] || '');
+    var branchB_name = state.compareBranchB && branchNames.indexOf(state.compareBranchB) >= 0
+      ? state.compareBranchB
+      : (branchNames[1] || branchNames[0] || '');
+
+    var bA = branchesStats.find(function (b) { return b.name === branchA_name; }) || branchesStats[0];
+    var bB = branchesStats.find(function (b) { return b.name === branchB_name; }) || (branchesStats[1] || branchesStats[0]);
+
+    var optionsA = branchNames.map(function (name) {
+      return '<option value="' + esc(name) + '"' + (name === branchA_name ? ' selected' : '') + '>' + esc(name) + '</option>';
+    }).join('');
+
+    var optionsB = branchNames.map(function (name) {
+      return '<option value="' + esc(name) + '"' + (name === branchB_name ? ' selected' : '') + '>' + esc(name) + '</option>';
+    }).join('');
+
+    return '<div class="fn-charts-grid">'
+      /* 1. المخطط العمودي المقارن (Grouped Column Chart) - عرض كامل */
+      + '<div class="fn-chart-card full-width">'
+      + '  <div class="fn-chart-head">'
+      + '    <div class="fn-chart-title">📊 المخطط العمودي المقارن للفروع (Grouped Column Chart)</div>'
+      + '    <div class="fn-chart-subtitle">'
+      + '      <span style="color:#10b981;font-weight:700">■ مقبوضات</span> &nbsp; '
+      + '      <span style="color:#ef4444;font-weight:700">■ مصروفات</span> &nbsp; '
+      + '      <span style="color:#0284c7;font-weight:700">■ صافي الأرباح</span>'
+      + '    </div>'
+      + '  </div>'
+      + '  <div style="direction:ltr;overflow-x:auto">'
+      +      renderBranchGroupedColumnChart(branchesStats)
+      + '  </div>'
+      + '</div>'
+
+      /* 2. الحصص السوقية للفروع (Doughnut Market Share) */
+      + '<div class="fn-chart-card">'
+      + '  <div class="fn-chart-head">'
+      + '    <div class="fn-chart-title">🍩 الحصص السوقية للفروع (Market Share)</div>'
+      + '    <div class="fn-chart-subtitle">حصة كل فرع من إجمالي دخل المنصة</div>'
+      + '  </div>'
+      +      renderBranchMarketShareDoughnut(branchesStats, totalIn)
+      + '</div>'
+
+      /* 3. مقارنة هيكل ونشاط العقود (Operational Mix) */
+      + '<div class="fn-chart-card">'
+      + '  <div class="fn-chart-head">'
+      + '    <div class="fn-chart-title">🔄 مقارنة نشاط ودورة العمليات بالفروع</div>'
+      + '    <div class="fn-chart-subtitle">توزيع العقود: تمديد vs جديد vs تصفية</div>'
+      + '  </div>'
+      +      renderBranchOperationalMix(branchesStats)
+      + '</div>'
+
+      /* 4. أداة المقارنة المباشرة رأس برأس (Head-to-Head Comparison) - عرض كامل */
+      + '<div class="fn-chart-card full-width">'
+      + '  <div class="fn-chart-head">'
+      + '    <div class="fn-chart-title">⚖️ أداة المقارنة المباشرة رأس برأس (اختر فرعين للمقارنة)</div>'
+      + '    <div class="fn-h2h-selectors">'
+      + '      <label style="font-size:11.5px;font-weight:700;color:var(--muted)">الفرع الأول:</label>'
+      + '      <select class="fn-h2h-select" id="fn-h2h-sel-a" title="اختر الفرع الأول">' + optionsA + '</select>'
+      + '      <div class="fn-h2h-vs-badge">VS</div>'
+      + '      <label style="font-size:11.5px;font-weight:700;color:var(--muted)">الفرع الثاني:</label>'
+      + '      <select class="fn-h2h-select" id="fn-h2h-sel-b" title="اختر الفرع الثاني">' + optionsB + '</select>'
+      + '    </div>'
+      + '  </div>'
+      + '  <div id="fn-h2h-container">'
+      +      renderHeadToHead(bA, bB, branchesStats)
+      + '  </div>'
+      + '</div>'
+
+      + '</div>';
+  }
+
+  /* 2. تحليل ومقارنة الفروع */
   function buildBranches(store, branchFilter) {
     var allRows = getAllRows(store, branchFilter, state.period);
     if (!allRows.length) return { kpis: [], sections: [{ title: 'لا توجد بيانات', headers: [], rows: [] }] };
@@ -1315,21 +1596,39 @@
     var byBranch = groupBy(allRows, function (r) { return String(r[F_BRANCH] || '').trim() || 'غير محدد'; });
     var keys = sortedKeys(byBranch);
 
-    var rows = keys.map(function (b) {
+    var branchesStats = keys.map(function (b) {
       var br = byBranch[b];
       var bi = sumField(br, F_IN);
       var bo = sumField(br, F_OUT);
       var bAnalytics = analyzeContracts(br);
-      var branchBtn = '<button type="button" class="fn-branch-btn" data-branch="' + esc(b) + '">📍 ' + esc(b) + '</button>';
+      return {
+        name: b,
+        in: bi,
+        out: bo,
+        net: bi - bo,
+        margin: bi > 0 ? ((bi - bo) / bi) * 100 : 0,
+        moves: br.length,
+        opened: bAnalytics.opened.count,
+        openedIn: bAnalytics.opened.amountIn,
+        extended: bAnalytics.extended.count,
+        extendedIn: bAnalytics.extended.amountIn,
+        closed: bAnalytics.closed.count,
+        closedIn: bAnalytics.closed.amountIn,
+        rows: br
+      };
+    }).sort(function (a, b) { return b.in - a.in; });
+
+    var rows = branchesStats.map(function (b) {
+      var branchBtn = '<button type="button" class="fn-branch-btn" data-branch="' + esc(b.name) + '">📍 ' + esc(b.name) + '</button>';
       return [
         branchBtn,
-        num(br.length),
-        num(bAnalytics.opened.count),
-        num(bAnalytics.extended.count),
-        num(bAnalytics.closed.count),
-        cur(bi),
-        cur(bo),
-        cur(bi - bo)
+        num(b.moves),
+        num(b.opened),
+        num(b.extended),
+        num(b.closed),
+        cur(b.in),
+        cur(b.out),
+        cur(b.net)
       ];
     });
 
@@ -1337,7 +1636,10 @@
     var totOut = sumField(allRows, F_OUT);
     var allAnalytics = analyzeContracts(allRows);
 
+    var chartsHtml = buildBranchComparisonCharts(branchesStats, store, allRows);
+
     return {
+      chartsHtml: chartsHtml,
       kpis: [
         { label: 'عدد الفروع النشطة',   value: num(keys.length),              cls: '' },
         { label: 'إجمالي العقود الجديدة',value: num(allAnalytics.opened.count),cls: 'kpi-blue' },
@@ -1838,6 +2140,22 @@
       rBtn.addEventListener('click', function () {
         state.branch = '';
         state.period = 'all';
+        renderFinance(host);
+      });
+    }
+
+    /* مقارنة فرع ضد فرع (Head-to-Head) */
+    var h2hA = host.querySelector('#fn-h2h-sel-a');
+    if (h2hA) {
+      h2hA.addEventListener('change', function () {
+        state.compareBranchA = h2hA.value;
+        renderFinance(host);
+      });
+    }
+    var h2hB = host.querySelector('#fn-h2h-sel-b');
+    if (h2hB) {
+      h2hB.addEventListener('change', function () {
+        state.compareBranchB = h2hB.value;
         renderFinance(host);
       });
     }
