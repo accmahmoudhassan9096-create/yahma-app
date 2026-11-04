@@ -117,7 +117,7 @@ function applyBranchScopeUI(){
   }
 }
 const PAGE_PERMISSION_OPTIONS=[
-  {id:'fleet',label:'الأسطول'},{id:'branches',label:'الفروع'},{id:'reports',label:'التقارير'},{id:'renewals',label:'الفحص'},
+  {id:'fleet',label:'الأسطول'},{id:'branches',label:'الفروع'},{id:'reports',label:'التقارير'},{id:'finance',label:'المالية'},{id:'renewals',label:'الفحص'},
   {id:'payments',label:'تحت الدفع'},{id:'paid',label:'تم الدفع'},{id:'renewed',label:'تم التجديد'},{id:'license-renewals',label:'رخص منتهية'},
   {id:'insurance-renewals',label:'التأمين'},{id:'inspections',label:'بطاقات التشغيل'},
   {id:'transfers',label:'التنازلات'},{id:'audit',label:'سجل النشاط'},{id:'users',label:'المستخدمون'}
@@ -130,7 +130,7 @@ window.currentUserPermissions=Array.isArray(window.currentUserPermissions)?windo
    القاعدة الجديدة: لو مفيش تحديد صريح، امنح كل الأقسام عدا السجل الإداري. */
 window.ALL_YAHMA_TABS=(typeof PAGE_PERMISSION_OPTIONS!=='undefined'&&Array.isArray(PAGE_PERMISSION_OPTIONS))
   ? PAGE_PERMISSION_OPTIONS.map(function(p){return p.id;})
-  : ['dashboard','fleet','branches','reports','renewals','payments','paid','renewed','license-renewals','insurance-renewals','inspections','transfers','audit'];
+  : ['dashboard','fleet','branches','reports','finance','renewals','payments','paid','renewed','license-renewals','insurance-renewals','inspections','transfers','audit'];
 window.defaultYahmaTabsForRole=function(role){
   var all=window.ALL_YAHMA_TABS||[];
   if(role==='admin') return all.slice();
@@ -175,7 +175,7 @@ function fleetForTab(tab, list){
   var all = Array.isArray(list) ? list : (typeof fleet !== 'undefined' && Array.isArray(fleet) ? fleet : []);
   if(!tab) return all;
   /* الأسطول/الفروع/الرئيسية/التقارير/السجل: كل السيارات */
-  if(['dashboard','fleet','branches','reports','audit','preparation','users'].indexOf(tab)>=0) return all;
+  if(['dashboard','fleet','branches','reports','finance','audit','preparation','users'].indexOf(tab)>=0) return all;
 
   var lvl = (typeof dateStatus==='function') ? function(d){ return dateStatus(d).level; }
            : function(d){ return d ? 'green' : 'grey'; };

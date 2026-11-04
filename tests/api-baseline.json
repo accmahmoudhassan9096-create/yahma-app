@@ -143,6 +143,9 @@
     "loadScript",
     "pdfPrepare"
   ],
+  "YahmaFinance": [
+    "render"
+  ],
   "YahmaFleet": [
     "count",
     "createFilterEngine",
@@ -179,6 +182,16 @@
   ],
   "YahmaFleetView": [
     "render"
+  ],
+  "YahmaFleetViewBulk": [
+    "bulkExportSelected",
+    "bulkRenewCard",
+    "bulkRenewLicense",
+    "bulkSetInspection",
+    "bulkSetStatus",
+    "fleetAdminMoveSelectedCars",
+    "getSelectedCars",
+    "updateBulkBar"
   ],
   "YahmaFollowUp": [
     "render"
@@ -301,8 +314,34 @@
     "getUninspectedCars",
     "render"
   ],
+  "YahmaRenewalsBulk": [
+    "adminMoveSelectedCars",
+    "bulkAdvanceToPayment",
+    "bulkInspectionFromLicenses",
+    "bulkRenewLicense",
+    "bulkSetInspection",
+    "bulkSetInsurance",
+    "bulkSetLicenseStatus",
+    "deleteRenCars",
+    "inspectionFromLicense",
+    "pendingCarIds",
+    "renBulkApply",
+    "renPlates",
+    "renSelectedCars"
+  ],
   "YahmaReports": [
     "render"
+  ],
+  "YahmaScanConsole": [
+    "close",
+    "isOpen",
+    "open"
+  ],
+  "YahmaTV": [
+    "active",
+    "enter",
+    "exit",
+    "toggle"
   ],
   "YahmaTopbarMenu": [
     "bindMobileTools",
@@ -319,23 +358,6 @@
   ],
   "YahmaTransfers": [
     "render"
-  ],
-  "YahmaTV": [
-    "active",
-    "enter",
-    "exit",
-    "toggle"
-  ],
-  "YahmaWAHistoryLog": [
-    "clear",
-    "confirm",
-    "list",
-    "unconfirm"
-  ],
-  "YahmaScanConsole": [
-    "close",
-    "isOpen",
-    "open"
   ],
   "YahmaUndo": [
     "MAX_ENTRIES",
@@ -406,29 +428,10 @@
     "archiveEditing",
     "saveFromForm"
   ],
-  "YahmaRenewalsBulk": [
-    "adminMoveSelectedCars",
-    "bulkAdvanceToPayment",
-    "bulkInspectionFromLicenses",
-    "bulkRenewLicense",
-    "bulkSetInspection",
-    "bulkSetInsurance",
-    "bulkSetLicenseStatus",
-    "deleteRenCars",
-    "inspectionFromLicense",
-    "pendingCarIds",
-    "renBulkApply",
-    "renPlates",
-    "renSelectedCars"
-  ],
-  "YahmaFleetViewBulk": [
-    "bulkExportSelected",
-    "bulkRenewCard",
-    "bulkRenewLicense",
-    "bulkSetInspection",
-    "bulkSetStatus",
-    "fleetAdminMoveSelectedCars",
-    "getSelectedCars",
-    "updateBulkBar"
+  "YahmaWAHistoryLog": [
+    "clear",
+    "confirm",
+    "list",
+    "unconfirm"
   ]
 }
