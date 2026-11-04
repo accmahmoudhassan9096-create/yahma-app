@@ -41,6 +41,8 @@
     view: 'summary',
     branch: '',
     period: 'all', // 'all' | 'latest' | 'month:YYYY-MM' | 'date:YYYY-MM-DD'
+    search: '',    // نص بحث سريع في الحركات (لوحة / عميل / عقد)
+    darkMode: (typeof document !== 'undefined' && document.body && document.body.classList.contains('dark-mode')) || false,
     cloudStatus: 'checking', // 'online' | 'offline' | 'checking'
     cloudCount: 0,
     modalBranch: null
@@ -52,7 +54,8 @@
     { id: 'payments',         label: 'طرق الدفع والحسابات'       },
     { id: 'movements',        label: 'أنواع الحركات والعقود'     },
     { id: 'users',            label: 'كشف المستخدمين والمحصلين' },
-    { id: 'contracts_report', label: '📊 كشف دورة العقود والتصفية' }
+    { id: 'contracts_report', label: '📊 كشف دورة العقود والتصفية' },
+    { id: 'journal',          label: '📋 إدارة الحركات اليومية'   }
   ];
 
   /* ─── أدوات مساعدة ─── */
@@ -155,7 +158,7 @@
     try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {}
   }
 
-  function getAllRows(store, branchFilter, periodFilter) {
+  function getAllRows(store, branchFilter, periodFilter, searchFilter) {
     var all = [];
     var dates = Object.keys(store).sort().reverse();
     var targetDates = dates;
@@ -172,9 +175,20 @@
       targetDates = dates.filter(function (d) { return d === dt; });
     }
 
+    var s = (searchFilter || state.search || '').trim().toLowerCase();
+
     targetDates.forEach(function (d) {
       (store[d] || []).forEach(function (r) {
         if (!branchFilter || String(r[F_BRANCH] || '').trim() === branchFilter) {
+          if (s && ![
+              String(r[F_PLATE] || ''),
+              String(r[F_CLIENT] || ''),
+              String(r[F_CONTRACT] || ''),
+              String(r[F_DESC] || ''),
+              String(r[F_USER] || '')
+            ].join(' | ').toLowerCase().includes(s)) {
+            return;
+          }
           all.push(r);
         }
       });
@@ -1062,7 +1076,11 @@
       + '  <label for="fn-period-select">📅 الفترة (أيام / شهور):</label>'
       + '  <select id="fn-period-select">' + periodOptions.join('') + '</select>'
       + '</div>'
-      + (state.branch || (state.period && state.period !== 'all') ? '<button type="button" class="rp-btn" id="fn-reset-filters-btn" style="font-size:11px;padding:4px 9px">✕ تفريغ الفلاتر</button>' : '')
+      + '<div class="fn-filter-item fn-search-item">'
+      + '  <label for="fn-search-input">🔍 بحث سريع:</label>'
+      + '  <input type="search" id="fn-search-input" placeholder="اللوحة، العميل، العقد، المستخدم…" value="' + esc(state.search) + '">'
+      + '</div>'
+      + (state.branch || (state.period && state.period !== 'all') || state.search ? '<button type="button" class="rp-btn" id="fn-reset-filters-btn" style="font-size:11px;padding:4px 9px">✕ تفريغ الفلاتر</button>' : '')
       + '</div>';
   }
 
@@ -1180,7 +1198,8 @@
         headers: ['التاريخ (اضغط للفلترة)', 'عدد الحركات', 'إجمالي القبض', 'إجمالي الصرف', 'الصافي'],
         rows: rows,
         foot: ['الإجمالي العام', num(allRows.length), cur(totalIn), cur(totalOut), cur(net)]
-      }]
+      }],
+      warningHtml: net < 0 ? '<div class="fn-warning-box"><strong>⚠️ انتبه:</strong> المصروفات (' + cur(totalOut) + ') أعلى من الإيرادات (' + cur(totalIn) + ') بـ ' + cur(Math.abs(net)) + ' في هذه الفترة. يرجى مراجعة السندات الصادرة.</div>' : ''
     };
   }
 
@@ -1326,6 +1345,150 @@
     };
   }
 
+  /* 7. إدارة الحركات اليومية (تعديل / حذف صف فردي) */
+  function buildJournalManagement(store, branchFilter) {
+    var allRows = getAllRows(store, branchFilter, state.period, state.search);
+    if (!allRows.length) return { kpis: [], sections: [{ title: 'لا توجد حركات', headers: [], rows: [] }] };
+
+    var totIn = sumField(allRows, F_IN);
+    var totOut = sumField(allRows, F_OUT);
+
+    // rebuild date -> rows map for display
+    var byDate = {};
+    allRows.forEach(function (r) {
+      var d = r[F_DATE] || 'غير محدد';
+      if (!byDate[d]) byDate[d] = [];
+      byDate[d].push(r);
+    });
+    var dates = Object.keys(byDate).sort().reverse();
+
+    var rows = [];
+    dates.forEach(function (d) {
+      (byDate[d] || []).forEach(function (r, ri) {
+        var rowJson = JSON.stringify(r).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+        var editBtn = '<button type="button" class="rp-btn rp-btn-small" data-fn-edit-row data-row="' + rowJson + '" style="font-size:11px;padding:3px 7px">تعديل</button>';
+        var delBtn  = '<button type="button" class="rp-btn rp-btn-small rp-btn-danger" data-fn-del-row data-row="' + rowJson + '" style="font-size:11px;padding:3px 7px">حذف</button>';
+        rows.push([
+          '<button type="button" class="fn-pick-date" data-date="' + esc(d) + '" style="background:none;border:none;cursor:pointer;color:var(--navy);font-weight:700;text-decoration:underline">📅 ' + esc(d) + '</button>',
+          esc(r[F_SEQ] || '—'),
+          esc(r[F_BRANCH] || '—'),
+          esc(r[F_CID] || '—'),
+          esc(r[F_CLIENT] || '—'),
+          esc(r[F_PLATE] || '—'),
+          esc(r[F_MOVEMENT] || '—'),
+          esc(r[F_OPTYPE] || '—'),
+          esc(r[F_CATEGORY] || '—'),
+          cur(r[F_IN]),
+          cur(r[F_OUT]),
+          esc(r[F_DESC] || '—'),
+          editBtn + ' ' + delBtn
+        ]);
+      });
+    });
+
+    return {
+      kpis: [
+        { label: 'إجمالي الحركات', value: num(allRows.length), cls: '' },
+        { label: 'إجمالي القبض', value: cur(totIn), cls: 'kpi-green' },
+        { label: 'إجمالي الصرف', value: cur(totOut), cls: 'kpi-red' },
+        { label: 'الصافي', value: cur(totIn - totOut), cls: totIn >= totOut ? 'kpi-blue' : 'kpi-red' }
+      ],
+      sections: [{
+        title: 'إدارة الحركات الفردية — 수정 أو حذف أي سجل',
+        headers: ['التاريخ', 'التسلسل', 'الفرع', 'هوية العميل', 'العميل', 'اللوحة', 'نوع الحركة', 'نوع العملية', 'الفئة', 'قبض', 'صرف', 'البيان', 'إجراءات'],
+        rows: rows,
+        foot: ['الإجمالي', '—', '—', '—', '—', '—', '—', '—', '—', cur(totIn), cur(totOut), '—', '—']
+      }]
+    };
+  }
+
+  /* نافذة تعديل صف فردي */
+  function openEditModal(row, store, host) {
+    var backdrop = document.createElement('div');
+    backdrop.className = 'fn-modal-backdrop';
+    backdrop.style.position = 'fixed';
+    backdrop.style.top = '0'; backdrop.style.left = '0';
+    backdrop.style.width = '100%'; backdrop.style.height = '100%';
+    backdrop.style.background = 'rgba(0,0,0,0.5)';
+    backdrop.style.zIndex = '10000';
+    backdrop.style.display = 'flex';
+    backdrop.style.alignItems = 'center';
+    backdrop.style.justifyContent = 'center';
+
+    var fields = [
+      { key: F_SEQ,   label: 'التسلسل' },
+      { key: F_BRANCH,label: 'الفرع' },
+      { key: F_DATE,  label: 'التاريخ (YYYY-MM-DD)', type: 'date' },
+      { key: F_CID,   label: 'هوية العميل' },
+      { key: F_CLIENT,label: 'اسم العميل' },
+      { key: F_PLATE, label: 'رقم اللوحة' },
+      { key: F_MOVEMENT,label: 'نوع الحركة' },
+      { key: F_OPTYPE,label: 'نوع العملية' },
+      { key: F_CATEGORY,label: 'الفئة' },
+      { key: F_IN,    label: 'قبض', type: 'number' },
+      { key: F_OUT,   label: 'صرف', type: 'number' },
+      { key: F_CONTRACT,label: 'رقم العقد' },
+      { key: F_PAPER, label: 'العقد الورقي' },
+      { key: F_DESC,  label: 'البيان' },
+      { key: F_PAYMETHOD,label: 'طريقة الدفع' },
+      { key: F_ACCOUNT,label: 'الحساب' },
+      { key: F_AUTHNO,label: 'رقم الموافقة' },
+      { key: F_USER,  label: 'المستخدم' }
+    ];
+
+    var inputsHtml = fields.map(function (f) {
+      var val = String(row[f.key] || '');
+      var inputHtml = f.type === 'date'
+        ? '<input type="date" id="fn-edit-' + f.key + '" value="' + esc(val) + '">'
+        : (f.type === 'number'
+          ? '<input type="number" id="fn-edit-' + f.key + '" value="' + esc(val) + '">'
+          : '<input type="text" id="fn-edit-' + f.key + '" value="' + esc(val) + '">');
+      return '<div style="margin-bottom:8px"><label style="display:block;font-size:12px;margin-bottom:3px;font-weight:700">' + esc(f.label) + '</label>' + inputHtml + '</div>';
+    }).join('');
+
+    var modalHtml =
+      '<div style="background:#fff;padding:20px;border-radius:8px;min-width:500px;max-width:90vw;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3)">'
+      + '<h3 style="margin-top:0">تعديل الحركة — السند: ' + esc(row[F_ID] || '—') + '</h3>'
+      + inputsHtml
+      + '<div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">'
+      + '<button type="button" id="fn-edit-cancel" class="rp-btn" style="background:#94a3b8">إلغاء</button>'
+      + '<button type="button" id="fn-edit-save" class="rp-btn" style="background:var(--navy);color:#fff">حفظ التعديلات</button>'
+      + '</div>'
+      + '</div>';
+
+    backdrop.innerHTML = modalHtml;
+    document.body.appendChild(backdrop);
+
+    backdrop.querySelector('#fn-edit-cancel').onclick = function () {
+      backdrop.remove();
+    };
+    backdrop.querySelector('#fn-edit-save').onclick = function () {
+      var updated = {};
+      fields.forEach(function (f) {
+        var el = document.getElementById('fn-edit-' + f.key);
+        updated[f.key] = el ? el.value : row[f.key];
+      });
+      var d = updated[F_DATE] || row[F_DATE];
+      var s = loadStore();
+      var dayRows = s[d] || [];
+      var idx = dayRows.findIndex(function (r) {
+        return String(r[F_ID] || '') === String(row[F_ID] || '') && String(r[F_SEQ] || '') === String(row[F_SEQ] || '');
+      });
+      if (idx >= 0) {
+        dayRows[idx] = updated;
+        saveStore(s);
+        saveDayToCloud(d, dayRows, function () {
+          backdrop.remove();
+          renderFinance(host);
+        });
+      } else {
+        backdrop.remove();
+        renderFinance(host);
+      }
+    };
+    backdrop.onclick = function (e) { if (e.target === backdrop) backdrop.remove(); };
+  }
+
   /* ─── تصدير Excel / PDF ─── */
   function exportData(title, headers, rows, type) {
     var cleanHeaders = headers.map(stripHtml);
@@ -1460,6 +1623,7 @@
     else if (state.view === 'movements')        viewData = buildMovements(store, state.branch);
     else if (state.view === 'users')            viewData = buildUsers(store, state.branch);
     else if (state.view === 'contracts_report') viewData = buildContractsReport(store, state.branch);
+    else if (state.view === 'journal')          viewData = buildJournalManagement(store, state.branch);
     else                                        viewData = buildSummary(store, state.branch);
 
     /* تبويبات */
@@ -1513,8 +1677,17 @@
     }).join('');
 
     /* بناء الـ HTML كاملاً */
+    var darkCls = state.darkMode ? ' fn-dark' : '';
     host.innerHTML =
-        '<div class="fn-upload-wrap">' + buildTopBar(store) + '</div>'
+        '<style>'
+        + '.fn-warning-box{background:#fff3f3;border-left:4px solid #ef4444;padding:10px 14px;margin:12px 0;border-radius:4px;font-size:13px;color:#7f1d1d;animation:fnFadeIn .4s ease}@keyframes fnFadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}'
+        + '.rp-btn-small{font-size:11px;padding:3px 7px;border-radius:4px;border:1px solid var(--line,#e2e8f0);background:#fff;color:var(--ink);cursor:pointer} .rp-btn-small:hover{background:#f8fafc}'
+        + '.rp-btn-danger{color:#ef4444;border-color:#ef4444} .rp-btn-danger:hover{background:#ef4444;color:#fff}'
+        + '.fn-dark .fn-warning-box{background:#1e1b4b;border-left-color:#f87171;color:#fca5a5}'
+        + '.fn-dark .rp-btn-small{background:#1f2937;border-color:#374151;color:#e5e7eb} .fn-dark .rp-btn-small:hover{background:#374151}'
+        + '.fn-dark .rp-btn-danger{color:#fca5a5;border-color:#fca5a5} .fn-dark .rp-btn-danger:hover{background:#fca5a5;color:#1f2937}'
+        + '</style>'
+        + '<div class="fn-upload-wrap' + darkCls + '">' + buildTopBar(store) + '</div>'
       + '<div class="rp-head">'
       + '<div class="rp-head-text"><h2>المالية واليومية الموحدة</h2>'
       + '<div class="muted-small">ربط مباشر مع أسطول المنصة وتحليل مالي شامل ورسوم بيانية</div></div>'
@@ -1524,6 +1697,7 @@
       + (viewData.pipelineHtml || '')
       + (viewData.chartsHtml || '')
       + '<div class="rp-kpis">' + kpisHtml + '</div>'
+      + (viewData.warningHtml || '')
       + sectionsHtml;
 
     /* ─── ربط الأحداث ─── */
@@ -1541,6 +1715,14 @@
     if (pSel) {
       pSel.addEventListener('change', function () {
         state.period = pSel.value || 'all';
+        renderFinance(host);
+      });
+    }
+
+    var sInp = host.querySelector('#fn-search-input');
+    if (sInp) {
+      sInp.addEventListener('input', function () {
+        state.search = sInp.value || '';
         renderFinance(host);
       });
     }
@@ -1665,6 +1847,35 @@
         var idx = Number(btn.getAttribute('data-fn-pdf')) || 0;
         var sec = (viewData.sections || [])[idx];
         if (sec) exportData(sec.title, sec.headers || [], sec.rows || [], 'pdf');
+      });
+    });
+
+    /* تعديل صف فردي */
+    host.querySelectorAll('[data-fn-edit-row]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = JSON.parse(btn.getAttribute('data-row'));
+        openEditModal(row, store, host);
+      });
+    });
+    /* حذف صف فردي */
+    host.querySelectorAll('[data-fn-del-row]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = JSON.parse(btn.getAttribute('data-row'));
+        var d = row[F_DATE];
+        if (!d) return;
+        if (!confirm('حذف هذه الحركة نهائياً؟\nالتاريخ: ' + d + '\nالعميل: ' + row[F_CLIENT] + '\nالمبلغ: ' + cur(Number(row[F_IN]) || 0) + ' / ' + cur(Number(row[F_OUT]) || 0))) return;
+        var s = loadStore();
+        var dayRows = s[d] || [];
+        var idx = dayRows.findIndex(function (r) {
+          return String(r[F_ID] || '') === String(row[F_ID] || '') && String(r[F_SEQ] || '') === String(row[F_SEQ] || '');
+        });
+        if (idx >= 0) {
+          dayRows.splice(idx, 1);
+          if (dayRows.length === 0) delete s[d];
+          saveStore(s);
+          deleteDayFromCloud(d);
+          renderFinance(host);
+        }
       });
     });
 
