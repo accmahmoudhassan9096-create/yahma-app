@@ -382,6 +382,10 @@
   }
 
   function doParseFile(file, callback) {
+    if (!global.XLSX || typeof global.XLSX.read !== 'function') {
+      callback(new Error('مكتبة الإكسيل غير محملة في الصفحة. يرجى تحديث الصفحة والمحاولة مرة أخرى.'), null, 0);
+      return;
+    }
     var reader = new FileReader();
     reader.onload = function (e) {
       try {
@@ -438,7 +442,8 @@
         callback(err, null, 0);
       }
     };
-    reader.onerror = function () { callback(new Error('فشل قراءة الملف'), null, 0); };
+    reader.onerror = function () { callback(new Error('فشل قراءة الملف من القرص'), null, 0); };
+    reader.onabort = function () { callback(new Error('تم إيقاف قراءة الملف'), null, 0); };
     reader.readAsArrayBuffer(file);
   }
 
@@ -1773,7 +1778,14 @@
       fileInput.addEventListener('change', function () {
         var file = fileInput.files && fileInput.files[0];
         if (!file) return;
-        statusEl.textContent = '⏳ جاري القراءة والحفظ…';
+
+        /* منع الرفع المتكرر لو عملية سابقة لسه جارية */
+        if (statusEl && /جارٍ/.test(statusEl.textContent || '')) {
+          statusEl.textContent = '⚠️ هناك عملية رفع جارية بالفعل، يرجى الانتظار حتى تنتهي…';
+          return;
+        }
+
+        statusEl.textContent = '⏳ جاري قراءة ملف "' + esc(file.name) + '"…';
 
         parseXlsxFile(file, function (err, byDate, count) {
           if (err) {
