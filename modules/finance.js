@@ -1786,6 +1786,8 @@
             freshStore[d] = byDate[d];
           });
           saveStore(freshStore);
+          /* بعد الرفع، رجع الفترة ل "الكل" عشان يظهر اليوم اللي اترفع مع الأيام القديمة */
+          state.period = 'all';
 
           /* حفظ سحابي على Supabase بدون تعديل أسطول المنصة أو باقي التبويبات */
           statusEl.textContent = '⏳ جاري الحفظ على السحابة… (' + count + ' حركة)';
