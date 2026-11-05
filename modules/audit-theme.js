@@ -377,8 +377,9 @@ function initTheme(){
   const apply=()=>{
     const dark=localStorage.getItem('fleet-theme')==='dark';
     document.body.classList.toggle('dark-mode',dark);
-    if(label) label.textContent=dark?'الوضع النهاري':'الوضع الليلي';
-    if(icon) icon.textContent=dark?'☀':'◐';
+    if(label) label.textContent=dark?'الوضع النهاري':'نسخة Liquid Glass';
+    if(icon) icon.textContent=dark?'☀':'💎';
+    if(btn) btn.setAttribute('title', dark ? 'التبديل إلى الوضع النهاري' : 'التبديل إلى نسخة Liquid Glass الفاخرة');
   };
   if(btn&&!btn._bound){
     btn._bound=true;
