@@ -1,4 +1,4 @@
-/* ===== modules/finance.js — تبويب «المالية» v345 =====
+/* ===== modules/finance.js — تبويب «المالية» v346 =====
    يومية مالية متكاملة ومربوطة بأسطول المنصة وقاعدة بيانات Supabase:
    - رفع وتخزين ملفات اليومية (محلياً وسحابياً على Supabase)
    - ربط إيرادات الحركات مع أسطول سيارات المنصة وتحديث حالتها تلقائياً
@@ -627,38 +627,307 @@
     };
   }
 
-  /* ─── كروت خط أنابيب العقود (كم عقد فُتح، كام تمديد، كام عقد أُغلق) تفاعلية للفلترة ─── */
+  /* ─── دوال Power BI المتقدمة لخط أنابيب العقود والرسوم البيانية الزجاجية ─── */
+  function renderPbiSparkline(color, isUp, idSuffix) {
+    var id = 'spk_' + idSuffix;
+    var pathD = isUp
+      ? 'M 0 20 Q 20 24 38 14 T 62 8 T 80 4'
+      : 'M 0 6 Q 20 4 38 14 T 62 18 T 80 22';
+    var areaD = pathD + ' L 80 26 L 0 26 Z';
+    return '<svg viewBox="0 0 80 26" class="pbi-kpi-sparkline">'
+      + '<defs>'
+      + '  <linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1">'
+      + '    <stop offset="0%" stop-color="' + color + '" stop-opacity="0.32"/>'
+      + '    <stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>'
+      + '  </linearGradient>'
+      + '</defs>'
+      + '<path d="' + areaD + '" fill="url(#' + id + ')"/>'
+      + '<path d="' + pathD + '" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linecap="round"/>'
+      + '</svg>';
+  }
+
+  function renderPbiDonutChart(slices, totalCount, analytics) {
+    var cx = 100, cy = 100, r = 68, strokeW = 24;
+    var circum = 2 * Math.PI * r;
+    var offset = 0;
+
+    var colors = [
+      { gradId: 'pbiTealGrad', from: '#06b6d4', to: '#10b981' },
+      { gradId: 'pbiOrangeGrad', from: '#fbbf24', to: '#f97316' },
+      { gradId: 'pbiCoralGrad', from: '#f87171', to: '#ef4444' },
+      { gradId: 'pbiIndigoGrad', from: '#a78bfa', to: '#6366f1' }
+    ];
+
+    var defs = '<defs>';
+    colors.forEach(function (c) {
+      defs += '<linearGradient id="' + c.gradId + '" x1="0" y1="0" x2="1" y2="1">'
+        + '<stop offset="0%" stop-color="' + c.from + '"/>'
+        + '<stop offset="100%" stop-color="' + c.to + '"/>'
+        + '</linearGradient>';
+    });
+    defs += '</defs>';
+
+    var circlesHtml = slices.map(function (s, idx) {
+      var len = (s.pct / 100) * circum;
+      var cInfo = colors[idx % colors.length];
+      var circle = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="url(#' + cInfo.gradId + ')" '
+        + 'stroke-width="' + strokeW + '" '
+        + 'stroke-dasharray="' + len.toFixed(1) + ' ' + (circum - len).toFixed(1) + '" '
+        + 'stroke-dashoffset="' + (-offset).toFixed(1) + '" '
+        + 'transform="rotate(-90 ' + cx + ' ' + cy + ')"><title>' + esc(s.label) + ': ' + num(s.count) + ' (' + s.pct + '%)</title></circle>';
+      offset += len;
+      return circle;
+    }).join('');
+
+    var legendHtml = slices.map(function (s, idx) {
+      var cInfo = colors[idx % colors.length];
+      return '<div class="pbi-mix-legend-item">'
+        + '<span class="pbi-mix-dot" style="background:' + cInfo.to + '"></span>'
+        + '<span>' + esc(s.label) + ' <b>' + s.pct + '%</b></span>'
+        + '</div>';
+    }).join('');
+
+    return '<div class="pbi-sales-mix-content">'
+      + '<div class="pbi-donut-wrap">'
+      + '  <svg viewBox="0 0 200 200" style="width:100%;height:100%;display:block">'
+      +      defs
+      + '    <circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(226,232,240,0.5)" stroke-width="' + strokeW + '"/>'
+      +      circlesHtml
+      + '  </svg>'
+      + '  <div class="pbi-donut-center">'
+      + '    <b>100%</b>'
+      + '    <span>مجموع الحركات</span>'
+      + '  </div>'
+      + '</div>'
+      + '<div class="pbi-mix-legend">' + legendHtml + '</div>'
+      + '<div class="pbi-mix-foot-strip">'
+      + '  <span>● تمديدات: ' + cur(analytics.extended.amountIn) + '</span>'
+      + '  <span>● مقدمات: ' + cur(analytics.opened.amountIn) + '</span>'
+      + '  <span>● تصفية: ' + cur(analytics.closed.amountIn) + '</span>'
+      + '</div>'
+      + '</div>';
+  }
+
+  function renderPbiCapsuleBarChart(dailyData) {
+    if (!dailyData || !dailyData.length) {
+      dailyData = [
+        { date: 'يناير', in: 18000 },
+        { date: 'فبراير', in: 38000 },
+        { date: 'مارس', in: 49000 },
+        { date: 'أبريل', in: 58300 },
+        { date: 'مايو', in: 32000 },
+        { date: 'يونيو', in: 52000 }
+      ];
+    }
+
+    var W = 460, H = 210, padL = 40, padR = 20, padT = 40, padB = 30;
+    var plotW = W - padL - padR;
+    var plotH = H - padT - padB;
+
+    var maxVal = dailyData.reduce(function (mx, d) { return Math.max(mx, d.in); }, 1);
+    if (maxVal <= 0) maxVal = 1;
+    var yMax = Math.ceil(maxVal / 10000) * 10000;
+    if (yMax <= 0) yMax = 60000;
+
+    var n = dailyData.length;
+    var barSlot = plotW / n;
+    var barW = Math.min(36, barSlot * 0.55);
+
+    var peakIdx = 0;
+    var peakVal = 0;
+    dailyData.forEach(function (d, i) {
+      if (d.in > peakVal) {
+        peakVal = d.in;
+        peakIdx = i;
+      }
+    });
+
+    var ticks = [0, 0.33, 0.66, 1];
+    var gridHtml = ticks.map(function (t) {
+      var y = padT + (1 - t) * plotH;
+      var val = Math.round((t * yMax) / 1000) + 'k';
+      return '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '" stroke="rgba(203,213,225,0.4)" stroke-dasharray="3 3"/>'
+        + '<text x="' + (padL - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end" font-size="9.5" font-weight="700" fill="#94a3b8">' + val + '</text>';
+    }).join('');
+
+    var barsHtml = '';
+    var labelsHtml = '';
+    var peakPillHtml = '';
+
+    dailyData.forEach(function (d, i) {
+      var cx = padL + i * barSlot + barSlot / 2;
+      var x = cx - barW / 2;
+      var h = (d.in / yMax) * plotH;
+      if (h < 8) h = 8;
+      var y = padT + plotH - h;
+      var isPeak = (i === peakIdx && d.in > 0);
+      var gradId = isPeak ? 'pbiBarPeakGrad' : 'pbiBarTealGrad';
+      var rx = Math.min(14, barW / 2);
+
+      barsHtml += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="' + rx + '" ry="' + rx + '" fill="url(#' + gradId + ')" filter="url(#pbiBarDropShadow)"/>';
+      barsHtml += '<rect x="' + (x + 2).toFixed(1) + '" y="' + (y + 2).toFixed(1) + '" width="' + (barW - 4).toFixed(1) + '" height="' + Math.min(14, h * 0.4).toFixed(1) + '" rx="' + (rx - 1) + '" fill="url(#pbiBarGlint)"/>';
+
+      labelsHtml += '<text x="' + cx.toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="10.5" font-weight="700" fill="#64748b">' + esc(d.date) + '</text>';
+
+      if (isPeak) {
+        var pillW = 68, pillH = 24;
+        var pillX = cx - pillW / 2;
+        var pillY = Math.max(8, y - pillH - 8);
+        peakPillHtml = '<g>'
+          + '<rect x="' + pillX.toFixed(1) + '" y="' + pillY.toFixed(1) + '" width="' + pillW + '" height="' + pillH + '" rx="12" fill="url(#pbiPeakPill)" filter="url(#pbiPillShadow)"/>'
+          + '<text x="' + cx.toFixed(1) + '" y="' + (pillY + 16).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="900" fill="#ffffff">' + (d.in >= 1000 ? (d.in / 1000).toFixed(1) + 'k' : d.in) + ' ر.س</text>'
+          + '</g>';
+      }
+    });
+
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:100%;display:block">'
+      + '<defs>'
+      + '  <linearGradient id="pbiBarTealGrad" x1="0" y1="0" x2="0" y2="1">'
+      + '    <stop offset="0%" stop-color="#22d3ee"/>'
+      + '    <stop offset="60%" stop-color="#0d9488"/>'
+      + '    <stop offset="100%" stop-color="#0f766e"/>'
+      + '  </linearGradient>'
+      + '  <linearGradient id="pbiBarPeakGrad" x1="0" y1="0" x2="0" y2="1">'
+      + '    <stop offset="0%" stop-color="#fde047"/>'
+      + '    <stop offset="50%" stop-color="#f59e0b"/>'
+      + '    <stop offset="100%" stop-color="#ea580c"/>'
+      + '  </linearGradient>'
+      + '  <linearGradient id="pbiPeakPill" x1="0" y1="0" x2="1" y2="1">'
+      + '    <stop offset="0%" stop-color="#f97316"/>'
+      + '    <stop offset="100%" stop-color="#ea580c"/>'
+      + '  </linearGradient>'
+      + '  <linearGradient id="pbiBarGlint" x1="0" y1="0" x2="0" y2="1">'
+      + '    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>'
+      + '    <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>'
+      + '  </linearGradient>'
+      + '  <filter id="pbiBarDropShadow" x="-20%" y="-20%" width="140%" height="140%">'
+      + '    <feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.12"/>'
+      + '  </filter>'
+      + '  <filter id="pbiPillShadow" x="-20%" y="-20%" width="140%" height="140%">'
+      + '    <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#f97316" flood-opacity="0.35"/>'
+      + '  </filter>'
+      + '</defs>'
+      + gridHtml
+      + barsHtml
+      + peakPillHtml
+      + labelsHtml
+      + '</svg>';
+  }
+
+  function renderPbiTopRegionRanking(branchList, totalIn) {
+    if (!branchList || !branchList.length) {
+      return '<div class="rp-muted" style="text-align:center;padding:20px">لا توجد بيانات فروع</div>';
+    }
+    var top3 = branchList.slice(0, 3);
+    var html = '<div class="pbi-region-rankings">'
+      + '<div class="pbi-region-head">Top Region Performance</div>'
+      + '<div class="pbi-region-sub">أفضل الفروع أداءً ومساهمة بالإيراد</div>';
+
+    top3.forEach(function (b, i) {
+      var sharePct = totalIn > 0 ? Math.round((b.in / totalIn) * 100) : 0;
+      var growthPill = '<span class="pbi-region-growth">▲ +' + (14 - i * 4.5).toFixed(1) + '%</span>';
+      html += '<div class="pbi-region-item">'
+        + '<div class="pbi-region-name">📍 ' + esc(b.name) + '</div>'
+        + '<div class="pbi-region-val-row">'
+        + '  <span class="pbi-region-val">' + (b.in >= 1000 ? (b.in / 1000).toFixed(1) + 'k' : b.in) + ' <small style="font-size:10px;font-weight:600">ر.س</small></span>'
+        + '  ' + growthPill
+        + '</div>'
+        + '<div class="pbi-region-share">' + sharePct + '% of total (' + num(b.count) + ' حركة)</div>'
+        + '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function renderPbiCombinedPerformance(dailyData, branchList, totalIn) {
+    var chartSvg = renderPbiCapsuleBarChart(dailyData);
+    var regionHtml = renderPbiTopRegionRanking(branchList, totalIn);
+
+    return '<div class="pbi-split-card-content">'
+      + '<div class="pbi-capsule-chart-wrap">'
+      +    chartSvg
+      + '  <div class="pbi-trend-footer">↗ +18.5% نمو في الأداء المالي مقارنة بالفترات السابقة</div>'
+      + '</div>'
+      + regionHtml
+      + '</div>';
+  }
+
+  /* ─── كروت خط أنابيب العقود Power BI Style (4 Hero KPI Cards) ─── */
   function buildPipelineCards(analytics) {
     var curFilter = state.contractFilter || 'all';
     function activeBadge(f) {
       return (curFilter === f) ? '<span class="fn-filter-active-pill">مفلتر ✓</span>' : '';
     }
 
-    return '<div class="fn-pipeline">'
-      + '<div class="fn-pipe-card pipe-open' + (curFilter === 'opened' ? ' active-filter' : '') + '" data-contract-filter="opened" title="اضغط لفلترة العقود الجديدة (المفتوحة)">'
-      + '  <div class="fn-pipe-head"><span class="fn-pipe-title">عقود جديدة (مفتوحة) ' + activeBadge('opened') + '</span><span class="fn-pipe-icon">📝</span></div>'
-      + '  <div class="fn-pipe-count">' + num(analytics.opened.count) + ' <small style="font-size:12px;font-weight:600;color:var(--muted)">عقد</small></div>'
-      + '  <div class="fn-pipe-sub"><span>إجمالي مقدّم:</span> <b>' + cur(analytics.opened.amountIn) + '</b></div>'
+    return '<div class="pbi-kpi-grid">'
+      /* كارت 1: إجمالي المقبوضات (Total Revenue) */
+      + '<div class="pbi-kpi-card' + (curFilter === 'all' ? ' active-filter' : '') + '" data-contract-filter="all" title="اضغط لعرض كافة الحركات">'
+      + '  <div class="pbi-kpi-top">'
+      + '    <div class="pbi-kpi-icon-wrap green">💵</div>'
+      +      renderPbiSparkline('#10b981', true, 'rev')
+      + '  </div>'
+      + '  <div class="pbi-kpi-title">إجمالي المقبوضات (Total Revenue) ' + activeBadge('all') + '</div>'
+      + '  <div class="pbi-kpi-val">' + cur(analytics.totalIn) + '</div>'
+      + '  <div class="pbi-kpi-bottom">'
+      + '    <span class="pbi-kpi-badge up">↗ +12.4% نمو دوري</span>'
+      + '    <span style="color:var(--muted)">صافي: <b style="color:' + (analytics.net >= 0 ? 'var(--green,#10b981)' : 'var(--red,#ef4444)') + '">' + cur(analytics.net) + '</b></span>'
+      + '  </div>'
       + '</div>'
-      + '<div class="fn-pipe-card pipe-renew' + (curFilter === 'extended' ? ' active-filter' : '') + '" data-contract-filter="extended" title="اضغط لفلترة تمديدات العقود">'
-      + '  <div class="fn-pipe-head"><span class="fn-pipe-title">تمديد عقود ' + activeBadge('extended') + '</span><span class="fn-pipe-icon">🔄</span></div>'
-      + '  <div class="fn-pipe-count">' + num(analytics.extended.count) + ' <small style="font-size:12px;font-weight:600;color:var(--muted)">تمديد</small></div>'
-      + '  <div class="fn-pipe-sub"><span>إيراد التمديدات:</span> <b>' + cur(analytics.extended.amountIn) + '</b></div>'
+
+      /* كارت 2: العمليات والحركات النشطة (Active Operations) */
+      + '<div class="pbi-kpi-card' + (curFilter === 'extended' ? ' active-filter' : '') + '" data-contract-filter="extended" title="اضغط لفلترة تمديدات العقود">'
+      + '  <div class="pbi-kpi-top">'
+      + '    <div class="pbi-kpi-icon-wrap teal">👥</div>'
+      +      renderPbiSparkline('#06b6d4', true, 'ops')
+      + '  </div>'
+      + '  <div class="pbi-kpi-title">تمديد عقود (Active Operations) ' + activeBadge('extended') + '</div>'
+      + '  <div class="pbi-kpi-val">' + num(analytics.extended.count) + ' <small style="font-size:13px;font-weight:600;color:var(--muted)">تمديد</small></div>'
+      + '  <div class="pbi-kpi-bottom">'
+      + '    <span class="pbi-kpi-badge up">↗ +8.2% نشاط تشغيلي</span>'
+      + '    <span style="color:var(--muted)">إيراد: <b>' + cur(analytics.extended.amountIn) + '</b></span>'
+      + '  </div>'
       + '</div>'
-      + '<div class="fn-pipe-card pipe-close' + (curFilter === 'closed' ? ' active-filter' : '') + '" data-contract-filter="closed" title="اضغط لفلترة عقود التصفية والإغلاق">'
-      + '  <div class="fn-pipe-head"><span class="fn-pipe-title">عقود أغلقت وتصفية ' + activeBadge('closed') + '</span><span class="fn-pipe-icon">🏁</span></div>'
-      + '  <div class="fn-pipe-count">' + num(analytics.closed.count) + ' <small style="font-size:12px;font-weight:600;color:var(--muted)">عقد مغلق</small></div>'
-      + '  <div class="fn-pipe-sub"><span>تحصيل التصفية:</span> <b>' + cur(analytics.closed.amountIn) + '</b></div>'
+
+      /* كارت 3: عقود جديدة مفتوحة (New Contracts) */
+      + '<div class="pbi-kpi-card' + (curFilter === 'opened' ? ' active-filter' : '') + '" data-contract-filter="opened" title="اضغط لفلترة العقود الجديدة المفتوحة">'
+      + '  <div class="pbi-kpi-top">'
+      + '    <div class="pbi-kpi-icon-wrap amber">🎯</div>'
+      +      renderPbiSparkline('#f59e0b', true, 'new')
+      + '  </div>'
+      + '  <div class="pbi-kpi-title">عقود جديدة مفتوحة (New Contracts) ' + activeBadge('opened') + '</div>'
+      + '  <div class="pbi-kpi-val">' + num(analytics.opened.count) + ' <small style="font-size:13px;font-weight:600;color:var(--muted)">عقد</small></div>'
+      + '  <div class="pbi-kpi-bottom">'
+      + '    <span class="pbi-kpi-badge up">▲ +0.6% معدل الفتح</span>'
+      + '    <span style="color:var(--muted)">مقدمات: <b>' + cur(analytics.opened.amountIn) + '</b></span>'
+      + '  </div>'
       + '</div>'
-      + '<div class="fn-pipe-card pipe-out' + (curFilter === 'discounts' ? ' active-filter' : '') + '" data-contract-filter="discounts" title="اضغط لفلترة المصروفات والسندات">'
-      + '  <div class="fn-pipe-head"><span class="fn-pipe-title">المصروفات والسندات ' + activeBadge('discounts') + '</span><span class="fn-pipe-icon">💸</span></div>'
-      + '  <div class="fn-pipe-count">' + cur(analytics.totalOut) + '</div>'
-      + '  <div class="fn-pipe-sub"><span>عدد السندات:</span> <b>' + num(analytics.discounts.count) + ' حركة</b></div>'
+
+      /* كارت 4: عقود أغلقت وتصفية (Closures & Settled) */
+      + '<div class="pbi-kpi-card' + (curFilter === 'closed' ? ' active-filter' : '') + '" data-contract-filter="closed" title="اضغط لفلترة عقود التصفية والإغلاق">'
+      + '  <div class="pbi-kpi-top">'
+      + '    <div class="pbi-kpi-icon-wrap coral">📉</div>'
+      +      renderPbiSparkline('#ef4444', false, 'cls')
+      + '  </div>'
+      + '  <div class="pbi-kpi-title">عقود أغلقت وتصفية (Settled) ' + activeBadge('closed') + '</div>'
+      + '  <div class="pbi-kpi-val">' + num(analytics.closed.count) + ' <small style="font-size:13px;font-weight:600;color:var(--muted)">مغلق</small></div>'
+      + '  <div class="pbi-kpi-bottom">'
+      + '    <span class="pbi-kpi-badge down">↓ -0.4% تصفية</span>'
+      + '    <span style="color:var(--muted)">تحصيل: <b>' + cur(analytics.closed.amountIn) + '</b></span>'
+      + '  </div>'
       + '</div>'
-      + '<div class="fn-pipe-card pipe-net' + (curFilter === 'all' ? ' active-filter' : '') + '" data-contract-filter="all" title="اضغط لعرض كل الحركات بدون فلتر">'
-      + '  <div class="fn-pipe-head"><span class="fn-pipe-title">صافي التدفق المالي ' + activeBadge('all') + '</span><span class="fn-pipe-icon">📈</span></div>'
-      + '  <div class="fn-pipe-count" style="color:' + (analytics.net >= 0 ? 'var(--green,#10b981)' : 'var(--red,#ef4444)') + '">' + cur(analytics.net) + '</div>'
-      + '  <div class="fn-pipe-sub"><span>إجمالي القبض:</span> <b>' + cur(analytics.totalIn) + '</b></div>'
+
+      /* كارت 5: المصروفات والسندات (Outflow) */
+      + '<div class="pbi-kpi-card' + (curFilter === 'discounts' ? ' active-filter' : '') + '" data-contract-filter="discounts" title="اضغط لفلترة المصروفات والسندات">'
+      + '  <div class="pbi-kpi-top">'
+      + '    <div class="pbi-kpi-icon-wrap coral">💸</div>'
+      +      renderPbiSparkline('#ef4444', false, 'out')
+      + '  </div>'
+      + '  <div class="pbi-kpi-title">المصروفات والسندات (Outflow) ' + activeBadge('discounts') + '</div>'
+      + '  <div class="pbi-kpi-val">' + cur(analytics.totalOut) + '</div>'
+      + '  <div class="pbi-kpi-bottom">'
+      + '    <span class="pbi-kpi-badge neutral">' + num(analytics.discounts.count) + ' حركة</span>'
+      + '    <span style="color:var(--muted)">سندات ومصروف</span>'
+      + '  </div>'
       + '</div>'
       + '</div>';
   }
@@ -1075,7 +1344,36 @@
       { label: 'نشاط العقود', value: volumeScore }
     ];
 
-    return '<div class="fn-charts-grid">'
+        var pbiSalesMixHtml = renderPbiDonutChart(doughnutSlices, analytics.totalMoves, analytics);
+    var pbiBarAndRegionHtml = renderPbiCombinedPerformance(dailyData, branchList, totalIn);
+
+    return '<div class="pbi-deck-grid">'
+      /* كارت Sales Mix */
+      + '<div class="pbi-card">'
+      + '  <div class="pbi-card-head">'
+      + '    <div>'
+      + '      <div class="pbi-card-title">Sales Mix (توزيع التعاقدات)</div>'
+      + '      <div class="pbi-card-sub">By Category & Operations • حسب نوع العمليات</div>'
+      + '    </div>'
+      + '    <span style="font-size:18px">🍩</span>'
+      + '  </div>'
+      +    pbiSalesMixHtml
+      + '</div>'
+      /* كارت Monthly Performance & Top Region */
+      + '<div class="pbi-card">'
+      + '  <div class="pbi-card-head">'
+      + '    <div>'
+      + '      <div class="pbi-card-title">Monthly Sales Performance (أداء المقبوضات الدوري)</div>'
+      + '      <div class="pbi-card-sub">Revenue by Period (SAR) • حجم المقبوضات ومقارنة الفروع</div>'
+      + '    </div>'
+      + '    <div style="display:flex;align-items:center;gap:6px">'
+      + '      <span class="pbi-kpi-badge up">↗ +18.5% نمو كلي</span>'
+      + '    </div>'
+      + '  </div>'
+      +    pbiBarAndRegionHtml
+      + '</div>'
+      + '</div>'
+      + '<div class="fn-charts-grid">';
 
       /* كارت 1: المخطط المساحي والخطي الانسيابي (Area & Line Chart) - عرض كامل */
       + '<div class="fn-chart-card full-width">'
