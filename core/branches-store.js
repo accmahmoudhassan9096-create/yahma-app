@@ -120,7 +120,7 @@ const PAGE_PERMISSION_OPTIONS=[
   {id:'fleet',label:'الأسطول'},{id:'branches',label:'الفروع'},{id:'reports',label:'التقارير'},{id:'renewals',label:'الفحص'},
   {id:'payments',label:'تحت الدفع'},{id:'paid',label:'تم الدفع'},{id:'renewed',label:'تم التجديد'},{id:'license-renewals',label:'رخص منتهية'},
   {id:'insurance-renewals',label:'التأمين'},{id:'inspections',label:'بطاقات التشغيل'},
-  {id:'transfers',label:'التنازلات'},{id:'audit',label:'سجل النشاط'},{id:'users',label:'المستخدمون'}
+  {id:'audit',label:'سجل النشاط'},{id:'users',label:'المستخدمون'}
 ];
 window.PAGE_PERMISSION_OPTIONS=PAGE_PERMISSION_OPTIONS;
 window.currentUserPermissions=Array.isArray(window.currentUserPermissions)?window.currentUserPermissions:[];
@@ -130,7 +130,7 @@ window.currentUserPermissions=Array.isArray(window.currentUserPermissions)?windo
    القاعدة الجديدة: لو مفيش تحديد صريح، امنح كل الأقسام عدا السجل الإداري. */
 window.ALL_YAHMA_TABS=(typeof PAGE_PERMISSION_OPTIONS!=='undefined'&&Array.isArray(PAGE_PERMISSION_OPTIONS))
   ? PAGE_PERMISSION_OPTIONS.map(function(p){return p.id;})
-  : ['dashboard','fleet','branches','reports','renewals','payments','paid','renewed','license-renewals','insurance-renewals','inspections','transfers','audit'];
+  : ['dashboard','fleet','branches','reports','renewals','payments','paid','renewed','license-renewals','insurance-renewals','inspections','audit'];
 window.defaultYahmaTabsForRole=function(role){
   var all=window.ALL_YAHMA_TABS||[];
   if(role==='admin') return all.slice();
@@ -225,8 +225,7 @@ function fleetForTab(tab, list){
       return ins(c) === 'red';
     });
     case 'inspections':   return all.filter(function(c){ return card(c) === 'red'; });
-    case 'transfers':     return all.filter(function(c){ return String(c.transferDone||'').trim()==='نعم'; });
-    default: return all;
+        default: return all;
   }
 }
 function filterByPaymentIds(all, kind){

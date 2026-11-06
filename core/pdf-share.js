@@ -373,7 +373,6 @@ function renderRenewals(content,mode){ return window.YahmaRenewals.render(conten
 
 function renderFollowUp(content){ return window.YahmaFollowUp.render(content); }
 
-function renderTransfers(content){ return window.YahmaTransfers.render(content); }
 
 function openModal(id){
   return window.YahmaVehicleModal.open(id, {

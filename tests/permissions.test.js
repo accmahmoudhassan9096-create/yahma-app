@@ -37,7 +37,7 @@ test('«مشاهدة» تفضل مقفولة في باقي التبويبات', 
   const p = loadPerms('view', { tab: 'renewals' });
   assert.strictEqual(p.inTab('renewals'), false, 'دورة الدفع شغل تشغيل');
   assert.strictEqual(p.canEditNow(), false, 'ما فيش تعديل في تبويب الفحص');
-  ['payments', 'paid', 'renewed', 'audit', 'transfers', 'branches'].forEach((t) => {
+  ['payments', 'paid', 'renewed', 'audit', 'branches'].forEach((t) => {
     assert.strictEqual(p.inTab(t), false, t + ' مقفول');
   });
 });
@@ -47,7 +47,7 @@ test('«مشاهدة» ما تقدرش تحذف في أي تبويب', () => {
   assert.strictEqual(fleet.canBulk(), true, 'يقدر يحدد ويستخدم إجراءات جماعية');
   assert.strictEqual(fleet.canDelete(), false, 'الحذف ممنوع');
   assert.strictEqual(fleet.canAdminister(), false, 'إدارة المستخدمين ممنوعة');
-  ['renewals', 'payments', 'transfers'].forEach((t) => {
+  ['renewals', 'payments'].forEach((t) => {
     assert.strictEqual(loadPerms('view', { tab: t }).canDelete(), false, t + ': الحذف ممنوع');
   });
 });
