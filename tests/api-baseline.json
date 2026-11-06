@@ -143,9 +143,6 @@
     "loadScript",
     "pdfPrepare"
   ],
-  "YahmaFinance": [
-    "render"
-  ],
   "YahmaFleet": [
     "count",
     "createFilterEngine",

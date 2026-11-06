@@ -158,7 +158,7 @@ function render(){
      بنلفّ fleet مؤقتاً وقت الرسم ونرجّعها فوراً — فالتعديل والحفظ شغالين عادي. */
   let scopedFleet=null;
   if (typeof fleetForTab==='function' && currentTab
-      && ['dashboard','fleet','branches','reports','finance','audit','preparation','users'].indexOf(currentTab)<0){
+      && ['dashboard','fleet','branches','reports','audit','preparation','users'].indexOf(currentTab)<0){
     try{
       __yahmaFullFleet = fleet;
       scopedFleet = fleetForTab(currentTab, fleet);
@@ -182,7 +182,6 @@ function render(){
 if(currentTab === 'dashboard') renderDashboard(content);
     else if(currentTab === 'fleet') renderFleet(content);
     else if(currentTab === 'reports') renderReports(content);
-    else if(currentTab === 'finance') renderFinance(content);
     else if(currentTab === 'renewals') renderRenewals(content,'inspection');
     else if(currentTab === 'license-renewals') renderRenewals(content,'license');
     else if(currentTab === 'insurance-renewals') renderRenewals(content,'insurance');
@@ -198,7 +197,7 @@ if(currentTab === 'dashboard') renderDashboard(content);
   }catch(e){
     window.__lastError=(e&&e.stack)||String(e);
     console.error('render failed for tab '+currentTab,e);
-    if((currentTab==='reports'||currentTab==='finance')&&content){
+    if((currentTab==='reports')&&content){
       content.innerHTML='<div class="panel"><h3>تعذر عرض التقارير</h3><p class="muted-small">'+escapeHtml(e&&e.message?e.message:'حدث خطأ غير متوقع')+'</p><button type="button" class="btn btn-primary btn-small" id="reports-retry">إعادة المحاولة</button></div>';
       document.getElementById('reports-retry')?.addEventListener('click',()=>render());
     }else renderEmergencyFleet(content);

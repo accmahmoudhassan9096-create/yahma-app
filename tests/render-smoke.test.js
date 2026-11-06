@@ -57,7 +57,7 @@ const BROWSER_GLOBALS = new Set([
   'defaultLicenseExpiry', 'normalizeDateValue', 'churnStats', 'carChurn', 'churnStats',
   'canBulkPayAction', 'canBulkHere', 'canDeleteHere', 'renderInspectionPayments',
   'renderPaidInspections', 'renderRenewedInspections', 'renderFollowUp', 'renderTransfers',
-  'renderBranches', 'renderPreparation', 'renderAuditPage', 'renderDashboard', 'renderFleet', 'renderFinance', 'YahmaFinance',
+  'renderBranches', 'renderPreparation', 'renderAuditPage', 'renderDashboard', 'renderFleet',
   'renderUsers', 'renderReports', 'renderAudit', 'saveData', 'loadData', 'loadBranches',
   'applyRole', 'applyBranchScopeUI', 'showBranchScopeNotice', 'applyTabEditPermission',
   'updateLastSyncLabel', 'showDataWarning', 'hideDataWarning', 'formatCurrency',
