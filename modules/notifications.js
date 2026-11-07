@@ -10,6 +10,7 @@
  let activeFilter='all';
  let shownToastIds=new Set();
  try{shownToastIds=new Set(JSON.parse(localStorage.getItem(TOAST_KEY)||'[]'))}catch(e){shownToastIds=new Set()}
+ const _E = (v)=>typeof escapeHtml==='function'?escapeHtml(v):String(v==null?'':v);
  function notificationItems(){
   const out=[]; const push=(car,type,date,status)=>out.push({id:`${car.id}-${type}-${date||''}`,car,type,date,status});
   (fleet||[]).forEach(c=>{
