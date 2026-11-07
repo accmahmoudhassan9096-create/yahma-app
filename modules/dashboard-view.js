@@ -10,8 +10,84 @@
 
 /* ===== القالب ===== */
 function dashboardTemplate(state) {
-  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend } = state;
+  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, leastIdleBranchName, leastIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend } = state;
   return `
+  <style>
+    /* بطاقات الركود والتشغيل — تصميم فاخر وتفاعلي */
+    .home-kpi {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      border-radius: 16px;
+    }
+    .home-kpi:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+    .home-kpi-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      transition: all 0.3s ease;
+      margin-bottom: 12px;
+    }
+    .home-kpi:hover .home-kpi-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+    .home-kpi-body span.home-kpi-label {
+      font-size: 12px;
+      color: var(--muted, #6b7280);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .home-kpi-num {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--ink, #171c2e);
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+    .home-kpi-pct {
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .home-kpi.warn .home-kpi-icon {
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+    }
+    .home-kpi.good .home-kpi-icon {
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    }
+    @keyframes idlePulse {
+      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
+      70% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    .home-kpi-warn-pulse {
+      animation: idlePulse 2s infinite;
+    }
+    .home-kpi-body { position: relative; z-index: 2; }
+    .home-kpi::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 1;
+    }
+    .home-kpi:hover::before { opacity: 1; }
+    .home-kpi:active { transform: scale(0.96); }
+    .home-kpi.good .home-kpi-pct { color: #10b981; }
+    .home-kpi.good .home-kpi-icon.blue { box-shadow: 0 0 20px rgba(2, 132, 199, 0.4); }
+  </style>
   <div class="home-dash">
     <!-- Hero -->
     <div class="home-hero hero-executive">
@@ -126,6 +202,14 @@ function dashboardTemplate(state) {
           <span class="home-kpi-label">أكثر فرع ركوداً</span>
           <b class="home-kpi-num">${topIdleBranchName}</b>
           <span class="home-kpi-pct warn">${topIdleBranchCount} سيارة</span>
+        </div>
+      </div>
+      <div class="home-kpi good" id="kpi-least-idle-branch">
+        <div class="home-kpi-icon green">✅</div>
+        <div class="home-kpi-body">
+          <span class="home-kpi-label">أقل فرع ركوداً</span>
+          <b class="home-kpi-num">${leastIdleBranchName}</b>
+          <span class="home-kpi-pct good">${leastIdleBranchCount} سيارة</span>
         </div>
       </div>
     </div>

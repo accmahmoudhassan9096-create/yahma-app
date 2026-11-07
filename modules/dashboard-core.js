@@ -126,27 +126,37 @@ function computeDashboardState(fleet) {
     .slice(0, 5);
 
   /* ===== تقارير الركود (Idle Cars) ===== */
-  // سيارات راقدة: غير مؤجرة ولم تتحرك منذ 30 يوم أو أكثر
+  // سيارات راقدة: غير مؤجرة ولم تتحرك منذ 7 أيام أو أكثر
+  const ignoredBranches = ['0', 'الإدارة الرئيسيه', 'الإدارة الرئيسية'];
   const idleCars = fleet.filter(c => {
     const status = String(c.carStatus || '').trim();
     const isRented = status.includes('مؤجر');
     const daysIdle = Number(c.daysSinceMovement || 0);
-    return !isRented && daysIdle >= 30;
+    const branch = String(c.branch || '').trim();
+    return !isRented && daysIdle >= 7 && !ignoredBranches.includes(branch);
   });
   const idleCount = idleCars.length;
   const idleLoss = idleCars.reduce((sum, c) => sum + (Number(c.dailyRate || 0) * Number(c.daysSinceMovement || 0)), 0);
   const idleLossRounded = Math.round(idleLoss);
 
-  // تجميع الرakraدة حسب الفرع
+  // تجميع الركود حسب الفرع (تجاهل الفروع المستثناة)
   const idleByBranch = {};
   idleCars.forEach(c => {
     const b = c.branch || 'غير محدد';
     idleByBranch[b] = (idleByBranch[b] || 0) + 1;
   });
-  const topIdleBranch = Object.entries(idleByBranch)
-    .sort((a, b) => b[1] - a[1])[0];
+  const idleBranchEntries = Object.entries(idleByBranch)
+    .filter(([name]) => !ignoredBranches.includes(name));
+  
+  // أكثر فرع ركوداً
+  const topIdleBranch = idleBranchEntries.sort((a, b) => b[1] - a[1])[0];
   const topIdleBranchName = topIdleBranch ? topIdleBranch[0] : '—';
   const topIdleBranchCount = topIdleBranch ? topIdleBranch[1] : 0;
+  
+  // أقل فرع ركوداً (أقل عدد سيارات راقدة)
+  const leastIdleBranch = idleBranchEntries.sort((a, b) => a[1] - b[1])[0];
+  const leastIdleBranchName = leastIdleBranch ? leastIdleBranch[0] : '—';
+  const leastIdleBranchCount = leastIdleBranch ? leastIdleBranch[1] : 0;
 
   /* ===== تقارير التشغيل (Occupancy Report) ===== */
   // سيارات متاحة للإيجار: غير مؤجرة وجاهزة (ليست راقدة ومعدة)
@@ -476,6 +486,8 @@ function computeDashboardState(fleet) {
   leastOccupiedBranchName,
   leastOccupiedBranchPct,
   occupancyTrend,
+  leastIdleBranchName,
+  leastIdleBranchCount,
    };
 }
 
