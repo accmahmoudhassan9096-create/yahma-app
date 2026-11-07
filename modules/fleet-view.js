@@ -209,6 +209,7 @@
            من شريط yx الموحّد. -->
       ${canDelete ? '<button class="btn btn-ghost" id="fleet-clean-duplicates" type="button" title="فحص الأسطول واكتشاف وحذف أي سيارات مكررة" style="color:var(--accent,#008080)">🔍 فحص وحذف المكرر</button>' : ''}
       <button class="btn btn-ghost" id="fleet-clear-filters" title="إلغاء جميع الفلاتر">↺ مسح الفلاتر</button>
+      <button class="btn btn-ghost" id="fleet-export-custom" title="تصدير مخصص — اختيار الأعمدة">⚙️ تصدير مخصص</button>
     </div>
     <div class="bulk-bar" id="bulk-bar" style="display:none">
       <div class="bulk-bar-info">
@@ -302,6 +303,25 @@
           <option value="100">100 (حد أقصى سلس)</option>
         </select>
       </label>
+    </div>
+
+    <!-- مخصص التصدير — اختيار الأعمدة -->
+    <div id="fleet-export-custom-modal" class="overlay" style="display:none">
+      <div class="modal" style="max-width:520px">
+        <h3>تصدير مخصص — اختر الأعمدة</h3>
+        <div style="max-height:360px;overflow-y:auto;margin:16px 0">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button type="button" id="export-select-all" class="btn btn-primary btn-small">تحديد الكل</button>
+            <button type="button" id="export-select-none" class="btn btn-ghost btn-small">إلغاء الكل</button>
+          </div>
+          <div id="export-columns-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 0">
+          <button type="button" id="export-custom-cancel" class="btn btn-ghost btn-small">إلغاء</button>
+          <button type="button" id="export-custom-xlsx" class="btn btn-primary">تصدير Excel</button>
+          <button type="button" id="export-custom-pdf" class="btn btn-primary">تصدير PDF</button>
+        </div>
+      </div>
     </div>`;
 
   const $=id=>document.getElementById(id);
@@ -848,6 +868,97 @@
     }
     exportRows(rows);
   };
+
+  /* ===== تصدير مخصص — اختيار الأعمدة ===== */
+  const EXPORT_COLUMNS = [
+    { key:'plate', label:'رقم اللوحة', get:c=>c.plate||'—' },
+    { key:'brand', label:'الماركة', get:c=>c.brand||'—' },
+    { key:'type', label:'النوع', get:c=>c.type||'—' },
+    { key:'model', label:'الموديل', get:c=>c.model||'—' },
+    { key:'serial', label:'الرقم التسلسلي', get:c=>c.serial||'—' },
+    { key:'cardNumber', label:'رقم البطاقة', get:c=>(typeof fmtCardNumber==='function'?fmtCardNumber(c.cardNumber):c.cardNumber)||'—' },
+    { key:'cardStatus', label:'حالة البطاقة', get:c=>cardState(c).label },
+    { key:'cardExpiry', label:'تاريخ نهاية البطاقة', get:c=>fmtDate(c.cardExpiry) },
+    { key:'licenseStatus', label:'حالة الرخصة', get:c=>licenseState(c).label },
+    { key:'licenseExpiry', label:'تاريخ نهاية الرخصة', get:c=>fmtDate(c.licenseExpiry) },
+    { key:'inspectionStatus', label:'حالة الفحص', get:c=>inspectionState(c).label },
+    { key:'insuranceStatus', label:'حالة التأمين', get:c=>textTag(c.insuranceStatus).label },
+    { key:'owner', label:'المالك', get:c=>c.owner||'—' },
+    { key:'branch', label:'الفرع', get:c=>c.branch||'—' },
+    { key:'city', label:'المدينة', get:c=>c.city||'—' },
+    { key:'carStatus', label:'حالة السيارة', get:c=>c.carStatus||'—' },
+    { key:'readiness', label:'الجاهزية', get:c=>{try{return vehicleReadiness(c).label}catch(e){return'—'}} },
+    { key:'prepStatus', label:'حالة التجهيز', get:c=>prepStatusForCar(c).label },
+    { key:'odometer', label:'العداد', get:c=>String(c.odometer??'').trim()||'—' },
+    { key:'nextService', label:'الصيانة القادمة', get:c=>fmtDate(c.nextService) },
+    { key:'notes', label:'ملاحظات', get:c=>c.notes||'—' },
+  ];
+
+  function buildColumnCheckboxes(){
+    const container=document.getElementById('export-columns-list');
+    if(!container) return;
+    container.innerHTML=EXPORT_COLUMNS.map(col=>`
+      <label style="display:flex;align-items:center;gap:6px;padding:6px;border:1px solid var(--line,#e1e6f1);border-radius:8px;cursor:pointer;background:#fff">
+        <input type="checkbox" class="export-col-chk" data-key="${col.key}" checked style="accent-color:var(--accent,#008080)">
+        <span>${col.label}</span>
+      </label>
+    `).join('');
+  }
+
+  function openCustomExport(){
+    const modal=document.getElementById('fleet-export-custom-modal');
+    if(modal){modal.style.display='flex'; buildColumnCheckboxes();}
+  }
+  function closeCustomExport(){
+    const modal=document.getElementById('fleet-export-custom-modal');
+    if(modal){modal.style.display='none';}
+  }
+
+  $('fleet-export-custom')?.addEventListener('click',openCustomExport);
+  $('export-custom-cancel')?.addEventListener('click',closeCustomExport);
+  $('export-select-all')?.addEventListener('click',()=>{
+    document.querySelectorAll('.export-col-chk').forEach(cb=>cb.checked=true);
+  });
+  $('export-select-none')?.addEventListener('click',()=>{
+    document.querySelectorAll('.export-col-chk').forEach(cb=>cb.checked=false);
+  });
+
+  $('export-custom-xlsx')?.addEventListener('click',()=>{
+    const checked=document.querySelectorAll('.export-col-chk:checked');
+    if(!checked.length){alert('اختر عمودًا واحدًا على الأقل.');return;}
+    const sel=[...checked].map(cb=>cb.dataset.key);
+    const rows=getFilteredRows();
+    if(!rows.length){alert('لا توجد نتائج مطابقة للفلاتر.');return;}
+    const headers=sel.map(k=>EXPORT_COLUMNS.find(c=>c.key===k).label);
+    const data=rows.map(c=>sel.map(k=>EXPORT_COLUMNS.find(cc=>cc.key===k).get(c)));
+    const name='سيارات-مخصص-'+new Date().toISOString().slice(0,10)+'.xlsx';
+    if(window.YahmaExport&&window.YahmaExport.exportRowsToExcel){
+      window.YahmaExport.exportRowsToExcel(name,'سيارات مخصص',headers,data);
+    } else {
+      alert('مكتبة التصدير غير متاحة.');
+    }
+    closeCustomExport();
+  });
+
+  $('export-custom-pdf')?.addEventListener('click',()=>{
+    const checked=document.querySelectorAll('.export-col-chk:checked');
+    if(!checked.length){alert('اختر عمودًا واحدًا على الأقل.');return;}
+    const sel=[...checked].map(cb=>cb.dataset.key);
+    const rows=getFilteredRows();
+    if(!rows.length){alert('لا توجد نتائج مطابقة للفلاتر.');return;}
+    const headers=sel.map(k=>EXPORT_COLUMNS.find(c=>c.key===k).label);
+    const data=rows.map(c=>sel.map(k=>EXPORT_COLUMNS.find(cc=>cc.key===k).get(c)));
+    const name='سيارات-مخصص-'+new Date().toISOString().slice(0,10)+'.pdf';
+    if(window.YahmaExport&&window.YahmaExport.exportTablePdf){
+      window.YahmaExport.exportTablePdf({title:'تصدير مخصص — نتائج الأسطول',subtitle:'عدد السجلات: '+rows.length,headers,rows,data,buttonId:'fleet-export-custom-pdf',filename:name});
+    } else if(typeof openPrintWindow==='function') {
+      openPrintWindow('تصدير مخصص — نتائج الأسطول','عدد السجلات: '+rows.length,headers,data);
+    } else {
+      alert('تعذر فتح نافذة PDF');
+    }
+    closeCustomExport();
+  });
+
   window._yahmaGetFilteredCars = getFilteredRows;
   /* أزرار fleet-export-* اتشالت من الشاشة. الربط هنا كان من غير ?.،
      فكان بيعمل TypeError ويوقّف رسم تبويب الأسطول كله. */
