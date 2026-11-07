@@ -98,6 +98,29 @@
   document.getElementById('topbar-sub').textContent = fleet.length + ' سيارة — إدارة الجاهزية للتأجير';
   const fleetStats=readinessStats();
   const fleetAttention=Math.max(0, fleetStats.total-fleetStats.ready-fleetStats.out);
+
+  /* تنبيه وثائق تنتهي خلال 7 أيام */
+  const expiring7 = fleet.filter(c => {
+    const fields = ['cardExpiry', 'licenseExpiry', 'insuranceExpiry'];
+    return fields.some(f => {
+      const d = new Date(c[f]).getTime();
+      if (isNaN(d)) return false;
+      const days = Math.round((d - Date.now()) / 86400000);
+      return days >= 0 && days <= 7;
+    });
+  }).length;
+
+  const expiringNotice = expiring7 > 0 ? `
+    <div style="background:#fff0f0;border:1px solid #d32f2f;color:#d32f2f;padding:10px 16px;border-radius:8px;margin:12px 0;display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">⚠️</span>
+      <div>
+        <b>${expiring7} سيارة لديها وثائق تنتهي خلال 7 أيام</b>
+        <div style="font-size:12px;opacity:0.8">رخصة، تأمين، أو كارت تشغيل — راجع تبويب التجديدات</div>
+      </div>
+      <button type="button" class="btn btn-primary btn-small" style="margin-left:auto" onclick="document.querySelector('.nav-item[data-tab=\"renewals\"]').click()">عرض المنتهية</button>
+    </div>
+  ` : '';
+
   const uniq=(field)=>{
     const map=new Map(); // normalized -> display
     fleet.forEach(c=>{
@@ -120,6 +143,7 @@
         <button type="button" class="fleet-summary-card attention" data-fleet-quick="not_ready"><span class="fleet-summary-icon">!</span><span><b>0</b><small>تحتاج إجراء</small></span></button>
         <button type="button" class="fleet-summary-card out" data-fleet-quick="out"><span class="fleet-summary-icon">×</span><span><b>0</b><small>خارج الخدمة</small></span></button>
       </div>
+      ${expiringNotice}
       <div class="fleet-tools-head">
         <button class="btn btn-ghost" id="fleet-back-branches" type="button" title="رجوع لدليل الفروع" style="display:none">→ رجوع للفروع</button>
         <div class="fleet-search-wrap"><span>⌕</span><input id="fleet-search" aria-label="بحث في الأسطول" placeholder="ابحث برقم اللوحة، الماركة، النوع، الموديل، الشاسيه، المالك أو الفرع..."></div>
@@ -173,6 +197,7 @@
       <button type="button" class="fleet-summary-card attention" data-fleet-quick="not_ready"><span class="fleet-summary-icon">!</span><span><b>${fleetAttention}</b><small>تحتاج إجراء</small></span></button>
       <button type="button" class="fleet-summary-card out" data-fleet-quick="out"><span class="fleet-summary-icon">×</span><span><b>${fleetStats.out}</b><small>خارج الخدمة</small></span></button>
     </div>
+    ${expiringNotice}
     <div class="fleet-tools-head">
       <button class="btn btn-ghost" id="fleet-back-branches" type="button" title="رجوع لدليل الفروع" style="display:none">→ رجوع للفروع</button>
       <div class="fleet-search-wrap"><span>⌕</span><input id="fleet-search" aria-label="بحث في الأسطول" placeholder="ابحث برقم اللوحة، الماركة، النوع، الموديل، الشاسيه، المالك أو الفرع..."></div>
