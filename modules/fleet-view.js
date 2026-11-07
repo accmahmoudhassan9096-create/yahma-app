@@ -110,6 +110,62 @@
     return [...map.values()].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
   };
   const optionList=(items,placeholder)=>`<option value="">${placeholder}</option>${items.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('')}`;
+  
+  /* شاشة تحميل مؤقتة إذا كانت البيانات فارغة أو أول تحميل */
+  if(!fleet.length){
+    content.innerHTML=`
+      <div class="fleet-summary-strip" aria-label="ملخص حالة الأسطول">
+        <button type="button" class="fleet-summary-card total" data-fleet-quick="all"><span class="fleet-summary-icon">🚗</span><span><b>0</b><small>إجمالي السيارات</small></span></button>
+        <button type="button" class="fleet-summary-card ready" data-fleet-quick="ready"><span class="fleet-summary-icon">✓</span><span><b>0</b><small>جاهزة للتأجير</small></span></button>
+        <button type="button" class="fleet-summary-card attention" data-fleet-quick="not_ready"><span class="fleet-summary-icon">!</span><span><b>0</b><small>تحتاج إجراء</small></span></button>
+        <button type="button" class="fleet-summary-card out" data-fleet-quick="out"><span class="fleet-summary-icon">×</span><span><b>0</b><small>خارج الخدمة</small></span></button>
+      </div>
+      <div class="fleet-tools-head">
+        <button class="btn btn-ghost" id="fleet-back-branches" type="button" title="رجوع لدليل الفروع" style="display:none">→ رجوع للفروع</button>
+        <div class="fleet-search-wrap"><span>⌕</span><input id="fleet-search" aria-label="بحث في الأسطول" placeholder="ابحث برقم اللوحة، الماركة، النوع، الموديل، الشاسيه، المالك أو الفرع..."></div>
+        <div class="view-toggle" id="fleet-view-toggle">
+          <button type="button" class="active" data-view="table">جدول</button>
+          <button type="button" data-view="cards">كروت</button>
+        </div>
+        <button class="btn btn-ghost" id="fleet-clear-filters" title="إلغاء جميع الفلاتر">↺ مسح الفلاتر</button>
+      </div>
+      <div class="fleet-skeleton-wrap" style="padding:24px">
+        <div class="skeleton-card">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+      <div class="muted-small" style="text-align:center;margin-top:12px">جارِ تحميل بيانات الأسطول...</div>
+    `;
+    return;
+  }
+  
   content.innerHTML=`
     <div class="fleet-summary-strip" aria-label="ملخص حالة الأسطول">
       <button type="button" class="fleet-summary-card total" data-fleet-quick="all"><span class="fleet-summary-icon">🚗</span><span><b>${fleetStats.total}</b><small>إجمالي السيارات</small></span></button>
