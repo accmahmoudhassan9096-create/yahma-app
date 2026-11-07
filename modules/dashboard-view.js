@@ -10,7 +10,7 @@
 
 /* ===== القالب ===== */
 function dashboardTemplate(state) {
-  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, fmtTime, gaugeSvg, histBase, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg } = state;
+  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg } = state;
   return `
   <div class="home-dash">
     <!-- Hero -->
@@ -98,6 +98,34 @@ function dashboardTemplate(state) {
           <b class="home-kpi-num">${renCard.toLocaleString('en')}</b>
           <div class="home-kpi-bar"><i style="width:0%;background:var(--amber)" data-w="${pRenCard}%"></i></div>
           <span class="home-kpi-pct warn">${pRenCard}%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- كروت الركود (Idle Cars) -->
+    <div class="home-kpis">
+      <div class="home-kpi warn" id="kpi-idle-count">
+        <div class="home-kpi-icon amber">🚗</div>
+        <div class="home-kpi-body">
+          <span class="home-kpi-label">سيارات راقدة (30+ يوم)</span>
+          <b class="home-kpi-num">${idleCount.toLocaleString('en')}</b>
+          <a class="home-kpi-link" data-go="fleet">عرض التفاصيل ←</a>
+        </div>
+      </div>
+      <div class="home-kpi warn" id="kpi-idle-loss">
+        <div class="home-kpi-icon red">💸</div>
+        <div class="home-kpi-body">
+          <span class="home-kpi-label">الخسارة من الركود</span>
+          <b class="home-kpi-num">${idleLossRounded.toLocaleString('en')}</b>
+          <span class="home-kpi-pct warn">ر.س</span>
+        </div>
+      </div>
+      <div class="home-kpi warn" id="kpi-idle-branch">
+        <div class="home-kpi-icon amber">🏢</div>
+        <div class="home-kpi-body">
+          <span class="home-kpi-label">أكثر فرع ركوداً</span>
+          <b class="home-kpi-num">${topIdleBranchName}</b>
+          <span class="home-kpi-pct warn">${topIdleBranchCount} سيارة</span>
         </div>
       </div>
     </div>

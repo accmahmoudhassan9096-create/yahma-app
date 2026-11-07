@@ -124,6 +124,29 @@ function computeDashboardState(fleet) {
     .map(([name, x]) => ({ name, ...x, notReady: x.total - x.ready, pct: x.total ? Math.round(x.ready / x.total * 100) : 0 }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
+
+  /* ===== تقارير الركود (Idle Cars) ===== */
+  // سيارات راقدة: غير مؤجرة ولم تتحرك منذ 30 يوم أو أكثر
+  const idleCars = fleet.filter(c => {
+    const status = String(c.carStatus || '').trim();
+    const isRented = status.includes('مؤجر');
+    const daysIdle = Number(c.daysSinceMovement || 0);
+    return !isRented && daysIdle >= 30;
+  });
+  const idleCount = idleCars.length;
+  const idleLoss = idleCars.reduce((sum, c) => sum + (Number(c.dailyRate || 0) * Number(c.daysSinceMovement || 0)), 0);
+  const idleLossRounded = Math.round(idleLoss);
+
+  // تجميع الرakraدة حسب الفرع
+  const idleByBranch = {};
+  idleCars.forEach(c => {
+    const b = c.branch || 'غير محدد';
+    idleByBranch[b] = (idleByBranch[b] || 0) + 1;
+  });
+  const topIdleBranch = Object.entries(idleByBranch)
+    .sort((a, b) => b[1] - a[1])[0];
+  const topIdleBranchName = topIdleBranch ? topIdleBranch[0] : '—';
+  const topIdleBranchCount = topIdleBranch ? topIdleBranch[1] : 0;
   // خريطة الفروع: كل فرع بإحداثيات مدينته + نمو فرعي من اللقطات
   const branchFull = Object.entries(branch).map(([name, x]) => {
     const city = (typeof cityOfBranch === 'function') ? cityOfBranch(name, x.city) : { name: 'الرياض', lat: 24.63, lng: 46.68 };
@@ -388,7 +411,11 @@ function computeDashboardState(fleet) {
  total,
  trend,
  trendSvg,
-  };
+  idleCount,
+  idleLossRounded,
+  topIdleBranchName,
+  topIdleBranchCount,
+   };
 }
 
   global.YahmaDashboardCore = { computeDashboardState };
