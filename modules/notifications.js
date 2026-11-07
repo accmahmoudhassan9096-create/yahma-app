@@ -52,7 +52,7 @@
   t.innerHTML='<div class="toast-icon">🔔</div><div class="toast-body"><div class="toast-title">إشعار جديد</div><div class="toast-msg">'+_E(n.car.plate)+' — '+_E(fmtNotice(n))+'</div></div><button class="toast-close" id="toast-close-'+_E(id)+'">×</button>';
   document.body.appendChild(t);
   setTimeout(()=>t.classList.add('show'),50);
-  t.querySelector('#toast-close-'+_E(id)).onclick=()=>{t.remove();shownToastIds.add(id);saveToastIds()};
+  t.querySelector('.toast-close').onclick=()=>{t.remove();shownToastIds.add(id);saveToastIds()};
   setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),350);shownToastIds.add(id);saveToastIds()},5000)
  }
  function saveToastIds(){localStorage.setItem(TOAST_KEY,JSON.stringify([...shownToastIds].slice(-200)))}
