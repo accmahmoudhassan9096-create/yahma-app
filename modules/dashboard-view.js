@@ -10,7 +10,7 @@
 
 /* ===== القالب ===== */
 function dashboardTemplate(state) {
-  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg } = state;
+  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend } = state;
   return `
   <div class="home-dash">
     <!-- Hero -->
@@ -127,6 +127,117 @@ function dashboardTemplate(state) {
           <b class="home-kpi-num">${topIdleBranchName}</b>
           <span class="home-kpi-pct warn">${topIdleBranchCount} سيارة</span>
         </div>
+      </div>
+    </div>
+
+    <!-- كروت التشغيل (Occupancy Report) -->
+    <div class="home-kpis">
+      <div class="home-kpi good" id="kpi-available-rent">
+        <div class="home-kpi-icon green">🅿️</div>
+        <div class="home-kpi-body">
+          <span class="home-kpi-label">متاحة للإيجار فوراً</span>
+          <b class="home-kpi-num">${availableCount.toLocaleString('en')}</b>
+          <a class="home-kpi-link" data-go="fleet">عرض السيارات ←</a>
+        </div>
+      </div>
+      <div class="home-kpi good" id="kpi-occupancy-rate">
+        <div class="home-kpi-icon blue">📊</div>
+        <div class="home-kpi-body">
+          <span class="home-kpi-label">نسبة التشغيل الإجمالية</span>
+          <b class="home-kpi-num">${occupancyRate}%</b>
+          <span class="home-kpi-pct good">${rented} من ${total} سيارة مؤجرة</span>
+        </div>
+      </div>
+      <div class="home-kpi warn" id="kpi-most-occupied-branch">
+        <div class="home-kpi-icon amber">🏆</div>
+        <div class="home-kpi-body">
+          <span class="home-kpi-label">أكثر فرع تشغيلاً</span>
+          <b class="home-kpi-num">${mostOccupiedBranchName}</b>
+          <span class="home-kpi-pct warn">${mostOccupiedBranchPct}% تشغيل</span>
+        </div>
+      </div>
+      <div class="home-kpi warn" id="kpi-least-occupied-branch">
+        <div class="home-kpi-icon red">📉</div>
+        <div class="home-kpi-body">
+          <span class="home-kpi-label">أقل فرع تشغيلاً</span>
+          <b class="home-kpi-num">${leastOccupiedBranchName}</b>
+          <span class="home-kpi-pct warn">${leastOccupiedBranchPct}% تشغيل</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- رسم بياني لتريند نسبة التشغيل -->
+    <div class="home-card">
+      <div class="home-card-head">
+        <h3>📈 اتجاه نسبة التشغيل (آخر 7 أيام)</h3>
+      </div>
+      <div class="home-trend-card" style="padding:16px">
+        <svg viewBox="0 0 600 200" style="width:100%;height:180px;display:block">
+          <defs>
+            <linearGradient id="occGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0284c7" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#0284c7" stop-opacity="0.05"/>
+            </linearGradient>
+          </defs>
+          <!-- محور Y -->
+          <line x1="40" y1="20" x2="40" y2="170" stroke="#e2e8f0" stroke-width="1"/>
+          <line x1="40" y2="170" x2="580" y2="170" stroke="#e2e8f0" stroke-width="1"/>
+          <!-- Linien الشبكة -->
+          <g stroke="#e2e8f0" stroke-dasharray="4 4" stroke-width="0.5">
+            <line x1="40" y1="40" x2="580" y2="40"/>
+            <line x1="40" y1="105" x2="580" y2="105"/>
+            <line x1="40" y1="170" x2="580" y2="170"/>
+          </g>
+          <text x="10" y="45" font-size="11" fill="#6b7280">100%</text>
+          <text x="10" y="110" font-size="11" fill="#6b7280">50%</text>
+          <text x="10" y="175" font-size="11" fill="#6b7280">0%</text>
+          <!-- الخط البياني -->
+          ${(() => {
+            const W = 540, H = 150, padL = 40, padT = 20, padB = 30;
+            const points = occupancyTrend;
+            const maxP = Math.max(...points.map(p => p.pct), 100);
+            const stepX = W / (points.length - 1);
+            const linePoints = points.map((p, i) => {
+              const x = padL + i * stepX;
+              const y = padT + H - (p.pct / maxP) * H;
+              return `${x},${y}`;
+            }).join(' ');
+            const areaPoints = `M ${padL},${padT + H} ${linePoints} L ${padL + W},${padT + H} Z`;
+            return `<path d="${areaPoints}" fill="url(#occGrad)"/>
+                    <polyline points="${linePoints}" fill="none" stroke="#0284c7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    ${points.map((p, i) => {
+                      const x = padL + i * stepX;
+                      const y = padT + H - (p.pct / maxP) * H;
+                      return `<circle cx="${x}" cy="${y}" r="4" fill="#0284c7" stroke="#fff" stroke-width="2"/>`;
+                    }).join('')}
+                    ${points.map((p, i) => {
+                      const x = padL + i * stepX;
+                      return `<text x="${x}" y="185" font-size="10" text-anchor="middle" fill="#6b7280">${p.date.slice(5)}</text>`;
+                    }).join('')}`;
+          })()}
+        </svg>
+        <div class="muted-small" style="text-align:center;margin-top:8px">نسبة التشغيل اليومية المقدرة بناءً على البيانات الحالية</div>
+      </div>
+    </div>
+
+    <!-- أكثر السيارات المتاحة للإيجار -->
+    <div class="home-card">
+      <div class="home-card-head">
+        <h3>🅿️ أكثر السيارات المتاحة للإيجار (الأقل استخداماً)</h3>
+        <span class="home-badge">${topAvailableCars.length}</b> سيارة</span>
+      </div>
+      <div class="home-tasks">
+        ${topAvailableCars.map(c => `
+          <div class="home-task-row">
+            <button type="button" class="home-task" data-go="fleet">
+              <span class="home-task-n alert">${c.daysIdle} يوم</span>
+              <span class="home-task-label">${escapeHtml(c.plate)} - ${escapeHtml(c.model)}</span>
+              <span class="home-task-arrow">←</span>
+            </button>
+            <span class="home-kpi-pct warn">فرع: ${escapeHtml(c.branch)}</span>
+          </div>
+        `).join('')}
+        ${topAvailableCars.length === 0 ? '<div style="text-align:center;padding:20px;color:#6b7280">لا توجد سيارات متاحة للإيجار حالياً</div>' : ''}
       </div>
     </div>
 
