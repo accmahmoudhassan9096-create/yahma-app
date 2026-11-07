@@ -115,18 +115,26 @@
   function ensureGlobalSearch(){
     const topbar=document.querySelector('.topbar, .topbar-v43, .main .topbar');
     if(!topbar) return;
-    if(document.getElementById('global-search-input') || document.getElementById('global-search')) return;
-    const actions=topbar.querySelector('.topbar-actions')||topbar;
-    const wrap=document.createElement('div');
-    wrap.className='global-search-wrap';
-    wrap.innerHTML=`<input id="global-search-input" type="search" placeholder="بحث موحّد: لوحة، فرع، مالك، مهمة… (/)" autocomplete="off" style="width:100%;padding:10px 14px;border:1px solid var(--line,#E1E6F1);border-radius:999px;font-family:inherit;font-size:13.5px"/>
-      <div class="global-search-results" id="global-search-results"></div>`;
-    // insert near start of actions
-    if(actions.firstChild) actions.insertBefore(wrap, actions.firstChild);
-    else actions.appendChild(wrap);
-
-    const input=document.getElementById('global-search-input');
-    const box=document.getElementById('global-search-results');
+    // استخدم العنصر الموجود في index.html إذا وجد، وإلا أنشئ عنصر جديد
+    let input=document.getElementById('global-search') || document.getElementById('global-search-input');
+    let box=document.getElementById('global-search-results');
+    if(!input){
+      const actions=topbar.querySelector('.topbar-actions')||topbar;
+      const wrap=document.createElement('div');
+      wrap.className='global-search-wrap';
+      wrap.innerHTML=`<input id="global-search" type="search" placeholder="بحث موحّد: لوحة، فرع، مالك، مهمة… (/)" autocomplete="off" style="width:100%;padding:10px 14px;border:1px solid var(--line,#E1E6F1);border-radius:999px;font-family:inherit;font-size:13.5px"/>
+        <div class="global-search-results" id="global-search-results"></div>`;
+      if(actions.firstChild) actions.insertBefore(wrap, actions.firstChild);
+      else actions.appendChild(wrap);
+      input=document.getElementById('global-search');
+      box=document.getElementById('global-search-results');
+    }
+    if(!box){
+      box=document.createElement('div');
+      box.id='global-search-results';
+      box.className='global-search-results';
+      input.parentNode.appendChild(box);
+    }
     let activeIdx=-1;
     function draw(list){
       activeIdx=-1;
@@ -183,6 +191,13 @@
     });
     document.addEventListener('click', e=>{
       if(!wrap.contains(e.target)) box.classList.remove('open');
+    });
+    // اختصار لوحة المفاتيح / لتركيز البحث
+    document.addEventListener('keydown', e=>{
+      if(e.key==='/' && !e.target.matches('input, textarea, select')){
+        e.preventDefault();
+        input.focus();
+      }
     });
   }
 

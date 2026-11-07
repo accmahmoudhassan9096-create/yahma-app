@@ -221,6 +221,31 @@ body.dark-mode .topbar-actions .top-dd > .top-dd-menu{
   color: #F3F4F6 !important;
 }
 
+/* ===== البحث الشامل الموحد ===== */
+.global-search-wrap{position:relative;z-index:55}
+.global-search-results{position:absolute;top:100%;left:0;right:0;background:rgba(15,23,42,0.95);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:none;z-index:56;max-height:400px;overflow-y:auto}
+.global-search-results.open{display:block;animation:gsFade .25s ease}
+@keyframes gsFade{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.gs-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:none;background:transparent;color:#E5E7EB;cursor:pointer;width:100%;text-align:right;border-radius:8px;margin:4px 12px;transition:all 0.2s}
+.gs-item:hover{background:rgba(255,255,255,0.06);transform:translateX(-4px)}
+.gs-item.active{background:rgba(99,102,241,0.15)}
+.gs-ico{font-size:18px;flex-shrink:0}
+.gs-body{flex:1;min-width:0}
+.gs-body b{display:block;font-size:13px;font-weight:700;color:#F3F4F6;margin-bottom:2px}
+.gs-body span{font-size:11.5px;color:#9ca3af}
+.gs-empty{text-align:center;padding:24px 12px;color:#94a3b8;font-size:13px}
+.gs-hint{font-size:10px;color:#6b7280;padding:6px 12px;text-align:center;border-top:1px solid rgba(255,255,255,0.06)}
+
+/* شاشات التحميل (skeleton screens) */
+.skeleton{background:linear-gradient(90deg,#1f2937 25%,#374151 50%,#1f2937 75%);background-size:200% 100%;animation:skeletonPulse 1.5s infinite;border-radius:8px}
+@keyframes skeletonPulse{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.skeleton-text{height:14px;margin-bottom:8px}
+.skeleton-title{height:18px;width:60%;margin-bottom:12px}
+.skeleton-line{height:12px;width:100%;margin-bottom:6px}
+.skeleton-line.short{width:40%}
+.skeleton-card{background:rgba(30,41,59,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px;margin-bottom:12px}
+.skeleton-avatar{width:36px;height:36px;border-radius:50%;background:#4b5563;margin-bottom:10px}
+
 /* ===== الإشعارات — تصميم Liquid Glass ===== */
 .notify-wrap{position:relative;z-index:60}
 .notify-btn{position:relative;height:40px;width:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;padding:0 !important}
