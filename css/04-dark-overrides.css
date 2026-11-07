@@ -221,6 +221,188 @@ body.dark-mode .topbar-actions .top-dd > .top-dd-menu{
   color: #F3F4F6 !important;
 }
 
+/* ===== Liquid Glass Dark Mode — نسخة فاخرة ===== */
+/* الخلفية الزجاجية للbody */
+body.dark-mode {
+  background: #0A0F1A;
+  background-image: 
+    radial-gradient(circle at 100% 0%, rgba(198,149,46,.15), transparent 50%),
+    radial-gradient(circle at 0% 100%, rgba(21,35,80,.15), transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(16,28,58,.25), transparent 70%);
+  background-attachment: fixed;
+  color: #E5E7EB;
+}
+
+/* الشريط الجانبي — زجاج مصبغ */
+body.dark-mode .sidebar,
+body.dark-mode nav {
+  background: rgba(15, 23, 42, 0.85) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  margin: 20px !important;
+}
+
+/* التوب بار — زجاج */
+body.dark-mode .topbar {
+  background: rgba(15, 23, 42, 0.8) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* البطاقات — زجاج مصبغ */
+body.dark-mode .card,
+body.dark-mode .home-card,
+body.dark-mode .rp-card,
+body.dark-mode .fn-chart-card,
+body.dark-mode .panel {
+  background: rgba(30, 41, 59, 0.6) !important;
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* الجداول — زجاج */
+body.dark-mode table,
+body.dark-mode .fleet-table,
+body.dark-mode .rp-table,
+body.dark-mode .wa-history-table {
+  background: rgba(30, 41, 59, 0.5) !important;
+  backdrop-filter: blur(12px);
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+/* حقول الإدخال — زجاج */
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #F3F4F6 !important;
+  border-radius: 12px !important;
+}
+
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus {
+  outline: none;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+/* الأزرار — زجاج مع توهج */
+body.dark-mode .btn,
+body.dark-mode button {
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #F3F4F6 !important;
+  border-radius: 14px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.dark-mode .btn:hover,
+body.dark-mode button:hover {
+  background: rgba(255, 255, 255, 0.18) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* زر thèmes الرئيسي */
+body.dark-mode .tb-theme {
+  background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #FCD34D !important;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+}
+
+body.dark-mode .tb-theme:hover {
+  box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
+}
+
+/* التسمية sotto الزر */
+.theme-label {
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 6px;
+  display: none; /* مخفي افتراضياً، يظهر في الليلي */
+}
+
+body.dark-mode .theme-label {
+  display: inline-block;
+  color: #FCD34D;
+}
+
+/* مؤشر المزامنة والعدادات */
+body.dark-mode .sync-status,
+body.dark-mode .home-kpi,
+body.dark-mode .rp-kpi {
+  background: rgba(30, 41, 59, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #E5E7EB !important;
+  border-radius: 16px !important;
+}
+
+/* شريط التمرير (scrollbar) */
+body.dark-mode ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+body.dark-mode ::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.3);
+  border-radius: 4px;
+}
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.4);
+  border-radius: 4px;
+}
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+/* تأثيرات التوهج للمقاييس والبطاقات المهمة */
+body.dark-mode .home-kpi-success,
+body.dark-mode .home-kpi-good,
+body.dark-mode .kpi-green {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+body.dark-mode .home-kpi-warn,
+body.dark-mode .home-kpi-danger,
+body.dark-mode .kpi-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+/* مودالز ونوافذ منبثقة */
+body.dark-mode .modal,
+body.dark-mode .overlay,
+body.dark-mode .wa-history-modal,
+body.dark-mode .fn-modal-box {
+  background: rgba(15, 23, 42, 0.9) !important;
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* تأثير الظهور للبطاقات */
+@keyframes glassFadeIn {
+  from { opacity: 0; transform: translateY(12px); filter: blur(8px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+body.dark-mode .rp-card,
+body.dark-mode .fn-chart-card,
+body.dark-mode .home-card,
+body.dark-mode .card {
+  animation: glassFadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
 
     /* [تمت الإزالة]: قالب نافذة الطباعة (openPrintWindow) كان ملصوقًا هنا حرفيًا
