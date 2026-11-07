@@ -6,7 +6,10 @@
 
 (function(){
  const READ_KEY='fleet-notifications-read-v1';
+ const TOAST_KEY='fleet-notifications-toast-v1';
  let activeFilter='all';
+ let shownToastIds=new Set();
+ try{shownToastIds=new Set(JSON.parse(localStorage.getItem(TOAST_KEY)||'[]'))}catch(e){shownToastIds=new Set()}
  function notificationItems(){
   const out=[]; const push=(car,type,date,status)=>out.push({id:`${car.id}-${type}-${date||''}`,car,type,date,status});
   (fleet||[]).forEach(c=>{
@@ -16,6 +19,10 @@
    const ins=textTag(c.insuranceStatus); if(ins.level!=='green')push(c,'حالة التأمين','',ins);
    const insp=textTag(c.inspectionStatus); if(insp.level!=='green')push(c,'حالة الفحص','',insp);
    if(c.nextService){const svc=dateStatus(c.nextService);if(svc.level!=='green')push(c,'موعد الصيانة',c.nextService,svc)}
+   // سيارات راكدة (لم تتحرك منذ أكثر من 60 يوماً)
+   if(c.daysSinceMovement && c.daysSinceMovement > 60){push(c,'سيارة راكدة',`منذ ${c.daysSinceMovement} يوم`,{level:'warn',label:`راكدة منذ ${c.daysSinceMovement} يوم`})}
+   // تنازلات معلقة
+   if(c.transferStatus && c.transferStatus==='قيد التنازل'){push(c,'تنازل معلق','',{level:'info',label:'قيد التنازل'})}
   });
   return out.sort((a,b)=>(a.status.days??9999)-(b.status.days??9999));
  }
@@ -37,6 +44,17 @@
   draw();
  }
  function close(){const panel=document.getElementById('notify-panel');if(panel)panel.classList.remove('open');document.getElementById('notify-btn')?.setAttribute('aria-expanded','false')}
+ function showToast(n){
+  const id=n.id;
+  if(shownToastIds.has(id)) return;
+  const t=document.createElement('div');t.className='notify-toast';t.id='notify-toast-'+_E(id);
+  t.innerHTML='<div class="toast-icon">🔔</div><div class="toast-body"><div class="toast-title">إشعار جديد</div><div class="toast-msg">'+_E(n.car.plate)+' — '+_E(fmtNotice(n))+'</div></div><button class="toast-close" id="toast-close-'+_E(id)+'">×</button>';
+  document.body.appendChild(t);
+  setTimeout(()=>t.classList.add('show'),50);
+  t.querySelector('#toast-close-'+_E(id)).onclick=()=>{t.remove();shownToastIds.add(id);saveToastIds()};
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),350);shownToastIds.add(id);saveToastIds()},5000)
+ }
+ function saveToastIds(){localStorage.setItem(TOAST_KEY,JSON.stringify([...shownToastIds].slice(-200)))}
  function draw(){
   const list=document.getElementById('notify-list'),badge=document.getElementById('notify-badge');if(!list||!badge)return;
   const all=notificationItems(),read=readSet(),unread=all.filter(n=>!read.has(n.id));
@@ -44,35 +62,28 @@
   const shown=(activeFilter==='unread'?unread:all).slice(0,30);
   const summary=document.getElementById('notify-summary');if(summary)summary.textContent=unread.length?` · ${unread.length} جديدة`:' · لا توجد جديدة';
   const count=document.getElementById('notify-count-label');if(count)count.textContent=shown.length?`عرض ${shown.length} من ${activeFilter==='unread'?unread.length:all.length}`:'لا توجد إشعارات';
-  // كل القيم المحقونة هنا بيانات مستخدم (لوحة/حالة/ملاحظات) — لازم escapeHtml
-  // عشان أي حقل فيه <script> أو " في حالة الإشعارات ما ينفّذش داخل لوحة المدير (XSS).
   const _E = (v)=>typeof escapeHtml==='function'?escapeHtml(v):String(v==null?'':v);
-  list.innerHTML=shown.length?shown.map(n=>{const isRead=read.has(n.id);return `<button class="notify-item ${isRead?'is-read':''}" data-id="${_E(n.id)}" data-car="${_E(n.car.id)}" aria-label="${_E(n.car.plate)} — ${_E(fmtNotice(n))}"><span class="notify-dot ${_E(n.status.level)}"></span><span class="notify-item-body"><b>${_E(n.car.plate)}</b><span>${_E(fmtNotice(n))}</span><small>${_E(n.status.label)}</small></span><span class="notify-item-state">${isRead?'✓':'جديد'}</span></button>`}).join(''):'<div class="notify-empty">لا توجد إشعارات في هذا التصنيف</div>';
-  list.querySelectorAll('.notify-item').forEach(x=>x.onclick=()=>{const r=readSet();r.add(x.dataset.id);saveRead(r);close();openModal(x.dataset.car);draw()});
+  list.innerHTML=shown.length?shown.map(n=>{const isRead=read.has(n.id);const isNew=isRead?false:!shownToastIds.has(n.id);return `<button class="notify-item ${isRead?'is-read':''}${isNew?' new-item':''}" data-id="${_E(n.id)}" data-car="${_E(n.car.id)}" aria-label="${_E(n.car.plate)} — ${_E(fmtNotice(n))}"><span class="notify-dot ${_E(n.status.level)}"></span><span class="notify-item-body"><b>${_E(n.car.plate)}</b><span>${_E(fmtNotice(n))}</span><small>${_E(n.status.label)}</small></span><span class="notify-item-state">${isRead?'✓':'جديد'}</span></button>`}).join(''):'<div class="notify-empty">لا توجد إشعارات في هذا التصنيف</div>';
+  shown.filter(n=>!read.has(n.id) && !shownToastIds.has(n.id)).forEach(n=>{setTimeout(()=>showToast(n),100);});
+  list.querySelectorAll('.notify-item').forEach(x=>{x.onclick=()=>{const r=readSet();r.add(x.dataset.id);saveRead(r);close();openModal(x.dataset.car);draw();};});
  }
  const oldRender=window.render || (typeof render==='function' ? render : null);
  if(oldRender && !window._notifyRenderHooked){
-   window._notifyRenderHooked=true;
-   window.render=function(){oldRender.apply(this,arguments);setTimeout(function(){try{mount();draw()}catch(e){yahmaErr(e,'notifications.js:56');}},0)};
+  window._notifyRenderHooked=true;
+  window.render=function(){oldRender.apply(this,arguments);setTimeout(function(){try{mount();draw()}catch(e){yahmaErr(e,'notifications.js:56');}},0);};
  }
- // تحديث خفيف كل 20 ثانية فقط — وعدم إعادة الرسم لو القائمة مقفولة
  setInterval(function(){
-   try{
-     mount();
-     var panel=document.getElementById('notify-panel');
-     var badge=document.getElementById('notify-badge');
-     if(panel && panel.classList.contains('open')) draw();
-     else if(badge){
-       // حدّث الرقم فقط بدون إعادة بناء القائمة
-       var all=[];
-       try{ all = notificationItems(); }catch(e){yahmaErr(e,'notifications.js:68');}
-       var read=readSet();
-       var unread=all.filter(function(n){return !read.has(n.id)}).length;
-       badge.textContent=unread>99?'99+':String(unread);
-       badge.classList.toggle('zero', unread===0);
-     }
-   }catch(e){yahmaErr(e,'notifications.js:74');}
+  try{
+   mount();
+   var panel=document.getElementById('notify-panel');
+   var badge=document.getElementById('notify-badge');
+   if(panel && panel.classList.contains('open')) draw();
+   else if(badge){
+    var all=[];try{ all = notificationItems(); }catch(e){yahmaErr(e,'notifications.js:68');}
+    var read=readSet();var unread=all.filter(function(n){return !read.has(n.id)}).length;
+    badge.textContent=unread>99?'99+':String(unread);badge.classList.toggle('zero', unread===0);
+   }
+  }catch(e){yahmaErr(e,'notifications.js:74');}
  }, 20000);
 })();
-
 
