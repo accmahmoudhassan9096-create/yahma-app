@@ -1035,6 +1035,16 @@
         let notFound = 0;
         const carsToSave = [];
 
+        // دالة للبحث عن قيمة العمود بأسماء متعددة
+        const getCellValue = (row, possibleNames) => {
+          for (const name of possibleNames) {
+            if (row[name] !== undefined && row[name] !== '' && row[name] !== null) {
+              return row[name];
+            }
+          }
+          return undefined;
+        };
+
         for (const row of json) {
           const plate = row['رقم اللوحة'] || row.plate || '';
           if (!plate) continue;
@@ -1054,8 +1064,8 @@
           if (row['حالة الرخصة'] !== undefined) car.licenseStatus = row['حالة الرخصة'];
           if (row['تاريخ انتهاء الرخصة'] !== undefined) car.licenseExpiry = row['تاريخ انتهاء الرخصة'];
           if (row['حالة التأمين'] !== undefined) car.insuranceStatus = row['حالة التأمين'];
-          if (row['المالك'] !== undefined) car.owner = row['المالك'];
-          if (row['رقم المالك'] !== undefined) car.ownerNumber = row['رقم المالك'];
+          if (getCellValue(row, ['المالك', 'صاحب السيارة', 'اسم المالك', 'اسم العميل', 'العميل']) !== undefined) car.owner = getCellValue(row, ['المالك', 'صاحب السيارة', 'اسم المالك', 'اسم العميل', 'العميل']);
+          if (getCellValue(row, ['رقم المالك', 'رقم هوية المالك', 'هوية المالك', 'رقم الهوية', 'الهوية الوطنية', 'رقم الهوية الوطنية']) !== undefined) car.ownerNumber = getCellValue(row, ['رقم المالك', 'رقم هوية المالك', 'هوية المالك', 'رقم الهوية', 'الهوية الوطنية', 'رقم الهوية الوطنية']);
 
           updated++;
           carsToSave.push(car.id);
