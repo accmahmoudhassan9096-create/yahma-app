@@ -159,12 +159,18 @@ function computeDashboardState(fleet) {
   const leastIdleBranchCount = leastIdleBranch ? leastIdleBranch[1] : 0;
 
   /* ===== تقارير التشغيل (Occupancy Report) ===== */
-  // سيارات متاحة للإيجار: غير مؤجرة وجاهزة (ليست راقدة ومعدة)
+  // سيارات متاحة للإيجار: حسب حالة السيارة (متاحة للايجار / موجودة / نشط)
+  // مفيش شرط وثائق هنا — الوثائق دي مكانها "تقرير الجاهزية" (vehicleReadiness).
+  // الشرط القديم كان !rented && ready، والـready بيطلب تواريخ خضراء (>30 يوم)،
+  // فكان بيستبعد سيارات حالتها متاحة لكن ورقها قريب من الانتهاء (amber) — وده
+  // اللي نزل الرقم من 933 لـ518.
   const availableForRent = fleet.filter(c => {
     const status = String(c.carStatus || '').trim();
-    const isRented = status.includes('مؤجر');
-    const isReady = vehicleReadiness(c).ready;
-    return !isRented && isReady;
+    if (status.includes('مؤجر')) return false;
+    try {
+      if (typeof carStatusReady === 'function') return carStatusReady(status);
+    } catch (_) {}
+    return status.includes('متاحة') || status.includes('متاحه') || status === 'موجودة' || status === 'نشط';
   });
   const availableCount = availableForRent.length;
 
@@ -186,7 +192,9 @@ function computeDashboardState(fleet) {
   }));
 
   // أكثر الفروع فيها تشغيل (نسبة المؤجر إلى الإجمالي لكل فرع)
-  const branchOccupancy = Object.entries(branch).map(([name, x]) => {
+  const branchOccupancy = Object.entries(branch)
+    .filter(([name]) => !ignoredBranches.includes(name))
+    .map(([name, x]) => {
     const rentedInBranch = fleet.filter(f => (f.branch || 'غير محدد') === name && String(f.carStatus || '').includes('مؤجر')).length;
     const occPct = x.total ? Math.round((rentedInBranch / x.total) * 100) : 0;
     return { name, total: x.total, rented: rentedInBranch, occPct };
@@ -199,15 +207,14 @@ function computeDashboardState(fleet) {
   const leastOccupiedBranchPct = topIdleBranchByOcc ? topIdleBranchByOcc.occPct : 0;
 
   /* ===== تريند نسبة التشغيل (آخر 7 أيام) ===== */
-  // استخدام historial الإيجارات إذا وجدت، أو تقدير بسيط
+  // مفيش تاريخ إيجارات محفوظ يومياً، فنعرض النسبة الحالية ثابتة —
+  // الجيل السابق كان بيستخدم Math.random() ويرسم تريند وهمي مختلف كل تحديث.
   const occupancyTrend = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const dayStr = d.toISOString().slice(0, 10);
-    // تقدير نسبة التشغيل بناءً على البيانات الحالية (يمكن تحسينها لاحقًا مع بيانات تاريخية حقيقية)
-    const dayOccupancy = rented > 0 ? Math.min(100, Math.round((rented / total) * 100 * (0.7 + Math.random() * 0.6))) : 0;
-    occupancyTrend.push({ date: dayStr, pct: dayOccupancy });
+    occupancyTrend.push({ date: dayStr, pct: occupancyRate });
   }
   // خريطة الفروع: كل فرع بإحداثيات مدينته + نمو فرعي من اللقطات
   const branchFull = Object.entries(branch).map(([name, x]) => {

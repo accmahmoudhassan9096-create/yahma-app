@@ -178,8 +178,12 @@ function dashboardTemplate(state) {
       <div class="home-hero-car hero-car-clean" aria-hidden="true"><video class="home-hero-car-img home-hero-video" autoplay muted loop playsinline preload="metadata" poster="assets/dashboard-hero.png"><source src="assets/hero-video.mp4" type="video/mp4"></video></div>
     </div>
 
-    <!-- KPI row -->
-    <div class="home-kpis">
+    <!-- تقرير الجاهزية -->
+    <div class="home-report-header">
+        <h3>✅ تقرير الجاهزية</h3>
+        <p>سيارات جاهزة للتأجير وحالة تجديد المستندات</p>
+      </div>
+      <div class="home-kpis">
       <div class="home-kpi" data-go="fleet">
         <div class="home-kpi-icon blue">🚗</div>
         <div class="home-kpi-body">
@@ -238,7 +242,7 @@ function dashboardTemplate(state) {
     <!-- كروت الركود (Idle Cars Report) -->
     <div class="home-kpis report-card">
       <div class="home-report-header">
-        <h3>🚗 تقرير جاهزية السيارات - سيارات راقدة</h3>
+        <h3>🚗 تقرير التشغيل - سيارات راقدة</h3>
         <p>سيارات غير مؤجرة ولم تتحرك منذ 7 أيام أو أكثر</p>
       </div>
       <div class="home-kpi warn" id="kpi-idle-count">
@@ -278,7 +282,7 @@ function dashboardTemplate(state) {
     <!-- كروت التشغيل (Occupancy Report) -->
     <div class="home-kpis report-card">
       <div class="home-report-header">
-        <h3>📊 تقرير حركة تشغيل السيارات</h3>
+        <h3>📊 تقرير التشغيل</h3>
         <p>سيارات متاحة للإيجار ونسبة التشغيل الإجمالية</p>
       </div>
       <div class="home-kpi good" id="kpi-available-rent">
