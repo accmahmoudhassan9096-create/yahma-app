@@ -87,6 +87,31 @@ function dashboardTemplate(state) {
     .home-kpi.warn .home-kpi-pct { color: #d97706; }
     .home-kpi.good .home-kpi-pct { color: #15803d; }
     .home-kpi.good .home-kpi-icon.blue { box-shadow: 0 0 25px rgba(2, 132, 199, 0.5); }
+    
+    /* رؤوس التقارير */
+    .home-report-header {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .home-report-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .home-report-header p {
+      margin: 4px 0 0 0;
+      font-size: 13px;
+      color: #64748b;
+    }
+    
     /* تأثير النبض للسيارات الراكدة */
     @keyframes idlePulse {
       0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
@@ -210,12 +235,16 @@ function dashboardTemplate(state) {
       </div>
     </div>
 
-    <!-- كروت الركود (Idle Cars) -->
-    <div class="home-kpis">
+    <!-- كروت الركود (Idle Cars Report) -->
+    <div class="home-kpis report-card">
+      <div class="home-report-header">
+        <h3>🚗 تقرير جاهزية السيارات - سيارات راقدة</h3>
+        <p>سيارات غير مؤجرة ولم تتحرك منذ 7 أيام أو أكثر</p>
+      </div>
       <div class="home-kpi warn" id="kpi-idle-count">
         <div class="home-kpi-icon amber">🚗</div>
         <div class="home-kpi-body">
-          <span class="home-kpi-label">سيارات راقدة (30+ يوم)</span>
+          <span class="home-kpi-label">سيارات راقدة (7+ يوم)</span>
           <b class="home-kpi-num">${idleCount.toLocaleString('en')}</b>
           <a class="home-kpi-link" data-go="fleet">عرض التفاصيل ←</a>
         </div>
@@ -247,7 +276,11 @@ function dashboardTemplate(state) {
     </div>
 
     <!-- كروت التشغيل (Occupancy Report) -->
-    <div class="home-kpis">
+    <div class="home-kpis report-card">
+      <div class="home-report-header">
+        <h3>📊 تقرير حركة تشغيل السيارات</h3>
+        <p>سيارات متاحة للإيجار ونسبة التشغيل الإجمالية</p>
+      </div>
       <div class="home-kpi good" id="kpi-available-rent">
         <div class="home-kpi-icon green">🅿️</div>
         <div class="home-kpi-body">
