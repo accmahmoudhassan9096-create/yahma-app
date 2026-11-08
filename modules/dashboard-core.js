@@ -129,14 +129,20 @@ function computeDashboardState(fleet) {
   // سيارات راقدة: أي سيارة غير مؤجرة (مبدأ المستخدم)
   const ignoredBranches = ['0', 'الإدارة الرئيسيه', 'الإدارة الرئيسية'];
   // فروع مستبعدة من ترتيب "أكتر/أقل فرع ركوداً أو تشغيلاً" (الـ ranking فقط، العدد الإجمالي يفضّل كما هو)
-  const REPORT_EXCLUDED_BRANCHES = ['الإدارة الرئيسية', 'البارك', 'السيارات المستبعدة', 'خريص', 'مركز بيع', 'مركز البيع', 'عبد الرحمن'];
-  const normBranch = (s) => String(s || '').replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا').replace(/ة/g, 'ه').trim();
+  const REPORT_EXCLUDED_BRANCHES = ['الإدارة الرئيسية', 'البارك', 'السيارات المستبعدة', 'خريص', 'مركز بيع', 'مركز البيع', 'عبد الرحمن', 'فرع 2', 'غير محدد'];
+  const normBranch = (s) => String(s || '').replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/\s+/g, ' ').trim();
   const isReportExcludedBranch = (name) => {
     const n = normBranch(name);
     if (!n) return true;
     return REPORT_EXCLUDED_BRANCHES.some((x) => {
       const k = normBranch(x);
-      return n === k || n.includes(k);
+      if (n === k) return true;
+      const idx = n.indexOf(k);
+      if (idx === -1) return false;
+      const beforeOk = idx === 0 || !/[0-9]/.test(n[idx - 1]);
+      const afterIdx = idx + k.length;
+      const afterOk = afterIdx >= n.length || !/[0-9]/.test(n[afterIdx]);
+      return beforeOk && afterOk;
     });
   };
   const idleCars = fleet.filter(c => {
