@@ -133,7 +133,11 @@
   async function exportReportPdf(restoreTab) {
     const button = document.getElementById('report-pdf');
     const wrap = document.getElementById('report-printable');
-    if (!wrap || typeof global.html2canvas === 'undefined' || !global.jspdf) {
+    if (!wrap) {
+      alert('تعذر العثور على محتوى التقرير. يرجى التأكد من أن الصفحة محملة بشكل صحيح.');
+      return;
+    }
+    if (typeof global.html2canvas === 'undefined' || !global.jspdf) {
       alert('تعذر تحميل مكتبة PDF. تأكد من الاتصال بالإنترنت وحاول مرة أخرى.');
       return;
     }
