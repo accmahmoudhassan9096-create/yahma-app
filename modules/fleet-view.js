@@ -152,7 +152,7 @@
           <button type="button" data-view="cards">كروت</button>
         </div>
         <button class="btn btn-ghost" id="fleet-clear-filters" title="إلغاء جميع الفلاتر">↺ مسح الفلاتر</button>
-        <button class="btn btn-ghost" id="fleet-excel-import" title="رفع شيت إكسل لتحديث بيانات السيارات (المarka، النوع، الموديل، اللون، الرقم التسلسلي، حالة الرخصة، تاريخ انتهاء الرخصة، حالة التأمين، المالك، رقم المالك)">📥 رفع شيت تحديث</button>
+        <button class="btn btn-primary btn-small" id="fleet-excel-import" title="رفع شيت إكسل لتحديث بيانات السيارات">📥 رفع شيت تحديث</button>
       </div>
       <div class="fleet-skeleton-wrap" style="padding:24px">
         <div class="skeleton-card">
