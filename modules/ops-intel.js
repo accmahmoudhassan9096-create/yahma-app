@@ -118,12 +118,12 @@
     // استخدم العنصر الموجود في index.html إذا وجد، وإلا أنشئ عنصر جديد
     let input=document.getElementById('global-search') || document.getElementById('global-search-input');
     let box=document.getElementById('global-search-results');
+    const wrap=document.createElement('div');
+    wrap.className='global-search-wrap';
+    wrap.innerHTML=`<input id="global-search" type="search" placeholder="بحث موحّد: لوحة، فرع، مالك، مهمة… (/)" autocomplete="off" style="width:100%;padding:10px 14px;border:1px solid var(--line,#E1E6F1);border-radius:999px;font-family:inherit;font-size:13.5px"/>
+        <div class="global-search-results" id="global-search-results"></div>`;
     if(!input){
       const actions=topbar.querySelector('.topbar-actions')||topbar;
-      const wrap=document.createElement('div');
-      wrap.className='global-search-wrap';
-      wrap.innerHTML=`<input id="global-search" type="search" placeholder="بحث موحّد: لوحة، فرع، مالك، مهمة… (/)" autocomplete="off" style="width:100%;padding:10px 14px;border:1px solid var(--line,#E1E6F1);border-radius:999px;font-family:inherit;font-size:13.5px"/>
-        <div class="global-search-results" id="global-search-results"></div>`;
       if(actions.firstChild) actions.insertBefore(wrap, actions.firstChild);
       else actions.appendChild(wrap);
       input=document.getElementById('global-search');
