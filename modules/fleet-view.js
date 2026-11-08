@@ -206,12 +206,23 @@
         <button type="button" class="active" data-view="table">جدول</button>
         <button type="button" data-view="cards">كروت</button>
       </div>
-      <!-- أزرار التصدير القديمة (fleet-export-*) اتشالت — التصدير
-           من شريط yx الموحّد. -->
-      ${canDelete ? '<button class="btn btn-ghost" id="fleet-clean-duplicates" type="button" title="فحص الأسطول واكتشاف وحذف أي سيارات مكررة" style="color:var(--accent,#008080)">🔍 فحص وحذف المكرر</button>' : ''}
-      <button class="btn btn-ghost" id="fleet-clear-filters" title="إلغاء جميع الفلاتر">↺ مسح الفلاتر</button>
-      <button class="btn btn-ghost" id="fleet-export-custom" title="تصدير مخصص — اختيار الأعمدة">⚙️ تصدير مخصص</button>
+      <div class="upload-section" style="margin-bottom:16px;padding:16px;background:#fff3f3;border:2px solid #d97706;border-radius:12px;text-align:center;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;">
+          <span style="font-size:24px;">📥</span>
+          <div style="text-align:left;">
+            <div style="font-weight:bold;color:#d97706;font-size:15px;">تحديث بيانات السيارات من ملف إكسل</div>
+            <div style="font-size:12px;color:#6b7280;">رفع ملف إكسل لتحديث: الماركة، النوع، الموديل، اللون، الرقم التسلسلي، حالة الرخصة، تاريخ انتهاء الرخصة، حالة التأمين، المالك، رقم المالك</div>
+          </div>
+          <button type="button" class="btn btn-primary" id="fleet-excel-import" style="background:#d97706!important;color:#fff!important;border-color:#d97706!important;padding:12px 24px;font-size:14px;font-weight:bold;">
+            📁 اختر ملف إكسل
+          </button>
+          <input type="file" id="fleet-file-input" accept=".xlsx,.xls,.csv" style="display:none">
+        </div>
+      </div>
     </div>
+    ${canDelete ? '<button class="btn btn-ghost" id="fleet-clean-duplicates" type="button" title="فحص الأسطول واكتشاف وحذف أي سيارات مكررة" style="color:var(--accent,#008080)">🔍 فحص وحذف المكرر</button>' : ''}
+    <button class="btn btn-ghost" id="fleet-clear-filters" title="إلغاء جميع الفلاتر">↺ مسح الفلاتر</button>
+    <button class="btn btn-ghost" id="fleet-export-custom" title="تصدير مخصص — اختيار الأعمدة">⚙️ تصدير مخصص</button>
     <div class="bulk-bar" id="bulk-bar" style="display:none">
       <div class="bulk-bar-info">
         <label class="bulk-check-all"><input type="checkbox" id="bulk-select-all"> تحديد الكل الظاهر</label>
