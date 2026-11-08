@@ -13,80 +13,112 @@ function dashboardTemplate(state) {
   const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, leastIdleBranchName, leastIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend } = state;
   return `
   <style>
-    /* بطاقات الركود والتشغيل — تصميم فاخر وتفاعلي */
+    /* ===== بطاقات لوحة التحكم — تصميم فاخر وواضح ===== */
     .home-kpi {
       position: relative;
       overflow: hidden;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
-      border-radius: 16px;
+      border-radius: 20px;
+      background: linear-gradient(145deg, #ffffff, #f8fafc);
+      border: 1px solid rgba(226, 232, 240, 0.6);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
     }
     .home-kpi:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+      transform: translateY(-6px);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12);
+      border-color: rgba(255, 255, 255, 0.9);
     }
     .home-kpi-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 16px;
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
-      transition: all 0.3s ease;
-      margin-bottom: 12px;
+      font-size: 26px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     }
     .home-kpi:hover .home-kpi-icon {
-      transform: scale(1.1) rotate(5deg);
+      transform: scale(1.15) rotate(8deg);
+    }
+    .home-kpi-body {
+      position: relative;
+      z-index: 2;
+      padding: 20px 24px;
     }
     .home-kpi-body span.home-kpi-label {
       font-size: 12px;
-      color: var(--muted, #6b7280);
-      font-weight: 600;
+      font-weight: 700;
+      color: #64748b;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
       display: block;
     }
     .home-kpi-num {
-      font-size: 28px;
-      font-weight: 800;
-      color: var(--ink, #171c2e);
-      margin-bottom: 6px;
+      font-size: 34px;
+      font-weight: 900;
+      color: #0f172a;
+      margin-bottom: 10px;
       letter-spacing: -0.5px;
+      line-height: 1;
     }
     .home-kpi-pct {
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
+    /* أيقونات ملونة */
+    .home-kpi-icon.blue { background: #dbeafe; color: #1e40af; }
+    .home-kpi-icon.green { background: #dcfce7; color: #15803d; }
+    .home-kpi-icon.amber { background: #fef3c7; color: #d97706; }
+    .home-kpi-icon.red { background: #fee2e2; color: #dc2626; }
+    .home-kpi-icon.purple { background: #e0e7ff; color: #4f46e5; }
+    /* تأثير توهج */
     .home-kpi.warn .home-kpi-icon {
-      box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
     }
     .home-kpi.good .home-kpi-icon {
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
     }
+    .home-kpi.warn .home-kpi-pct { color: #d97706; }
+    .home-kpi.good .home-kpi-pct { color: #15803d; }
+    .home-kpi.good .home-kpi-icon.blue { box-shadow: 0 0 25px rgba(2, 132, 199, 0.5); }
+    /* تأثير النبض للسيارات الراكدة */
     @keyframes idlePulse {
       0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
-      70% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+      70% { box-shadow: 0 0 0 15px rgba(245, 158, 11, 0); }
       100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
     }
-    .home-kpi-warn-pulse {
-      animation: idlePulse 2s infinite;
-    }
+    .home-kpi-warn-pulse { animation: idlePulse 2s infinite; }
     .home-kpi-body { position: relative; z-index: 2; }
     .home-kpi::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+      background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0));
       opacity: 0;
       transition: opacity 0.3s ease;
       z-index: 1;
     }
     .home-kpi:hover::before { opacity: 1; }
     .home-kpi:active { transform: scale(0.96); }
-    .home-kpi.good .home-kpi-pct { color: #10b981; }
-    .home-kpi.good .home-kpi-icon.blue { box-shadow: 0 0 20px rgba(2, 132, 199, 0.4); }
+    .home-kpi.good .home-kpi-pct { color: #15803d; }
+    /* بطاقة أقل ركوداً — أخضر لامع */
+    .home-kpi-least-idle {
+      background: linear-gradient(145deg, #f0fdf4, #f0fdf4);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+    .home-kpi-least-idle .home-kpi-icon { background: #dcfce7; color: #15803d; }
+    /* بطاقة أكثر ركوداً — أحمر أنيق */
+    .home-kpi-most-idle {
+      background: linear-gradient(145deg, #fef2f2, #fef1f1);
+      border-color: rgba(248, 113, 113, 0.3);
+    }
+    .home-kpi-most-idle .home-kpi-icon { background: #fee2e2; color: #dc2626; }
   </style>
   <div class="home-dash">
     <!-- Hero -->
