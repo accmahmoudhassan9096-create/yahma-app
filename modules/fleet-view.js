@@ -152,6 +152,7 @@
           <button type="button" data-view="cards">كروت</button>
         </div>
         <button class="btn btn-ghost" id="fleet-clear-filters" title="إلغاء جميع الفلاتر">↺ مسح الفلاتر</button>
+        <button class="btn btn-ghost" id="fleet-excel-import" title="رفع شيت إكسل لتحديث بيانات السيارات (المarka، النوع، الموديل، اللون، الرقم التسلسلي، حالة الرخصة، تاريخ انتهاء الرخصة، حالة التأمين، المالك، رقم المالك)">📥 رفع شيت تحديث</button>
       </div>
       <div class="fleet-skeleton-wrap" style="padding:24px">
         <div class="skeleton-card">
@@ -994,6 +995,79 @@
     await removeSoldVehiclesByPlates(plates);
   });
   $('bulk-clear-sel')?.addEventListener('click', clearSelection);
+
+  // ===== رفع شيت تحديث بيانات السيارات =====
+  const fleetFileInput = document.createElement('input');
+  fleetFileInput.type = 'file';
+  fleetFileInput.accept = '.xlsx,.xls,.csv';
+  fleetFileInput.style.display = 'none';
+  document.body.appendChild(fleetFileInput);
+
+  fleetFileInput.onchange = async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = global.XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
+
+        if (!json.length) {
+          alert('الملف فارغ.');
+          return;
+        }
+
+        let updated = 0;
+        let notFound = 0;
+        const carsToSave = [];
+
+        for (const row of json) {
+          const plate = row['رقم اللوحة'] || row.plate || '';
+          if (!plate) continue;
+
+          const car = fleet.find(c => String(c.plate || '').trim() === String(plate).trim());
+          if (!car) {
+            notFound++;
+            continue;
+          }
+
+          // تحديث الحقول المتاحة
+          if (row['الماركة'] !== undefined) car.brand = row['الماركة'];
+          if (row['النوع'] !== undefined) car.type = row['النوع'];
+          if (row['الموديل'] !== undefined) car.model = row['الموديل'];
+          if (row['اللون'] !== undefined) car.color = row['اللون'];
+          if (row['الرقم التسلسلي'] !== undefined) car.serial = row['الرقم التسلسلي'];
+          if (row['حالة الرخصة'] !== undefined) car.licenseStatus = row['حالة الرخصة'];
+          if (row['تاريخ انتهاء الرخصة'] !== undefined) car.licenseExpiry = row['تاريخ انتهاء الرخصة'];
+          if (row['حالة التأمين'] !== undefined) car.insuranceStatus = row['حالة التأمين'];
+          if (row['المالك'] !== undefined) car.owner = row['المالك'];
+          if (row['رقم المالك'] !== undefined) car.ownerNumber = row['رقم المالك'];
+
+          updated++;
+          carsToSave.push(car.id);
+        }
+
+        // حفظ التغييرات
+        if (typeof saveData === 'function') {
+          await saveData(carsToSave);
+        }
+
+        // إعادة رسم الصفحة
+        if (typeof render === 'function') render();
+
+        alert(`تم تحديث ${updated} سيارة بنجاح.\n${notFound} سيارة لم يتم العثور عليها (تأكد من رقم اللوحة).`);
+      } catch (err) {
+        alert('خطأ في قراءة الملف: ' + (err.message || err));
+        console.error(err);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  $('fleet-excel-import')?.addEventListener('click', () => fleetFileInput.click());
 
   // Pagination controls
   $('pager-first')?.addEventListener('click', ()=>{ currentPage=1; requestAnimationFrame(draw); });
