@@ -243,12 +243,12 @@ function dashboardTemplate(state) {
     <div class="home-kpis report-card">
       <div class="home-report-header">
         <h3>🚗 تقرير التشغيل - سيارات راقدة</h3>
-        <p>سيارات غير مؤجرة ولم تتحرك منذ 7 أيام أو أكثر</p>
+        <p>سيارات غير مؤجرة</p>
       </div>
       <div class="home-kpi warn" id="kpi-idle-count">
         <div class="home-kpi-icon amber">🚗</div>
         <div class="home-kpi-body">
-          <span class="home-kpi-label">سيارات راقدة (7+ يوم)</span>
+          <span class="home-kpi-label">سيارات راقدة (غير مؤجرة)</span>
           <b class="home-kpi-num">${idleCount.toLocaleString('en')}</b>
           <a class="home-kpi-link" data-go="fleet">عرض التفاصيل ←</a>
         </div>

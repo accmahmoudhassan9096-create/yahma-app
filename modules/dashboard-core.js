@@ -126,14 +126,13 @@ function computeDashboardState(fleet) {
     .slice(0, 5);
 
   /* ===== تقارير الركود (Idle Cars) ===== */
-  // سيارات راقدة: غير مؤجرة ولم تتحرك منذ 7 أيام أو أكثر
+  // سيارات راقدة: أي سيارة غير مؤجرة (مبدأ المستخدم)
   const ignoredBranches = ['0', 'الإدارة الرئيسيه', 'الإدارة الرئيسية'];
   const idleCars = fleet.filter(c => {
     const status = String(c.carStatus || '').trim();
     const isRented = status.includes('مؤجر');
-    const daysIdle = Number(c.daysSinceMovement || 0);
     const branch = String(c.branch || '').trim();
-    return !isRented && daysIdle >= 7 && !ignoredBranches.includes(branch);
+    return !isRented && !ignoredBranches.includes(branch);
   });
   const idleCount = idleCars.length;
   const idleLoss = idleCars.reduce((sum, c) => sum + (Number(c.dailyRate || 0) * Number(c.daysSinceMovement || 0)), 0);
