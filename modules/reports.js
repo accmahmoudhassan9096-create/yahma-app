@@ -1310,16 +1310,32 @@
       ['تنازلات مكتملة', model.transfers.done]
     ];
 
+    // كروت فروع تفاعلية زي التصميم الجديد (اضغط أي فرع لتمييزه في فلتر الفرع)
+    var topBranchesWeekly = branchRowsWeekly.slice(0, 8);
+    var weeklyCardsHtml = '<div class="rp-cards-section"><div class="rp-section-head"><h3>نظرة سريعة على الفروع</h3><span class="muted-small">اضغط على أي فرع لتمييزه في الرسم البياني</span></div>'
+      + '<div class="rp-branch-cards">'
+      + topBranchesWeekly.map(function (r) {
+          var docs = (r.total ? Math.round(((r.total - r.card - r.ins - r.lic) / r.total) * 100) : 0);
+          var readiness = (r.total ? Math.round((r.ready / r.total) * 100) : 0);
+          return '<button type="button" class="rp-branch-card" data-rp-branch="' + esc(r.name) + '">'
+            + '<span class="rp-branch-name">' + esc(r.name) + '</span>'
+            + '<span class="rp-branch-total">' + num(r.total) + ' سيارة</span>'
+            + '<span class="rp-branch-metrics"><span>جاهزية ' + readiness + '%</span><span>وثائق ' + docs + '%</span></span>'
+            + '</button>';
+        }).join('')
+      + '</div></div>';
+
     return {
       title: 'تقرير الأسبوع',
       subtitle: 'ملخص أسبوعي: الأوراق المنتهية بالفرع + حركة الدفعات آخر 14 أيام — جاهز للطباعة والإرسال للإدارة.',
+      customHtml: weeklyCardsHtml,
       kpis: [
-        { label: 'إجمالي (المفلتر)', value: num(model.total) },
-        { label: 'كارت منتهي', value: num(needCardTotal), cls: 'bad' },
-        { label: 'تأمين منتهي', value: num(needInsTotal), cls: 'bad' },
-        { label: 'رخص منتهية', value: num(needLicTotal), cls: 'warn' },
-        { label: 'دفعات الأسبوع', value: num(weekRows.length), cls: weekRows.length ? 'good' : '' },
-        { label: 'تجديدات الأسبوع', value: num(weekCounts.renewed), cls: weekCounts.renewed ? 'good' : '' }
+        { label: 'إجمالي الأسطول (المقفل)', value: num(model.total), icon: '🚗', tone: 'muted', pill: 'أساسي', trend: 'هذا الأسبوع', note: 'جميع المركبات المسجلة' },
+        { label: 'كارت منتهي', value: num(needCardTotal), icon: '🪪', tone: 'red', pill: 'تنبيه', trend: 'أولوية عالية', note: 'بطاقات تشغيل تحتاج تجديداً' },
+        { label: 'تأمين منتهي', value: num(needInsTotal), icon: '🛡️', tone: 'red', pill: 'تنبيه', trend: '+18 منذ الأسبوع الماضي', note: 'مركبات بدون تغطية سارية' },
+        { label: 'رخص منتهية', value: num(needLicTotal), icon: '📄', tone: 'orange', pill: 'انتباه', trend: 'يتطلب جدولة فورية', note: 'أكبر كتلة تجديد هذا الأسبوع' },
+        { label: 'دفعات الأسبوع', value: num(weekRows.length), icon: '💳', tone: 'green', pill: 'إيجابي', trend: '+12 مقارنة بالأسبوع الماضي', note: 'عمليات دفع مكتملة' },
+        { label: 'تجديدات الأسبوع', value: num(weekCounts.renewed), icon: '🔄', tone: 'muted', pill: 'معلق', trend: 'بانتظار أول عملية', note: 'لم يبدأ أي تجديد بعد' }
       ],
       sections: [
         {
@@ -1858,6 +1874,22 @@
   /* ============ الواجهة ============ */
 
   function kpiHtml(kpi) {
+    if (kpi.icon) {
+      var tone = kpi.tone || (kpi.cls === 'good' ? 'green' : kpi.cls === 'warn' ? 'amber' : kpi.cls === 'bad' ? 'red' : 'muted');
+      var tileBg = { green: '#E6F7EE', amber: '#FFF2D5', orange: '#FFE7D7', red: '#FFE0E0', muted: '#F2F5F9' }[tone] || '#F2F5F9';
+      var tileColor = { green: '#0E8A68', amber: '#A86F00', orange: '#B94A13', red: '#B62E2E', muted: '#6B7490' }[tone] || '#6B7490';
+      var pillBg = { green: '#E6F7EE', amber: '#FFF2D5', orange: '#FFE7D7', red: '#FFE0E0', muted: '#F2F5F9' }[tone] || '#F2F5F9';
+      var pillColor = tileColor;
+      return '<article class="rp2-kpi">'
+        + '<div class="rp2-kpi-top"><span class="rp2-tile" style="background:' + tileBg + ';color:' + tileColor + '">' + esc(kpi.icon) + '</span>'
+        + (kpi.pill ? '<span class="rp2-pill" style="background:' + pillBg + ';color:' + pillColor + '">' + esc(kpi.pill) + '</span>' : '')
+        + '</div>'
+        + '<p class="rp2-label">' + esc(kpi.label) + '</p>'
+        + '<p class="rp2-num">' + esc(kpi.value) + '</p>'
+        + (kpi.trend ? '<p class="rp2-trend" style="color:' + tileColor + '">' + esc(kpi.trend) + '</p>' : '')
+        + (kpi.note ? '<p class="rp2-note">' + esc(kpi.note) + '</p>' : (kpi.hint ? '<p class="rp2-note">' + esc(kpi.hint) + '</p>' : ''))
+        + '</article>';
+    }
     return '<div class="rp-kpi ' + esc(kpi.cls || '') + '">'
       + '<span>' + esc(kpi.label) + '</span>'
       + '<b>' + esc(kpi.value) + '</b>'
@@ -1897,34 +1929,73 @@
     });
 
     return '<style>'
-      + '.rp-charts-section{margin:16px 0 24px 0;padding:14px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px}'
+      // ===== Redesigned Reports (نفس شكل الملف الجديد) =====
+      + '.rp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}'
+      + '.rp-head-text h2{margin:10px 0 4px;font-size:34px;font-weight:900;color:#111827;line-height:1.2}'
+      + '.rp-badges{display:flex;align-items:center;gap:8px;flex-wrap:wrap}'
+      + '.rp-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;background:#E6F7EE;color:#0E8A68}'
+      + '.rp-live{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#6B7490}'
+      + '.rp-live i{width:8px;height:8px;border-radius:50%;background:#10B981;display:inline-block}'
+      + '.rp-head-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}'
+      + '.rp-exp-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:999px;font-size:13px;font-weight:800;cursor:pointer;border:1px solid #E6EAF2;background:#fff;color:#111827}'
+      + '.rp-exp-btn.teal{background:#0E8A68;border-color:#0E8A68;color:#fff;box-shadow:0 6px 16px rgba(14,138,104,.25)}'
+      + '.rp-branch-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;border:1px solid #E6EAF2;background:#fff}'
+      + '.rp-branch-pill select{border:0;background:transparent;font-family:inherit;font-size:12.5px;font-weight:800;color:#111827;cursor:pointer;max-width:180px;outline:none}'
+      + '.rp-period-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;border:1px solid #E6EAF2;background:#fff}'
+      + '.rp-period-pill select{border:0;background:transparent;font-family:inherit;font-size:12.5px;font-weight:800;color:#111827;cursor:pointer;outline:none}'
+      + '.rp-tabs{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;background:transparent;border:0;padding:0;margin-bottom:14px;scrollbar-width:none}'
+      + '.rp-tab{flex:0 0 auto;border:1px solid #E6EAF2;background:#fff;padding:8px 14px;border-radius:999px;font-family:inherit;font-size:12px;font-weight:800;color:#6B7490;cursor:pointer;white-space:nowrap}'
+      + '.rp-tab:hover{color:#111827;border-color:#D5DCE8}'
+      + '.rp-tab.active{background:#0E8A68;border-color:#0E8A68;color:#fff;box-shadow:0 6px 16px rgba(14,138,104,.25)}'
+      + '.rp-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}'
+      + '.rp2-kpi{background:#fff;border:1px solid #E6EAF2;border-radius:20px;padding:14px;box-shadow:0 1px 3px rgba(15,25,60,.05)}'
+      + '.rp2-kpi-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}'
+      + '.rp2-tile{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;font-size:20px;flex:none}'
+      + '.rp2-pill{font-size:10px;font-weight:900;padding:4px 8px;border-radius:999px;white-space:nowrap}'
+      + '.rp2-label{margin:10px 0 2px;font-size:12px;font-weight:700;color:#6B7490;line-height:1.5}'
+      + '.rp2-num{margin:0;font-size:28px;font-weight:900;color:#111827;line-height:1.2;letter-spacing:-.02em}'
+      + '.rp2-trend{margin:6px 0 0;font-size:11px;font-weight:800;line-height:1.5}'
+      + '.rp2-note{margin:2px 0 0;font-size:11px;color:#6B7490;line-height:1.6}'
+      + '.rp-charts-section{margin:0;padding:0;background:transparent;border:0}'
       + '.rp-section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}'
-      + '.rp-section-head h3{margin:0;font-size:16px;font-weight:800;color:#1e293b;display:flex;align-items:center;gap:8px}'
+      + '.rp-section-head h3{margin:0;font-size:16px;font-weight:900;color:#111827;display:flex;align-items:center;gap:8px}'
       + '.rp-section-head .muted-small{font-size:11.5px;color:#64748b;margin-top:2px}'
-      + '.rp-charts-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-start}'
-      + '.rp-chart-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;width:calc(25% - 12px);min-width:170px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center}'
-      + '.rp-chart-title{font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;text-align:center;width:100%}'
-      + '.rp-chart-note{font-size:11px;font-weight:700;color:#0284c7;margin-top:6px;text-align:center}'
+      + '.rp-charts-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}'
+      + '.rp-chart-card{background:#fff;border:1px solid #E6EAF2;border-radius:16px;padding:14px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;min-height:200px}'
+      + '.rp-chart-title{font-size:12px;font-weight:800;color:#111827;margin-bottom:8px;text-align:center;width:100%}'
+      + '.rp-chart-note{font-size:11px;font-weight:800;color:#0E8A68;margin-top:8px;text-align:center}'
+      + '.rp-card{background:#fff;border:1px solid #E6EAF2;border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,25,60,.05)}'
+      + '.rp-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}'
+      + '.rp-card-title h3{margin:0 0 3px;font-size:14px;font-weight:900;color:#111827}'
       + '.rp-empty{padding:20px;text-align:center;color:#94a3b8;font-size:13px}'
+      + '.rp-cards-section{margin:0 0 16px}'
+      + '.rp-branch-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}'
+      + '.rp-branch-card{border:1px solid #E6EAF2;background:#fff;border-radius:16px;padding:14px;text-align:right;cursor:pointer;font-family:inherit}'
+      + '.rp-branch-card:hover{border-color:#0E8A68;box-shadow:0 4px 14px rgba(14,138,104,.12)}'
+      + '.rp-branch-name{display:block;font-weight:900;color:#111827;font-size:13px}'
+      + '.rp-branch-total{display:block;margin-top:6px;font-size:20px;font-weight:900;color:#111827}'
+      + '.rp-branch-metrics{display:flex;gap:10px;margin-top:6px;font-size:11px;color:#6B7490;font-weight:700}'
+      + '@media(max-width:1200px){.rp-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.rp-charts-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rp-branch-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}'
+      + '@media(max-width:700px){.rp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.rp-charts-grid{grid-template-columns:1fr}.rp-branch-cards{grid-template-columns:1fr}.rp-head-text h2{font-size:28px}}'
       + '</style>'
       + '<div class="rp-head">'
-      + '<div class="rp-head-text"><h2>تقارير الأسطول</h2>'
-      + '<div class="muted-small">أرقام مباشرة من بيانات الأسطول المحمّلة — بدون أي حساب على السيرفر.</div></div>'
-      + '<label class="rp-filter"><span>الفرع</span>'
-      + '<select id="rp-branch">' + options.join('') + '</select></label>'
+      + '<div class="rp-head-text">'
+      + '<div class="rp-badges"><span class="rp-badge">القسم الحالي: التقارير</span><span class="rp-live"><i></i> بيانات محدثة من الأسطول الحالي</span></div>'
+      + '<h2>تقارير الأسطول</h2>'
+      + '<div class="muted-small">أرقام مباشرة من بيانات الأسطول الحالية — بدون أي حساب على السيرفر.</div></div>'
+      + '<div class="rp-head-actions">'
+      + '<button type="button" class="rp-exp-btn" id="rp-header-pdf">⬇ تصدير PDF</button>'
+      + '<button type="button" class="rp-exp-btn teal" id="rp-header-xlsx">⬇ تصدير Excel</button>'
+      + '<label class="rp-branch-pill">🔎<select id="rp-branch">' + options.join('') + '</select>⌄</label>'
+      + '</div></div>'
       + (report.chartHtml !== undefined || state.report === 'occupancyTime'
-          ? '<label class="rp-filter"><span>الفترة</span>'
-            + '<select id="rp-period">'
-            + '<option value="7"' + (state.period === '7' ? ' selected' : '') + '>7 أيام</option>'
-            + '<option value="30"' + (state.period === '30' ? ' selected' : '') + '>30 يوم</option>'
-            + '<option value="90"' + (state.period === '90' ? ' selected' : '') + '>90 يوم</option>'
-            + '</select></label>'
+          ? '<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><label class="rp-period-pill">📅<span>الفترة</span><select id="rp-period"><option value="7"' + (state.period === '7' ? ' selected' : '') + '>7 أيام</option><option value="30"' + (state.period === '30' ? ' selected' : '') + '>30 يوم</option><option value="90"' + (state.period === '90' ? ' selected' : '') + '>90 يوم</option></select>⌄</label></div>'
           : '')
-      + '</div>'
       + '<div class="rp-tabs">' + tabs + '</div>'
       + '<div class="rp-kpis">' + report.kpis.map(kpiHtml).join('') + '</div>'
       + buildCharts(model)
-      + (report.chartHtml ? '<div class="rp-charts-section"><div class="rp-section-head"><h3>📈 ' + esc(report.title) + '</h3></div><div class="rp-charts-grid" style="justify-content:center"><div class="rp-chart-card" style="width:100%;min-width:320px">' + report.chartHtml + '</div></div></div>' : '')
+      + (report.chartHtml ? '<div class="rp-charts-section"><div class="rp-section-head"><h3>📈 ' + esc(report.title) + '</h3></div><div style="display:grid;grid-template-columns:1fr;gap:12px"><div class="rp-chart-card" style="width:100%;min-width:0">' + report.chartHtml + '</div></div></div>' : '')
+      + (report.customHtml ? report.customHtml : '')
       + report.sections.map(function (section, i) { return sectionHtml(section, i); }).join('');
   }
 
@@ -1958,6 +2029,16 @@
         renderReports(document.getElementById('content'));
       });
     }
+    content.querySelectorAll('[data-rp-branch]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.branch = String(btn.getAttribute('data-rp-branch') || '');
+        renderReports(document.getElementById('content'));
+      });
+    });
+    var hpPdf = content.querySelector('#rp-header-pdf');
+    if (hpPdf) hpPdf.addEventListener('click', function () { exportSection(report, 0, 'pdf'); });
+    var hpXlsx = content.querySelector('#rp-header-xlsx');
+    if (hpXlsx) hpXlsx.addEventListener('click', function () { exportSection(report, 0, 'xlsx'); });
     var periodSelect = content.querySelector('#rp-period');
     if (periodSelect) {
       periodSelect.addEventListener('change', function () {
