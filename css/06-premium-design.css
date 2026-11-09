@@ -565,7 +565,7 @@ body.dark-mode #content #audit-tbody tr:hover{background:#183A43!important}
 #overlay .field input,#overlay .field select,#overlay .field textarea{
   width:100%!important;min-width:0!important;min-height:42px!important;padding:9px 11px!important;
   border:1px solid #E0E8EE!important;border-radius:10px!important;background:#FAFCFD!important;
-  color:#20394D!important;font:500 12.5px/1.5 inherit!important;outline:none!important;
+  color:#20394D!important;font-family:inherit!important;font-size:12.5px!important;font-weight:500!important;line-height:1.5!important;outline:none!important;
   transition:border-color .16s ease,box-shadow .16s ease,background .16s ease!important
 }
 #overlay .field input:focus,#overlay .field select:focus,#overlay .field textarea:focus{
