@@ -312,41 +312,69 @@
   function buildTablePdfHost(o) {
     const headers = o.headers || [];
     const rows = o.rows || [];
+    const sections = Array.isArray(o.sections) ? o.sections : null;
+    const tableHtml = function (section) {
+      const head = (section.headers || []).map(function (h) { return '<th>' + escCell(h) + '</th>'; }).join('');
+      const body = (section.rows || []).map(function (r) {
+        return '<tr>' + r.map(function (c) { return '<td>' + escCell(c) + '</td>'; }).join('') + '</tr>';
+      }).join('');
+      return '<table><thead><tr>' + head + '</tr></thead><tbody>' +
+        (body || '<tr><td colspan="' + Math.max(1, (section.headers || []).length) + '">لا توجد بيانات</td></tr>') +
+        '</tbody></table>';
+    };
     const head = headers.map(function (h) { return '<th>' + escCell(h) + '</th>'; }).join('');
     const body = rows.map(function (r) {
       return '<tr>' + r.map(function (c) { return '<td>' + escCell(c) + '</td>'; }).join('') + '</tr>';
     }).join('');
+    const contentHtml = sections
+      ? sections.map(function (section, index) {
+          return '<section class="pdf-section" style="margin-top:18px;break-inside:avoid;">' +
+            '<h2 style="font-size:15px;color:#0F766E;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid #DDE7EA">' +
+            (index + 1) + '. ' + escCell(section.title || 'قسم التقرير') + '</h2>' +
+            tableHtml(section) + '</section>';
+        }).join('')
+      : '<table><thead><tr>' + head + '</tr></thead><tbody>' +
+        (body || '<tr><td colspan="' + Math.max(1, headers.length) + '">لا توجد بيانات</td></tr>') +
+        '</tbody></table>';
+    const kpis = (o.kpis || []).map(function (kpi) {
+      return '<div style="border:1px solid #E3EAF0;border-radius:8px;padding:9px 11px;min-width:130px;flex:1">' +
+        '<div style="font-size:10px;color:#718096;margin-bottom:4px">' + escCell(kpi.label || '') + '</div>' +
+        '<strong style="font-size:16px;color:#10243A">' + escCell(kpi.value == null ? '' : kpi.value) + '</strong>' +
+        (kpi.hint ? '<div style="font-size:9px;color:#718096;margin-top:3px">' + escCell(kpi.hint) + '</div>' : '') +
+        '</div>';
+    }).join('');
     const host = document.createElement('div');
     host.setAttribute('data-pdf-host', '1');
-    /* ظاهر جزئيًا (opacity منخفضة) — off-screen يسبب PDF فاضي في بعض المتصفحات */
     host.style.cssText = 'position:fixed;left:0;top:0;width:' + PDF_HOST_W + 'px;background:#fff;z-index:2147483646;opacity:0.02;pointer-events:none;overflow:visible;';
     host.innerHTML =
       '<div class="pdf-root" style="box-sizing:border-box;width:' + PDF_HOST_W + 'px;padding:24px;background:#fff;color:#1A2433;font-family:' + PDF_FONT + ';direction:rtl;text-align:right;">' +
       '<style>' +
       '.pdf-root *{font-family:' + PDF_FONT + ' !important}' +
-      '.pdf-root table{width:100%;border-collapse:collapse}' +
-      '.pdf-root th{background:#1F3C88;color:#fff;padding:8px 6px;text-align:right;font-size:11px;font-weight:700;border:1px solid #1F3C88}' +
+      '.pdf-root table{width:100%;border-collapse:collapse;margin-bottom:12px}' +
+      '.pdf-root th{background:#10243A;color:#fff;padding:8px 6px;text-align:right;font-size:11px;font-weight:700;border:1px solid #10243A}' +
       '.pdf-root td{padding:7px 6px;border-bottom:1px solid #E6EAF0;text-align:right;font-size:11px;vertical-align:top}' +
       '.pdf-root tbody tr:nth-child(even) td{background:#F7F8FA}' +
       '</style>' +
       '<div class="pdf-head">' +
-        '<h1 style="font-size:20px;margin:0 0 4px;color:#1F3C88">' + escCell(o.title || 'تقرير يهماء') + '</h1>' +
-        '<div style="color:#5A6A7E;font-size:12px;margin-bottom:12px">' + escCell(o.subtitle || '') + '</div>' +
-        '<div style="display:flex;justify-content:space-between;font-size:11px;color:#5A6A7E;margin-bottom:14px">' +
-          '<span>تاريخ التصدير: ' + escCell(new Date().toLocaleString('ar-EG')) + '</span>' +
-          '<span>عدد السجلات: ' + rows.length + '</span>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #17AAA4;padding-bottom:10px;margin-bottom:14px">' +
+          '<div><div style="font-size:22px;font-weight:900;color:#10243A">يهماء</div><div style="font-size:10px;color:#607080">لتأجير السيارات · منصة تحضير الأسطول</div></div>' +
+          '<div style="font-size:10px;color:#607080;text-align:left">YAHMAA · FLEET INTELLIGENCE</div>' +
         '</div>' +
+        '<h1 style="font-size:20px;margin:0 0 4px;color:#10243A">' + escCell(o.title || 'تقرير يهماء') + '</h1>' +
+        '<div style="color:#5A6A7E;font-size:12px;margin-bottom:12px">' + escCell(o.subtitle || '') + '</div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:#5A6A7E;margin-bottom:12px">' +
+          '<span>تاريخ التصدير: ' + escCell(new Date().toLocaleString('ar-SA')) + '</span>' +
+          '<span>عدد السجلات: ' + (sections ? sections.reduce(function (sum, s) { return sum + (s.rows || []).length; }, 0) : rows.length) + '</span>' +
+        '</div>' +
+        (o.note ? '<div style="background:#F3F8F8;border-right:3px solid #17AAA4;padding:9px 12px;margin-bottom:12px;font-size:11px;color:#34495E">' + escCell(o.note) + '</div>' : '') +
+        (kpis ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px">' + kpis + '</div>' : '') +
       '</div>' +
-      '<table><thead><tr>' + head + '</tr></thead><tbody>' +
-        (body || '<tr><td colspan="' + Math.max(1, headers.length) + '">لا توجد بيانات</td></tr>') +
-      '</tbody></table>' +
-      (o.note ? '<div style="margin-top:14px;font-size:11px;color:#5A6A7E">' + escCell(o.note) + '</div>' : '') +
-      '<div class="pdf-foot" style="margin-top:18px;padding-top:10px;border-top:1px solid #E6EAF0;font-size:10px;color:#8A97A8;text-align:center">يهماء — نظام إدارة تأجير السيارات</div>' +
+      contentHtml +
+      '<div class="pdf-foot" style="margin-top:18px;padding-top:10px;border-top:1px solid #E6EAF0;font-size:10px;color:#8A97A8;text-align:center">يهماء لتأجير السيارات — منصة تحضير الأسطول للتأجير</div>' +
       '</div>';
     document.body.appendChild(host);
     return host;
   }
-
   /* ============================================================
      التقاطaccurate: المتصفح بيرسم بنفسه عبر SVG <foreignObject>
      ------------------------------------------------------------
@@ -468,7 +496,7 @@
    */
   async function exportTablePdf(o) {
     o = o || {};
-    const rows = o.rows || [];
+    const rows = o.rows || (Array.isArray(o.sections) ? o.sections.reduce(function (all, section) { return all.concat(section.rows || []); }, []) : []);
     if (!rows.length) { alert('لا توجد نتائج مطابقة للفلاتر.'); return false; }
     const btn = o.buttonId ? document.getElementById(o.buttonId) : null;
     const original = btn ? btn.innerHTML : '';
@@ -548,6 +576,7 @@
     createFormalReportPdf: createFormalReportPdf,
     capturePngBlob: capturePngBlob,
     exportTablePdf: exportTablePdf,
+    exportWholeReportPdf: function (o) { return exportTablePdf(o || {}); },
     exportRowsToExcel: exportRowsToExcel,
     exportReportWorkbook: exportReportWorkbook,
     exportFleetExcel: exportFleetExcel,
