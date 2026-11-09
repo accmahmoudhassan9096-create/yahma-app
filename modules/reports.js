@@ -1231,7 +1231,7 @@
     var byBranch = {};
     function bRec(name) {
       if (!name || !String(name).trim()) name = 'بدون فرع';
-      if (!byBranch[name]) byBranch[name] = { total: 0, card: 0, ins: 0, lic: 0, ready: 0 };
+      if (!byBranch[name]) byBranch[name] = { total: 0, card: 0, ins: 0, lic: 0, docIssue: 0, ready: 0 };
       return byBranch[name];
     }
     var needCardTotal = 0, needInsTotal = 0, needLicTotal = 0;
@@ -1250,9 +1250,16 @@
       } else {
         insBad = !!car.insuranceExpiry && (daysLeftL(car.insuranceExpiry) < 0);
       }
+      var inspectionBad = false;
+      if (typeof u.inspectionDisplayStatus === 'function') {
+        var inspectionTag = u.inspectionDisplayStatus(car.inspectionStatus);
+        inspectionBad = !!inspectionTag && inspectionTag.level === 'red';
+      }
       if (cardBad) { rec.card++; needCardTotal++; }
       if (insBad) { rec.ins++; needInsTotal++; }
       if (licBad) { rec.lic++; needLicTotal++; }
+      // احسب السيارة مرة واحدة فقط حتى لو عندها أكثر من وثيقة منتهية.
+      if (cardBad || insBad || licBad || inspectionBad) rec.docIssue++;
     });
     var branchRowsWeekly = Object.keys(byBranch).map(function (name) {
       var r = byBranch[name];
@@ -1315,7 +1322,7 @@
     var weeklyCardsHtml = '<div class="rp-cards-section"><div class="rp-section-head"><h3>نظرة سريعة على الفروع</h3><span class="muted-small">اضغط على أي فرع لتمييزه في الرسم البياني</span></div>'
       + '<div class="rp-branch-cards">'
       + topBranchesWeekly.map(function (r) {
-          var docs = (r.total ? Math.round(((r.total - r.card - r.ins - r.lic) / r.total) * 100) : 0);
+          var docs = (r.total ? Math.round(((r.total - r.docIssue) / r.total) * 100) : 0);
           var readiness = (r.total ? Math.round((r.ready / r.total) * 100) : 0);
           return '<button type="button" class="rp-branch-card" data-rp-branch="' + esc(r.name) + '">'
             + '<span class="rp-branch-name">' + esc(r.name) + '</span>'
@@ -1327,15 +1334,15 @@
 
     return {
       title: 'تقرير الأسبوع',
-      subtitle: 'ملخص أسبوعي: الأوراق المنتهية بالفرع + حركة الدفعات آخر 14 أيام — جاهز للطباعة والإرسال للإدارة.',
+      subtitle: 'ملخص أسبوعي: الأوراق المنتهية حسب الفرع وحركة الدفعات خلال آخر 7 أيام.',
       customHtml: weeklyCardsHtml,
       kpis: [
         { label: 'إجمالي الأسطول (المقفل)', value: num(model.total), icon: '🚗', tone: 'muted', pill: 'أساسي', trend: 'هذا الأسبوع', note: 'جميع المركبات المسجلة' },
         { label: 'كارت منتهي', value: num(needCardTotal), icon: '🪪', tone: 'red', pill: 'تنبيه', trend: 'أولوية عالية', note: 'بطاقات تشغيل تحتاج تجديداً' },
-        { label: 'تأمين منتهي', value: num(needInsTotal), icon: '🛡️', tone: 'red', pill: 'تنبيه', trend: '+18 منذ الأسبوع الماضي', note: 'مركبات بدون تغطية سارية' },
+        { label: 'تأمين منتهي', value: num(needInsTotal), icon: '🛡️', tone: 'red', pill: 'تنبيه', trend: 'حالة حالية', note: 'مركبات تحتاج مراجعة التأمين' },
         { label: 'رخص منتهية', value: num(needLicTotal), icon: '📄', tone: 'orange', pill: 'انتباه', trend: 'يتطلب جدولة فورية', note: 'أكبر كتلة تجديد هذا الأسبوع' },
-        { label: 'دفعات الأسبوع', value: num(weekRows.length), icon: '💳', tone: 'green', pill: 'إيجابي', trend: '+12 مقارنة بالأسبوع الماضي', note: 'عمليات دفع مكتملة' },
-        { label: 'تجديدات الأسبوع', value: num(weekCounts.renewed), icon: '🔄', tone: 'muted', pill: 'معلق', trend: 'بانتظار أول عملية', note: 'لم يبدأ أي تجديد بعد' }
+        { label: 'دفعات الأسبوع', value: num(weekRows.length), icon: '💳', tone: 'green', pill: 'إيجابي', trend: 'آخر 7 أيام', note: 'حركات الدفع المسجلة خلال الفترة' },
+        { label: 'تجديدات الأسبوع', value: num(weekCounts.renewed), icon: '🔄', tone: 'muted', pill: 'معلق', trend: 'آخر 7 أيام', note: 'عمليات التجديد المسجلة خلال الفترة' }
       ],
       sections: [
         {
@@ -1869,6 +1876,72 @@
     return 'تقرير-' + report.title + '-' + section.title + '-' + stamp;
   }
 
+  async function exportWholeReport(report) {
+    var api = global.YahmaExport;
+    if (!api || typeof api.exportReportWorkbook !== 'function') {
+      try { global.alert('تصدير Excel المتقدم غير متاح — أعد تحميل الصفحة.'); } catch (_) { /* ignore */ }
+      return;
+    }
+    var sections = (report.sections || []).map(function (section) {
+      return {
+        title: section.title || '',
+        headers: (section.headers || []).slice(),
+        rows: (section.rows || []).map(function (row) { return exportRow(section, row); }),
+        foot: section.foot ? exportRow(section, section.foot) : null
+      };
+    });
+    try {
+      await api.exportReportWorkbook(fileName(report, { title: 'كامل' }) + '.xlsx', {
+        title: report.title,
+        subtitle: report.subtitle,
+        branch: state.branch || 'كل الفروع',
+        period: state.period || '',
+        kpis: report.kpis || [],
+        sections: sections
+      });
+    } catch (err) {
+      try { global.alert('تعذر تصدير التقرير الكامل: ' + ((err && err.message) || err)); } catch (_) { /* ignore */ }
+    }
+  }
+
+  async function exportWholeReportPdf(report) {
+    var api = global.YahmaExport;
+    if (!api || typeof api.exportWholeReportPdf !== 'function') {
+      try { global.alert('تصدير PDF الكامل غير متاح — أعد تحميل الصفحة.'); } catch (_) { /* ignore */ }
+      return;
+    }
+    var sections = (report.sections || []).map(function (section) {
+      return {
+        title: section.title || '',
+        headers: (section.headers || []).slice(),
+        rows: (section.rows || []).map(function (row) { return exportRow(section, row); }),
+        foot: section.foot ? exportRow(section, section.foot) : null
+      };
+    });
+    var totalRows = sections.reduce(function (sum, section) { return sum + section.rows.length + (section.foot ? 1 : 0); }, 0);
+    if (!totalRows) {
+      try { global.alert('لا توجد بيانات مطابقة للتصدير.'); } catch (_) { /* ignore */ }
+      return;
+    }
+    var note = 'الفرع: ' + (state.branch || 'كل الفروع');
+    if (state.report === 'occupancyTime') note += ' | الفترة: ' + (state.period || '30') + ' يوم';
+    try {
+      await api.exportWholeReportPdf({
+        title: report.title || 'تقرير الأسطول',
+        subtitle: report.subtitle || '',
+        note: note,
+        kpis: report.kpis || [],
+        sections: sections,
+        rows: sections.reduce(function (all, section) { return all.concat(section.rows, section.foot ? [section.foot] : []); }, []),
+        filename: fileName(report, { title: 'كامل' }) + '.pdf',
+        buttonId: 'rp-header-pdf'
+      });
+    } catch (err) {
+      try { global.alert('تعذر تصدير PDF الكامل: ' + ((err && err.message) || err)); } catch (_) { /* ignore */ }
+    }
+  }
+
+
   function exportSection(report, index, format) {
     var section = (report.sections || [])[index];
     if (!section) return;
@@ -1891,6 +1964,7 @@
           headers: data.headers,
           rows: data.rows,
           filename: fileName(report, section) + '.pdf',
+          note: 'الفرع: ' + (state.branch || 'كل الفروع') + (state.report === 'occupancyTime' ? ' | الفترة: ' + state.period + ' يوم' : ''),
           buttonId: 'rp-pdf-' + index
         });
       }
@@ -2031,7 +2105,7 @@
       + '<div class="muted-small">أرقام مباشرة من بيانات الأسطول الحالية — بدون أي حساب على السيرفر.</div></div>'
       + '<div class="rp-head-actions">'
       + '<button type="button" class="rp-exp-btn" id="rp-header-pdf">⬇ تصدير PDF</button>'
-      + '<button type="button" class="rp-exp-btn teal" id="rp-header-xlsx">⬇ تصدير Excel</button>'
+      + '<button type="button" class="rp-exp-btn teal" id="rp-header-xlsx">⬇ Excel كامل</button>'
       + '<label class="rp-branch-pill">🔎<select id="rp-branch">' + options.join('') + '</select>⌄</label>'
       + '</div></div>'
       + (report.chartHtml !== undefined || state.report === 'occupancyTime'
@@ -2082,9 +2156,9 @@
       });
     });
     var hpPdf = content.querySelector('#rp-header-pdf');
-    if (hpPdf) hpPdf.addEventListener('click', function () { exportSection(report, 0, 'pdf'); });
+    if (hpPdf) hpPdf.addEventListener('click', function () { exportWholeReportPdf(report); });
     var hpXlsx = content.querySelector('#rp-header-xlsx');
-    if (hpXlsx) hpXlsx.addEventListener('click', function () { exportSection(report, 0, 'xlsx'); });
+    if (hpXlsx) hpXlsx.addEventListener('click', function () { exportWholeReport(report); });
     var periodSelect = content.querySelector('#rp-period');
     if (periodSelect) {
       periodSelect.addEventListener('change', function () {
