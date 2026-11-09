@@ -187,3 +187,122 @@ body.dark-mode .app-footer{background:#122235!important;border-color:#2A3C4D!imp
   .rp-head-text h2{font-size:20px!important}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* ============================================================================
+   توحيد ألوان الصفحة الرئيسية على نظام واحد (White Luxury)
+   كل ألوان home-* من 01-base/04/inline أصبحت واحدة: أزرق داكن + تركوازي
+   + حالة (أخضر/كهرماني/أحمر) بنفس درجات 06-premium.
+   ============================================================================ */
+.home-dash{
+  --hp-ink:#172B3D; --hp-ink-soft:#2E4356; --hp-muted:#6C7C8D;
+  --hp-line:#E3EAF0; --hp-panel:#FFFFFF; --hp-paper:#F4F7FA;
+  --hp-tq:#17AAA4; --hp-tq-dark:#087C7A; --hp-tq-soft:#E6F5F4;
+  --hp-navy:#10243A;
+  --hp-ok:#16866F; --hp-ok-soft:#E5F5F0;
+  --hp-warn:#B7791F; --hp-warn-soft:#FFF4DF;
+  --hp-bad:#C84C4C; --hp-bad-soft:#FCEAEA;
+  --hp-grey-soft:#EEF2F6; --hp-grey:#647B8C;
+}
+/* الهيرو — نفس روح النظام بس بألوان متوحّدة */
+.home-dash .home-hero{
+  background:linear-gradient(120deg,#F2FBFA 0%,#EAF6F4 55%,#DFF0EC 100%)!important;
+  border:1px solid var(--hp-line)!important;
+  box-shadow:0 10px 28px rgba(16,36,58,.07)!important;
+}
+.home-dash .home-hero-text h2,.home-dash .home-hero-title-copy h2{color:var(--hp-navy)!important;text-shadow:none!important}
+.home-dash .home-hero-text p,.home-dash .home-hero-title-copy p{color:var(--hp-muted)!important}
+.home-dash .home-hero-accent{background:var(--hp-tq)!important}
+.home-dash .home-hero:after{border-color:rgba(23,170,164,.16)!important;box-shadow:0 0 0 28px rgba(23,170,164,.04),0 0 0 58px rgba(23,170,164,.03)!important}
+/* أولويات Command Center — نفس الأسرة */
+.home-dash .yahma-priority{background:linear-gradient(110deg,#F4FAFA 0%,#FFFFFF 55%,#EEF7F5 100%)!important;border-color:var(--hp-line)!important}
+.home-dash .yahma-priority-kicker{color:var(--hp-tq-dark)!important}
+.home-dash .yahma-priority-intro strong{color:var(--hp-navy)!important}
+.home-dash .yahma-priority-intro span:last-child{color:var(--hp-muted)!important}
+.home-dash .yahma-priority-item{background:var(--hp-panel)!important;border-color:var(--hp-line)!important}
+.home-dash .yahma-priority-count{background:var(--hp-grey-soft)!important;color:var(--hp-navy)!important}
+.home-dash .yahma-priority-item[data-priority="urgent"] .yahma-priority-count{background:var(--hp-bad-soft)!important;color:var(--hp-bad)!important}
+.home-dash .yahma-priority-item[data-priority="urgent"]{border-color:#F0D4D4!important}
+.home-dash .yahma-priority-empty{background:var(--hp-ok-soft)!important;border-color:#CBE8DE!important;color:var(--hp-ok)!important}
+/* كروت المؤشرات الخمسة — نفس الدرجات */
+.home-dash .home-kpi{background:var(--hp-panel)!important;border:1px solid var(--hp-line)!important}
+.home-dash .home-kpi-label{color:var(--hp-muted)!important}
+.home-dash .home-kpi-num{color:var(--hp-navy)!important}
+.home-dash .home-kpi-link{color:var(--hp-tq-dark)!important}
+.home-dash .home-kpi-pct.good{color:var(--hp-ok)!important}
+.home-dash .home-kpi-pct.warn{color:var(--hp-warn)!important}
+.home-dash .home-kpi-pct.bad{color:var(--hp-bad)!important}
+.home-dash .home-kpi-bar{background:var(--hp-grey-soft)!important}
+.home-dash .home-kpi-icon.blue{background:var(--hp-tq-soft)!important;color:var(--hp-tq-dark)!important}
+.home-dash .home-kpi-icon.green{background:var(--hp-ok-soft)!important;color:var(--hp-ok)!important}
+.home-dash .home-kpi-icon.amber{background:var(--hp-warn-soft)!important;color:var(--hp-warn)!important}
+.home-dash .home-kpi-icon.red{background:var(--hp-bad-soft)!important;color:var(--hp-bad)!important}
+.home-dash .home-kpi-icon.grey{background:var(--hp-grey-soft)!important;color:var(--hp-grey)!important}
+.home-dash .home-kpi-bar i{background:linear-gradient(90deg,var(--hp-tq),var(--hp-tq-dark))!important}
+.home-dash .home-kpi-most-idle .home-kpi-icon{background:var(--hp-bad-soft)!important;color:var(--hp-bad)!important}
+/* حالة الدونات + الليجند */
+.home-dash .home-donut-hole{background:var(--hp-panel)!important;box-shadow:inset 0 0 0 1px var(--hp-line)!important}
+.home-dash .home-donut-hole b{color:var(--hp-navy)!important}
+.home-dash .home-donut-hole span{color:var(--hp-muted)!important}
+.home-dash .home-leg span{color:var(--hp-ink-soft)!important}
+.home-dash .home-leg b{color:var(--hp-navy)!important}
+.home-dash .home-leg em{color:var(--hp-muted)!important}
+.home-dash .home-leg:hover,.home-dash .home-leg.active{background:var(--hp-grey-soft)!important}
+/* المهام + زرار الواتس */
+.home-dash .home-task{background:var(--hp-panel)!important;border-color:var(--hp-line)!important}
+.home-dash .home-task-n{background:var(--hp-grey-soft)!important;color:var(--hp-navy)!important}
+.home-dash .home-task-n.alert{background:var(--hp-bad-soft)!important;color:var(--hp-bad)!important}
+.home-dash .home-task-label{color:var(--hp-ink-soft)!important}
+.home-dash .home-task-arrow{color:var(--hp-muted)!important}
+.home-dash .home-task-wa{background:var(--hp-ok-soft)!important;color:var(--hp-ok)!important;border-color:#CBE8DE!important}
+.home-dash .home-link-all{color:var(--hp-tq-dark)!important}
+/* CTA */
+.home-dash .home-cta{background:linear-gradient(150deg,#F0F9F8 0%,#FFFFFF 100%)!important;border-color:var(--hp-line)!important}
+.home-dash .home-cta h3{color:var(--hp-tq-dark)!important}
+.home-dash .home-cta p{color:var(--hp-muted)!important}
+.home-dash .home-cta-badge{background:var(--hp-panel)!important;border-color:var(--hp-line)!important}
+.home-dash .home-cta-visual{background:linear-gradient(180deg,#E8F5F3 0%,#F4FBFA 100%)!important}
+/* أسباب الانخفاض + أشرطة */
+.home-dash .home-reason-top span{color:var(--hp-ink-soft)!important}
+.home-dash .home-reason-top b{color:var(--hp-navy)!important}
+.home-dash .home-reason-top em{color:var(--hp-muted)!important}
+.home-dash .home-reason-bar{background:var(--hp-grey-soft)!important}
+.home-dash .home-reason-bar i{background:linear-gradient(90deg,var(--hp-bad),var(--hp-warn))!important}
+/* جدول الفروع */
+.home-dash .home-br-head{color:var(--hp-muted)!important;border-color:var(--hp-line)!important}
+.home-dash .home-br-row{border-color:var(--hp-line)!important}
+.home-dash .home-br-name{color:var(--hp-ink-soft)!important}
+.home-dash .home-br-pct em{background:linear-gradient(90deg,var(--hp-tq),var(--hp-tq-dark))!important}
+/* النشاط */
+.home-dash .home-act-time b{color:var(--hp-navy)!important}
+.home-dash .home-act-time span{color:var(--hp-muted)!important}
+.home-dash .home-act-body b{color:var(--hp-ink-soft)!important}
+.home-dash .home-act-body span{color:var(--hp-muted)!important}
+.home-dash .home-act{border-color:var(--hp-line)!important}
+/* الرسم الشريطي */
+.home-dash .home-chart-col .bar{background:linear-gradient(180deg,var(--hp-tq),var(--hp-tq-dark))!important}
+.home-dash .home-chart-col .bar-n{color:var(--hp-navy)!important}
+.home-dash .home-chart-col .bar-l{color:var(--hp-muted)!important}
+.home-dash .home-badge{background:var(--hp-bad)!important}
+.home-dash .good-text{color:var(--hp-ok)!important}
+.home-dash .bad-text{color:var(--hp-bad)!important}
+/* تنبيه التدخل الفوري */
+.home-dash #dash-immediate-alert{background:var(--hp-bad-soft)!important;border-color:#F0D4D4!important;color:var(--hp-bad)!important;box-shadow:none!important}
+/* التيلز الرئيسية */
+.home-dash .tile-num{color:var(--hp-navy)!important}
+.home-dash .tile-label{color:var(--hp-muted)!important}
+/* الوضع الليلي — نفس الدرجات على خلفية داكنة */
+body.dark-mode .home-dash{
+  --hp-ink:#E6EEF3;--hp-ink-soft:#C9D7E2;--hp-muted:#8FA6B5;
+  --hp-line:#2A3C4D;--hp-panel:#142537;--hp-paper:#0D1926;
+  --hp-tq:#2DD4BF;--hp-tq-dark:#14B8A6;--hp-tq-soft:#143B38;
+  --hp-navy:#E6EEF3;
+  --hp-ok:#34D399;--hp-ok-soft:#14352A;
+  --hp-warn:#FBBF24;--hp-warn-soft:#3A2E12;
+  --hp-bad:#F87171;--hp-bad-soft:#3D1D1D;
+  --hp-grey-soft:#1D3042;--hp-grey:#8FA6B5;
+}
+body.dark-mode .home-dash .home-hero{background:linear-gradient(120deg,#122C3B 0%,#0F2637 60%,#0D1F2E 100%)!important;border-color:#2A3C4D!important}
+body.dark-mode .home-dash .home-hero-text h2,body.dark-mode .home-dash .home-hero-title-copy h2{color:#F1F7FB!important}
+body.dark-mode .home-dash .home-hero-text p,body.dark-mode .home-dash .home-hero-title-copy p{color:#8FA6B5!important}
+body.dark-mode .home-dash .home-cta{background:linear-gradient(150deg,#142B3D 0%,#142537 100%)!important}
+body.dark-mode .home-dash .home-cta-visual{background:linear-gradient(180deg,#122A3B 0%,#0F2333 100%)!important}
