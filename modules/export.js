@@ -109,6 +109,67 @@
     XLSX.writeFile(wb, filename || ('export-' + todayStr() + '.xlsx'));
   }
 
+  /* تصدير تقرير كامل في مصنف واحد: ملخص + ورقة مستقلة لكل جدول. */
+  async function exportReportWorkbook(filename, report) {
+    const XLSX = await ensureXlsx();
+    report = report || {};
+    const wb = XLSX.utils.book_new();
+    const kpis = Array.isArray(report.kpis) ? report.kpis : [];
+    const sections = Array.isArray(report.sections) ? report.sections : [];
+    const summaryRows = [
+      ['يهماء لتأجير السيارات'],
+      ['تقرير الأسطول', report.title || 'تقرير'],
+      ['الوصف', report.subtitle || ''],
+      ['الفرع', report.branch || 'كل الفروع'],
+      ['الفترة', report.period || 'حسب التقرير'],
+      ['تاريخ الاستخراج', new Date().toLocaleString('ar-SA')],
+      [],
+      ['المؤشر', 'القيمة', 'ملاحظة']
+    ];
+    kpis.forEach(function (k) {
+      summaryRows.push([k.label || '', k.value == null ? '' : String(k.value), k.hint || '']);
+    });
+    const summary = XLSX.utils.aoa_to_sheet(summaryRows);
+    summary['!cols'] = [{ wch: 28 }, { wch: 24 }, { wch: 42 }];
+    summary['!views'] = [{ RTL: true }];
+    XLSX.utils.book_append_sheet(wb, summary, 'ملخص التقرير');
+
+    const used = Object.create(null);
+    sections.forEach(function (section, index) {
+      const headers = Array.isArray(section.headers) ? section.headers : [];
+      const rows = Array.isArray(section.rows) ? section.rows : [];
+      const dataRows = rows.map(function (row) { return Array.isArray(row) ? row.slice() : []; });
+      if (Array.isArray(section.foot)) dataRows.push(section.foot.slice());
+      const title = String(section.title || ('جدول ' + (index + 1)));
+      let sheetName = title.replace(/[\\/?*\[\]:]/g, ' ').trim().slice(0, 31) || ('جدول ' + (index + 1));
+      const base = sheetName;
+      let suffix = 2;
+      while (used[sheetName]) {
+        const tail = '-' + suffix++;
+        sheetName = base.slice(0, 31 - tail.length) + tail;
+      }
+      used[sheetName] = true;
+      const aoa = [
+        ['يهماء لتأجير السيارات'],
+        [report.title || 'تقرير الأسطول'],
+        [title],
+        ['الفرع: ' + (report.branch || 'كل الفروع') + ' | تاريخ الاستخراج: ' + new Date().toLocaleString('ar-SA')],
+        headers
+      ].concat(dataRows);
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = autosizeCols(headers, dataRows);
+      ws['!views'] = [{ RTL: true }];
+      ws['!freeze'] = { xSplit: 0, ySplit: 5 };
+      if (headers.length) {
+        const lastCol = XLSX.utils.encode_col(headers.length - 1);
+        ws['!autofilter'] = { ref: 'A5:' + lastCol + Math.max(5, aoa.length) };
+      }
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+    wb.Props = { Title: report.title || 'تقرير يهماء', Subject: report.subtitle || 'تقارير الأسطول', Author: 'يهماء لتأجير السيارات', Company: 'يهماء لتأجير السيارات' };
+    XLSX.writeFile(wb, filename || ('تقرير-يهماء-' + todayStr() + '.xlsx'));
+  }
+
   async function exportFleetExcel(list, headers) {
     const fleet = list || (Array.isArray(global.fleet) ? global.fleet : []);
     const H = headers || [
@@ -488,6 +549,7 @@
     capturePngBlob: capturePngBlob,
     exportTablePdf: exportTablePdf,
     exportRowsToExcel: exportRowsToExcel,
+    exportReportWorkbook: exportReportWorkbook,
     exportFleetExcel: exportFleetExcel,
     /** يُستدعى من الأزرار — يحمّل المكتبة عند الحاجة فقط */
     async excel(list) {
