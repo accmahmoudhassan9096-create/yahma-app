@@ -1926,6 +1926,7 @@
           headers: data.headers,
           rows: data.rows,
           filename: fileName(report, section) + '.pdf',
+          note: 'الفرع: ' + (state.branch || 'كل الفروع') + (state.report === 'occupancyTime' ? ' | الفترة: ' + state.period + ' يوم' : ''),
           buttonId: 'rp-pdf-' + index
         });
       }
