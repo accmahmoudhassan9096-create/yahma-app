@@ -334,6 +334,17 @@
     "isOpen",
     "open"
   ],
+  "YahmaSnapshots": [
+    "applyIdleSince",
+    "computeSnapshot",
+    "daysBetween",
+    "idleDaysFor",
+    "idleSinceFor",
+    "loadSnapshots",
+    "readLocal",
+    "saveToday",
+    "todayIso"
+  ],
   "YahmaTV": [
     "active",
     "enter",
