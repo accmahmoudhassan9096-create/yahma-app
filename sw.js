@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v381';
+const CACHE_NAME = 'yahma-shell-v382';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -16,8 +16,6 @@ const LOCAL_APP_SHELL = [
   './vendor/xlsx.full.min.js',
   './vendor/html2canvas.min.js',
   './vendor/jspdf.umd.min.js',
-  /* النسخة الاحتياطية: لو الأولى فشلت (شبكة بتقطع ملفاتنا) بنرجع
-     ليها بدل ما نرجع لـCDN — عشان المنصة تفتح حتى مع شبكة ضعيفة. */
   /* النسخة الاحتياطية: لو الأولى فشلت (شبكة بتقطع ملفاتنا) بنرجع
      ليها بدل ما نرجع لـCDN — عشان المنصة تفتح حتى مع شبكة ضعيفة. */
   './css/01-base.min.css',
@@ -105,7 +103,8 @@ const LOCAL_APP_SHELL = [
   './vendor/images/marker-icon.png',
   './css/fonts.min.css',
   './css/05-offline-badge.min.css',
-  './css/06-premium-design.css',\n  './css/07-visual-redesign.css',
+  './css/06-premium-design.min.css',
+  './css/07-visual-redesign.min.css',
   './fonts/cairo-000000.woff2',
   './fonts/cairo-010002.woff2',
   './fonts/cairo-060006.woff2',
@@ -134,9 +133,11 @@ self.addEventListener('install', (event) => {
         .map((r, i) => (r.status === 'rejected' ? (i < LOCAL_APP_SHELL.length ? LOCAL_APP_SHELL[i] : OPTIONAL_CDN[i - LOCAL_APP_SHELL.length]) : null))
         .filter(Boolean);
       if (failed.length) console.warn('[yahma-sw] precache failed for:', failed);
-      /* الملف الأساسي لازم يكون موجود — من غيره التطبيق مش هيشتغل أصلاً */
+      /* index.html لو غاب، الـfetch handler بيرسم من الشبكة (network-first
+         للملفات المحلية) — فمش هنموّت التحديث كله على ملف واحد.
+         الرمي هنا كان بيخلي التحديث يفشل: "script evaluation failed" */
       const core = await cache.match(new Request('./index.html', { cache: 'reload' }));
-      if (!core) throw new Error('index.html precache failed');
+      if (!core) console.warn('[yahma-sw] core index.html missing — will serve from network');
     })
   );
   self.skipWaiting();
@@ -164,7 +165,7 @@ async function shellMatch(request, cacheName) {
       hit = await cache.match(new URL('./index.html', self.location.href).href);
       if (hit) return hit;
     }
-  } catch(_){yahmaErr(_,'sw.js:129');}
+  } catch (_) { console.warn('[yahma-sw] shellMatch fallback failed'); }
   return null;
 }
 
