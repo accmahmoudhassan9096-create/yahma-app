@@ -1874,27 +1874,38 @@
   /* ============ الواجهة ============ */
 
   function kpiHtml(kpi) {
-    if (kpi.icon) {
-      var tone = kpi.tone || (kpi.cls === 'good' ? 'green' : kpi.cls === 'warn' ? 'amber' : kpi.cls === 'bad' ? 'red' : 'muted');
-      var tileBg = { green: '#E6F7EE', amber: '#FFF2D5', orange: '#FFE7D7', red: '#FFE0E0', muted: '#F2F5F9' }[tone] || '#F2F5F9';
-      var tileColor = { green: '#0E8A68', amber: '#A86F00', orange: '#B94A13', red: '#B62E2E', muted: '#6B7490' }[tone] || '#6B7490';
-      var pillBg = { green: '#E6F7EE', amber: '#FFF2D5', orange: '#FFE7D7', red: '#FFE0E0', muted: '#F2F5F9' }[tone] || '#F2F5F9';
-      var pillColor = tileColor;
-      return '<article class="rp2-kpi">'
-        + '<div class="rp2-kpi-top"><span class="rp2-tile" style="background:' + tileBg + ';color:' + tileColor + '">' + esc(kpi.icon) + '</span>'
-        + (kpi.pill ? '<span class="rp2-pill" style="background:' + pillBg + ';color:' + pillColor + '">' + esc(kpi.pill) + '</span>' : '')
-        + '</div>'
-        + '<p class="rp2-label">' + esc(kpi.label) + '</p>'
-        + '<p class="rp2-num">' + esc(kpi.value) + '</p>'
-        + (kpi.trend ? '<p class="rp2-trend" style="color:' + tileColor + '">' + esc(kpi.trend) + '</p>' : '')
-        + (kpi.note ? '<p class="rp2-note">' + esc(kpi.note) + '</p>' : (kpi.hint ? '<p class="rp2-note">' + esc(kpi.hint) + '</p>' : ''))
-        + '</article>';
+    // أيقونة تلقائية حسب كلمات العنوان — عشان كل التقارير تاخد نفس شكل الكروت الجديد
+    var autoIcon = kpi.icon || '';
+    if (!autoIcon) {
+      var L = String(kpi.label || '');
+      if (L.includes('إجمالي')) autoIcon = '🚗';
+      else if (L.includes('كارت')) autoIcon = '🪪';
+      else if (L.includes('تأمين')) autoIcon = '🛡️';
+      else if (L.includes('رخص')) autoIcon = '📄';
+      else if (L.includes('فحص')) autoIcon = '🔧';
+      else if (L.includes('جاهز')) autoIcon = '✓';
+      else if (L.includes('دفع')) autoIcon = '💳';
+      else if (L.includes('تجديد')) autoIcon = '🔄';
+      else if (L.includes('متاح')) autoIcon = '🅿️';
+      else if (L.includes('مؤجر')) autoIcon = '🔑';
+      else if (L.includes('راف') || L.includes('راقد')) autoIcon = '🚗';
+      else if (L.includes('تشغيل')) autoIcon = '📊';
+      else if (L.includes('فرع')) autoIcon = '🏢';
     }
-    return '<div class="rp-kpi ' + esc(kpi.cls || '') + '">'
-      + '<span>' + esc(kpi.label) + '</span>'
-      + '<b>' + esc(kpi.value) + '</b>'
-      + (kpi.hint ? '<small>' + esc(kpi.hint) + '</small>' : '')
-      + '</div>';
+    var tone = kpi.tone || (kpi.cls === 'good' ? 'green' : kpi.cls === 'warn' ? 'amber' : kpi.cls === 'bad' ? 'red' : 'muted');
+    if (kpi.label && kpi.label.includes('رخص')) tone = 'orange';
+    var tileBg = { green: '#E6F7EE', amber: '#FFF2D5', orange: '#FFE7D7', red: '#FFE0E0', muted: '#F2F5F9' }[tone] || '#F2F5F9';
+    var tileColor = { green: '#0E8A68', amber: '#A86F00', orange: '#B94A13', red: '#B62E2E', muted: '#6B7490' }[tone] || '#6B7490';
+    var pillText = kpi.pill || (tone === 'red' ? 'تنبيه' : tone === 'green' ? 'إيجابي' : tone === 'amber' || tone === 'orange' ? 'انتباه' : 'معلق');
+    return '<article class="rp2-kpi">'
+      + '<div class="rp2-kpi-top"><span class="rp2-tile" style="background:' + tileBg + ';color:' + tileColor + '">' + esc(autoIcon || '•') + '</span>'
+      + '<span class="rp2-pill" style="background:' + tileBg + ';color:' + tileColor + '">' + esc(pillText) + '</span>'
+      + '</div>'
+      + '<p class="rp2-label">' + esc(kpi.label) + '</p>'
+      + '<p class="rp2-num">' + esc(kpi.value) + '</p>'
+      + (kpi.trend ? '<p class="rp2-trend" style="color:' + tileColor + '">' + esc(kpi.trend) + '</p>' : '')
+      + (kpi.note ? '<p class="rp2-note">' + esc(kpi.note) + '</p>' : (kpi.hint ? '<p class="rp2-note">' + esc(kpi.hint) + '</p>' : ''))
+      + '</article>';
   }
 
   function sectionHtml(section, index) {
@@ -1993,7 +2004,7 @@
           : '')
       + '<div class="rp-tabs">' + tabs + '</div>'
       + '<div class="rp-kpis">' + report.kpis.map(kpiHtml).join('') + '</div>'
-      + buildCharts(model)
+      + ((state.report === 'weekly' || state.report === 'overview') ? buildCharts(model) : '')
       + (report.chartHtml ? '<div class="rp-charts-section"><div class="rp-section-head"><h3>📈 ' + esc(report.title) + '</h3></div><div style="display:grid;grid-template-columns:1fr;gap:12px"><div class="rp-chart-card" style="width:100%;min-width:0">' + report.chartHtml + '</div></div></div>' : '')
       + (report.customHtml ? report.customHtml : '')
       + report.sections.map(function (section, i) { return sectionHtml(section, i); }).join('');
