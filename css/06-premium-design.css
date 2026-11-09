@@ -410,3 +410,22 @@ body.dark-mode #content .field input,body.dark-mode #content .field select,body.
   .fleet-summary-icon{width:36px!important;height:36px!important;flex-basis:36px!important}
   .fleet-filter-grid{grid-template-columns:1fr!important}
 }
+
+
+/* Icon language: consistent outline icon tiles across navigation and controls */
+.sidebar .nav-item svg{
+  width:30px!important;height:30px!important;flex:0 0 30px!important;
+  padding:6px!important;border-radius:9px!important;
+  background:rgba(255,255,255,.075)!important;
+  stroke-width:1.8!important;opacity:1!important
+}
+.sidebar .nav-item:hover svg{background:rgba(255,255,255,.13)!important;color:#B8F1EC!important}
+.sidebar .nav-item.active svg{background:rgba(53,201,193,.16)!important;color:#72E3DC!important}
+.topbar.topbar-v43 .btn svg,#content .btn svg{
+  width:16px;height:16px;stroke-width:1.9;flex:0 0 16px
+}
+#content .fleet-edit-btn svg,#content .fleet-view-btn svg{stroke-width:1.9}
+#content .notify-btn svg{stroke-width:1.9}
+@media(max-width:700px){
+  .sidebar .nav-item svg{width:29px!important;height:29px!important;flex-basis:29px!important}
+}
