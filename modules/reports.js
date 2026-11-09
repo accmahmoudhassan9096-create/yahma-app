@@ -36,7 +36,9 @@
   /* حالة الواجهة: التقرير المفتوح والفرع المختار.
      مش بنخزّنها في localStorage — التقارير شاشة عرض، وأول ما تدخل
      التبويب لازم تبدأ من الملخص التنفيذي. */
-  var state = { report: 'weekly', branch: '' };
+  var state = { report: 'weekly', branch: '', period: '30' };
+  var occupancyCache = null; // لقطات محمّلة من Supabase (async) — fallback محلي synchronously
+  var occupancyLoading = false;
 
   /* ============ أدوات صغيرة ============ */
 
@@ -1549,6 +1551,151 @@
     return '<div class="rp-chart-card" style="text-align:center"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:180px;display:block;margin:0 auto"><defs><linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">' + stops + '</linearGradient></defs><path d="M ' + (cx - r) + ' ' + cy + ' A ' + r + ' ' + r + ' 0 0 1 ' + (cx + r) + ' ' + cy + '" fill="none" stroke="url(#gaugeGrad)" stroke-width="12" stroke-linecap="round"/><path d="M ' + cx + ' ' + cy + ' L ' + nx + ' ' + ny + '" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/><circle cx="' + cx + '" cy="' + cy + '" r="5" fill="#1e293b"/><text x="' + cx + '" y="' + (cy - 8) + '" text-anchor="middle" font-size="20" font-weight="800" fill="#1e293b">' + num(value) + '</text><text x="' + cx + '" y="' + (cy + 18) + '" text-anchor="middle" font-size="10" font-weight="700" fill="' + labelColor + '">' + esc(label) + '</text></svg></div>';
   }
 
+  /* ===== تقرير: مدة الوقوف لكل سيارة (من يوم ما بقت غير مؤجرة) ===== */
+  function buildIdleDuration(model, list) {
+    var SNAP = global.YahmaSnapshots;
+    function idleDays(car) {
+      try { if (SNAP && typeof SNAP.idleDaysFor === 'function') return SNAP.idleDaysFor(car); } catch (_) {}
+      var n = Number(car.daysSinceMovement || 0);
+      return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0;
+    }
+    function idleSince(car) {
+      try { if (SNAP && typeof SNAP.idleSinceFor === 'function') return SNAP.idleSinceFor(car); } catch (_) {}
+      return car.idleSince || car.lastMovementDate || '—';
+    }
+    var rows = [];
+    var idleCars = [];
+    (list || []).forEach(function (car) {
+      if (!car) return;
+      var status = String(car.carStatus || '').trim();
+      if (status.includes('مؤجر')) return;
+      var days = idleDays(car);
+      var idleCarsItem = {
+        plate: car.plate || '—',
+        brandType: (car.brand || '') + ' ' + (car.type || car.model || ''),
+        branch: String(car.branch || '').trim() || 'غير محدد',
+        status: status || '—',
+        idleSinceDate: idleSince(car),
+        idleDays: days,
+        rate: Number(car.dailyRate) || 0,
+        loss: (Number(car.dailyRate) || 0) * days
+      };
+      idleCars.push(idleCarsItem);
+    });
+    idleCars.sort(function (a, b) { return b.idleDays - a.idleDays; });
+    var totalDays = idleCars.reduce(function (s, c) { return s + c.idleDays; }, 0);
+    var avgDays = idleCars.length ? Math.round((totalDays / idleCars.length) * 10) / 10 : 0;
+    var maxDays = idleCars.length ? idleCars[0].idleDays : 0;
+    var totalLoss = idleCars.reduce(function (s, c) { return s + c.loss; }, 0);
+    var rowsFormatted = idleCars.slice(0, 300).map(function (c) {
+      return [c.plate, c.brandType, c.branch, c.status, c.idleSinceDate, c.idleDays, num(c.rate), num(Math.round(c.loss))];
+    });
+    return {
+      title: 'مدة الوقوف بدون تأجير',
+      subtitle: 'الوقوف من يوم ما السيارة بقت غير مؤجرة (idleSince) — مرتبة من الأطول وقوفاً',
+      kpis: [
+        { label: 'غير مؤجرة', value: num(idleCars.length), cls: 'warn' },
+        { label: 'متوسط مدة الوقوف', value: avgDays ? avgDays + ' يوم' : '—' },
+        { label: 'أطول مدة وقوف', value: maxDays ? maxDays + ' يوم' : '—', cls: maxDays > 60 ? 'bad' : 'warn' },
+        { label: 'خسارة الفرص التقديرية', value: num(Math.round(totalLoss)) + ' ر.س', cls: totalLoss > 0 ? 'bad' : 'good' }
+      ],
+      sections: [
+        {
+          title: 'السيارات غير المؤجرة مرتبة بمدة الوقوف',
+          note: 'المدة = النهاردة - تاريخ بداية عدم التأجير (ناقص آخر حركة كتقدير للقديم).',
+          headers: ['اللوحة', 'الماركة / الفئة', 'الفرع', 'الحالة', 'من إمتى واقفة', 'واقفة كام يوم', 'سعر اليوم (ر.س)', 'خسارة تقديرية (ر.س)'],
+          rows: rowsFormatted
+        }
+      ]
+    };
+  }
+
+  /* ===== تقرير: معدل التشغيل عبر الزمن (لقطات يومية) ===== */
+  function getOccupancySeries() {
+    if (occupancyCache && occupancyCache.length) return occupancyCache;
+    try {
+      if (global.YahmaSnapshots && typeof global.YahmaSnapshots.readLocal === 'function') {
+        return global.YahmaSnapshots.readLocal() || [];
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  function buildOccupancyTime(model, list) {
+    var period = Number(state.period) || 30;
+    if (![7, 30, 90].includes(period)) period = 30;
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var from = new Date(today.getTime() - (period - 1) * 86400000);
+    var fromIso = from.getFullYear() + '-' + String(from.getMonth() + 1).padStart(2, '0') + '-' + String(from.getDate()).padStart(2, '0');
+    var allSnaps = getOccupancySeries();
+    var branchFilter = state.branch || 'ALL';
+    var series = allSnaps.filter(function (s) {
+      if (s.branch !== branchFilter) return false;
+      if (s.snapshot_date < fromIso) return false;
+      return true;
+    }).sort(function (a, b) { return a.snapshot_date < b.snapshot_date ? -1 : 1; });
+    // لو مفيش لقطات كفاية، نضم لقطة اليوم من البيانات الحالية عشان يظهر نقطة واحدة على الأقل
+    var todayIso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+    var hasToday = series.some(function (s) { return s.snapshot_date === todayIso; });
+    if (!hasToday) {
+      try {
+        if (global.YahmaSnapshots && typeof global.YahmaSnapshots.computeSnapshot === 'function') {
+          var snapNow = global.YahmaSnapshots.computeSnapshot(list, todayIso);
+          var nowRow = branchFilter === 'ALL' ? snapNow.all : (snapNow.rows.filter(function (r) { return r.branch === branchFilter; })[0] || snapNow.all);
+          series.push(Object.assign({}, nowRow));
+          series.sort(function (a, b) { return a.snapshot_date < b.snapshot_date ? -1 : 1; });
+        }
+      } catch (_) {}
+    }
+    var occupancies = series.map(function (s) { return Number(s.occupancy_rate) || 0; });
+    var avgOcc = series.length ? Math.round((occupancies.reduce(function (a, b) { return a + b; }, 0) / series.length) * 10) / 10 : 0;
+    var minOcc = series.length ? Math.min.apply(null, occupancies) : 0;
+    var maxOcc = series.length ? Math.max.apply(null, occupancies) : 0;
+    var labels = series.map(function (s) { return String(s.snapshot_date).slice(5); });
+    var chartHtml = '';
+    if (series.length >= 2) {
+      chartHtml = svgLineChart(labels, occupancies, (branchFilter === 'ALL' ? 'الشركة كلها' : branchFilter) + ' — معدل التشغيل آخر ' + period + ' يوم', '#0BAA86');
+    } else if (series.length === 1) {
+      chartHtml = '<div class="rp-empty">يوجد نقطة واحدة فقط (' + esc(series[0].snapshot_date) + ' — ' + esc(String(series[0].occupancy_rate)) + '%). اللقطات اليومية بتتراكم تلقائياً — ارجع بعد أيام عشان المنحنى يكتمل. برده تقدر تشوف الجدول تحت.</div>';
+    } else {
+      chartHtml = '<div class="rp-empty">في انتظار تراكم اللقطات اليومية. افتح لوحة التحكم مرة من الجهاز، وهتتحفظ لقطة اليوم وتظهر هنا. (الجدول المجاور بيُحدَّث تلقائياً من لوحة التحكّم.)</div>';
+    }
+    var rows = series.map(function (s) {
+      return [
+        s.snapshot_date,
+        num(s.total_cars), num(s.rented_cars), num(s.idle_cars),
+        num(s.available_cars), num(s.ready_cars),
+        (Math.round((Number(s.occupancy_rate) || 0) * 10) / 10) + '%',
+        num(Math.round(Number(s.avg_idle_days) || 0) * 10 / 10),
+        num(s.max_idle_days || 0),
+        num(Math.round(Number(s.idle_loss) || 0))
+      ];
+    });
+    return {
+      title: 'معدل التشغيل عبر الزمن',
+      subtitle: 'النسبة = مؤجرة ÷ إجمالي (لقطات يومية محفوظة في fleet_daily_snapshots)',
+      kpis: [
+        { label: 'الأيام المعروضة', value: num(series.length) },
+        { label: 'متوسط التشغيل', value: avgOcc + '%', cls: 'good' },
+        { label: 'أدنى تشغيل', value: minOcc + '%', cls: 'bad' },
+        { label: 'أعلى تشغيل', value: maxOcc + '%', cls: 'good' },
+        { label: 'اليوم (' + esc(todayIso) + ')', value: (series.length && series[series.length - 1] ? (sValue(series[series.length - 1])) : '—') }
+      ].filter(function (x) { return !!x.value; }),
+      chartHtml: chartHtml,
+      sections: [
+        {
+          title: 'اللقطات اليومية (' + (branchFilter === 'ALL' ? 'الشركة كلها' : esc(branchFilter)) + ' — آخر ' + period + ' يوم)',
+          note: 'كل سطر هو لقطة يوم واحدة. اللقطات تُحفظ تلقائياً عند فتح اللوحة، وتُرفع لـ Supabase عشان تبقى مشتركة.',
+          headers: ['التاريخ', 'الإجمالي', 'مؤجرة', 'غير مؤجرة', 'متاحة', 'جاهزة', 'نسبة التشغيل', 'متوسط ركود', 'أقصى ركود', 'خسارة تقديرية'],
+          rows: rows,
+          barCol: 6
+        }
+      ]
+    };
+    function sValue(sn) { return (Math.round((Number(sn.occupancy_rate) || 0) * 10) / 10) + '%'; }
+  }
+
   /* بناء كارتات الرسوم البيانية حسب نوع التقرير */
   function buildCharts(model) {
     var total = model.total || 0;
@@ -1619,6 +1766,8 @@
     { id: 'readiness', label: 'الجاهزية حسب الفرع', build: buildReadiness },
     { id: 'pipeline', label: 'دورة الفحص والمدفوعات', build: buildPipeline },
     { id: 'movement', label: 'حركة الأسطول والراكدة', build: buildMovement },
+    { id: 'idleDuration', label: 'مدة الوقوف', build: buildIdleDuration },
+    { id: 'occupancyTime', label: 'معدل التشغيل الزمني', build: buildOccupancyTime },
     { id: 'maintenance', label: 'الصيانة والورش', build: buildMaintenance },
     { id: 'companies', label: 'الشركات والتأمين', build: buildCompanies },
     { id: 'docs', label: 'الوثائق', build: buildDocs },
@@ -1749,10 +1898,19 @@
       + '<div class="muted-small">أرقام مباشرة من بيانات الأسطول المحمّلة — بدون أي حساب على السيرفر.</div></div>'
       + '<label class="rp-filter"><span>الفرع</span>'
       + '<select id="rp-branch">' + options.join('') + '</select></label>'
+      + (report.chartHtml !== undefined || state.report === 'occupancyTime'
+          ? '<label class="rp-filter"><span>الفترة</span>'
+            + '<select id="rp-period">'
+            + '<option value="7"' + (state.period === '7' ? ' selected' : '') + '>7 أيام</option>'
+            + '<option value="30"' + (state.period === '30' ? ' selected' : '') + '>30 يوم</option>'
+            + '<option value="90"' + (state.period === '90' ? ' selected' : '') + '>90 يوم</option>'
+            + '</select></label>'
+          : '')
       + '</div>'
       + '<div class="rp-tabs">' + tabs + '</div>'
       + '<div class="rp-kpis">' + report.kpis.map(kpiHtml).join('') + '</div>'
       + buildCharts(model)
+      + (report.chartHtml ? '<div class="rp-charts-section"><div class="rp-section-head"><h3>📈 ' + esc(report.title) + '</h3></div><div class="rp-charts-grid" style="justify-content:center"><div class="rp-chart-card" style="width:100%;min-width:320px">' + report.chartHtml + '</div></div></div>' : '')
       + report.sections.map(function (section, i) { return sectionHtml(section, i); }).join('');
   }
 
@@ -1783,6 +1941,13 @@
     if (select) {
       select.addEventListener('change', function () {
         state.branch = String(select.value || '');
+        renderReports(document.getElementById('content'));
+      });
+    }
+    var periodSelect = content.querySelector('#rp-period');
+    if (periodSelect) {
+      periodSelect.addEventListener('change', function () {
+        state.period = String(periodSelect.value || '30');
         renderReports(document.getElementById('content'));
       });
     }
@@ -1839,6 +2004,22 @@
     host.innerHTML = shellHtml(report, branches, model);
     bind(host, report);
     setPdfProvider(report);
+    // لو تقرير التشغيل الزمني، حمّل اللقطات من Supabase وحدّث في الخلفية
+    if (active.id === 'occupancyTime' && !occupancyLoading) {
+      occupancyLoading = true;
+      try {
+        if (global.YahmaSnapshots && typeof global.YahmaSnapshots.loadSnapshots === 'function') {
+          Promise.resolve(global.YahmaSnapshots.loadSnapshots({})).then(function (snaps) {
+            occupancyCache = Array.isArray(snaps) ? snaps : [];
+            occupancyLoading = false;
+            // حدّث بس لو التقرير الحالي لسه مفتوح
+            if (state.report === 'occupancyTime' && document.getElementById('content') === host) {
+              renderReports(host);
+            }
+          }).catch(function () { occupancyLoading = false; });
+        } else { occupancyLoading = false; }
+      } catch (_) { occupancyLoading = false; }
+    }
   }
 
   global.YahmaReports = { render: renderReports };

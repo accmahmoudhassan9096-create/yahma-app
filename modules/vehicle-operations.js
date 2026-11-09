@@ -16,9 +16,23 @@
     const { plate, data } = result;
     if (editingId) {
       const index = context.fleet.findIndex(car => car.id === editingId);
+      const prevStatus = index >= 0 ? context.fleet[index].carStatus : '';
       context.fleet[index] = { ...context.fleet[index], ...data };
+      // تتبع بداية عدم التأجير: مؤجرة → غير مؤجرة = النهاردة، والعكس = مسح
+      try {
+        if (global.YahmaSnapshots && typeof global.YahmaSnapshots.applyIdleSince === 'function') {
+          global.YahmaSnapshots.applyIdleSince(context.fleet[index], prevStatus, context.fleet[index].carStatus);
+        }
+      } catch (_) {}
     } else {
-      context.fleet.push({ id: context.uid(), ...data });
+      // سيارة جديدة: لو مش مؤجرة من يوم الإضافة
+      const newCar = { id: context.uid(), ...data };
+      try {
+        if (global.YahmaSnapshots && typeof global.YahmaSnapshots.applyIdleSince === 'function') {
+          global.YahmaSnapshots.applyIdleSince(newCar, 'مؤجرة', newCar.carStatus);
+        }
+      } catch (_) {}
+      context.fleet.push(newCar);
     }
 
     /* حالة التحميل على زر الحفظ عشان المستخدم يعرف إن العملية جارية */

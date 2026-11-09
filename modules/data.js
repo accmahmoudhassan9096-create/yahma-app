@@ -32,7 +32,7 @@
       renteddays: numberOrNull(car.rentedDaysMonth), lastmaintenance: dateOrNull(car.lastMaintenance),
       maintenancecost: numberOrNull(car.maintenanceCost), workshop: nullable(car.workshop),
       documenturl: nullable(car.documentUrl), maintenancenotes: nullable(car.maintenanceNotes),
-      notes: nullable(car.notes),
+      notes: nullable(car.notes), idle_since: dateOrNull(car.idleSince),
       prep_final: !!checklist.finalReview, prep_final_note: nullable(checklist.finalNote),
       prep_tasks: Array.isArray(car.prepTasks) ? car.prepTasks : [],
       /* ⭐ عمود `data` (JSON) كان نسخة قديمة من كل حقول السيارة —
@@ -54,7 +54,7 @@
       licenseStatus: row.licensestatus || '', licenseExpiry: row.licenseexpiry || '',
       inspectionStatus: row.inspection || '', insuranceStatus: row.insurance || '',
       owner: row.owner || '', ownerNumber: row.ownernumber || '', branch: row.branch || '',
-      carStatus: row.carstatus || '', odometer: row.odometer ?? '',
+      carStatus: row.carstatus || '', odometer: row.odometer ?? '', idleSince: row.idle_since || '',
       nextService: row.nextservice || '', dailyRate: row.dailyrate ?? '',
       rentedDaysMonth: row.renteddays ?? '', lastMaintenance: row.lastmaintenance || '',
       maintenanceCost: row.maintenancecost ?? '', workshop: row.workshop || '',

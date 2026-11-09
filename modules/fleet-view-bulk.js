@@ -67,7 +67,7 @@
     const allowed=['نشط','تحت الصيانة','خارج الخدمة'];
     const s=status.trim();
     if(!allowed.includes(s)){ alert('الحالة يجب أن تكون: نشط أو تحت الصيانة أو خارج الخدمة'); return; }
-    cars.forEach(c=>{ c.carStatus=s; });
+    cars.forEach(c=>{ const prev=c.carStatus; c.carStatus=s; try{ if(global.YahmaSnapshots && global.YahmaSnapshots.applyIdleSince) global.YahmaSnapshots.applyIdleSince(c, prev, s); }catch(_){} });
     const ids=cars.map(c=>c.id);
     if(ctx && ctx.selectedIds) ctx.selectedIds.clear();
     await saveData(ids); if(ctx && ctx.draw) ctx.draw(); updateBulkBar(ctx);

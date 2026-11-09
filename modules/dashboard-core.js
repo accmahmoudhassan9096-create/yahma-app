@@ -151,8 +151,18 @@ function computeDashboardState(fleet) {
     const branch = String(c.branch || '').trim();
     return !isRented && !ignoredBranches.includes(branch);
   });
+  // مدة الركود من يوم ما السيارة بقت غير مؤجرة (idleSince)، مع fallback للأيام الجاهزة
+  const idleDaysOf = (car) => {
+    try {
+      if (global.YahmaSnapshots && typeof global.YahmaSnapshots.idleDaysFor === 'function') {
+        return global.YahmaSnapshots.idleDaysFor(car);
+      }
+    } catch (_) {}
+    const d = Number(car.daysSinceMovement || 0);
+    return Number.isFinite(d) && d >= 0 ? d : 0;
+  };
   const idleCount = idleCars.length;
-  const idleLoss = idleCars.reduce((sum, c) => sum + (Number(c.dailyRate || 0) * Number(c.daysSinceMovement || 0)), 0);
+  const idleLoss = idleCars.reduce((sum, c) => sum + (Number(c.dailyRate || 0) * idleDaysOf(c)), 0);
   const idleLossRounded = Math.round(idleLoss);
 
   // تجميع الركود حسب الفرع (تجاهل الفروع المستثناة)
@@ -195,14 +205,14 @@ function computeDashboardState(fleet) {
 
   // أكثر السيارات المتاحة للإيجار (الأقل استخداماً - أقل عداد أو أكثر أيام ركود)
   const availableForRentSorted = [...availableForRent].sort((a, b) => {
-    const daysA = Number(a.daysSinceMovement || 0);
-    const daysB = Number(b.daysSinceMovement || 0);
+    const daysA = idleDaysOf(a);
+    const daysB = idleDaysOf(b);
     return daysB - daysA; // الأكثر ركوداً أولاً
   });
   const topAvailableCars = availableForRentSorted.slice(0, 5).map(c => ({
     plate: c.plate || '—',
     branch: c.branch || '—',
-    daysIdle: Number(c.daysSinceMovement || 0),
+    daysIdle: idleDaysOf(c),
     dailyRate: Number(c.dailyRate || 0),
     model: c.brand && c.model ? c.brand + ' ' + c.model : c.model || '—'
   }));

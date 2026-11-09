@@ -7,7 +7,7 @@
     return;
   }
 
-function renderDashboard(content, context){
+  function renderDashboard(content, context){
   const fleet = Array.isArray(context.fleet) ? context.fleet : [];
   const setCurrentTab = context.setCurrentTab;
   document.getElementById('topbar-title').textContent = 'يهماء لتأجير السيارات';
@@ -16,6 +16,12 @@ function renderDashboard(content, context){
   const state = Core.computeDashboardState(fleet);
   content.innerHTML = View.dashboardTemplate(state);
   View.bindDashboardEvents(content, context, state);
+  // لقطة يومية (معدل التشغيل والركود عبر الزمن) — مرة واحدة في اليوم لوحدها
+  try {
+    if (global.YahmaSnapshots && typeof global.YahmaSnapshots.saveToday === 'function' && fleet.length) {
+      Promise.resolve(global.YahmaSnapshots.saveToday(fleet)).catch(function(){});
+    }
+  } catch (_) {}
 }
 
 
