@@ -60,8 +60,9 @@ function renderFollowUp(content){
       </div>
     </div>
     <div class="filter-panel">
-      <div class="filter-panel-title"><strong>🔎 فلاتر الكارت والتأمين</strong><span>صفِّ النتائج حسب أي بند — ثم صدّر Excel أو PDF</span></div>
-    ${needCard > 10 ? `<div class="alert-banner" style="background:#fff0f0;border:1px solid #d32f2f;color:#d32f2f;padding:8px 12px;border-radius:6px;margin-bottom:8px;font-weight:bold;">⚠️ تنبيه: ${needCard} سيارة بحاجة فحص فورًا — مسؤولية مشرف الفرع</div>` : ''}
+      <div class="filter-panel-title"><div><strong>🔎 فلاتر الكارت والتأمين</strong><span>صفِّ النتائج حسب أي بند — ثم صدّر Excel أو PDF</span></div><button type="button" class="btn btn-ghost btn-small fleet-filter-toggle fu-filter-toggle" id="fu-filter-toggle" aria-expanded="false">إظهار الفلاتر <span aria-hidden="true">⌄</span></button></div>
+    ${needCard > 10 ? `<div style="display:flex;justify-content:flex-end;margin:6px 0"><button type="button" title="تنبيه: ${needCard} سيارة بحاجة فحص فورًا — مسؤولية مشرف الفرع" onclick="document.querySelector('#fu-quick [data-fq=card_bad]')?.click()" style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;background:rgba(211,47,47,0.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(211,47,47,0.28);color:#d32f2f;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(211,47,47,0.12)"><span style="font-size:14px">⚠️</span><span>${needCard}</span></button></div>` : ''}
+      <div class="filter-panel-body" id="fu-filter-body">
       <div class="quick-filters" id="fu-quick">
         <button type="button" class="quick-filter" data-fq="card_bad">🪪 كارت يحتاج متابعة</button>
         <button type="button" class="quick-filter" data-fq="card_ok">✅ كارت ساري</button>
@@ -86,6 +87,7 @@ function renderFollowUp(content){
         <span id="fu-filter-count">عرض 0 من ${fleet.length}</span>
         <button class="btn btn-ghost btn-small" id="fu-clear">↺ مسح الفلاتر</button>
         <button class="btn btn-ghost btn-small" id="btn-scan-console" title="وضع المسح الشامل — شاشة الرادار والمؤشر للفرع">🛰 وضع المسح الشامل</button>
+      </div>
       </div>
     </div>
     ${canBulk?`<div class="bulk-bar" id="fu-bulk-bar" style="display:none">
@@ -473,6 +475,23 @@ function renderFollowUp(content){
     }
   }
 
+  // زر فتح/قفل الفلاتر (dropdown) — زي الأسطول بالظبط
+  const fuFilterToggle = document.getElementById('fu-filter-toggle');
+  const fuFilterBody = document.getElementById('fu-filter-body');
+  const fuFilterPanel = fuFilterToggle ? fuFilterToggle.closest('.filter-panel') : null;
+  const setFuFiltersOpen = (open) => {
+    if (!fuFilterPanel || !fuFilterToggle || !fuFilterBody) return;
+    fuFilterPanel.classList.toggle('is-open', open);
+    fuFilterBody.hidden = !open;
+    fuFilterToggle.setAttribute('aria-expanded', String(open));
+    if (fuFilterToggle.firstChild) fuFilterToggle.firstChild.textContent = open ? 'إخفاء الفلاتر ' : 'إظهار الفلاتر ';
+    else fuFilterToggle.textContent = open ? 'إخفاء الفلاتر ' : 'إظهار الفلاتر ';
+    window._fuFiltersOpen = open;
+  };
+  if (fuFilterToggle) {
+    fuFilterToggle.addEventListener('click', () => setFuFiltersOpen(!window._fuFiltersOpen));
+    setFuFiltersOpen(window._fuFiltersOpen === true);
+  }
   ['fu-branch','fu-car-status','fu-card-exp-month','fu-owner','fu-brand','fu-model','fu-card-status','fu-card-condition'].forEach(id=>{
     $(id)?.addEventListener('change',()=>{page=1;draw();});
   });
