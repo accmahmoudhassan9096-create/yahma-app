@@ -1876,6 +1876,34 @@
     return 'تقرير-' + report.title + '-' + section.title + '-' + stamp;
   }
 
+  async function exportWholeReport(report) {
+    var api = global.YahmaExport;
+    if (!api || typeof api.exportReportWorkbook !== 'function') {
+      try { global.alert('تصدير Excel المتقدم غير متاح — أعد تحميل الصفحة.'); } catch (_) { /* ignore */ }
+      return;
+    }
+    var sections = (report.sections || []).map(function (section) {
+      return {
+        title: section.title || '',
+        headers: (section.headers || []).slice(),
+        rows: (section.rows || []).map(function (row) { return exportRow(section, row); }),
+        foot: section.foot ? exportRow(section, section.foot) : null
+      };
+    });
+    try {
+      await api.exportReportWorkbook(fileName(report, { title: 'كامل' }) + '.xlsx', {
+        title: report.title,
+        subtitle: report.subtitle,
+        branch: state.branch || 'كل الفروع',
+        period: state.period || '',
+        kpis: report.kpis || [],
+        sections: sections
+      });
+    } catch (err) {
+      try { global.alert('تعذر تصدير التقرير الكامل: ' + ((err && err.message) || err)); } catch (_) { /* ignore */ }
+    }
+  }
+
   function exportSection(report, index, format) {
     var section = (report.sections || [])[index];
     if (!section) return;
@@ -2038,7 +2066,7 @@
       + '<div class="muted-small">أرقام مباشرة من بيانات الأسطول الحالية — بدون أي حساب على السيرفر.</div></div>'
       + '<div class="rp-head-actions">'
       + '<button type="button" class="rp-exp-btn" id="rp-header-pdf">⬇ تصدير PDF</button>'
-      + '<button type="button" class="rp-exp-btn teal" id="rp-header-xlsx">⬇ تصدير Excel</button>'
+      + '<button type="button" class="rp-exp-btn teal" id="rp-header-xlsx">⬇ Excel كامل</button>'
       + '<label class="rp-branch-pill">🔎<select id="rp-branch">' + options.join('') + '</select>⌄</label>'
       + '</div></div>'
       + (report.chartHtml !== undefined || state.report === 'occupancyTime'
@@ -2091,7 +2119,7 @@
     var hpPdf = content.querySelector('#rp-header-pdf');
     if (hpPdf) hpPdf.addEventListener('click', function () { exportSection(report, 0, 'pdf'); });
     var hpXlsx = content.querySelector('#rp-header-xlsx');
-    if (hpXlsx) hpXlsx.addEventListener('click', function () { exportSection(report, 0, 'xlsx'); });
+    if (hpXlsx) hpXlsx.addEventListener('click', function () { exportWholeReport(report); });
     var periodSelect = content.querySelector('#rp-period');
     if (periodSelect) {
       periodSelect.addEventListener('change', function () {
