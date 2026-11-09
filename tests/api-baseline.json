@@ -84,6 +84,16 @@
     "saveData",
     "toVehicleRow"
   ],
+  "YahmaDriveBackup": [
+    "checkDaily",
+    "fetchStatus",
+    "getConfig",
+    "init",
+    "isConfigured",
+    "openSetup",
+    "pushNow",
+    "setConfig"
+  ],
   "YahmaErrorPanel": [
     "badge",
     "install",

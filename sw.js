@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v372';
+const CACHE_NAME = 'yahma-shell-v373';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -16,6 +16,8 @@ const LOCAL_APP_SHELL = [
   './vendor/xlsx.full.min.js',
   './vendor/html2canvas.min.js',
   './vendor/jspdf.umd.min.js',
+  /* النسخة الاحتياطية: لو الأولى فشلت (شبكة بتقطع ملفاتنا) بنرجع
+     ليها بدل ما نرجع لـCDN — عشان المنصة تفتح حتى مع شبكة ضعيفة. */
   /* النسخة الاحتياطية: لو الأولى فشلت (شبكة بتقطع ملفاتنا) بنرجع
      ليها بدل ما نرجع لـCDN — عشان المنصة تفتح حتى مع شبكة ضعيفة. */
   './css/01-base.min.css',
@@ -71,6 +73,7 @@ const LOCAL_APP_SHELL = [
   './modules/readiness.js',
   './modules/daily-snapshots.js',
   './modules/global-date.js',
+  './modules/drive-backup.js',
   './modules/export.js',
   './modules/export-bar.js',
   './modules/my-account.js',

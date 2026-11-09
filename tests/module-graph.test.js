@@ -131,7 +131,8 @@ function buildSandbox() {
    مفيش source تاني — الـindex.html هو مصدر الحقيقة. */
 function appScripts() {
   const html = read('index.html');
-  return [...html.matchAll(/<script\s+src="([^"]+)"/g)]
+  /* src ممكن يتسبق بخصائص (زي defer) — المهم الترتيب في index.html */
+  return [...html.matchAll(/<script[^>]*\bsrc="([^"]+)"/g)]
     .map((m) => m[1])
     .filter((s) => !/^https?:/.test(s) && !/^vendor\//.test(s));
 }

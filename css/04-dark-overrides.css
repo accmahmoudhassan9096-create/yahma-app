@@ -2198,3 +2198,134 @@ body.dark-mode .global-date-filter-tab{background:rgba(17,28,46,.75);border-colo
 body.dark-mode .global-date-filter-tab select{color:#EAF1F5}
 body.dark-mode .global-date-filter-tab select.is-active{color:#5EEAD4}
 @media(max-width:900px){.global-date-filter-tab select{max-width:130px}}
+
+/* ============================================================================
+   تحسينات الجوال + الوضع الليلي + الأداء (إضافات v373)
+   ============================================================================ */
+
+/*ป้องกันการ تمرير أفقي للصفحة كلها (بدون كسر position:sticky) */
+html, body { overflow-x: clip; }
+@supports not (overflow: clip) { html, body { overflow-x: hidden; } }
+
+/* ألوان نماذج المتصفح (scrollbar + date pickers + أزرار) حسب الوضع */
+html { color-scheme: light; }
+body.dark-mode { color-scheme: dark; }
+
+/* أجهزة ضعيفة — تقليل التكلفة: إلغاء الـ blur والتوهج (كان عندنا yahma-lite
+   بيلغي الأنيميشن بس، والـ backdrop-filter كان لسه شغال ومكلّف) */
+html.yahma-lite *, html.yahma-lite *::before, html.yahma-lite *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.yahma-lite .home-hero, html.yahma-lite .tile:hover,
+html.yahma-lite .home-kpi:hover { transform: none !important; }
+
+/* ===== الجوال (≤700px) ===== */
+@media(max-width:700px){
+  /* الهيدر يثبت فوق أثناء التمرير عشان التنقل دايمًا قريب */
+  .topbar.topbar-v43{
+    position: sticky; top: 0; z-index: 40;
+    padding-top: max(10px, env(safe-area-inset-top)) !important;
+  }
+  /* مسافة محتوى أخف على الجوال + احترام منطقة الأمان السفلية */
+  .content{
+    padding: 12px 12px calc(22px + env(safe-area-inset-bottom)) !important;
+  }
+  /* حجم خط الحقول ≥16px — يمنع تكبير الآيفون التلقائي عند الضغط على حقل */
+  .field input, .field select, .field textarea,
+  input, select, textarea,
+  .search input, .topbar-search-wrap input {
+    font-size: 16px !important;
+  }
+  /* أهداف لمس لا تقل عن 44px */
+  .topbar-actions .tb-icon, .topbar-actions .tb-action,
+  .topbar-actions #btn-add-car, .topbar-actions .top-dd > button {
+    width: 44px !important; height: 44px !important;
+  }
+  .topbar-actions #btn-add-car { border-radius: 12px !important; }
+  .nav-item { min-height: 44px; }
+  .more-item { min-height: 42px; }
+  /* خلفية ثابتة بتقلّم على iOS — نخليها محلية */
+  body { background-attachment: local !important; }
+  /* التقارير: الرسومات وكروت المؤشرات تتراكم بدل ما تتزنق */
+  .rp-charts-grid { grid-template-columns: 1fr !important; }
+  .report-kpis, .report-kpis-5 { grid-template-columns: repeat(2, 1fr) !important; }
+  .home-kpis { grid-template-columns: repeat(2, 1fr) !important; }
+  /* النوافذ المنبثقة بعرض كامل تقريبًا */
+  .modal { max-height: 92dvh !important; margin: auto; }
+  .overlay { padding: 10px !important; }
+  /* القائمة الجانبية أريح للمس */
+  .sidebar { width: min(280px, 82vw) !important; flex-basis: min(280px, 82vw) !important; }
+}
+
+/* ===== الوضع الليلي: تقوية الأسطح الناقصة ===== */
+/* كروت الرسومات في التقارير (SVG نصوصها ثابتة داكنة — لازم تبقى فاتحة) */
+body.dark-mode .rp-chart-card {
+  background: linear-gradient(150deg, rgba(30,41,59,.85), rgba(15,23,42,.75)) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35) !important;
+}
+body.dark-mode .rp-chart-card text { fill: #E5E7EB !important; }
+body.dark-mode .rp-chart-title { color: #F1F5F9 !important; }
+body.dark-mode .rp-chart-note { color: #5EEAD4 !important; background: rgba(94,234,212,.10) !important; }
+body.dark-mode .rp-charts-section {
+  background: linear-gradient(160deg, rgba(30,41,59,.75), rgba(15,23,42,.55)) !important;
+  border-color: rgba(255,255,255,.10) !important;
+}
+/* القوائم المنبثقة والدروبداون */
+body.dark-mode .top-dd-menu, body.dark-mode .user-dropdown,
+body.dark-mode .notify-panel {
+  background: rgba(17,28,46,.95) !important;
+  border-color: rgba(255,255,255,.12) !important;
+  color: #E5E7EB !important;
+  box-shadow: 0 18px 40px rgba(0,0,0,.5) !important;
+}
+body.dark-mode .top-dd-menu .more-item,
+body.dark-mode .user-dropdown .user-menu-item { color: #CBD5E1 !important; }
+body.dark-mode .top-dd-menu .more-item:hover,
+body.dark-mode .user-dropdown .user-menu-item:hover { background: rgba(94,234,212,.08) !important; }
+body.dark-mode .top-dd-title, body.dark-mode .user-dropdown-head { color: #F1F5F9 !important; }
+body.dark-mode .top-dd-hint { color: #94A3B8 !important; }
+/* شاشة الدخول */
+body.dark-mode .auth-card {
+  background: rgba(17,28,46,.92) !important;
+  border-color: rgba(255,255,255,.12) !important;
+  color: #E5E7EB !important;
+}
+body.dark-mode .auth-card h2 { color: #F1F5F9 !important; }
+body.dark-mode .auth-card .sub { color: #94A3B8 !important; }
+body.dark-mode .auth-field label { color: #CBD5E1 !important; }
+body.dark-mode .auth-field input {
+  background: rgba(15,23,42,.7) !important; color: #E5E7EB !important;
+  border-color: rgba(255,255,255,.14) !important;
+}
+/* النوافذ */
+body.dark-mode .modal,
+body.dark-mode .wa-history-modal {
+  background: #111C2E !important; color: #E5E7EB !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+}
+body.dark-mode .modal h2, body.dark-mode .modal label { color: #F1F5F9 !important; }
+body.dark-mode .field input, body.dark-mode .field select,
+body.dark-mode .field textarea {
+  background: rgba(15,23,42,.7) !important; color: #E5E7EB !important;
+  border-color: rgba(255,255,255,.14) !important;
+}
+/* التذييل */
+body.dark-mode .app-footer { background: #0D1626 !important; border-color: rgba(255,255,255,.08) !important; }
+/* الفلتر + البادج */
+body.dark-mode .global-date-filter-tab {
+  background: rgba(17,28,46,.85) !important;
+}
+/* مودال إعدادات النسخ */
+.drive-modal { max-width: 560px; }
+.drive-modal .field label { font-size: 12.5px; }
+.drive-status-row {
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding: 10px 12px; border-radius: 12px;
+  background: rgba(14,138,104,.08); border: 1px solid rgba(14,138,104,.25);
+  font-size: 12.5px; font-weight: 700; color: #0E8A68;
+  margin-top: 12px;
+}
+body.dark-mode .drive-status-row { color: #5EEAD4; background: rgba(94,234,212,.08); border-color: rgba(94,234,212,.25); }
+.drive-hint { font-size: 11.5px; color: var(--muted); line-height: 1.8; margin-top: 10px; }

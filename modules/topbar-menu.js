@@ -60,7 +60,9 @@
       'umt-export-pdf':'__yahmaExportPdf',
       'umt-template':'__yahmaTemplate',
       'umt-email-pdf':'btn-email-filtered-pdf',
-      'umt-backup':'btn-backup'
+      'umt-backup':'btn-backup',
+      'umt-drive-backup':'btn-drive-backup',
+      'umt-drive-setup':'btn-drive-setup'
     };
     /* «تحديث قسري» مش مرتبط بزر مخفي — بينادي الدالة نفسها مباشرة */
     var hardBtn=document.getElementById('umt-hard-refresh');

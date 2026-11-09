@@ -2,7 +2,8 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>يهماء لتأجير السيارات — منصة تحضير الأسطول للتأجير</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#152350">
@@ -33,9 +34,9 @@
      كان Supabase بيتحمّل من jsdelivr، وأي شبكة بتحجبه أو بتبطّئه
      كانت بتخلي التطبيق يفتح «وضع محلي» ويطلع 0 سيارة — وده اللي
      حصل لأمين على الآيفون. دلوقتي كل حاجة على نطاقنا ourselves. -->
-<script src="vendor/dexie.min.js"></script>
+<script defer src="vendor/dexie.min.js"></script>
 <!-- Supabase JS -->
-<script src="vendor/supabase.min.js"></script>
+<script defer src="vendor/supabase.min.js"></script>
 <!-- أمان الإقلاع: المكتبات الأساسية (supabase + dexie) متحمّلة من
      نطاقنا مباشرة، ومتحطّطة في precache الـservice worker — يعني
      لو الشبكة قطعت بتتفتح من الكاش عادي. النسخة المزدوجة اللي كانت
@@ -250,6 +251,8 @@
               <button type="button" class="user-menu-item" id="umt-template" role="menuitem"><span>▤</span> نموذج أسطول فارغ</button>
               <button type="button" class="user-menu-item" id="umt-email-pdf" role="menuitem"><span>✉</span> إرسال التقرير PDF بالبريد</button>
               <button type="button" class="user-menu-item" id="umt-backup" role="menuitem"><span>⤓</span> تنزيل نسخة احتياطية</button>
+              <button type="button" class="user-menu-item" id="umt-drive-backup" role="menuitem"><span>☁</span> رفع نسخة يومية لجوجل درايف</button>
+              <button type="button" class="user-menu-item" id="umt-drive-setup" role="menuitem"><span>⚙️</span> إعدادات النسخ على جوجل درايف</button>
               <button type="button" class="user-menu-item" id="umt-undo" role="menuitem" hidden><span>↩</span> <span id="umt-undo-label">تراجع آخر حذف</span></button>
               <button type="button" class="user-menu-item" id="umt-errors" role="menuitem" hidden><span>⚠️</span> سجل الأخطاء <span class="yh-errors-badge" id="yh-errors-badge" hidden></span></button>
               <button type="button" class="user-menu-item" id="umt-quick-errors" role="menuitem"><span>🩺</span> تقرير سريع عن الأخطاء <span class="yh-errors-badge" id="yh-quick-errors-badge" hidden></span></button>
@@ -309,6 +312,9 @@
             <button class="more-item" id="btn-backup" role="menuitem">تنزيل نسخة JSON</button>
             <button class="more-item" id="btn-email-backup" role="menuitem">إرسال نسخة بالبريد</button>
             <button class="more-item" id="btn-restore" role="menuitem">استعادة من ملف</button>
+            <div class="more-divider"></div>
+            <button class="more-item" id="btn-drive-backup" role="menuitem">رفع نسخة يومية لجوجل درايف</button>
+            <button class="more-item" id="btn-drive-setup" role="menuitem">إعدادات النسخ على جوجل درايف</button>
             <div class="more-divider"></div>
             <button class="more-item danger" id="btn-clear-all" role="menuitem">مسح كل البيانات</button>
           </div>
@@ -436,86 +442,87 @@
      بيضمن إن الاستدعاء موجود حتى لو الملف اتحمّل متأخر. من غير الـstub
      كان catch فاضي ممكن يرمي ReferenceError جديد من جوه catch. -->
 <script>window.yahmaErr = window.yahmaErr || function () {};</script>
-<script src="modules/error-bus.js"></script>
-<script src="modules/error-panel.js"></script>
-<script src="modules/offline-queue.js"></script>
+<script defer src="modules/error-bus.js"></script>
+<script defer src="modules/error-panel.js"></script>
+<script defer src="modules/offline-queue.js"></script>
 
 <!-- حارس الإقلاق والتنقّل — لازم أول حاجة عشان يمسك الأخطاء من بدري -->
-<script src="modules/nav-guard.js"></script>
+<script defer src="modules/nav-guard.js"></script>
 <!-- الوحدات -->
-<script src="app.js"></script>
-<script src="modules/export.js"></script>
-  <script src="modules/export-bar.js"></script>
-<script src="modules/my-account.js"></script>
-<script src="modules/fleet-core.js"></script>
-<script src="modules/fleet-view-bulk.js"></script>
-<script src="modules/fleet-view.js"></script>
-<script src="modules/fleet.js"></script>
+<script defer src="app.js"></script>
+<script defer src="modules/export.js"></script>
+  <script defer src="modules/export-bar.js"></script>
+<script defer src="modules/my-account.js"></script>
+<script defer src="modules/fleet-core.js"></script>
+<script defer src="modules/fleet-view-bulk.js"></script>
+<script defer src="modules/fleet-view.js"></script>
+<script defer src="modules/fleet.js"></script>
 <!-- الوحدات الجديدة بعد التقسيم -->
-<script src="modules/data.js"></script>
-<script src="modules/payments-store.js"></script>
-<script src="modules/branch-email.js"></script>
-<script src="modules/realtime.js"></script>
-<script src="modules/utils.js"></script>
-<script src="modules/readiness.js"></script>
-<script src="modules/daily-snapshots.js"></script>
-<script src="modules/global-date.js"></script>
+<script defer src="modules/data.js"></script>
+<script defer src="modules/payments-store.js"></script>
+<script defer src="modules/branch-email.js"></script>
+<script defer src="modules/realtime.js"></script>
+<script defer src="modules/utils.js"></script>
+<script defer src="modules/readiness.js"></script>
+<script defer src="modules/daily-snapshots.js"></script>
+<script defer src="modules/global-date.js"></script>
+<script defer src="modules/drive-backup.js"></script>
 <!-- منطق التطبيق المستخرج -->
-<script src="modules/smooth.js"></script>
-<script src="modules/dashboard-core.js"></script>
-<script src="modules/dashboard-view.js"></script>
-<script src="modules/dashboard.js"></script>
-<script src="modules/branches.js"></script>
-<script src="modules/audit.js"></script>
-<script src="modules/preparation-data.js"></script>
-<script src="modules/preparation-history.js"></script>
-<script src="modules/renewals.js"></script>
-<script src="modules/renewals-ui-bulk.js"></script>
-<script src="modules/renewals-ui.js"></script>
-<script src="modules/follow-up-ui.js"></script>
-<script src="modules/vehicle-modal.js"></script>
-<script src="modules/vehicle-form.js"></script>
-<script src="modules/vehicle-operations.js"></script>
-<script src="modules/fleet-excel.js"></script>
+<script defer src="modules/smooth.js"></script>
+<script defer src="modules/dashboard-core.js"></script>
+<script defer src="modules/dashboard-view.js"></script>
+<script defer src="modules/dashboard.js"></script>
+<script defer src="modules/branches.js"></script>
+<script defer src="modules/audit.js"></script>
+<script defer src="modules/preparation-data.js"></script>
+<script defer src="modules/preparation-history.js"></script>
+<script defer src="modules/renewals.js"></script>
+<script defer src="modules/renewals-ui-bulk.js"></script>
+<script defer src="modules/renewals-ui.js"></script>
+<script defer src="modules/follow-up-ui.js"></script>
+<script defer src="modules/vehicle-modal.js"></script>
+<script defer src="modules/vehicle-form.js"></script>
+<script defer src="modules/vehicle-operations.js"></script>
+<script defer src="modules/fleet-excel.js"></script>
 <!-- منطق التطبيق: أُقسم من app-core.js إلى core/* بالترتيب نفسه للتنفيذ -->
-<script src="core/permissions.js"></script>
-  <script src="core/auth-boot.js"></script>
-  <script src="modules/app-lock.js"></script>
-<script src="core/branches-store.js"></script>
-<script src="core/sync.js"></script>
-<script src="core/router-payments.js"></script>
-<script src="core/router-payments-item.js"></script>
-<script src="core/router-payments-bulk.js"></script>
-<script src="core/router-payments-pending.js"></script>
-<script src="core/router-payments-paid.js"></script>
-<script src="core/router-payments-renewed.js"></script>
-<script src="core/router-branches.js"></script>
-<script src="core/render-router.js"></script>
-<script src="core/pdf-share.js"></script>
-<script src="core/excel-import.js"></script>
+<script defer src="core/permissions.js"></script>
+  <script defer src="core/auth-boot.js"></script>
+  <script defer src="modules/app-lock.js"></script>
+<script defer src="core/branches-store.js"></script>
+<script defer src="core/sync.js"></script>
+<script defer src="core/router-payments.js"></script>
+<script defer src="core/router-payments-item.js"></script>
+<script defer src="core/router-payments-bulk.js"></script>
+<script defer src="core/router-payments-pending.js"></script>
+<script defer src="core/router-payments-paid.js"></script>
+<script defer src="core/router-payments-renewed.js"></script>
+<script defer src="core/router-branches.js"></script>
+<script defer src="core/render-router.js"></script>
+<script defer src="core/pdf-share.js"></script>
+<script defer src="core/excel-import.js"></script>
 <!-- التراجع عن الحذف الجماعي — لازم بعد excel-import (بيقرأ منه record)
      وقبل الموديلات اللي بتستدعي الحذف -->
-<script src="modules/undo.js"></script>
+<script defer src="modules/undo.js"></script>
 <!-- استُخرجت من tail من app-core.js (نفس ترتيب التنفيذ السابق بالضبط) -->
-<script src="modules/audit-theme.js"></script>
-<script src="modules/notifications.js"></script>
-<script src="modules/preparation-live.js"></script>
-<script src="modules/vehicle-360.js"></script>
-<script src="modules/ops-intel-core.js"></script>
-<script src="modules/ops-intel.js"></script>
-<script src="modules/topbar-invoke.js"></script>
-<script src="modules/topbar-user.js"></script>
-<script src="modules/topbar-menu.js"></script>
-<script src="modules/topbar-quick.js"></script>
-<script src="modules/topbar-safe-dd.js"></script>
-<script src="modules/topbar-ui.js"></script>
-<script src="modules/users-tab.js"></script>
-<script src="modules/reports.js"></script>
-<script src="modules/app-version.js"></script>
-<script src="modules/tv-mode.js"></script>
-<script src="modules/scan-console.js"></script>
-<script src="modules/perf-vtable.js"></script>
-<script src="modules/cloud.js"></script>
+<script defer src="modules/audit-theme.js"></script>
+<script defer src="modules/notifications.js"></script>
+<script defer src="modules/preparation-live.js"></script>
+<script defer src="modules/vehicle-360.js"></script>
+<script defer src="modules/ops-intel-core.js"></script>
+<script defer src="modules/ops-intel.js"></script>
+<script defer src="modules/topbar-invoke.js"></script>
+<script defer src="modules/topbar-user.js"></script>
+<script defer src="modules/topbar-menu.js"></script>
+<script defer src="modules/topbar-quick.js"></script>
+<script defer src="modules/topbar-safe-dd.js"></script>
+<script defer src="modules/topbar-ui.js"></script>
+<script defer src="modules/users-tab.js"></script>
+<script defer src="modules/reports.js"></script>
+<script defer src="modules/app-version.js"></script>
+<script defer src="modules/tv-mode.js"></script>
+<script defer src="modules/scan-console.js"></script>
+<script defer src="modules/perf-vtable.js"></script>
+<script defer src="modules/cloud.js"></script>
 <script>
 // تسجيل الـ service worker لتخزين هيكل التطبيق أوفلاين — بره خدمة عادية من ملف مباشر
 if('serviceWorker' in navigator && location.protocol !== 'file:'){
