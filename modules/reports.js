@@ -39,6 +39,7 @@
   var state = { report: 'weekly', branch: '', period: '30' };
   var occupancyCache = null; // لقطات محمّلة من Supabase (async) — fallback محلي synchronously
   var occupancyLoading = false;
+  var occupancyLoadedOnce = false; // يمنع حلقة التحميل اللانهائي (re-render → load → re-render)
 
   /* ============ أدوات صغيرة ============ */
 
@@ -2004,21 +2005,31 @@
     host.innerHTML = shellHtml(report, branches, model);
     bind(host, report);
     setPdfProvider(report);
-    // لو تقرير التشغيل الزمني، حمّل اللقطات من Supabase وحدّث في الخلفية
-    if (active.id === 'occupancyTime' && !occupancyLoading) {
+    // لو تقرير التشغيل الزمني، حمّل اللقطات من Supabase وحدّث في الخلفية (مرة واحدة بس في الجلسة)
+    if (active.id === 'occupancyTime' && !occupancyLoadedOnce && !occupancyLoading) {
       occupancyLoading = true;
       try {
         if (global.YahmaSnapshots && typeof global.YahmaSnapshots.loadSnapshots === 'function') {
           Promise.resolve(global.YahmaSnapshots.loadSnapshots({})).then(function (snaps) {
-            occupancyCache = Array.isArray(snaps) ? snaps : [];
+            occupancyCache = Array.isArray(snaps) ? snaps : occupancyCache;
             occupancyLoading = false;
+            occupancyLoadedOnce = true;
             // حدّث بس لو التقرير الحالي لسه مفتوح
             if (state.report === 'occupancyTime' && document.getElementById('content') === host) {
               renderReports(host);
             }
-          }).catch(function () { occupancyLoading = false; });
-        } else { occupancyLoading = false; }
-      } catch (_) { occupancyLoading = false; }
+          }).catch(function () {
+            occupancyLoading = false;
+            occupancyLoadedOnce = true;
+          });
+        } else {
+          occupancyLoading = false;
+          occupancyLoadedOnce = true;
+        }
+      } catch (_) {
+        occupancyLoading = false;
+        occupancyLoadedOnce = true;
+      }
     }
   }
 
