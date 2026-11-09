@@ -2168,3 +2168,33 @@ body.dark-mode .global-date-filter select{color:#EAF1F5}
 body.dark-mode .global-date-filter select.is-active{color:#5EEAD4}
 body.dark-mode .global-date-badge{background:rgba(94,234,212,.10);border-color:rgba(94,234,212,.28);color:#5EEAD4}
 @media(max-width:900px){.global-date-filter select{max-width:130px}}
+
+/* هيدر ملوّن جديد — متعدد الألوان زي الصورة */
+.topbar.topbar-v43{
+  background: linear-gradient(90deg, #0E8A68 0%, #0284C7 38%, #6366F1 72%, #D97706 100%);
+  border-bottom: 1px solid rgba(255,255,255,.18);
+  box-shadow: 0 10px 28px rgba(15,23,60,.22);
+  color: #fff;
+}
+.topbar.topbar-v43 .topbar-brand-copy strong{color:#fff}
+.topbar.topbar-v43 .topbar-brand-copy span{color:rgba(255,255,255,.72)}
+/* زرار الموبايل + الأيقونات */
+.topbar.topbar-v43 .btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);color:#fff}
+.topbar.topbar-v43 .btn:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.35);color:#fff}
+.topbar.topbar-v43 .topbar-user{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22)}
+.topbar.topbar-v43 .topbar-user-meta b{color:#fff}
+.topbar.topbar-v43 .topbar-user-meta span{color:rgba(255,255,255,.72)}
+.topbar.topbar-v43 .topbar-search-wrap input{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.24);color:#fff;box-shadow:none}
+.topbar.topbar-v43 .topbar-search-wrap input::placeholder{color:rgba(255,255,255,.72)}
+.topbar.topbar-v43 .topbar-search-ico{color:rgba(255,255,255,.72)}
+.topbar.topbar-v43 .sync-status{color:rgba(255,255,255,.85);background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.18)}
+body.dark-mode .topbar.topbar-v43{background: linear-gradient(90deg, #0B5F56 0%, #0B3A6E 42%, #2E2A6E 75%, #7A4A08 100%)}
+/* فلتر التاريخ داخل التبويب بنفس شكل الهيدر القديم */
+.global-date-filter-tab{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(21,35,80,.14);box-shadow:0 4px 14px rgba(15,25,60,.08)}
+.global-date-filter-tab label{font-size:15px;line-height:1}
+.global-date-filter-tab select{border:0;background:transparent;font-family:inherit;font-size:12px;font-weight:800;color:var(--navy,#152350);cursor:pointer;max-width:190px;outline:none}
+.global-date-filter-tab select.is-active{color:#0E8A68}
+body.dark-mode .global-date-filter-tab{background:rgba(17,28,46,.75);border-color:rgba(255,255,255,.14)}
+body.dark-mode .global-date-filter-tab select{color:#EAF1F5}
+body.dark-mode .global-date-filter-tab select.is-active{color:#5EEAD4}
+@media(max-width:900px){.global-date-filter-tab select{max-width:130px}}

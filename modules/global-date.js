@@ -100,6 +100,21 @@
     } catch (_) {}
   }
 
+  function updateBadge(iso) {
+    var v = iso !== undefined ? String(iso || '') : getSelectedDate();
+    var badge = document.getElementById('global-date-badge');
+    if (!badge) {
+      var tabs = document.querySelectorAll('.global-date-badge');
+      tabs.forEach(function (b) {
+        if (v) { b.hidden = false; b.textContent = fmtAr(v); }
+        else { b.hidden = true; b.textContent = ''; }
+      });
+      return;
+    }
+    if (v) { badge.hidden = false; badge.textContent = fmtAr(v); }
+    else { badge.hidden = true; badge.textContent = ''; }
+  }
+
   // لما يحصل أي إعادة رسم للصفحة، اربط الفلاتر الجديدة
   document.addEventListener('DOMContentLoaded', bind);
 
@@ -108,7 +123,6 @@
     setSelectedDate: setSelectedDate,
     getAvailableDates: getLocalDates,
     bind: bind,
-    populateAll: populateAll,
-    SELECT_CLASS: SELECT_CLASS
+    updateBadge: updateBadge
   };
 })(typeof window !== 'undefined' ? window : globalThis);
