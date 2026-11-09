@@ -162,17 +162,17 @@ function dashboardTemplate(state) {
         <span style="font-size:14px">⚠️</span><span>${leastOccupiedBranchPct}%</span>
       </button>
     </div>` : ''}
-    <!-- Hero زي الصورة: رقم كبير + لوحة خضرا -->
+    <!-- Hero زي الصورة: كرت داكن + لوحة خضرا بنفس درجات القسم الداكن -->
     <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px" class="mock-hero-grid">
-      <div style="background:#fff;border:1px solid #E6EAF2;border-radius:18px;padding:22px 24px;box-shadow:0 1px 3px rgba(15,25,60,.05),0 8px 24px rgba(15,25,60,.06)">
-        <p style="display:flex;align-items:center;gap:6px;color:#0E8A68;font-weight:800;font-size:13px;margin:0 0 12px">✨ نظرة عامة تشغيلية</p>
-        <div style="display:flex;align-items:flex-end;gap:10px"><h2 style="margin:0;font-size:56px;font-weight:900;line-height:.95;letter-spacing:-.02em;color:#111827">${total.toLocaleString('en')}</h2><span style="padding-bottom:6px;font-weight:800;color:#111827">سيارة</span></div>
-        <h3 style="margin:6px 0 8px;font-size:18px;font-weight:900;color:#111827">إجمالي الأسطول</h3>
-        <p style="margin:0 0 18px;color:#6B7490;line-height:1.7;font-size:13px">صورة تشغيلية موحّدة لحركة الأسطول والركود والتوفر الفوري، من دون تشتيت بين التقارير.</p>
+      <div style="background:#0F2A24;border:1px solid #1E3D34;border-radius:18px;padding:22px 24px;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25),0 8px 24px rgba(0,0,0,.25)">
+        <p style="display:flex;align-items:center;gap:6px;color:#2DD4A0;font-weight:800;font-size:13px;margin:0 0 12px">✨ نظرة عامة تشغيلية</p>
+        <div style="display:flex;align-items:flex-end;gap:10px"><h2 style="margin:0;font-size:56px;font-weight:900;line-height:.95;letter-spacing:-.02em;color:#fff">${total.toLocaleString('en')}</h2><span style="padding-bottom:6px;font-weight:800;color:#fff">سيارة</span></div>
+        <h3 style="margin:6px 0 8px;font-size:18px;font-weight:900;color:#fff">إجمالي الأسطول</h3>
+        <p style="margin:0 0 18px;color:#8AA99E;line-height:1.7;font-size:13px">صورة تشغيلية موحّدة لحركة الأسطول والركود والتوفر الفوري، من دون تشتيت بين التقارير.</p>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-          <div style="background:#F2F5F9;border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#111827">↗ مؤجرة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#111827">${rented.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#6B7490">سيارة ضمن التشغيل</p></div>
-          <div style="background:#F2F5F9;border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#111827">✓ متاحة فوراً</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#111827">${availableCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#6B7490">جاهزة للإيجار الآن</p></div>
-          <div style="background:#FFF1F1;border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#B42318">↘ راقدة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#111827">${idleCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#6B7490">غير مؤجرة</p></div>
+          <div style="background:#0A1F1A;border:1px solid #1E3A32;border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#fff">↗ مؤجرة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#fff">${rented.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#8AA99E">سيارة ضمن التشغيل</p></div>
+          <div style="background:#0A1F1A;border:1px solid #1E3A32;border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#fff">✓ متاحة فوراً</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#fff">${availableCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#8AA99E">جاهزة للإيجار الآن</p></div>
+          <div style="background:rgba(223,79,79,.10);border:1px solid rgba(223,79,79,.22);border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#FF8A8A">↘ راقدة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#fff">${idleCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#8AA99E">غير مؤجرة</p></div>
         </div>
       </div>
       <div style="background:#0E8A68;border-radius:18px;padding:22px;color:#fff;position:relative;overflow:hidden">
