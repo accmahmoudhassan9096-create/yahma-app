@@ -1904,6 +1904,44 @@
     }
   }
 
+  async function exportWholeReportPdf(report) {
+    var api = global.YahmaExport;
+    if (!api || typeof api.exportWholeReportPdf !== 'function') {
+      try { global.alert('تصدير PDF الكامل غير متاح — أعد تحميل الصفحة.'); } catch (_) { /* ignore */ }
+      return;
+    }
+    var sections = (report.sections || []).map(function (section) {
+      return {
+        title: section.title || '',
+        headers: (section.headers || []).slice(),
+        rows: (section.rows || []).map(function (row) { return exportRow(section, row); }),
+        foot: section.foot ? exportRow(section, section.foot) : null
+      };
+    });
+    var totalRows = sections.reduce(function (sum, section) { return sum + section.rows.length + (section.foot ? 1 : 0); }, 0);
+    if (!totalRows) {
+      try { global.alert('لا توجد بيانات مطابقة للتصدير.'); } catch (_) { /* ignore */ }
+      return;
+    }
+    var note = 'الفرع: ' + (state.branch || 'كل الفروع');
+    if (state.report === 'occupancyTime') note += ' | الفترة: ' + (state.period || '30') + ' يوم';
+    try {
+      await api.exportWholeReportPdf({
+        title: report.title || 'تقرير الأسطول',
+        subtitle: report.subtitle || '',
+        note: note,
+        kpis: report.kpis || [],
+        sections: sections,
+        rows: sections.reduce(function (all, section) { return all.concat(section.rows, section.foot ? [section.foot] : []); }, []),
+        filename: fileName(report, { title: 'كامل' }) + '.pdf',
+        buttonId: 'rp-header-pdf'
+      });
+    } catch (err) {
+      try { global.alert('تعذر تصدير PDF الكامل: ' + ((err && err.message) || err)); } catch (_) { /* ignore */ }
+    }
+  }
+
+
   function exportSection(report, index, format) {
     var section = (report.sections || [])[index];
     if (!section) return;
@@ -2118,7 +2156,7 @@
       });
     });
     var hpPdf = content.querySelector('#rp-header-pdf');
-    if (hpPdf) hpPdf.addEventListener('click', function () { exportSection(report, 0, 'pdf'); });
+    if (hpPdf) hpPdf.addEventListener('click', function () { exportWholeReportPdf(report); });
     var hpXlsx = content.querySelector('#rp-header-xlsx');
     if (hpXlsx) hpXlsx.addEventListener('click', function () { exportWholeReport(report); });
     var periodSelect = content.querySelector('#rp-period');
