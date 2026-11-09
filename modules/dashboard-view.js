@@ -156,37 +156,38 @@ function dashboardTemplate(state) {
     .home-kpi-most-idle .home-kpi-icon { background: #fee2e2; color: #dc2626; }
   </style>
   <div class="home-dash">
-    <!-- Hero -->
-    <div class="home-hero hero-executive">
-      <div class="home-hero-skyline" aria-hidden="true"></div>
-      <div class="home-hero-text hero-welcome-card">
-        <div class="hero-welcome-kicker" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-          <div><span class="hero-live-dot"></span> لوحة التحكم التنفيذية</div>
-          <div class="dash-cloud-badge" id="dash-cloud-badge" title="حالة الاتصال السحابي">
-            <span class="dash-cloud-dot"></span>
-            <span class="dash-cloud-text">متصل بـ Supabase</span>
-          </div>
-        </div>
-        <div class="home-hero-title-row">
-          <span class="home-hero-accent" aria-hidden="true"></span>
-          <div class="home-hero-title-copy">
-            <h2>مرحباً بك في منصة إدارة الأسطول</h2>
-            <p>نظرة سريعة على جاهزية سياراتك وحالة التشغيل اليوم.</p>
-          </div>
-        </div>
-        <div class="hero-summary-stats" aria-label="ملخص الأسطول">
-          <div class="hero-summary-stat"><b>${total}</b><span>إجمالي السيارات</span></div>
-          <div class="hero-summary-stat"><b>${available}</b><span>السيارات المتاحة</span></div>
-          <div class="hero-summary-stat"><b>${rented}</b><span>السيارات المؤجرة</span></div>
+    <!-- تنبيه تدخل فوري (زي الصورة) -->
+    ${leastOccupiedBranchName && leastOccupiedBranchName !== '—' && leastOccupiedBranchPct < 20 ? `<div style="display:flex;gap:12px;align-items:flex-start;background:#FFF1F1;border:1px solid #F5BFC0;border-radius:16px;padding:14px 16px;margin-bottom:14px;color:#7F2323">
+      <div style="display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#fff;color:#DC2626;flex:none">⚠️</div>
+      <div style="flex:1;line-height:1.6">
+        <b style="font-weight:900">فرع ${escapeHtml(leastOccupiedBranchName)} يحتاج تدخل فوري — ${leastOccupiedBranchPct}% تشغيل</b>
+        <div style="font-size:12px;opacity:.85">أقل فرع تشغيلاً في التقرير، مع ${leastIdleBranchCount || 0} سيارات راقدة غير مؤجرة. راجع توزيع الفروع ورفع جاهزية الفرع.</div>
+      </div>
+      <button type="button" class="home-kpi-link" data-go="fleet" style="align-self:center;background:#7F2323;color:#fff;border-radius:999px;padding:7px 14px;font-size:12px;font-weight:800">عرض التفاصيل</button>
+    </div>` : ''}
+    <!-- Hero زي الصورة: رقم كبير + لوحة خضرا -->
+    <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px" class="mock-hero-grid">
+      <div style="background:#fff;border:1px solid #E6EAF2;border-radius:18px;padding:22px 24px;box-shadow:0 1px 3px rgba(15,25,60,.05),0 8px 24px rgba(15,25,60,.06)">
+        <p style="display:flex;align-items:center;gap:6px;color:#0E8A68;font-weight:800;font-size:13px;margin:0 0 12px">✨ نظرة عامة تشغيلية</p>
+        <div style="display:flex;align-items:flex-end;gap:10px"><h2 style="margin:0;font-size:56px;font-weight:900;line-height:.95;letter-spacing:-.02em;color:#111827">${total.toLocaleString('en')}</h2><span style="padding-bottom:6px;font-weight:800;color:#111827">سيارة</span></div>
+        <h3 style="margin:6px 0 8px;font-size:18px;font-weight:900;color:#111827">إجمالي الأسطول</h3>
+        <p style="margin:0 0 18px;color:#6B7490;line-height:1.7;font-size:13px">صورة تشغيلية موحّدة لحركة الأسطول والركود والتوفر الفوري، من دون تشتيت بين التقارير.</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <div style="background:#F2F5F9;border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#111827">↗ مؤجرة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#111827">${rented.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#6B7490">سيارة ضمن التشغيل</p></div>
+          <div style="background:#F2F5F9;border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#111827">✓ متاحة فوراً</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#111827">${availableCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#6B7490">جاهزة للإيجار الآن</p></div>
+          <div style="background:#FFF1F1;border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#B42318">↘ راقدة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#111827">${idleCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#6B7490">غير مؤجرة</p></div>
         </div>
       </div>
-      <div class="home-hero-gauge hero-gauge" role="img" aria-label="مقياس جاهزية الأسطول ${pReady}%">
-        <div class="hero-gauge-title">مقياس الجاهزية</div>
-        ${gaugeSvg}
-        <div class="hero-gauge-sub">${ready.toLocaleString('en')} من ${total.toLocaleString('en')} سيارة</div>
+      <div style="background:#0E8A68;border-radius:18px;padding:22px;color:#fff;position:relative;overflow:hidden">
+        <div style="position:absolute;inset-inline-start:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.08)"></div>
+        <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:#A7F3D0">📈 مؤشر التشغيل</p>
+        <p style="margin:18px 0 0;font-size:56px;font-weight:900;line-height:1">${occupancyRate}%</p>
+        <p style="margin:8px 0 0;font-weight:800">نسبة التشغيل الإجمالية</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#A7F3D0">${rented} من ${total} سيارة مؤجرة</p>
+        <p style="margin:20px 0 0;padding-top:16px;border-top:1px solid rgba(255,255,255,.2);font-size:12px;line-height:1.7;color:#D1FAE5">التركيز التشغيلي الحالي: تقليل الركود، ورفع جاهزية السيارات المتاحة فوراً.</p>
       </div>
-      <div class="home-hero-car hero-car-clean" aria-hidden="true"><video class="home-hero-car-img home-hero-video" autoplay muted loop playsinline preload="metadata" poster="assets/dashboard-hero.png"><source src="assets/hero-video.mp4" type="video/mp4"></video></div>
     </div>
+    <style>@media(max-width:900px){.mock-hero-grid{grid-template-columns:1fr !important}}</style>
 
     <!-- تقرير الجاهزية -->
     <div class="home-report-header">
