@@ -220,6 +220,13 @@
 
       <div class="topbar-actions">
         <!-- ترتيب من اليسار لليمين: مستخدم → ليلي → تحديث → تصدير → استيراد → نسخة → نماذج -->
+        <div class="global-date-filter" title="فلتر التاريخ: يختار يوم من اللقطات اليومية ويأثر على كل التبويبات">
+          <label for="global-date-filter">📅</label>
+          <select id="global-date-filter" aria-label="فلتر التاريخ — يوم من اللقطات اليومية">
+            <option value="">اليوم (مباشر)</option>
+          </select>
+          <span id="global-date-badge" class="global-date-badge" hidden></span>
+        </div>
         <div class="topbar-user-wrap" id="topbar-user-wrap">
           <button class="topbar-user" id="topbar-user" type="button" aria-haspopup="menu" aria-expanded="false">
             <div class="topbar-user-meta">
@@ -459,6 +466,7 @@
 <script src="modules/utils.js"></script>
 <script src="modules/readiness.js"></script>
 <script src="modules/daily-snapshots.js"></script>
+<script src="modules/global-date.js"></script>
 <!-- منطق التطبيق المستخرج -->
 <script src="modules/smooth.js"></script>
 <script src="modules/dashboard-core.js"></script>

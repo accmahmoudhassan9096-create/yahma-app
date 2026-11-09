@@ -197,6 +197,13 @@
     "PDF_FONT",
     "faceCSS"
   ],
+  "YahmaGlobalDate": [
+    "bind",
+    "getAvailableDates",
+    "getSelectedDate",
+    "setSelectedDate",
+    "updateBadge"
+  ],
   "YahmaMyAccount": [
     "MIN_PASSWORD",
     "NATIONAL_ID_RE",

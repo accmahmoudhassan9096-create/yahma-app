@@ -235,9 +235,20 @@ function computeDashboardState(fleet) {
   /* ===== تريند نسبة التشغيل (آخر 7 أيام) ===== */
   // مفيش تاريخ إيجارات محفوظ يومياً، فنعرض النسبة الحالية ثابتة —
   // الجيل السابق كان بيستخدم Math.random() ويرسم تريند وهمي مختلف كل تحديث.
+  // لو فيه فلتر تاريخ عالمي، التريند ينتهي في اليوم ده بدل النهاردة.
   const occupancyTrend = [];
+  let trendEnd = new Date();
+  try {
+    const gd = (typeof global.YahmaGlobalDate === 'object' && typeof global.YahmaGlobalDate.getSelectedDate === 'function')
+      ? String(global.YahmaGlobalDate.getSelectedDate() || '').slice(0, 10)
+      : String(global.localStorage.getItem('yahma-global-date-filter') || '').slice(0, 10);
+    if (gd) {
+      const parsed = new Date(gd + 'T00:00:00');
+      if (!isNaN(parsed.getTime())) trendEnd = parsed;
+    }
+  } catch (_) {}
   for (let i = 6; i >= 0; i--) {
-    const d = new Date();
+    const d = new Date(trendEnd.getTime());
     d.setDate(d.getDate() - i);
     const dayStr = d.toISOString().slice(0, 10);
     occupancyTrend.push({ date: dayStr, pct: occupancyRate });

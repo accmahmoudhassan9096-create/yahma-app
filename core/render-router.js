@@ -154,6 +154,15 @@ function render(){
      كل تبويب يعرض سياراته فقط (اللي محتاجة فحص / رخص منتهية / تأمين...),
      والأسطول والفروع والتقارير يفضلوا كل الأسطول.
      بنلفّ fleet مؤقتاً وقت الرسم ونرجّعها فوراً — فالتعديل والحفظ شغالين عادي. */
+  // فلتر التاريخ الشامل — يأثر على كل التبويبات (القيم من اللقطات اليومية)
+  let globalDateSelected = '';
+  try {
+    if (typeof global.YahmaGlobalDate === 'object' && typeof global.YahmaGlobalDate.getSelectedDate === 'function') {
+      globalDateSelected = String(global.YahmaGlobalDate.getSelectedDate() || '').slice(0, 10);
+    } else {
+      globalDateSelected = String(global.localStorage.getItem('yahma-global-date-filter') || '').slice(0, 10);
+    }
+  } catch (_) { globalDateSelected = ''; }
   let scopedFleet=null;
   if (typeof fleetForTab==='function' && currentTab
       && ['dashboard','fleet','branches','reports','audit','preparation','users'].indexOf(currentTab)<0){
@@ -162,6 +171,22 @@ function render(){
       scopedFleet = fleetForTab(currentTab, fleet);
       fleet = scopedFleet;
     }catch(_){ scopedFleet=null; }
+  }
+  // بعد فلترة التبويب، مطبّق فلتر التاريخ على الجداول (أسطول/فحص/رخص/تأمين/بطاقات/دفع...)
+  if (globalDateSelected && Array.isArray(fleet)) {
+    try {
+      // نفلتر على السيارات اللي اتحدثت في اليوم المختار — لو مفيش تحديثات في اليوم ده، الجدول هيكون فاضي على مهل
+      const filtered = fleet.filter(c => String(c.updatedAt || '').slice(0, 10) === globalDateSelected);
+      // لو الداتا القديمة مفيهاش updatedAt، ما نمسحش الجدول كله
+      let anyDates = false;
+      for (let i = 0; i < fleet.length; i++) {
+        if (fleet[i] && String(fleet[i].updatedAt || '').slice(0, 10)) { anyDates = true; break; }
+      }
+      if (anyDates) {
+        if (!scopedFleet) { __yahmaFullFleet = fleet; }
+        fleet = filtered;
+      }
+    } catch (_) {}
   }
   try{
     /* بيانات PDF الخاصة بالتبويب تُعاد توليدها مع كل عرض — نمسح القديمة حتى لا يصدّر زر PDF بيانات تبويب سابق */
@@ -205,6 +230,23 @@ if(currentTab === 'dashboard') renderDashboard(content);
   if(__yahmaFullFleet && Array.isArray(__yahmaFullFleet)){ fleet = __yahmaFullFleet; }
   __yahmaFullFleet = null;
   try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){yahmaErr(_,'render-router.js:601');}
+  // بانر فلتر التاريخ الشامل (عرض لقطة يوم)
+  try {
+    if (globalDateSelected && content) {
+      const old = document.getElementById('yahma-global-date-banner');
+      if (!old) {
+        const banner = document.createElement('div');
+        banner.id = 'yahma-global-date-banner';
+        banner.style.cssText = 'display:flex;justify-content:flex-end;margin:6px 0';
+        banner.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:rgba(14,110,108,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(14,110,108,.28);color:#0E6E6C;font-size:11.5px;font-weight:800">📅 عرض بيانات يوم ' + globalDateSelected + ' (السيارات اللي اتحدثت في اليوم ده) — اختار «اليوم» من الفلتر في الهيدر عشان ترجع للمباشر</span>';
+        const first = content.firstElementChild;
+        if (first) content.insertBefore(banner, first); else content.appendChild(banner);
+      }
+    } else {
+      const old = document.getElementById('yahma-global-date-banner');
+      if (old) old.remove();
+    }
+  } catch (_) {}
   try{ showBranchScopeNotice(content); }catch(_){yahmaErr(_,'render-router.js:602');}
   try{ showDataWarning(content); }catch(_){yahmaErr(_,'render-router.js:603');}
   /* الصلاحيات حسب التبويب: «تشغيل» يعدّل في الفحص بس، والباقي

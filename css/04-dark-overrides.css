@@ -2156,3 +2156,15 @@ body.dark-mode .rp-btn{background:#111827}
 .yx-bar.is-inline .yx-ico{font-size:12px}
 .yx-btn{padding:6px 12px;font-size:11px}
 .yx-ico{font-size:12px}
+
+/* ???? ??????? ??????? ?? ?????? */
+.global-date-filter{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.65);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(21,35,80,.14);box-shadow:0 2px 8px rgba(21,35,80,.08)}
+.global-date-filter label{font-size:14px;line-height:1}
+.global-date-filter select{border:0;background:transparent;font-family:inherit;font-size:11.5px;font-weight:800;color:var(--navy,#152350);cursor:pointer;max-width:190px;outline:none}
+.global-date-filter select.is-active{color:#0E6E6C}
+.global-date-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;background:rgba(14,110,108,.10);border:1px solid rgba(14,110,108,.28);color:#0E6E6C;font-size:10.5px;font-weight:800;white-space:nowrap}
+body.dark-mode .global-date-filter{background:rgba(17,28,46,.65);border-color:rgba(255,255,255,.14)}
+body.dark-mode .global-date-filter select{color:#EAF1F5}
+body.dark-mode .global-date-filter select.is-active{color:#5EEAD4}
+body.dark-mode .global-date-badge{background:rgba(94,234,212,.10);border-color:rgba(94,234,212,.28);color:#5EEAD4}
+@media(max-width:900px){.global-date-filter select{max-width:130px}}

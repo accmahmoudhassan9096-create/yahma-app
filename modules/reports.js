@@ -1625,15 +1625,28 @@
   function buildOccupancyTime(model, list) {
     var period = Number(state.period) || 30;
     if (![7, 30, 90].includes(period)) period = 30;
+    // لو فيه فلتر تاريخ عالمي، الفترة تنتهي بيوم الفلتر بدل النهاردة
+    var globalDate = '';
+    try {
+      globalDate = (typeof global.YahmaGlobalDate === 'object' && typeof global.YahmaGlobalDate.getSelectedDate === 'function')
+        ? String(global.YahmaGlobalDate.getSelectedDate() || '').slice(0, 10)
+        : String(global.localStorage.getItem('yahma-global-date-filter') || '').slice(0, 10);
+    } catch (_) {}
     var today = new Date();
     today.setHours(0, 0, 0, 0);
+    if (globalDate) {
+      var parsedGlobal = new Date(globalDate + 'T00:00:00');
+      if (!isNaN(parsedGlobal.getTime())) today = parsedGlobal;
+    }
     var from = new Date(today.getTime() - (period - 1) * 86400000);
     var fromIso = from.getFullYear() + '-' + String(from.getMonth() + 1).padStart(2, '0') + '-' + String(from.getDate()).padStart(2, '0');
+    var todayIsoForFilter = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     var allSnaps = getOccupancySeries();
     var branchFilter = state.branch || 'ALL';
     var series = allSnaps.filter(function (s) {
       if (s.branch !== branchFilter) return false;
       if (s.snapshot_date < fromIso) return false;
+      if (s.snapshot_date > todayIsoForFilter) return false;
       return true;
     }).sort(function (a, b) { return a.snapshot_date < b.snapshot_date ? -1 : 1; });
     // لو مفيش لقطات كفاية، نضم لقطة اليوم من البيانات الحالية عشان يظهر نقطة واحدة على الأقل
