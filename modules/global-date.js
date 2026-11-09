@@ -1,24 +1,16 @@
 /*
- * modules/global-date.js — فلتر تاريخ عالمي في الهيدر
+ * modules/global-date.js — فلتر تاريخ عالمي في كل التبويبات
  *
- * القائمة المنسدلة فيها:
- *   - اليوم (مباشر) — القيمة الافتراضية، كل التبويبات تعرض البيانات الحالية
- *   - تواريخ اللقطات اليومية (fleet_daily_snapshots) مرتبة من الأحدث للأقدم
- *
- * عند اختيار تاريخ:
- *   - يُحفظ في localStorage (yahma-global-date-filter) و window.__yahmaGlobalDate
- *   - render-router يفلتر الأسطول على السيارات اللي اتحدثت في اليوم ده (updatedAt == التاريخ)
- *     فكل التبويبات اللي بتعرض صفوف (أسطول/فحص/رخص/تأمين/بطاقات/دفع) هتتأثر
- *   - تقرير "معدل التشغيل الزمني" بيستخدم التاريخ المختار كنهاية للفترة
- *   - لو مفيش سيارات اتحدثت في اليوم ده، الجداول هتطلع فاضية — وده مقصود عشان
- *     يفرّق بين "البيانات الحالية" و"اللي اتغيّر في يوم معيّن".
+ * القائمة المنسدلة فيها: اليوم (مباشر) + تواريخ اللقطات اليومية.
+ * الفلتر بيتحقن أعلى محتوى كل تبويب (مش في الهيدر)، واختيار يوم
+ * بيأثر على فلترة الأسطول في كل التبويبات (render-router) وعلى
+ * تقرير معدل التشغيل الزمني — زي ما المستخدم طلب بالظبط.
  */
 (function (global) {
   'use strict';
 
   const KEY = 'yahma-global-date-filter';
-  const SELECT_ID = 'global-date-filter';
-  const BADGE_ID = 'global-date-badge';
+  const SELECT_CLASS = 'global-date-select';
 
   function getSelectedDate() {
     try {
@@ -36,7 +28,6 @@
   }
 
   function fmtAr(iso) {
-    // iso = YYYY-MM-DD → d/m/yyyy
     const parts = String(iso || '').slice(0, 10).split('-');
     if (parts.length !== 3) return iso || '';
     return parts[2] + '/' + parts[1] + '/' + parts[0];
@@ -59,9 +50,7 @@
     return [];
   }
 
-  function populate(dates, selected) {
-    const sel = document.getElementById(SELECT_ID);
-    if (!sel) return;
+  function populateSelect(sel, dates, selected) {
     const cur = (selected !== undefined) ? selected : sel.value;
     const opts = ['<option value="">اليوم (مباشر)</option>'];
     (dates || []).forEach((d) => {
@@ -69,62 +58,57 @@
     });
     sel.innerHTML = opts.join('');
     sel.value = cur || '';
-    updateBadge();
+    sel.classList.toggle('is-active', !!sel.value);
   }
 
-  function updateBadge() {
-    const sel = document.getElementById(SELECT_ID);
-    const badge = document.getElementById(BADGE_ID);
-    const v = sel ? sel.value : getSelectedDate();
-    if (badge) {
-      if (v) {
-        badge.hidden = false;
-        badge.textContent = '📅 عرض ' + fmtAr(v);
-      } else {
-        badge.hidden = true;
-        badge.textContent = '';
-      }
-    }
-    const active = !!v;
-    if (sel) sel.classList.toggle('is-active', active);
+  function populateAll(dates) {
+    const list = document.querySelectorAll('.' + SELECT_CLASS);
+    list.forEach((sel) => populateSelect(sel, dates, getSelectedDate()));
   }
 
-  function bind() {
-    const sel = document.getElementById(SELECT_ID);
+  function findSelects() {
+    return Array.from(document.querySelectorAll('.' + SELECT_CLASS));
+  }
+
+  function bindSelect(sel) {
     if (!sel || sel._bound) return;
     sel._bound = true;
-    // التاريخ المحفوظ كقيمة ابتدائية
-    const saved = getSelectedDate();
-    populate(getLocalDates(), saved);
-    // حاول تحميل تواريخ أحدث من Supabase في الخلفية
-    try {
-      if (global.YahmaSnapshots && typeof global.YahmaSnapshots.loadSnapshots === 'function') {
-        Promise.resolve(global.YahmaSnapshots.loadSnapshots({})).then((rows) => {
-          const dates = distinctDatesFromSnaps(rows);
-          if (dates.length) populate(dates, sel.value);
-        }).catch(() => {});
-      }
-    } catch (_) {}
     sel.addEventListener('change', function () {
       setSelectedDate(sel.value);
-      updateBadge();
-      // إعادة رسم للتبويب الحالي عشان الفلترة تتطبق على الجدول والملخصات
+      // مزامنة باقى الفلاتر الظاهرة
+      findSelects().forEach((other) => {
+        if (other !== sel) { other.value = sel.value; other.classList.toggle('is-active', !!sel.value); }
+      });
       try {
         if (typeof global.render === 'function') global.render();
         else if (typeof global.yahmaGoTab === 'function' && global.yahmaGetTab) global.yahmaGoTab(global.yahmaGetTab());
       } catch (_) {}
     });
-    updateBadge();
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
-  else bind();
+  function bind() {
+    const selects = findSelects();
+    selects.forEach(bindSelect);
+    // حاول تحميل تواريخ أحدث من Supabase في الخلفية
+    try {
+      if (global.YahmaSnapshots && typeof global.YahmaSnapshots.loadSnapshots === 'function') {
+        Promise.resolve(global.YahmaSnapshots.loadSnapshots({})).then((rows) => {
+          const dates = distinctDatesFromSnaps(rows);
+          if (dates.length) populateAll(dates);
+        }).catch(() => {});
+      }
+    } catch (_) {}
+  }
+
+  // لما يحصل أي إعادة رسم للصفحة، اربط الفلاتر الجديدة
+  document.addEventListener('DOMContentLoaded', bind);
 
   global.YahmaGlobalDate = {
     getSelectedDate: getSelectedDate,
     setSelectedDate: setSelectedDate,
     getAvailableDates: getLocalDates,
     bind: bind,
-    updateBadge: updateBadge
+    populateAll: populateAll,
+    SELECT_CLASS: SELECT_CLASS
   };
 })(typeof window !== 'undefined' ? window : globalThis);

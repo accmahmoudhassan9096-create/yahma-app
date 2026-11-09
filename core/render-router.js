@@ -230,6 +230,20 @@ if(currentTab === 'dashboard') renderDashboard(content);
   if(__yahmaFullFleet && Array.isArray(__yahmaFullFleet)){ fleet = __yahmaFullFleet; }
   __yahmaFullFleet = null;
   try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){yahmaErr(_,'render-router.js:601');}
+  // فلتر التاريخ داخل كل تبويب (مش في الهيدر) — قائمة منسدلة بنفس شكل الهيدر القديم
+  try {
+    if (content && !document.getElementById('yahma-global-date-filter-row')) {
+      const row = document.createElement('div');
+      row.id = 'yahma-global-date-filter-row';
+      row.style.cssText = 'display:flex;justify-content:flex-end;margin:0 0 10px';
+      row.innerHTML = '<div class="global-date-filter-tab" title="فلتر التاريخ: يختار يوم من اللقطات اليومية ويأثر على فلترة الجدول في التبويب ده"><label for="global-date-filter-tab">📅</label><select id="global-date-filter-tab" class="global-date-select" aria-label="فلتر التاريخ — يوم من اللقطات اليومية"><option value="">اليوم (مباشر)</option></select><span class="global-date-badge" hidden></span></div>';
+      const first = content.firstElementChild;
+      if (first) content.insertBefore(row, first); else content.appendChild(row);
+      // عبّي القايمة من اللقطات
+      const sel = row.querySelector('.global-date-select');
+      if (sel && global.YahmaGlobalDate) global.YahmaGlobalDate.bind();
+    }
+  } catch (_) {}
   // بانر فلتر التاريخ الشامل (عرض لقطة يوم)
   try {
     if (globalDateSelected && content) {
@@ -238,9 +252,13 @@ if(currentTab === 'dashboard') renderDashboard(content);
         const banner = document.createElement('div');
         banner.id = 'yahma-global-date-banner';
         banner.style.cssText = 'display:flex;justify-content:flex-end;margin:6px 0';
-        banner.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:rgba(14,110,108,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(14,110,108,.28);color:#0E6E6C;font-size:11.5px;font-weight:800">📅 عرض بيانات يوم ' + globalDateSelected + ' (السيارات اللي اتحدثت في اليوم ده) — اختار «اليوم» من الفلتر في الهيدر عشان ترجع للمباشر</span>';
-        const first = content.firstElementChild;
-        if (first) content.insertBefore(banner, first); else content.appendChild(banner);
+        banner.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:rgba(14,110,108,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(14,110,108,.28);color:#0E6E6C;font-size:11.5px;font-weight:800">📅 عرض بيانات يوم ' + globalDateSelected + ' (السيارات اللي اتحدثت في اليوم ده) — اختار «اليوم» من الفلتر عشان ترجع للمباشر</span>';
+        const filterRow = document.getElementById('yahma-global-date-filter-row');
+        if (filterRow && filterRow.nextSibling) content.insertBefore(banner, filterRow.nextSibling);
+        else {
+          const first = content.firstElementChild;
+          if (first) content.insertBefore(banner, first); else content.appendChild(banner);
+        }
       }
     } else {
       const old = document.getElementById('yahma-global-date-banner');
