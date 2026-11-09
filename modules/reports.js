@@ -1370,75 +1370,101 @@
   function svgColumnChart(labels, values, title, color) {
     if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
     var max = Math.max.apply(null, values.concat([1]));
-    var W = 320, H = 160, padL = 40, padR = 15, padT = 25, padB = 30;
+    var W = 320, H = 180, padL = 36, padR = 12, padT = 28, padB = 32;
     var plotW = W - padL - padR, plotH = H - padT - padB;
     var step = plotW / Math.max(1, labels.length - 1);
-    var bars = '', labs = '', maxLbl = '';
+    var bars = '', labs = '', grid = '';
+    var gid = 'cg' + Math.floor(Math.random() * 1e9);
+    var baseColor = color || '#0284c7';
+    [0.25, 0.5, 0.75, 1].forEach(function (f) {
+      var gy = padT + plotH - f * plotH;
+      grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="#E6EAF2" stroke-width="1" stroke-dasharray="4 4"/>';
+    });
     values.forEach(function (v, i) {
-      var h = Math.max(3, (v / max) * plotH);
+      var h = Math.max(6, (v / max) * plotH);
       var x = padL + i * step;
       var y = H - padB - h;
-      bars += '<rect x="' + (x - step / 3) + '" y="' + y + '" width="' + (step * 0.6) + '" height="' + h + '" fill="' + (color || '#0284c7') + '" rx="2"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></rect>';
-      labs += '<text x="' + x + '" y="' + (H - padB + 13) + '" text-anchor="middle" font-size="9" fill="#64748b">' + esc(String(labels[i]).slice(0, 12)) + '</text>';
+      bars += '<rect x="' + (x - step / 3) + '" y="' + y + '" width="' + (step * 0.62) + '" height="' + h + '" fill="url(#' + gid + ')" rx="7"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></rect>'
+        + '<text x="' + x + '" y="' + (y - 6) + '" text-anchor="middle" font-size="10" font-weight="800" fill="#111827">' + esc(num(v)) + '</text>';
+      labs += '<text x="' + x + '" y="' + (H - padB + 16) + '" text-anchor="middle" font-size="9.5" fill="#6B7490" font-weight="700">' + esc(String(labels[i]).slice(0, 12)) + '</text>';
     });
-    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:150px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/>' + bars + labs + '</svg><div class="rp-chart-note">' + num(values.reduce(function (a, b) { return a + b; }, 0)) + ' إجمالي</div></div>';
+    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:170px;display:block"><defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + baseColor + '"/><stop offset="100%" stop-color="' + baseColor + '" stop-opacity=".65"/></linearGradient></defs><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/>' + grid + bars + labs + '</svg><div class="rp-chart-note">' + num(values.reduce(function (a, b) { return a + b; }, 0)) + ' إجمالي</div></div>';
   }
 
   /* رسم مخطط أعمدة أفقية (Bar Chart) */
   function svgBarChart(labels, values, title, color) {
     if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
     var max = Math.max.apply(null, values.concat([1]));
-    var W = 320, H = 170, padL = 90, padR = 15, padT = 20, padB = 20;
+    var W = 320, H = 190, padL = 96, padR = 28, padT = 22, padB = 22;
     var plotW = W - padL - padR, plotH = H - padT - padB;
     var step = plotH / Math.max(1, labels.length - 1);
-    var bars = '', labs = '', vals = '';
-    values.forEach(function (v, i) {
-      var w = Math.max(3, (v / max) * plotW);
-      var y = padT + i * step;
-      bars += '<rect x="' + padL + '" y="' + (y - step / 3) + '" width="' + w + '" height="' + (step * 0.6) + '" fill="' + (color || '#0ea5e9') + '" rx="2"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></rect>';
-      labs += '<text x="' + (padL - 6) + '" y="' + (y + 4) + '" text-anchor="end" font-size="9" fill="#64748b" title="' + esc(labels[i]) + '">' + esc(String(labels[i]).slice(0, 14)) + '</text>';
-      vals += '<text x="' + (padL + w + 5) + '" y="' + (y + 4) + '" font-size="9" fill="#1e293b" font-weight="700">' + num(v) + '</text>';
+    var bars = '', labs = '', vals = '', grid = '';
+    var gid = 'bg' + Math.floor(Math.random() * 1e9);
+    var baseColor = color || '#6366f1';
+    [0.25, 0.5, 0.75, 1].forEach(function (f) {
+      var gx = padL + f * plotW;
+      grid += '<line x1="' + gx + '" y1="' + padT + '" x2="' + gx + '" y2="' + (H - padB) + '" stroke="#EEF2F7" stroke-width="1" stroke-dasharray="4 4"/>';
     });
-    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:160px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/>' + bars + labs + vals + '</svg></div>';
+    values.forEach(function (v, i) {
+      var w = Math.max(4, (v / max) * plotW);
+      var y = padT + i * step;
+      bars += '<rect x="' + padL + '" y="' + (y - step / 3) + '" width="' + w + '" height="' + (step * 0.58) + '" fill="url(#' + gid + ')" rx="7"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></rect>';
+      labs += '<text x="' + (padL - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="10" font-weight="700" fill="#334155" title="' + esc(labels[i]) + '">' + esc(String(labels[i]).slice(0, 16)) + '</text>';
+      vals += '<text x="' + (padL + w + 7) + '" y="' + (y + 4) + '" font-size="10" fill="#111827" font-weight="900">' + num(v) + '</text>';
+    });
+    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:180px;display:block"><defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="' + baseColor + '" stop-opacity=".68"/><stop offset="100%" stop-color="' + baseColor + '"/></linearGradient></defs><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/>' + grid + bars + labs + vals + '</svg></div>';
   }
 
   /* رسم مخطط خطي (Line Chart) */
   function svgLineChart(labels, values, title, color) {
     if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
     var max = Math.max.apply(null, values.concat([1]));
-    var W = 320, H = 150, padL = 35, padR = 15, padT = 20, padB = 25;
+    var W = 340, H = 180, padL = 36, padR = 14, padT = 22, padB = 28;
     var plotW = W - padL - padR, plotH = H - padT - padB;
     var step = plotW / Math.max(1, values.length - 1);
-    var pts = '', line = '', dots = '', labs = '';
+    var pts = '', line = '', dots = '', labs = '', grid = '', gid = 'lg' + Math.floor(Math.random() * 1e9);
+    var baseColor = color || '#6366f1';
+    [0.25, 0.5, 0.75, 1].forEach(function (f) {
+      var gy = padT + plotH - f * plotH;
+      grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="#EEF2F7" stroke-width="1" stroke-dasharray="4 4"/>';
+    });
     values.forEach(function (v, i) {
       var x = padL + i * step;
       var y = H - padB - (v / max) * plotH;
       pts.push({ x: x, y: y });
-      dots += '<circle cx="' + x + '" cy="' + y + '" r="3" fill="' + (color || '#6366f1') + '" stroke="#fff" stroke-width="1.5"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></circle>';
-      labs += '<text x="' + x + '" y="' + (H - padB + 13) + '" text-anchor="middle" font-size="9" fill="#64748b">' + esc(String(labels[i]).slice(0, 10)) + '</text>';
+      dots += '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="#fff" stroke="' + baseColor + '" stroke-width="2.5"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></circle>';
+      labs += '<text x="' + x + '" y="' + (H - padB + 16) + '" text-anchor="middle" font-size="9.5" fill="#6B7490" font-weight="700">' + esc(String(labels[i]).slice(0, 10)) + '</text>';
     });
     for (var i = 0; i < pts.length; i++) line += (i === 0 ? 'M' : 'L') + pts[i].x + ' ' + pts[i].y + ' ';
-    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:140px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/><polyline points="' + line.trim() + '" fill="none" stroke="' + (color || '#6366f1') + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' + dots + labs + '</svg></div>';
+    var areaPath = line.trim() + ' L ' + pts[pts.length - 1].x + ' ' + (H - padB) + ' L ' + pts[0].x + ' ' + (H - padB) + ' Z';
+    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:170px;display:block"><defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + baseColor + '" stop-opacity=".28"/><stop offset="100%" stop-color="' + baseColor + '" stop-opacity="0"/></linearGradient></defs><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/>' + grid + '<path d="' + areaPath + '" fill="url(#' + gid + ')" stroke="none"/><polyline points="' + line.trim() + '" fill="none" stroke="' + baseColor + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' + dots + labs + '</svg></div>';
   }
 
   /* رسم مخطط مساحة (Area Chart) */
   function svgAreaChart(labels, values, title, color) {
     if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
     var max = Math.max.apply(null, values.concat([1]));
-    var W = 320, H = 150, padL = 35, padR = 15, padT = 20, padB = 25;
+    var W = 340, H = 180, padL = 36, padR = 14, padT = 22, padB = 28;
     var plotW = W - padL - padR, plotH = H - padT - padB;
     var step = plotW / Math.max(1, values.length - 1);
-    var pts = '', area = '', dots = '', labs = '';
+    var pts = '', area = '', dots = '', labs = '', grid = '', gid = 'ag' + Math.floor(Math.random() * 1e9);
+    var baseColor = color || '#059669';
+    [0.25, 0.5, 0.75, 1].forEach(function (f) {
+      var gy = padT + plotH - f * plotH;
+      grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="#EEF2F7" stroke-width="1" stroke-dasharray="4 4"/>';
+    });
     values.forEach(function (v, i) {
       var x = padL + i * step;
       var y = H - padB - (v / max) * plotH;
       pts.push({ x: x, y: y });
-      dots += '<circle cx="' + x + '" cy="' + y + '" r="2.5" fill="' + (color || '#059669') + '" stroke="#fff" stroke-width="1"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></circle>';
-      labs += '<text x="' + x + '" y="' + (H - padB + 13) + '" text-anchor="middle" font-size="9" fill="#64748b">' + esc(String(labels[i]).slice(0, 10)) + '</text>';
+      dots += '<circle cx="' + x + '" cy="' + y + '" r="4" fill="#fff" stroke="' + baseColor + '" stroke-width="2.5"><title>' + esc(labels[i]) + ': ' + num(v) + '</title></circle>';
+      labs += '<text x="' + x + '" y="' + (H - padB + 16) + '" text-anchor="middle" font-size="9.5" fill="#6B7490" font-weight="700">' + esc(String(labels[i]).slice(0, 10)) + '</text>';
     });
     for (var i = 0; i < pts.length; i++) area += (i === 0 ? 'M' : 'L') + pts[i].x + ' ' + pts[i].y + ' ';
     area += 'L ' + pts[pts.length - 1].x + ' ' + (H - padB) + ' L ' + pts[0].x + ' ' + (H - padB) + ' Z';
-    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:140px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/><path d="' + area.trim() + '" fill="' + (color || '#059669') + '" opacity="0.25"/><polyline points="' + area.trim().replace(/L [\d.]+ [\d.]+ Z$/, '') + '" fill="none" stroke="' + (color || '#059669') + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' + dots + labs + '</svg></div>';
+    var linePath = '';
+    for (var j = 0; j < pts.length; j++) linePath += (j === 0 ? 'M' : 'L') + pts[j].x + ' ' + pts[j].y + ' ';
+    return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:170px;display:block"><defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + baseColor + '" stop-opacity=".32"/><stop offset="100%" stop-color="' + baseColor + '" stop-opacity="0"/></linearGradient></defs><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/>' + grid + '<path d="' + area.trim() + '" fill="url(#' + gid + ')" stroke="none"/><path d="' + linePath.trim() + '" fill="none" stroke="' + baseColor + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' + dots + labs + '</svg></div>';
   }
 
   /* رسم مخطط دائري (Pie Chart) */
@@ -1446,8 +1472,9 @@
     if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
     var total = values.reduce(function (a, b) { return a + b; }, 0);
     if (total <= 0) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
-    var W = 200, H = 170, cx = 90, cy = 90, r = 55;
-    var colors = ['#ef4444', '#0ea5e9', '#10b981', '#f59e0b', '#6366f1', '#8b5cf6', '#ec4899'];
+    var W = 220, H = 190, cx = 100, cy = 95, r = 58;
+    var colors = ['#F0524D', '#0EA5E9', '#10B981', '#F59E0B', '#6366F1', '#8B5CF6', '#EC4899'];
+    var gid = 'pg' + Math.floor(Math.random() * 1e9);
     var start = -90, slices = '', legend = '';
     values.forEach(function (v, i) {
       var pct = (v / total) * 360;
@@ -1457,11 +1484,14 @@
       var x2 = cx + r * Math.cos(end * Math.PI / 180);
       var y2 = cy + r * Math.sin(end * Math.PI / 180);
       var large = pct > 180 ? 1 : 0;
-      slices += '<path d="M ' + cx + ' ' + cy + ' L ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2 + ' Z" fill="' + colors[i % colors.length] + '" opacity="0.9"><title>' + esc(labels[i]) + ': ' + num(v) + ' (' + Math.round(v / total * 100) + '%)</title></path>';
-      legend += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:50%;display:inline-block;background:' + colors[i % colors.length] + '"></span><span>' + esc(labels[i]) + '</span><b style="margin-left:auto">' + Math.round(v / total * 100) + '%</b></div>';
+      slices += '<path d="M ' + cx + ' ' + cy + ' L ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x2.toFixed(1) + ' ' + y2.toFixed(1) + ' Z" fill="url(#' + gid + i + ')" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><title>' + esc(labels[i]) + ': ' + num(v) + ' (' + Math.round(v / total * 100) + '%)</title></path>';
+      legend += '<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:11px;background:rgba(15,25,60,.03);padding:4px 8px;border-radius:999px"><span style="width:10px;height:10px;border-radius:50%;display:inline-block;background:' + colors[i % colors.length] + ';box-shadow:0 2px 6px ' + colors[i % colors.length] + '55"></span><span style="font-weight:700;color:#334155">' + esc(labels[i]) + '</span><b style="margin-left:auto;color:#111827">' + Math.round(v / total * 100) + '%</b></div>';
       start = end;
     });
-    return '<div class="rp-chart-card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start"><div style="flex:1;min-width:150px"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:180px;display:block;margin:0 auto"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#e2e8f0" stroke-width="2"/>' + slices + '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" font-size="16" font-weight="800" fill="#1e293b">' + num(total) + '</text></svg></div><div style="flex:1;min-width:140px">' + legend + '</div></div>';
+    var defs = colors.map(function (c, i) {
+      return '<linearGradient id="' + gid + i + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="' + c + '"/><stop offset="100%" stop-color="' + c + '" stop-opacity=".72"/></linearGradient>';
+    }).join('');
+    return '<div class="rp-chart-card" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><div style="flex:1;min-width:150px"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:190px;display:block;margin:0 auto"><defs>' + defs + '</defs><circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 8) + '" fill="none" stroke="#F1F5F9" stroke-width="1"/>' + slices + '<text x="' + cx + '" y="' + (cy + 6) + '" text-anchor="middle" font-size="18" font-weight="900" fill="#111827">' + num(total) + '</text></svg></div><div style="flex:1;min-width:150px">' + legend + '</div></div>';
   }
 
   /* رسم مخطط دونات (Doughnut Chart) */
@@ -1469,8 +1499,9 @@
     if (!labels.length) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
     var total = values.reduce(function (a, b) { return a + b; }, 0);
     if (total <= 0) return '<div class="rp-empty">لا توجد بيانات للرسم البياني.</div>';
-    var W = 200, H = 170, cx = 90, cy = 90, r = 45, inner = 28;
-    var colors = ['#ef4444', '#0ea5e9', '#10b981', '#f59e0b', '#6366f1', '#8b5cf6', '#ec4899'];
+    var W = 220, H = 190, cx = 100, cy = 95, r = 56, inner = 36;
+    var colors = ['#1FA971', '#F2B8B5', '#0EA5E9', '#F59E0B', '#6366F1', '#8B5CF6', '#EC4899'];
+    var gid = 'dg' + Math.floor(Math.random() * 1e9);
     var start = -90, slices = '', legend = '';
     values.forEach(function (v, i) {
       var pct = (v / total) * 360;
@@ -1484,11 +1515,14 @@
       var xi2 = cx + inner * Math.cos(end * Math.PI / 180);
       var yi2 = cy + inner * Math.sin(end * Math.PI / 180);
       var large = pct > 180 ? 1 : 0;
-      slices += '<path d="M ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2 + ' L ' + xi2 + ' ' + yi2 + ' A ' + inner + ' ' + inner + ' 0 ' + large + ' 0 ' + xi1 + ' ' + yi1 + ' Z" fill="' + colors[i % colors.length] + '" opacity="0.9"><title>' + esc(labels[i]) + ': ' + num(v) + ' (' + Math.round(v / total * 100) + '%)</title></path>';
-      legend += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:50%;display:inline-block;background:' + colors[i % colors.length] + '"></span><span>' + esc(labels[i]) + '</span><b style="margin-left:auto">' + Math.round(v / total * 100) + '%</b></div>';
+      slices += '<path d="M ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x2.toFixed(1) + ' ' + y2.toFixed(1) + ' L ' + xi2.toFixed(1) + ' ' + yi2.toFixed(1) + ' A ' + inner + ' ' + inner + ' 0 ' + large + ' 0 ' + xi1.toFixed(1) + ' ' + yi1.toFixed(1) + ' Z" fill="url(#' + gid + i + ')" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><title>' + esc(labels[i]) + ': ' + num(v) + ' (' + Math.round(v / total * 100) + '%)</title></path>';
+      legend += '<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:11px;background:rgba(15,25,60,.03);padding:4px 8px;border-radius:999px"><span style="width:10px;height:10px;border-radius:50%;display:inline-block;background:' + colors[i % colors.length] + ';box-shadow:0 2px 6px ' + colors[i % colors.length] + '55"></span><span style="font-weight:700;color:#334155">' + esc(labels[i]) + '</span><b style="margin-left:auto;color:#111827">' + Math.round(v / total * 100) + '%</b></div>';
       start = end;
     });
-    return '<div class="rp-chart-card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start"><div style="flex:1;min-width:150px"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:180px;display:block;margin:0 auto"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#e2e8f0" stroke-width="2"/>' + slices + '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" font-size="14" font-weight="800" fill="#1e293b">' + num(total) + '</text></svg></div><div style="flex:1;min-width:140px">' + legend + '</div></div>';
+    var defs = colors.map(function (c, i) {
+      return '<linearGradient id="' + gid + i + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="' + c + '"/><stop offset="100%" stop-color="' + c + '" stop-opacity=".72"/></linearGradient>';
+    }).join('');
+    return '<div class="rp-chart-card" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><div style="flex:1;min-width:150px"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:190px;display:block;margin:0 auto"><defs>' + defs + '</defs>' + slices + '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" font-size="18" font-weight="900" fill="#111827">' + num(total) + '</text></svg></div><div style="flex:1;min-width:150px">' + legend + '</div></div>';
   }
 
   /* رسم مخطط شلال (Waterfall Chart) */
@@ -1549,23 +1583,23 @@
     return '<div class="rp-chart-card"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:150px;display:block"><rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none"/>' + grid + axes + '<polygon points="' + pts.trim() + '" fill="#8b5cf6" opacity="0.2" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"/>' + dots + labs + '</svg></div>';
   }
 
-  /* رسم مؤشر عداد (Gauge Chart) */
+  /* رسم مؤشر عداد (Gauge Chart) — ستايل زجاجي عصري */
   function svgGaugeChart(value, title, min, max, good, warn) {
     if (min == null) min = 0;
     if (max == null) max = 100;
     var pct = (value - min) / (max - min);
     pct = Math.min(1, Math.max(0, pct));
-    var W = 200, H = 130, cx = 90, cy = 110, r = 55;
+    var W = 220, H = 150, cx = 100, cy = 115, r = 62;
     var startAngle = 180, endAngle = 360;
     var angle = startAngle + pct * (endAngle - startAngle);
-    var colors = ['#ef4444', '#f59e0b', '#10b981'];
-    var stops = colors.map(function (c, i) { return '<stop offset="' + (i / 2) * 100 + '%" stop-color="' + c + '"/>'; }).join('');
+    var gid = 'gg' + Math.floor(Math.random() * 1e9);
+    var stops = [['#F0524D', 0], ['#F59E0B', 50], ['#10B981', 100]].map(function (s) { return '<stop offset="' + s[1] + '%" stop-color="' + s[0] + '"/>'; }).join('');
     var rad = (angle * Math.PI) / 180;
     var nx = cx + r * Math.cos(rad);
     var ny = cy + r * Math.sin(rad);
-    var label = pct >= good ? 'ممتاز' : (pct >= warn ? 'مقبول' : 'يحتاج متابعة');
-    var labelColor = pct >= good ? '#10b981' : (pct >= warn ? '#f59e0b' : '#ef4444');
-    return '<div class="rp-chart-card" style="text-align:center"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:180px;display:block;margin:0 auto"><defs><linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">' + stops + '</linearGradient></defs><path d="M ' + (cx - r) + ' ' + cy + ' A ' + r + ' ' + r + ' 0 0 1 ' + (cx + r) + ' ' + cy + '" fill="none" stroke="url(#gaugeGrad)" stroke-width="12" stroke-linecap="round"/><path d="M ' + cx + ' ' + cy + ' L ' + nx + ' ' + ny + '" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/><circle cx="' + cx + '" cy="' + cy + '" r="5" fill="#1e293b"/><text x="' + cx + '" y="' + (cy - 8) + '" text-anchor="middle" font-size="20" font-weight="800" fill="#1e293b">' + num(value) + '</text><text x="' + cx + '" y="' + (cy + 18) + '" text-anchor="middle" font-size="10" font-weight="700" fill="' + labelColor + '">' + esc(label) + '</text></svg></div>';
+    var label = pct >= good / 100 ? 'ممتاز' : (pct >= warn / 100 ? 'مقبول' : 'يحتاج متابعة');
+    var labelColor = pct >= good / 100 ? '#0E8A68' : (pct >= warn / 100 ? '#B45309' : '#DC2626');
+    return '<div class="rp-chart-card" style="text-align:center"><div class="rp-chart-title">' + esc(title) + '</div><svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:210px;display:block;margin:0 auto"><defs><linearGradient id="' + gid + '" x1="0%" y1="0%" x2="100%" y2="0%">' + stops + '</linearGradient></defs><path d="M ' + (cx - r) + ' ' + cy + ' A ' + r + ' ' + r + ' 0 0 1 ' + (cx + r) + ' ' + cy + '" fill="none" stroke="#EEF2F7" stroke-width="16" stroke-linecap="round"/><path d="M ' + (cx - r) + ' ' + cy + ' A ' + r + ' ' + r + ' 0 0 1 ' + (cx + r) + ' ' + cy + '" fill="none" stroke="url(#' + gid + ')" stroke-width="16" stroke-linecap="round" stroke-dasharray="' + (Math.PI * r).toFixed(1) + '" stroke-dashoffset="' + (Math.PI * r * (1 - pct)).toFixed(1) + '"/><path d="M ' + cx + ' ' + cy + ' L ' + nx.toFixed(1) + ' ' + ny.toFixed(1) + '" stroke="#111827" stroke-width="3.5" stroke-linecap="round"/><circle cx="' + cx + '" cy="' + cy + '" r="6" fill="#111827"/><text x="' + cx + '" y="' + (cy - 14) + '" text-anchor="middle" font-size="24" font-weight="900" fill="#111827">' + num(value) + '</text><text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" font-size="10" font-weight="800" fill="' + labelColor + '">' + esc(label) + '</text></svg></div>';
   }
 
   /* ===== تقرير: مدة الوقوف لكل سيارة (من يوم ما بقت غير مؤجرة) ===== */
@@ -1967,14 +2001,15 @@
       + '.rp2-num{margin:0;font-size:28px;font-weight:900;color:#111827;line-height:1.2;letter-spacing:-.02em}'
       + '.rp2-trend{margin:6px 0 0;font-size:11px;font-weight:800;line-height:1.5}'
       + '.rp2-note{margin:2px 0 0;font-size:11px;color:#6B7490;line-height:1.6}'
-      + '.rp-charts-section{margin:0;padding:0;background:transparent;border:0}'
-      + '.rp-section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}'
+      + '.rp-charts-section{margin:0;padding:16px;background:linear-gradient(160deg,rgba(255,255,255,.72),rgba(247,250,252,.55));border:1px solid rgba(255,255,255,.8);border-radius:20px;box-shadow:0 10px 30px rgba(15,25,60,.07);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4)}'
+      + '.rp-section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}'
       + '.rp-section-head h3{margin:0;font-size:16px;font-weight:900;color:#111827;display:flex;align-items:center;gap:8px}'
       + '.rp-section-head .muted-small{font-size:11.5px;color:#64748b;margin-top:2px}'
-      + '.rp-charts-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}'
-      + '.rp-chart-card{background:#fff;border:1px solid #E6EAF2;border-radius:16px;padding:14px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;min-height:200px}'
-      + '.rp-chart-title{font-size:12px;font-weight:800;color:#111827;margin-bottom:8px;text-align:center;width:100%}'
-      + '.rp-chart-note{font-size:11px;font-weight:800;color:#0E8A68;margin-top:8px;text-align:center}'
+      + '.rp-charts-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}'
+      + '.rp-chart-card{background:linear-gradient(150deg,rgba(255,255,255,.92),rgba(248,250,252,.78));border:1px solid rgba(255,255,255,.9);border-radius:18px;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;min-height:240px;box-shadow:0 6px 20px rgba(15,25,60,.07),0 18px 40px rgba(15,25,60,.05);transition:transform .18s ease,box-shadow .18s ease}'
+      + '.rp-chart-card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(15,25,60,.10),0 22px 48px rgba(15,25,60,.08)}'
+      + '.rp-chart-title{font-size:13px;font-weight:900;color:#111827;margin-bottom:10px;text-align:center;width:100%;letter-spacing:-.01em}'
+      + '.rp-chart-note{font-size:11px;font-weight:800;color:#0E8A68;margin-top:10px;text-align:center;background:rgba(14,138,104,.08);padding:4px 10px;border-radius:999px}'
       + '.rp-card{background:#fff;border:1px solid #E6EAF2;border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,25,60,.05)}'
       + '.rp-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}'
       + '.rp-card-title h3{margin:0 0 3px;font-size:14px;font-weight:900;color:#111827}'
