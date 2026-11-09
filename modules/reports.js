@@ -1231,7 +1231,7 @@
     var byBranch = {};
     function bRec(name) {
       if (!name || !String(name).trim()) name = 'بدون فرع';
-      if (!byBranch[name]) byBranch[name] = { total: 0, card: 0, ins: 0, lic: 0, ready: 0 };
+      if (!byBranch[name]) byBranch[name] = { total: 0, card: 0, ins: 0, lic: 0, docIssue: 0, ready: 0 };
       return byBranch[name];
     }
     var needCardTotal = 0, needInsTotal = 0, needLicTotal = 0;
@@ -1250,9 +1250,16 @@
       } else {
         insBad = !!car.insuranceExpiry && (daysLeftL(car.insuranceExpiry) < 0);
       }
+      var inspectionBad = false;
+      if (typeof u.inspectionDisplayStatus === 'function') {
+        var inspectionTag = u.inspectionDisplayStatus(car.inspectionStatus);
+        inspectionBad = !!inspectionTag && inspectionTag.level === 'red';
+      }
       if (cardBad) { rec.card++; needCardTotal++; }
       if (insBad) { rec.ins++; needInsTotal++; }
       if (licBad) { rec.lic++; needLicTotal++; }
+      // احسب السيارة مرة واحدة فقط حتى لو عندها أكثر من وثيقة منتهية.
+      if (cardBad || insBad || licBad || inspectionBad) rec.docIssue++;
     });
     var branchRowsWeekly = Object.keys(byBranch).map(function (name) {
       var r = byBranch[name];
@@ -1315,7 +1322,7 @@
     var weeklyCardsHtml = '<div class="rp-cards-section"><div class="rp-section-head"><h3>نظرة سريعة على الفروع</h3><span class="muted-small">اضغط على أي فرع لتمييزه في الرسم البياني</span></div>'
       + '<div class="rp-branch-cards">'
       + topBranchesWeekly.map(function (r) {
-          var docs = (r.total ? Math.round(((r.total - r.card - r.ins - r.lic) / r.total) * 100) : 0);
+          var docs = (r.total ? Math.round(((r.total - r.docIssue) / r.total) * 100) : 0);
           var readiness = (r.total ? Math.round((r.ready / r.total) * 100) : 0);
           return '<button type="button" class="rp-branch-card" data-rp-branch="' + esc(r.name) + '">'
             + '<span class="rp-branch-name">' + esc(r.name) + '</span>'
