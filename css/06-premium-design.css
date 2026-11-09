@@ -429,3 +429,108 @@ body.dark-mode #content .field input,body.dark-mode #content .field select,body.
 @media(max-width:700px){
   .sidebar .nav-item svg{width:29px!important;height:29px!important;flex-basis:29px!important}
 }
+
+
+/* ===== Phase 3 — Branch directory, document cycles, administration ===== */
+
+/* Branch directory */
+#content .wa-toolbar{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  gap:12px!important;flex-wrap:wrap!important;padding:15px 17px!important;margin:0 0 14px!important;
+  border:1px solid #E3EAF0!important;border-radius:16px!important;background:#fff!important;box-shadow:var(--shadow-sm)!important
+}
+#content .wa-toolbar-info{color:#617789!important;font-size:12px!important}
+#content .wa-toolbar-info strong{color:#19364A!important;font-weight:850!important}
+#content .wa-count{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:30px!important;height:27px!important;padding:0 9px!important;border-radius:9px!important;background:#EAF7F6!important;color:#087C7A!important;font-weight:900!important}
+#content .wa-toolbar-actions{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}
+#content .br-name-btn{border:0!important;background:transparent!important;color:#087C7A!important;font-weight:900!important;cursor:pointer}
+#content .br-name-btn:hover{text-decoration:underline!important}
+#content .btn-whatsapp{border:1px solid #16866F!important;background:#16866F!important;color:#fff!important;border-radius:10px!important;box-shadow:0 4px 12px rgba(22,134,111,.13)!important}
+#content .btn-branch-import{border-radius:10px!important}
+
+/* Inspection, license, insurance, follow-up and payment workflow */
+#content .module-summary-strip{margin-bottom:15px!important}
+#content .module-summary-strip .fleet-summary-card{cursor:pointer}
+#content .module-summary-strip .fleet-summary-card:focus-visible{outline:3px solid rgba(23,170,164,.28)!important;outline-offset:2px}
+#content .wa-toolbar .wa-toolbar-actions .btn{min-height:36px!important}
+#content #ren-table,#content #fu-tbody{font-variant-numeric:tabular-nums}
+#content #ren-table thead th,#content #fu-tbody thead th{white-space:nowrap!important}
+#content #ren-table tbody td,#content #fu-tbody tbody td{vertical-align:middle!important}
+#content #ren-table tbody tr:hover,#content #fu-tbody tbody tr:hover{background:#F0FAF9!important}
+#content #ren-table .ren-note-input,#content #fu-tbody .fu-note-input{min-height:32px!important;border:1px solid #E3EAF0!important;border-radius:8px!important;background:#FBFCFD!important;padding:5px 8px!important}
+#content #ren-table .ren-note-input:focus,#content #fu-tbody .fu-note-input:focus{border-color:#7DD6D0!important;background:#fff!important;box-shadow:0 0 0 3px rgba(23,170,164,.08)!important}
+#content .bulk-bar{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:wrap!important;padding:12px 15px!important;border:1px solid #BFE4DF!important;border-radius:13px!important;background:#EFF9F7!important;color:#175D5A!important;box-shadow:var(--shadow-sm)!important}
+#content .bulk-bar-info{font-size:11.5px!important;font-weight:850!important}
+#content .bulk-bar-actions{display:flex!important;gap:7px!important;flex-wrap:wrap!important}
+#content .bulk-bar .btn{min-height:33px!important;border-radius:9px!important}
+#content .admin-transfer-group{border:1px solid #E4EBF0!important;border-radius:12px!important;background:#F8FAFB!important;padding:12px!important}
+
+/* User administration — more structured without changing permissions logic */
+#content .user-admin-tab-container{display:flex!important;flex-direction:column!important;gap:15px!important}
+#content .user-admin-head{padding:3px 2px 14px!important;border-bottom:1px solid #E4EBF0!important}
+#content .user-admin-head h2{font-size:21px!important;font-weight:900!important;color:#173248!important}
+#content .user-admin-head p{font-size:11.5px!important;color:#788B9A!important;line-height:1.8!important}
+#content .user-admin-form{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:11px!important;
+  align-items:center!important
+}
+#content .user-admin-form>input,#content .user-admin-form>select{
+  width:100%!important;min-height:41px!important;padding:9px 11px!important;
+  border:1px solid #E1E9EF!important;border-radius:10px!important;background:#FBFCFD!important;
+  color:#243D51!important;font-size:12px!important
+}
+#content .user-admin-form>input:focus,#content .user-admin-form>select:focus{border-color:#7DD6D0!important;box-shadow:0 0 0 3px rgba(23,170,164,.08)!important}
+#content .ua-permissions-block{grid-column:1/-1!important;padding:14px!important;border:1px solid #E4EBF0!important;border-radius:13px!important;background:#F8FAFB!important}
+#content .ua-permissions-block>strong{display:block!important;margin-bottom:4px!important;color:#19364A!important;font-size:12px!important}
+#content .ua-permissions-block>small{color:#82929E!important;font-size:10.5px!important}
+#content .user-filter-bar{border-radius:13px!important;background:#F8FAFB!important;border-color:#E4EBF0!important}
+#content .user-admin-list{display:grid!important;gap:10px!important}
+#content .user-admin-row{border:1px solid #E3EAF0!important;border-radius:14px!important;background:#fff!important;box-shadow:var(--shadow-sm)!important;padding:14px!important;transition:box-shadow .18s ease,border-color .18s ease!important}
+#content .user-admin-row:hover{border-color:#C9E6E3!important;box-shadow:var(--shadow-md)!important}
+#content .ua-user-summary{color:#173248!important;font-weight:850!important}
+#content .ua-user-actions{display:flex!important;gap:7px!important;flex-wrap:wrap!important}
+#content .ua-user-actions .btn{border-radius:9px!important}
+#content .ua-permission-grid{gap:8px!important}
+#content .user-admin-message{border-radius:10px!important}
+
+/* Activity log */
+#content #audit-kpis{margin-bottom:15px!important}
+#content #audit-kpis .fleet-summary-card{min-width:0!important}
+#content #audit-kpis .fleet-summary-card small{line-height:1.5!important}
+#content #audit-tbody td{padding:12px 11px!important;line-height:1.7!important}
+#content #audit-tbody tr:hover{background:#F0FAF9!important}
+#content #audit-tbody td:nth-child(2){font-weight:800!important;color:#24465D!important}
+#content #audit-tbody td:nth-child(4){font-weight:750!important}
+#content #audit-pager{border-radius:13px!important}
+
+/* Dark mode — branch and operational workflow */
+body.dark-mode #content .wa-toolbar,
+body.dark-mode #content .user-admin-row,
+body.dark-mode #content .ua-permissions-block,
+body.dark-mode #content .user-filter-bar{background:#142235!important;border-color:#2A3A4D!important;color:#DDE8EF!important}
+body.dark-mode #content .wa-toolbar-info strong,
+body.dark-mode #content .user-admin-head h2,
+body.dark-mode #content .ua-permissions-block>strong,
+body.dark-mode #content .ua-user-summary{color:#E6EEF4!important}
+body.dark-mode #content .wa-toolbar-info,
+body.dark-mode #content .user-admin-head p,
+body.dark-mode #content .ua-permissions-block>small{color:#9AAEBE!important}
+body.dark-mode #content .br-name-btn{color:#73D8D1!important}
+body.dark-mode #content .bulk-bar{background:#153535!important;border-color:#246A68!important;color:#BDEDE8!important}
+body.dark-mode #content .admin-transfer-group{background:#17283B!important;border-color:#30465B!important}
+body.dark-mode #content .user-admin-form>input,
+body.dark-mode #content .user-admin-form>select{background:#101E2E!important;border-color:#30465B!important;color:#E6EEF4!important}
+body.dark-mode #content #ren-table tbody tr:hover,
+body.dark-mode #content #fu-tbody tbody tr:hover,
+body.dark-mode #content #audit-tbody tr:hover{background:#183A43!important}
+
+/* Responsive administration and branch actions */
+@media(max-width:760px){
+  #content .wa-toolbar{align-items:flex-start!important}
+  #content .wa-toolbar-actions{width:100%!important}
+  #content .wa-toolbar-actions .btn{flex:1 1 auto!important}
+  #content .user-admin-form{grid-template-columns:1fr!important}
+  #content .user-admin-form>*{grid-column:1/-1!important}
+  #content .user-admin-head{flex-wrap:wrap!important}
+  #content .user-admin-head h2{font-size:18px!important}
+}
