@@ -1327,15 +1327,15 @@
 
     return {
       title: 'تقرير الأسبوع',
-      subtitle: 'ملخص أسبوعي: الأوراق المنتهية بالفرع + حركة الدفعات آخر 14 أيام — جاهز للطباعة والإرسال للإدارة.',
+      subtitle: 'ملخص أسبوعي: الأوراق المنتهية حسب الفرع وحركة الدفعات خلال آخر 7 أيام.',
       customHtml: weeklyCardsHtml,
       kpis: [
         { label: 'إجمالي الأسطول (المقفل)', value: num(model.total), icon: '🚗', tone: 'muted', pill: 'أساسي', trend: 'هذا الأسبوع', note: 'جميع المركبات المسجلة' },
         { label: 'كارت منتهي', value: num(needCardTotal), icon: '🪪', tone: 'red', pill: 'تنبيه', trend: 'أولوية عالية', note: 'بطاقات تشغيل تحتاج تجديداً' },
-        { label: 'تأمين منتهي', value: num(needInsTotal), icon: '🛡️', tone: 'red', pill: 'تنبيه', trend: '+18 منذ الأسبوع الماضي', note: 'مركبات بدون تغطية سارية' },
+        { label: 'تأمين منتهي', value: num(needInsTotal), icon: '🛡️', tone: 'red', pill: 'تنبيه', trend: 'حالة حالية', note: 'مركبات تحتاج مراجعة التأمين' },
         { label: 'رخص منتهية', value: num(needLicTotal), icon: '📄', tone: 'orange', pill: 'انتباه', trend: 'يتطلب جدولة فورية', note: 'أكبر كتلة تجديد هذا الأسبوع' },
-        { label: 'دفعات الأسبوع', value: num(weekRows.length), icon: '💳', tone: 'green', pill: 'إيجابي', trend: '+12 مقارنة بالأسبوع الماضي', note: 'عمليات دفع مكتملة' },
-        { label: 'تجديدات الأسبوع', value: num(weekCounts.renewed), icon: '🔄', tone: 'muted', pill: 'معلق', trend: 'بانتظار أول عملية', note: 'لم يبدأ أي تجديد بعد' }
+        { label: 'دفعات الأسبوع', value: num(weekRows.length), icon: '💳', tone: 'green', pill: 'إيجابي', trend: 'آخر 7 أيام', note: 'حركات الدفع المسجلة خلال الفترة' },
+        { label: 'تجديدات الأسبوع', value: num(weekCounts.renewed), icon: '🔄', tone: 'muted', pill: 'معلق', trend: 'آخر 7 أيام', note: 'عمليات التجديد المسجلة خلال الفترة' }
       ],
       sections: [
         {
