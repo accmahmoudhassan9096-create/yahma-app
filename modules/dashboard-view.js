@@ -13,134 +13,144 @@ function dashboardTemplate(state) {
   const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, leastIdleBranchName, leastIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend } = state;
   return `
   <style>
-    /* ===== بطاقات لوحة التحكم — تصميم فاخر وواضح ===== */
+    /* ===== كروت لوحة التحكم — ستايل الصورة (توهج خفيف + أرقام وسط + بار نحيف) ===== */
+    .home-kpis{gap:12px}
     .home-kpi {
       position: relative;
-      overflow: hidden;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: visible;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
       cursor: pointer;
-      border-radius: 20px;
-      background: linear-gradient(145deg, #ffffff, #f8fafc);
-      border: 1px solid rgba(226, 232, 240, 0.6);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+      border-radius: 16px;
+      background: #ffffff;
+      border: 1px solid #E6EAF2;
+      box-shadow: 0 1px 3px rgba(15,25,60,.05), 0 8px 24px rgba(15,25,60,.06);
+      padding: 16px 12px 14px;
+      min-height: 112px;
+      display: flex;
+      flex-direction: column;
     }
     .home-kpi:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12);
-      border-color: rgba(255, 255, 255, 0.9);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(15,25,60,.10), 0 12px 32px rgba(15,25,60,.08);
+      border-color: #D5DCE8;
     }
     .home-kpi-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 18px;
+      position: absolute;
+      top: 12px;
+      inset-inline-end: 12px;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 26px;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      margin-bottom: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      font-size: 20px;
+      transition: transform .18s ease, box-shadow .18s ease;
+      box-shadow: 0 0 0 4px rgba(255,255,255,.9), 0 8px 20px rgba(15,25,60,.14);
     }
     .home-kpi:hover .home-kpi-icon {
-      transform: scale(1.15) rotate(8deg);
+      transform: scale(1.06);
     }
     .home-kpi-body {
       position: relative;
       z-index: 2;
-      padding: 20px 24px;
+      padding: 28px 6px 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
     }
     .home-kpi-body span.home-kpi-label {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      margin-bottom: 8px;
+      color: #6B7490;
+      margin-bottom: 6px;
       display: block;
+      line-height: 1.4;
     }
     .home-kpi-num {
-      font-size: 34px;
+      font-size: 26px;
       font-weight: 900;
-      color: #0f172a;
-      margin-bottom: 10px;
+      color: #111827;
+      margin-bottom: 8px;
       letter-spacing: -0.5px;
-      line-height: 1;
+      line-height: 1.1;
     }
+    .home-kpi-bar{width:100%;height:5px;background:#EEF2F7;border-radius:999px;overflow:visible;margin-top:8px}
+    .home-kpi-bar i{display:block;height:100%;border-radius:999px;position:relative;transition:width .7s cubic-bezier(.2,.8,.2,1)}
+    .home-kpi-bar i::after{content:'';position:absolute;inset-inline-end:-4px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:inherit;box-shadow:0 0 0 2px #fff}
     .home-kpi-pct {
-      font-size: 13px;
-      font-weight: 700;
+      font-size: 11px;
+      font-weight: 800;
+      color: #64748b;
+      margin-top: 6px;
       font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-    /* أيقونات ملونة */
-    .home-kpi-icon.blue { background: #dbeafe; color: #1e40af; }
-    .home-kpi-icon.green { background: #dcfce7; color: #15803d; }
-    .home-kpi-icon.amber { background: #fef3c7; color: #d97706; }
-    .home-kpi-icon.red { background: #fee2e2; color: #dc2626; }
-    .home-kpi-icon.purple { background: #e0e7ff; color: #4f46e5; }
-    /* تأثير توهج */
-    .home-kpi.warn .home-kpi-icon {
-      box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
-    }
-    .home-kpi.good .home-kpi-icon {
-      box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
-    }
+    .home-kpi-link{font-size:11px;font-weight:700;color:#0E8A68;margin-top:4px;text-decoration:none}
+    .home-kpi-link:hover{text-decoration:underline}
+    /* أيقونات ملونة بتوهج زي الصورة */
+    .home-kpi-icon.blue { background: #E7F0FE; color: #1e40af; box-shadow: 0 0 0 4px rgba(219,234,254,.45), 0 8px 20px rgba(30,64,175,.18); }
+    .home-kpi-icon.green { background: #E6F7EE; color: #0E8A68; box-shadow: 0 0 0 4px rgba(16,185,129,.14), 0 8px 20px rgba(16,185,129,.22); }
+    .home-kpi-icon.amber { background: #FFF3D6; color: #A86F00; box-shadow: 0 0 0 4px rgba(245,158,11,.14), 0 8px 20px rgba(245,158,11,.25); }
+    .home-kpi-icon.red { background: #FFE8E8; color: #DC2626; box-shadow: 0 0 0 4px rgba(220,38,38,.12), 0 8px 20px rgba(220,38,38,.20); }
+    .home-kpi-icon.purple { background: #E0E7FF; color: #4f46e5; box-shadow: 0 0 0 4px rgba(99,102,241,.12), 0 8px 20px rgba(99,102,241,.18); }
     .home-kpi.warn .home-kpi-pct { color: #d97706; }
     .home-kpi.good .home-kpi-pct { color: #15803d; }
-    .home-kpi.good .home-kpi-icon.blue { box-shadow: 0 0 25px rgba(2, 132, 199, 0.5); }
-    
-    /* رؤوس التقارير */
+
+    /* رؤوس التقارير — زي الصورة: عمود جانبي في الخلية الأولى على اليمين */
+    .home-kpis.report-card{gap:12px}
     .home-report-header {
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 12px;
+      padding: 14px 12px;
+      border-bottom: 1px solid #E6EAF2;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
+      text-align: center;
+      align-self: stretch;
     }
     .home-report-header h3 {
       margin: 0;
-      font-size: 16px;
-      font-weight: 700;
-      color: #0f172a;
+      font-size: 14px;
+      font-weight: 900;
+      color: #111827;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      justify-content: center;
+      line-height: 1.5;
     }
     .home-report-header p {
-      margin: 4px 0 0 0;
-      font-size: 13px;
-      color: #64748b;
+      margin: 6px 0 0 0;
+      font-size: 11px;
+      color: #6B7490;
+      line-height: 1.6;
     }
-    
+    @media (max-width: 900px) {
+      .home-kpis{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+      .home-report-header{grid-column:1/-1}
+    }
+
     /* تأثير النبض للسيارات الراكدة */
     @keyframes idlePulse {
-      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
-      70% { box-shadow: 0 0 0 15px rgba(245, 158, 11, 0); }
+      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.25); }
+      70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
       100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
     }
-    .home-kpi-warn-pulse { animation: idlePulse 2s infinite; }
-    .home-kpi-body { position: relative; z-index: 2; }
-    .home-kpi::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0));
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      z-index: 1;
-    }
-    .home-kpi:hover::before { opacity: 1; }
-    .home-kpi:active { transform: scale(0.96); }
-    .home-kpi.good .home-kpi-pct { color: #15803d; }
+    .home-kpi-warn-pulse { animation: idlePulse 2.4s infinite; }
+    .home-kpi::before { display:none; }
+    .home-kpi:active { transform: scale(0.98); }
     /* بطاقة أقل ركوداً — أخضر لامع */
     .home-kpi-least-idle {
-      background: linear-gradient(145deg, #f0fdf4, #f0fdf4);
+      background: linear-gradient(145deg, #f0fdf4, #ffffff);
       border-color: rgba(16, 185, 129, 0.3);
     }
     .home-kpi-least-idle .home-kpi-icon { background: #dcfce7; color: #15803d; }
     /* بطاقة أكثر ركوداً — أحمر أنيق */
     .home-kpi-most-idle {
-      background: linear-gradient(145deg, #fef2f2, #fef1f1);
+      background: linear-gradient(145deg, #fef2f2, #ffffff);
       border-color: rgba(248, 113, 113, 0.3);
     }
     .home-kpi-most-idle .home-kpi-icon { background: #fee2e2; color: #dc2626; }
