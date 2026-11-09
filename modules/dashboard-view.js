@@ -156,14 +156,11 @@ function dashboardTemplate(state) {
     .home-kpi-most-idle .home-kpi-icon { background: #fee2e2; color: #dc2626; }
   </style>
   <div class="home-dash">
-    <!-- تنبيه تدخل فوري (زي الصورة) -->
-    ${leastOccupiedBranchName && leastOccupiedBranchName !== '—' && leastOccupiedBranchPct < 20 ? `<div style="display:flex;gap:12px;align-items:flex-start;background:#FFF1F1;border:1px solid #F5BFC0;border-radius:16px;padding:14px 16px;margin-bottom:14px;color:#7F2323">
-      <div style="display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#fff;color:#DC2626;flex:none">⚠️</div>
-      <div style="flex:1;line-height:1.6">
-        <b style="font-weight:900">فرع ${escapeHtml(leastOccupiedBranchName)} يحتاج تدخل فوري — ${leastOccupiedBranchPct}% تشغيل</b>
-        <div style="font-size:12px;opacity:.85">أقل فرع تشغيلاً في التقرير، مع ${leastIdleBranchCount || 0} سيارات راقدة غير مؤجرة. راجع توزيع الفروع ورفع جاهزية الفرع.</div>
-      </div>
-      <button type="button" class="home-kpi-link" data-go="fleet" style="align-self:center;background:#7F2323;color:#fff;border-radius:999px;padding:7px 14px;font-size:12px;font-weight:800">عرض التفاصيل</button>
+    <!-- تنبيه تدخل فوري: أيقونة زجاجية صغيرة على الشمال (مش بانر) -->
+    ${leastOccupiedBranchName && leastOccupiedBranchName !== '—' && leastOccupiedBranchPct < 20 ? `<div style="display:flex;justify-content:flex-end;margin:6px 0 12px">
+      <button type="button" id="dash-immediate-alert" title="فرع ${escapeHtml(leastOccupiedBranchName)} يحتاج تدخل فوري — ${leastOccupiedBranchPct}% تشغيل — أقل فرع تشغيلاً في التقرير، مع ${leastIdleBranchCount || 0} سيارات راقدة غير مؤجرة. راجع توزيع الفروع ورفع جاهزية الفرع." style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;background:rgba(211,47,47,0.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(211,47,47,0.28);color:#d32f2f;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(211,47,47,0.12)">
+        <span style="font-size:14px">⚠️</span><span>${leastOccupiedBranchPct}%</span>
+      </button>
     </div>` : ''}
     <!-- Hero زي الصورة: رقم كبير + لوحة خضرا -->
     <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px" class="mock-hero-grid">
