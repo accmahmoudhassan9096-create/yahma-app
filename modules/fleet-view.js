@@ -111,13 +111,13 @@
   }).length;
 
   const expiringNotice = expiring7 > 0 ? `
-    <div style="background:#fff0f0;border:1px solid #d32f2f;color:#d32f2f;padding:10px 16px;border-radius:8px;margin:12px 0;display:flex;align-items:center;gap:10px">
-      <span style="font-size:18px">⚠️</span>
-      <div>
-        <b>${expiring7} سيارة لديها وثائق تنتهي خلال 7 أيام</b>
-        <div style="font-size:12px;opacity:0.8">رخصة، تأمين، أو كارت تشغيل — راجع تبويب التجديدات</div>
+    <div style="background:#fff0f0;border:1px solid #d32f2f;color:#d32f2f;padding:6px 12px;border-radius:8px;margin:8px 0;display:flex;align-items:center;gap:8px;min-height:34px">
+      <span style="font-size:14px">⚠️</span>
+      <div style="line-height:1.3">
+        <b style="font-size:12px">${expiring7} سيارة لديها وثائق تنتهي خلال 7 أيام</b>
+        <div style="font-size:11px;opacity:0.8">رخصة، تأمين، أو كارت تشغيل — راجع تبويب التجديدات</div>
       </div>
-      <button type="button" class="btn btn-primary btn-small" style="margin-left:auto" onclick="document.querySelector('.nav-item[data-tab=\"renewals\"]').click()">عرض المنتهية</button>
+      <button type="button" class="btn btn-primary btn-small" style="margin-left:auto;padding:4px 10px;font-size:11px" onclick="document.querySelector('.nav-item[data-tab=\"renewals\"]').click()">عرض المنتهية</button>
     </div>
   ` : '';
 
@@ -206,14 +206,14 @@
         <button type="button" class="active" data-view="table">جدول</button>
         <button type="button" data-view="cards">كروت</button>
       </div>
-      <div class="upload-section" style="margin-bottom:16px;padding:16px;background:#fff3f3;border:2px solid #d97706;border-radius:12px;text-align:center;">
-        <div style="display:flex;align-items:center;justify-content:center;gap:12px;">
-          <span style="font-size:24px;">📥</span>
-          <div style="text-align:left;">
-            <div style="font-weight:bold;color:#d97706;font-size:15px;">تحديث بيانات السيارات من ملف إكسل</div>
-            <div style="font-size:12px;color:#6b7280;">رفع ملف إكسل لتحديث: الماركة، النوع، الموديل، اللون، الرقم التسلسلي، حالة الرخصة، تاريخ انتهاء الرخصة، حالة التأمين، المالك، رقم المالك</div>
+      <div class="upload-section" style="margin-bottom:8px;padding:8px 12px;background:#fff3f3;border:1px solid #d97706;border-radius:10px;text-align:center;">
+        <div style="display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap">
+          <span style="font-size:16px;">📥</span>
+          <div style="text-align:left;line-height:1.3;flex:1;min-width:200px">
+            <div style="font-weight:bold;color:#d97706;font-size:12px;">تحديث بيانات السيارات من ملف إكسل</div>
+            <div style="font-size:11px;color:#6b7280;">رفع ملف إكسل لتحديث: الماركة، النوع، الموديل، اللون، الرقم التسلسلي، حالة الرخصة، تاريخ انتهاء الرخصة، حالة التأمين، المالك، رقم المالك</div>
           </div>
-          <button type="button" class="btn btn-primary" id="fleet-excel-import" style="background:#d97706!important;color:#fff!important;border-color:#d97706!important;padding:12px 24px;font-size:14px;font-weight:bold;">
+          <button type="button" class="btn btn-primary" id="fleet-excel-import" style="background:#d97706!important;color:#fff!important;border-color:#d97706!important;padding:6px 14px;font-size:12px;font-weight:bold;">
             📁 اختر ملف إكسل
           </button>
           <input type="file" id="fleet-file-input" accept=".xlsx,.xls,.csv" style="display:none">
