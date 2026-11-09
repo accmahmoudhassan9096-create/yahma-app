@@ -451,7 +451,7 @@ function computeDashboardState(fleet) {
   const dNeed = Math.max(0, notReady - inPrepExcl);
   const dFinal = finalReview;
   const dSum = dReady + dPrep + dNeed + dFinal || 1;
-  const colors = ['#1FA971', '#D9A447', '#DF4F4F', '#2DD4A0'];
+  const colors = ['#0BAA86', '#E6A23C', '#E64B4B', '#3B82C4'];
   const segs = [
     { v: dReady, c: colors[0], label: 'جاهزة للتأجير' },
     { v: dPrep, c: colors[1], label: 'قيد التجهيز' },
