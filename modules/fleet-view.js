@@ -112,7 +112,7 @@
 
   const expiringNotice = expiring7 > 0 ? `
     <div style="display:flex;justify-content:flex-end;margin:6px 0">
-      <button type="button" title="${expiring7} سيارة لديها وثائق تنتهي خلال 7 أيام — رخصة، تأمين، أو كارت تشغيل — راجع تبويب التجديدات" onclick="document.querySelector('.nav-item[data-tab=\"renewals\"]').click()" style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;background:rgba(211,47,47,0.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(211,47,47,0.28);color:#d32f2f;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(211,47,47,0.12)">
+      <button type="button" id="fleet-expiring-alert" title="${expiring7} سيارة لديها وثائق تنتهي خلال 7 أيام — رخصة، تأمين، أو كارت تشغيل — راجع تبويب التجديدات" style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;background:rgba(211,47,47,0.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(211,47,47,0.28);color:#d32f2f;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(211,47,47,0.12)">
         <span style="font-size:14px">⚠️</span><span>${expiring7}</span>
       </button>
     </div>
@@ -1077,6 +1077,11 @@
   };
 
   $('fleet-excel-import')?.addEventListener('click', () => fleetFileInput.click());
+  // الأيقونة الزجاجية للتنبيه — تفتح تبويب التجديدات من غير onclick داخل HTML
+  $('fleet-expiring-alert')?.addEventListener('click', () => {
+    const target = document.querySelector('.nav-item[data-tab="renewals"]');
+    if (target) target.click();
+  });
 
   // Pagination controls
   $('pager-first')?.addEventListener('click', ()=>{ currentPage=1; requestAnimationFrame(draw); });
