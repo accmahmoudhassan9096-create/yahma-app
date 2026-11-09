@@ -186,143 +186,177 @@ function dashboardTemplate(state) {
     </div>
     <style>@media(max-width:900px){.mock-hero-grid{grid-template-columns:1fr !important}}</style>
 
-    <!-- تقرير الجاهزية -->
-    <div class="home-report-header">
-        <h3>✅ تقرير الجاهزية</h3>
-        <p>سيارات جاهزة للتأجير وحالة تجديد المستندات</p>
-      </div>
-      <div class="home-kpis">
-      <div class="home-kpi" data-go="fleet">
-        <div class="home-kpi-icon blue">🚗</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">إجمالي الأسطول</span>
-          <b class="home-kpi-num">${total.toLocaleString('en')}</b>
-          <a class="home-kpi-link" data-go="fleet">عرض التفاصيل ←</a>
+    <style>
+    .dark-sec{background:#071A14;border-radius:20px;padding:20px;margin-bottom:14px;color:#fff}
+    .dark-sec-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .dark-sec-label{margin:0;color:#2DD4A0;font-size:11px;font-weight:800}
+    .dark-sec-title{margin:4px 0 0;font-size:24px;font-weight:900;color:#fff}
+    .dark-sec-pill{background:#0E3A2E;color:#2DD4A0;font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px;white-space:nowrap}
+    .dark-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    @media(max-width:900px){.dark-grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:560px){.dark-grid-3{grid-template-columns:1fr}}
+    .dark-card{background:#0F2A24;border:1px solid #1E3D34;border-radius:16px;padding:16px;color:#fff;min-height:150px}
+    .dark-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .dark-tile{width:42px;height:42px;border-radius:12px;background:#F5EDD6;display:grid;place-items:center;font-size:20px;flex:none}
+    .dark-tile.green{background:#145A44;color:#A7F3D0}
+    .dark-pct{font-size:11px;font-weight:900;padding:4px 8px;border-radius:999px;white-space:nowrap}
+    .dark-label{margin:14px 0 4px;color:#8AA99E;font-size:12px;font-weight:700;line-height:1.5}
+    .dark-num{margin:0;font-size:30px;font-weight:900;color:#fff;line-height:1.1;text-align:center}
+    .dark-bar{margin-top:12px;height:6px;background:#1B3530;border-radius:999px;overflow:hidden}
+    .dark-bar i{display:block;height:100%;border-radius:999px;position:relative}
+    .dark-bar i::after{content:'';position:absolute;inset-inline-end:-4px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:inherit;box-shadow:0 0 0 2px #0F2A24}
+    .dark-note{margin:8px 0 0;color:#8AA99E;font-size:11px;line-height:1.6;text-align:left}
+    .dark-summary{background:#0E2A24;border:1px solid #1E3D34;border-radius:16px;padding:16px;color:#fff;min-height:150px}
+    .dark-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media(max-width:900px){.dark-2col{grid-template-columns:1fr}}
+    .dark-big{font-size:54px;font-weight:900;line-height:1;color:#fff}
+    .dark-sub{color:#8AA99E;font-size:12px;line-height:1.7}
+    .dark-inner{background:#0A1F1A;border:1px solid #1E3A32;border-radius:14px;padding:14px}
+    .dark-inner-label{margin:0;color:#8AA99E;font-size:11px;font-weight:700}
+    .dark-inner-num{margin:6px 0 0;font-size:22px;font-weight:900;color:#fff}
+    .dark-cmp{background:#0A1F1A;border:1px solid #1E3A32;border-radius:14px;padding:14px;margin-top:12px}
+    .dark-cmp-title{margin:0;font-size:13px;font-weight:800;color:#fff}
+    .dark-row{margin-top:12px}
+    .dark-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:800;color:#fff}
+    .dark-row-track{margin-top:7px;height:6px;background:#1B3530;border-radius:999px;overflow:hidden}
+    .dark-row-fill{height:100%;border-radius:999px;position:relative}
+    .dark-row-note{margin:4px 0 0;text-align:left;color:#8AA99E;font-size:11px}
+    .dark-foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;justify-content:center}
+    .dark-foot span{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px}
+    .dark-summary-title{margin:0;color:#2DD4A0;font-size:12px;font-weight:800}
+    .dark-summary-big{margin:10px 0 0;font-size:24px;font-weight:900;line-height:1.5;color:#fff}
+    .dark-summary-desc{margin:8px 0 0;color:#8AA99E;font-size:12px;line-height:1.7}
+    .dark-summary-foot{display:flex;align-items:center;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid #1E3D34;color:#fff;font-size:12px;font-weight:800}
+    </style>
+    <!-- قسم 01 — حالة الأسطول (نسخة الصورة الداكنة) -->
+    <div class="dark-sec">
+      <div class="dark-sec-head">
+        <div>
+          <p class="dark-sec-label">01 · حالة الأسطول</p>
+          <h2 class="dark-sec-title">حالة الأسطول</h2>
         </div>
+        <span class="dark-sec-pill">توزيع الأسطول الكلي</span>
       </div>
-      <div class="home-kpi good" data-go="fleet" data-filter="ready">
-        <div class="home-kpi-icon green">✓</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">سيارات جاهزة للتأجير</span>
-          <b class="home-kpi-num">${ready.toLocaleString('en')}</b>
-          <div class="home-kpi-bar"><i style="width:0%;background:var(--green)" data-w="${pReady}%"></i></div>
-          <span class="home-kpi-pct good">${pReady}%</span>
+      <div class="dark-grid-3">
+        <div class="dark-card" data-go="fleet" data-filter="ready" style="cursor:pointer">
+          <div class="dark-card-top"><span class="dark-pct" style="background:rgba(31,169,113,.18);color:#2DD4A0">${pReady}%</span><div class="dark-tile green">✓</div></div>
+          <p class="dark-label">سيارات جاهزة للتأجير</p>
+          <p class="dark-num">${ready.toLocaleString('en')}</p>
+          <div class="dark-bar"><i style="width:${pReady}%;background:#1FA971"></i></div>
+          <p class="dark-note">جاهزة للحركة · ${pReady}% من الأسطول</p>
         </div>
-      </div>
-      <div class="home-kpi warn" data-go="renewals">
-        <div class="home-kpi-icon amber">🔍</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">تجديد فحص</span>
-          <b class="home-kpi-num">${renInsp.toLocaleString('en')}</b>
-          <div class="home-kpi-bar"><i style="width:0%;background:var(--amber)" data-w="${pRenInsp}%"></i></div>
-          <span class="home-kpi-pct warn">${pRenInsp}%</span>
+        <div class="dark-card" data-go="renewals" style="cursor:pointer">
+          <div class="dark-card-top"><span class="dark-pct" style="background:rgba(232,165,44,.16);color:#F5B545">${pRenInsp}%</span><div class="dark-tile">🔧</div></div>
+          <p class="dark-label">تجديد فحص</p>
+          <p class="dark-num">${renInsp.toLocaleString('en')}</p>
+          <div class="dark-bar"><i style="width:${pRenInsp}%;background:#E8A52C"></i></div>
+          <p class="dark-note">بحاجة إلى متابعة · ${pRenInsp}% من الأسطول</p>
         </div>
-      </div>
-      <div class="home-kpi warn" data-go="license-renewals">
-        <div class="home-kpi-icon amber">📄</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">تجديد رخصة</span>
-          <b class="home-kpi-num">${renLic.toLocaleString('en')}</b>
-          <div class="home-kpi-bar"><i style="width:0%;background:var(--amber)" data-w="${pRenLic}%"></i></div>
-          <span class="home-kpi-pct warn">${pRenLic}%</span>
+        <div class="dark-card" data-go="license-renewals" style="cursor:pointer">
+          <div class="dark-card-top"><span class="dark-pct" style="background:rgba(232,165,44,.16);color:#F5B545">${pRenLic}%</span><div class="dark-tile">📄</div></div>
+          <p class="dark-label">تجديد رخصة</p>
+          <p class="dark-num">${renLic.toLocaleString('en')}</p>
+          <div class="dark-bar"><i style="width:${pRenLic}%;background:#E8A52C"></i></div>
+          <p class="dark-note">بحاجة إلى متابعة · ${pRenLic}% من الأسطول</p>
         </div>
-      </div>
-      <div class="home-kpi warn" data-go="insurance-renewals">
-        <div class="home-kpi-icon amber">🛡️</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">تجديد تأمين</span>
-          <b class="home-kpi-num">${renIns.toLocaleString('en')}</b>
-          <div class="home-kpi-bar"><i style="width:0%;background:var(--amber)" data-w="${pRenIns}%"></i></div>
-          <span class="home-kpi-pct warn">${pRenIns}%</span>
+        <div class="dark-summary">
+          <p class="dark-summary-title">الخلاصة التشغيلية</p>
+          <p class="dark-summary-big">${pReady >= 50 ? 'أكثر من نصف الأسطول جاهز للتأجير.' : 'أقل من نصف الأسطول جاهز للتأجير.'}</p>
+          <p class="dark-summary-desc">الجاهزية عند ${pReady}%، بينما تتوزع بقية الحالات على تجديدات الفحص والرخصة والتأمين وبطاقة التشغيل.</p>
+          <div class="dark-summary-foot">↗ حالة الأسطول الحالية</div>
         </div>
-      </div>
-      <div class="home-kpi warn" data-go="inspections">
-        <div class="home-kpi-icon amber">🪪</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">تجديد بطاقة تشغيل</span>
-          <b class="home-kpi-num">${renCard.toLocaleString('en')}</b>
-          <div class="home-kpi-bar"><i style="width:0%;background:var(--amber)" data-w="${pRenCard}%"></i></div>
-          <span class="home-kpi-pct warn">${pRenCard}%</span>
+        <div class="dark-card" data-go="insurance-renewals" style="cursor:pointer">
+          <div class="dark-card-top"><span class="dark-pct" style="background:rgba(238,116,52,.16);color:#F0A06A">${pRenIns}%</span><div class="dark-tile">🛡️</div></div>
+          <p class="dark-label">تجديد تأمين</p>
+          <p class="dark-num">${renIns.toLocaleString('en')}</p>
+          <div class="dark-bar"><i style="width:${pRenIns}%;background:#EE7434"></i></div>
+          <p class="dark-note">أولوية متوسطة · ${pRenIns}% من الأسطول</p>
         </div>
-      </div>
-    </div>
-
-    <!-- كروت الركود (Idle Cars Report) -->
-    <div class="home-kpis report-card">
-      <div class="home-report-header">
-        <h3>🚗 تقرير التشغيل - سيارات راقدة</h3>
-        <p>سيارات غير مؤجرة</p>
-      </div>
-      <div class="home-kpi warn" id="kpi-idle-count">
-        <div class="home-kpi-icon amber">🚗</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">سيارات راقدة (غير مؤجرة)</span>
-          <b class="home-kpi-num">${idleCount.toLocaleString('en')}</b>
-          <a class="home-kpi-link" data-go="fleet">عرض التفاصيل ←</a>
-        </div>
-      </div>
-      <div class="home-kpi warn" id="kpi-idle-loss">
-        <div class="home-kpi-icon red">💸</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">الخسارة من الركود</span>
-          <b class="home-kpi-num">${idleLossRounded.toLocaleString('en')}</b>
-          <span class="home-kpi-pct warn">ر.س</span>
-        </div>
-      </div>
-      <div class="home-kpi warn" id="kpi-idle-branch">
-        <div class="home-kpi-icon amber">🏢</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">أكثر فرع ركوداً</span>
-          <b class="home-kpi-num">${topIdleBranchName}</b>
-          <span class="home-kpi-pct warn">${topIdleBranchCount} سيارة</span>
-        </div>
-      </div>
-      <div class="home-kpi good" id="kpi-least-idle-branch">
-        <div class="home-kpi-icon green">✅</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">أقل فرع ركوداً</span>
-          <b class="home-kpi-num">${leastIdleBranchName}</b>
-          <span class="home-kpi-pct good">${leastIdleBranchCount} سيارة</span>
+        <div class="dark-card" data-go="inspections" style="cursor:pointer">
+          <div class="dark-card-top"><span class="dark-pct" style="background:rgba(223,79,79,.16);color:#FF8A8A">${pRenCard}%</span><div class="dark-tile">🔑</div></div>
+          <p class="dark-label">تجديد بطاقة تشغيل</p>
+          <p class="dark-num">${renCard.toLocaleString('en')}</p>
+          <div class="dark-bar"><i style="width:${pRenCard}%;background:#DF4F4F"></i></div>
+          <p class="dark-note">أولوية متابعة · ${pRenCard}% من الأسطول</p>
         </div>
       </div>
     </div>
 
-    <!-- كروت التشغيل (Occupancy Report) -->
-    <div class="home-kpis report-card">
-      <div class="home-report-header">
-        <h3>📊 تقرير التشغيل</h3>
-        <p>سيارات متاحة للإيجار ونسبة التشغيل الإجمالية</p>
-      </div>
-      <div class="home-kpi good" id="kpi-available-rent">
-        <div class="home-kpi-icon green">🅿️</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">متاحة للإيجار فوراً</span>
-          <b class="home-kpi-num">${availableCount.toLocaleString('en')}</b>
-          <a class="home-kpi-link" data-go="fleet">عرض السيارات ←</a>
+    <!-- قسما 02 و 03 الداكنان جنب بعض زي الصورة -->
+    <div class="dark-2col">
+      <!-- 02 — راقدة -->
+      <div class="dark-sec" style="margin-bottom:0">
+        <div class="dark-sec-head">
+          <div>
+            <p class="dark-sec-label">02 · تقرير التشغيل</p>
+            <h2 class="dark-sec-title">سيارات راقدة غير مؤجرة</h2>
+          </div>
+          <span class="dark-sec-pill" style="background:rgba(223,79,79,.16);color:#FF8A8A">ركود</span>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:10px;margin-top:6px"><p class="dark-big">${idleCount.toLocaleString('en')}</p><span style="padding-bottom:8px;font-weight:800;color:#fff">سيارة</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+          <div class="dark-inner"><p class="dark-inner-label">الخسارة من الركود</p><p class="dark-inner-num">${idleLossRounded.toLocaleString('en')} <span style="font-size:13px;color:#8AA99E">ر.س</span></p></div>
+          <div class="dark-inner"><p class="dark-inner-label">إجمالي الراكد</p><p class="dark-inner-num">${idleCount.toLocaleString('en')}</p></div>
+        </div>
+        <div class="dark-cmp">
+          <p class="dark-cmp-title">مقارنة ركود الفروع</p>
+          <div class="dark-row">
+            <div class="dark-row-head"><span>${escapeHtml(topIdleBranchName)} · ${topIdleBranchCount} سيارة</span><span style="color:#2DD4A0">☐</span></div>
+            <div class="dark-row-track"><div class="dark-row-fill" style="width:${Math.min(100, Number(topIdleBranchCount) || 0)}%;background:#1FA971"></div></div>
+            <p class="dark-row-note">${topIdleBranchCount} من أصل 100</p>
+          </div>
+          <div class="dark-row">
+            <div class="dark-row-head"><span>${escapeHtml(leastIdleBranchName)} · ${leastIdleBranchCount} سيارة</span><span style="color:#FF8A8A">●</span></div>
+            <div class="dark-row-track"><div class="dark-row-fill" style="width:${Math.max(3, Math.min(100, Number(leastIdleBranchCount) || 0))}%;background:#DF4F4F"></div></div>
+            <p class="dark-row-note">${leastIdleBranchCount} من أصل 100</p>
+          </div>
+        </div>
+        <div class="dark-foot">
+          <span style="background:rgba(223,79,79,.16);color:#FF8A8A">أكثر فرع ركوداً: ${escapeHtml(topIdleBranchName)}</span>
+          <span style="background:rgba(31,169,113,.16);color:#2DD4A0">أقل فرع ركوداً: ${escapeHtml(leastIdleBranchName)}</span>
         </div>
       </div>
-      <div class="home-kpi good" id="kpi-occupancy-rate">
-        <div class="home-kpi-icon blue">📊</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">نسبة التشغيل الإجمالية</span>
-          <b class="home-kpi-num">${occupancyRate}%</b>
-          <span class="home-kpi-pct good">${rented} من ${total} سيارة مؤجرة</span>
+
+      <!-- 03 — تشغيل إجمالي -->
+      <div class="dark-sec" style="margin-bottom:0">
+        <div class="dark-sec-head">
+          <div>
+            <p class="dark-sec-label">03 · تقرير التشغيل</p>
+            <h2 class="dark-sec-title">التشغيل الإجمالي</h2>
+          </div>
+          <span class="dark-sec-pill">تشغيل ${occupancyRate}%</span>
         </div>
-      </div>
-      <div class="home-kpi warn" id="kpi-most-occupied-branch">
-        <div class="home-kpi-icon amber">🏆</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">أكثر فرع تشغيلاً</span>
-          <b class="home-kpi-num">${mostOccupiedBranchName}</b>
-          <span class="home-kpi-pct warn">${mostOccupiedBranchPct}% تشغيل</span>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <div style="flex:1;min-width:180px">
+            <p class="dark-sub" style="margin:0">متاحة للإيجار فوراً</p>
+            <p style="margin:6px 0 0;font-size:44px;font-weight:900;color:#fff;line-height:1">${availableCount.toLocaleString('en')}</p>
+            <p class="dark-sub" style="margin:8px 0 0">${rented} من ${total} سيارة مؤجرة ضمن نسبة التشغيل الإجمالية.</p>
+          </div>
+          <div style="position:relative;width:150px;height:150px;flex:none;margin-inline:auto">
+            <svg viewBox="0 0 160 160" style="width:100%;height:100%;transform:rotate(-90deg)">
+              <circle cx="80" cy="80" r="68" fill="none" stroke="#1B3530" stroke-width="16"></circle>
+              <circle cx="80" cy="80" r="68" fill="none" stroke="#1FA971" stroke-width="16" stroke-linecap="round" stroke-dasharray="${(2 * Math.PI * 68).toFixed(1)}" stroke-dashoffset="${(2 * Math.PI * 68 * (1 - Math.min(100, Number(occupancyRate) || 0) / 100)).toFixed(1)}"></circle>
+            </svg>
+            <div style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#fff">
+              <div><p style="margin:0;font-size:30px;font-weight:900;line-height:1">${occupancyRate}%</p><p style="margin:4px 0 0;font-size:11px;color:#8AA99E;font-weight:700">التشغيل</p></div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="home-kpi warn" id="kpi-least-occupied-branch">
-        <div class="home-kpi-icon red">📉</div>
-        <div class="home-kpi-body">
-          <span class="home-kpi-label">أقل فرع تشغيلاً</span>
-          <b class="home-kpi-num">${leastOccupiedBranchName}</b>
-          <span class="home-kpi-pct warn">${leastOccupiedBranchPct}% تشغيل</span>
+        <div class="dark-cmp">
+          <p class="dark-cmp-title">مقارنة تشغيل الفروع</p>
+          <div class="dark-row">
+            <div class="dark-row-head"><span>${escapeHtml(mostOccupiedBranchName)} · تشغيل ${mostOccupiedBranchPct}%</span><span style="color:#2DD4A0">☐</span></div>
+            <div class="dark-row-track"><div class="dark-row-fill" style="width:${mostOccupiedBranchPct}%;background:#1FA971"></div></div>
+            <p class="dark-row-note">${mostOccupiedBranchPct} من أصل 100</p>
+          </div>
+          <div class="dark-row">
+            <div class="dark-row-head"><span>${escapeHtml(leastOccupiedBranchName)} · تشغيل ${leastOccupiedBranchPct}%</span><span style="color:#FF8A8A">●</span></div>
+            <div class="dark-row-track"><div class="dark-row-fill" style="width:${Math.max(3, Math.min(100, Number(leastOccupiedBranchPct) || 0))}%;background:#DF4F4F"></div></div>
+            <p class="dark-row-note">${leastOccupiedBranchPct} من أصل 100</p>
+          </div>
+        </div>
+        <div class="dark-foot" style="justify-content:center">
+          <span style="background:rgba(31,169,113,.14);color:#2DD4A0">↗ أكثر فرع تشغيلاً: ${escapeHtml(mostOccupiedBranchName)} · أقل فرع تشغيلاً: ${escapeHtml(leastOccupiedBranchName)}</span>
         </div>
       </div>
     </div>
