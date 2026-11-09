@@ -739,3 +739,115 @@ body.dark-mode #vehicle360-overlay .vehicle360-event{border-color:#30465B!import
   #overlay .modal-actions .btn{width:100%!important}
   #vehicle360-overlay .vehicle360-info{grid-template-columns:1fr!important}
 }
+
+
+/* Phase 5 — Reports workspace refinement
+   Visual-only layer: preserves report calculations, filters, IDs and exports. */
+#content .rp-head{
+  align-items:center!important;gap:18px!important;padding:22px 24px!important;
+  margin:0 0 16px!important;border:1px solid #E2EAF0!important;border-radius:20px!important;
+  background:linear-gradient(115deg,#fff 0%,#F8FBFC 72%,#EFF9F8 100%)!important;
+  box-shadow:0 8px 24px rgba(16,36,58,.055)!important;
+}
+#content .rp-head-text h2{font-size:29px!important;letter-spacing:-.55px!important;color:#102A40!important;margin:9px 0 5px!important}
+#content .rp-badge{background:#E7F7F5!important;color:#087C7A!important;border:1px solid #CDEDE9!important}
+#content .rp-live{color:#617587!important}
+#content .rp-live i{background:#17AAA4!important;box-shadow:0 0 0 4px rgba(23,170,164,.12)!important}
+#content .rp-head-actions{gap:9px!important}
+#content .rp-exp-btn{
+  min-height:40px!important;padding:9px 15px!important;border-radius:11px!important;
+  border:1px solid #DCE6EC!important;background:#fff!important;color:#244158!important;
+  box-shadow:0 2px 5px rgba(16,36,58,.035)!important;transition:transform .18s ease,box-shadow .18s ease!important
+}
+#content .rp-exp-btn:hover{transform:translateY(-1px)!important;box-shadow:0 6px 14px rgba(16,36,58,.09)!important}
+#content .rp-exp-btn.teal{background:linear-gradient(135deg,#17AAA4,#087C7A)!important;border-color:#0D918C!important;color:#fff!important;box-shadow:0 5px 13px rgba(8,124,122,.18)!important}
+#content .rp-branch-pill,#content .rp-period-pill{
+  min-height:40px!important;padding:7px 12px!important;border-radius:11px!important;
+  border:1px solid #DCE6EC!important;background:#fff!important;color:#567083!important
+}
+#content .rp-branch-pill select,#content .rp-period-pill select{color:#17364C!important;max-width:210px!important}
+#content .rp-tabs{
+  gap:7px!important;padding:0 0 9px!important;margin:0 0 15px!important;
+  border-bottom:1px solid #E2EAF0!important;scrollbar-width:thin!important
+}
+#content .rp-tab{
+  padding:9px 14px!important;border-radius:10px!important;background:#fff!important;
+  border:1px solid #E1E9EF!important;color:#607587!important;font-size:12px!important;
+  transition:all .16s ease!important
+}
+#content .rp-tab:hover{border-color:#9BD8D4!important;color:#087C7A!important;background:#F5FBFA!important}
+#content .rp-tab.active{background:#102A40!important;border-color:#102A40!important;color:#fff!important;box-shadow:0 4px 11px rgba(16,42,64,.16)!important}
+#content .rp-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:11px!important;margin:0 0 17px!important}
+#content .rp2-kpi{
+  min-width:0!important;border:1px solid #E3EAF0!important;border-radius:16px!important;
+  padding:14px!important;background:#fff!important;box-shadow:0 3px 12px rgba(16,36,58,.035)!important;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease!important
+}
+#content .rp2-kpi:hover{transform:translateY(-2px)!important;border-color:#B9DEDC!important;box-shadow:0 9px 20px rgba(16,36,58,.075)!important}
+#content .rp2-tile{border-radius:12px!important;background:#E8F7F6!important;color:#087C7A!important}
+#content .rp2-num{font-size:26px!important;color:#102A40!important;font-variant-numeric:tabular-nums}
+#content .rp2-label{color:#65798A!important}
+#content .rp-charts-section,#content .rp-cards-section{
+  margin:0 0 16px!important;padding:18px!important;border:1px solid #E2EAF0!important;
+  border-radius:18px!important;background:#fff!important;box-shadow:0 4px 16px rgba(16,36,58,.035)!important
+}
+#content .rp-section-head{padding-bottom:11px!important;border-bottom:1px solid #EDF1F4!important}
+#content .rp-section-head h3{color:#17364C!important;font-size:15px!important}
+#content .rp-chart-card{border:1px solid #E7EDF1!important;border-radius:14px!important;background:#FBFCFD!important;box-shadow:none!important}
+#content .rp-card{
+  margin:0 0 15px!important;overflow:hidden!important;border:1px solid #E1E9EF!important;
+  border-radius:17px!important;background:#fff!important;box-shadow:0 4px 15px rgba(16,36,58,.04)!important
+}
+#content .rp-card-head{
+  padding:15px 18px!important;background:linear-gradient(90deg,#F8FBFC,#fff)!important;
+  border-bottom:1px solid #E8EEF2!important
+}
+#content .rp-card-title h3{color:#17364C!important;font-size:15px!important;font-weight:900!important}
+#content .rp-table{border-collapse:separate!important;border-spacing:0!important;min-width:620px!important}
+#content .rp-table thead th{
+  position:sticky!important;top:0!important;z-index:1!important;padding:12px 13px!important;
+  background:#F2F7F8!important;color:#38556A!important;border-bottom:1px solid #DCE7EC!important;
+  font-size:11.5px!important;font-weight:900!important;white-space:nowrap!important
+}
+#content .rp-table tbody td{padding:11px 13px!important;border-bottom:1px solid #EDF1F4!important;color:#385064!important;font-size:12px!important}
+#content .rp-table tbody tr:nth-child(even){background:#FBFCFD!important}
+#content .rp-table tbody tr:hover{background:#F0FAF9!important}
+#content .rp-table tfoot td{padding:12px 13px!important;background:#F4F8F9!important;color:#17364C!important;font-weight:900!important;border-top:1px solid #DCE7EC!important}
+#content .rp-scroll{max-width:100%!important;overflow:auto!important;border-radius:0 0 15px 15px!important;overscroll-behavior-inline:contain}
+#content .rp-exp-btn:focus-visible,#content .rp-tab:focus-visible{outline:3px solid rgba(23,170,164,.35)!important;outline-offset:2px!important}
+@media(max-width:1200px){
+  #content .rp-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  #content .rp-head{align-items:flex-start!important}
+}
+@media(max-width:720px){
+  #content .rp-head{padding:16px!important}
+  #content .rp-head-text h2{font-size:24px!important}
+  #content .rp-head-actions{width:100%!important}
+  #content .rp-head-actions .rp-exp-btn{flex:1 1 auto!important;justify-content:center!important}
+  #content .rp-branch-pill{flex:1 1 100%!important}
+  #content .rp-branch-pill select{max-width:none!important;width:100%!important}
+  #content .rp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+  #content .rp2-kpi{padding:12px!important}
+  #content .rp2-num{font-size:23px!important}
+  #content .rp-charts-section,#content .rp-cards-section{padding:13px!important}
+}
+@media(max-width:390px){
+  #content .rp-head-actions{display:grid!important;grid-template-columns:1fr 1fr!important}
+  #content .rp-branch-pill{grid-column:1/-1!important}
+  #content .rp2-num{font-size:21px!important}
+}
+body.dark-mode #content .rp-head{background:linear-gradient(115deg,#14283B,#172F42)!important;border-color:#30495D!important}
+body.dark-mode #content .rp-head-text h2,body.dark-mode #content .rp-section-head h3,body.dark-mode #content .rp-card-title h3{color:#E7F0F5!important}
+body.dark-mode #content .rp-badge{background:#173F40!important;color:#8CE0D8!important;border-color:#245B5B!important}
+body.dark-mode #content .rp-exp-btn,body.dark-mode #content .rp-branch-pill,body.dark-mode #content .rp-period-pill,
+body.dark-mode #content .rp-tab{background:#172B3E!important;border-color:#344B5F!important;color:#C4D3DD!important}
+body.dark-mode #content .rp-exp-btn.teal,body.dark-mode #content .rp-tab.active{background:#087C7A!important;border-color:#087C7A!important;color:#fff!important}
+body.dark-mode #content .rp-branch-pill select,body.dark-mode #content .rp-period-pill select{color:#E1EBF1!important}
+body.dark-mode #content .rp2-kpi,body.dark-mode #content .rp-charts-section,body.dark-mode #content .rp-cards-section,
+body.dark-mode #content .rp-card,body.dark-mode #content .rp-chart-card{background:#14283A!important;border-color:#30485B!important}
+body.dark-mode #content .rp2-num,body.dark-mode #content .rp-table tbody td{color:#E0EAF0!important}
+body.dark-mode #content .rp2-label,body.dark-mode #content .rp-live{color:#A9BBC8!important}
+body.dark-mode #content .rp-card-head,body.dark-mode #content .rp-table thead th,body.dark-mode #content .rp-table tfoot td{background:#1B3449!important;color:#D7E4EC!important;border-color:#30485B!important}
+body.dark-mode #content .rp-table tbody tr:nth-child(even){background:#172D40!important}
+body.dark-mode #content .rp-table tbody tr:hover{background:#1B4147!important}
+body.dark-mode #content .rp-table tbody td{border-color:#2A4052!important}
