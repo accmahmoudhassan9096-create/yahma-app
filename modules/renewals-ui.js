@@ -62,6 +62,17 @@ function renderRenewals(content, mode='inspection'){
   const pendingIds=new Set(readPaymentQueue().map(item=>String(item.carId)));
   /* نفس fleetForTab بالظبط — عشان الرقم في البطاقة يطابق عدد صفوف الجدول */
   const needInsp=typeof fleetForTab==='function'?fleetForTab('renewals', fleet).filter(car=>!pendingIds.has(String(car.id))).length:getUninspectedCars().filter(car=>!pendingIds.has(String(car.id))).length;
+  // سيارات لم يُفحص بالفعل في طابور الدفع — مستخبية من الفحص عشان الدورة، لكن لازم تظهر كأيقونة صغيرة
+  const pendingExcluded = (() => {
+    try {
+      const full = (typeof window !== 'undefined' && Array.isArray(window.__yahmaFullFleet) && window.__yahmaFullFleet.length) ? window.__yahmaFullFleet : fleet;
+      const reds = full.filter(c => {
+        if (!pendingIds.has(String(c.id))) return false;
+        try { return inspectionDisplayStatus(c.inspectionStatus).level === 'red'; } catch (_) { return String(c.inspectionStatus || '').includes('لم'); }
+      });
+      return reds.length;
+    } catch (_) { return 0; }
+  })();
   const needLic=typeof fleetForTab==='function'?fleetForTab('license-renewals', fleet).length:fleet.filter(c=>dateStatus(c.licenseExpiry).level==='red').length;
   const needInsurance=typeof fleetForTab==='function'?fleetForTab('insurance-renewals', fleet).length:fleet.filter(c=>textTag(c.insuranceStatus).level==='red').length;
   const goodInsp=fleet.filter(car=>inspectionDisplayStatus(car.inspectionStatus).level==='green').length;
@@ -84,6 +95,7 @@ function renderRenewals(content, mode='inspection'){
              الموحّد (yx-bar) بقي هو المسؤول وهو موجود جنب زر الرفع. -->
       </div>
     </div>`}
+    ${(!licenseMode&&!insuranceMode&&pendingExcluded>0)?`<div style="display:flex;justify-content:flex-end;margin:6px 0"><button type="button" id="ren-pending-info" title="${pendingExcluded} سيارة لم يُفحص بالفعل في طابور الدفع — مش ظاهرة هنا عشان الدورة: الفحص ← تحت الدفع ← تم الدفع" style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;background:rgba(217,119,6,0.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(217,119,6,0.28);color:#d97706;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(217,119,6,0.12)"><span style="font-size:14px">🕐</span><span>تحت الدفع: ${pendingExcluded}</span></button></div>`:''}
     <div class="filter-panel">
       <div class="filter-panel-title"><strong>🔎 فلاتر ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</strong><span>${isOpsInspection?'البحث في سيارات الفحص':'صفِّ النتائج حسب أي بند — ثم صدّر Excel أو PDF'}</span></div>
       ${isOpsInspection ? '' : `
@@ -186,6 +198,10 @@ function renderRenewals(content, mode='inspection'){
   `;
 
   document.getElementById('btn-wa-inspection')?.addEventListener('click', shareUninspectedWhatsApp);
+  document.getElementById('ren-pending-info')?.addEventListener('click', () => {
+    const target = document.querySelector('.nav-item[data-tab="payments"]');
+    if (target) target.click();
+  });
   document.getElementById('btn-scan-console')?.addEventListener('click', () => {
     if (window.YahmaScanConsole && typeof window.YahmaScanConsole.open === 'function') {
       window.YahmaScanConsole.open(licenseMode ? 'license' : insuranceMode ? 'insurance' : 'inspection');

@@ -104,8 +104,10 @@
     if (!t || t === 'غير محدد') return { level: 'grey', label: 'غير محدد' };
     if (t === 'سليم' || t === 'تم الفحص' || t === 'ساري' || t.startsWith('ساري ')) return { level: 'green', label: t };
     if (t.includes('يحتاج')) return { level: 'amber', label: 'يحتاج فحص' };
-    if (t === 'لم يفحص') return { level: 'red', label: 'لم يفحص' };
+    // لم يفحص / لم تفحص / لم تُفحص — كل صيغ "لم + فحص" تُعامل لم يفحص
+    if (t === 'لم يفحص' || (t.includes('لم') && t.includes('فحص'))) return { level: 'red', label: 'لم يفحص' };
     if (t.includes('لم يتم') || t.includes('منتهي') || t.includes('غير سليم')) return { level: 'red', label: 'لم يتم الفحص' };
+    if (t.includes('غير') && t.includes('فحص')) return { level: 'red', label: 'لم يتم الفحص' };
     return { level: 'grey', label: t };
   }
 
