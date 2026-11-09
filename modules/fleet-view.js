@@ -281,7 +281,7 @@
     <div class="table-scroll fleet-table-wrap" id="fleet-scroll">
       <table class="fleet-table"><thead><tr>
         <th class="th-check"><input type="checkbox" id="bulk-head-check" aria-label="تحديد الكل" title="تحديد الكل"></th>
-        <th>رقم اللوحة</th><th>الماركة</th><th>النوع</th><th>الموديل</th><th>كم الحالي</th><th>اللون</th><th>الرقم التسلسلي</th><th>رقم البطاقة</th><th>حالة البطاقة</th><th>تاريخ نهاية البطاقة</th><th>حالة الرخصة</th><th>تاريخ نهاية الرخصة</th><th>حالة الفحص</th><th>حالة التأمين</th><th>المالك</th><th>الفرع</th><th>المدينة</th><th>حالة السيارة</th><th>الجاهزية</th><th>حالة التجهيز</th><th>الملف</th>
+        <th>رقم اللوحة</th><th>الماركة</th><th>النوع</th><th>الموديل</th><th>الرقم التسلسلي</th><th>رقم البطاقة</th><th>حالة البطاقة</th><th>تاريخ نهاية البطاقة</th><th>حالة الرخصة</th><th>تاريخ نهاية الرخصة</th><th>حالة الفحص</th><th>المالك</th><th>الفرع</th><th>حالة السيارة</th><th>الإجراءات</th>
       </tr></thead><tbody id="fleet-tbody"></tbody></table>
     </div>
     <div class="fleet-cards" id="fleet-cards"></div>
@@ -556,8 +556,8 @@
     (function(){
       const scrollEl = document.getElementById('fleet-scroll');
       function renderFleetRow(c){
-        const card=cardState(c),lic=licenseState(c),insp=inspectionState(c),carTag=textTag(c.carStatus),prepTag=prepStatusForCar(c),rdy=vehicleReadiness(c);
-        return `<tr data-id="${escapeHtml(c.id)}"><td class="td-check"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" ${selectedIds.has(String(c.id))?'checked':''} aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td><td class="plate">${escapeHtml(c.plate||'—')}</td><td>${escapeHtml(c.brand||'—')}</td><td>${escapeHtml(c.type||'—')}</td><td>${escapeHtml(c.model||'—')}</td><td>${escapeHtml(String(c.odometer??'').trim()||'\u2014')}</td><td>${escapeHtml(c.color||'—')}</td><td class="serial-cell">${escapeHtml(c.serial||'—')}</td><td>${escapeHtml((typeof fmtCardNumber==='function'?fmtCardNumber(c.cardNumber):c.cardNumber)||'—')}</td><td><span class="tag ${card.level}">${escapeHtml(card.label)}</span></td><td>${fmtDate(c.cardExpiry)}</td><td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td><td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td><td><span class="tag ${textTag(c.insuranceStatus).level}">${escapeHtml(textTag(c.insuranceStatus).label)}</span></td><td>${escapeHtml(c.owner||'—')}</td><td>${escapeHtml(c.branch||'—')}</td><td>${escapeHtml(c.city||'—')}</td><td><span class="tag ${carTag.level}">${escapeHtml(carTag.label)}</span></td><td><span class="readiness-pill ${rdy.level}" title="${escapeHtml(rdy.label)}">${escapeHtml(rdy.label)}</span></td><td><span class="readiness-pill prep-pill ${prepTag.level}">${escapeHtml(prepTag.label)}</span></td><td><button type="button" class="btn btn-ghost btn-small fleet-edit-btn" data-edit-car="${escapeHtml(c.id)}" title="تعديل السيارة ${escapeHtml(c.plate||'')}">✏️</button><button type="button" class="btn btn-ghost btn-small fleet-view-btn" data-view-car="${escapeHtml(c.id)}">عرض الملف</button>${canDelete?` <button type="button" class="btn btn-danger btn-small fleet-del-btn" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة ${escapeHtml(c.plate||'')}">🗑</button>`:''}</td></tr>`;
+        const card=cardState(c),lic=licenseState(c),insp=inspectionState(c),carTag=textTag(c.carStatus);
+        return \`<tr data-id="\${escapeHtml(c.id)}"><td class="td-check"><input type="checkbox" class="row-check" data-id="\${escapeHtml(c.id)}" \${selectedIds.has(String(c.id))?'checked':''} aria-label="تحديد السيارة \${escapeHtml(c.plate||'—')}"></td><td class="plate">\${escapeHtml(c.plate||'—')}</td><td>\${escapeHtml(c.brand||'—')}</td><td>\${escapeHtml(c.type||'—')}</td><td>\${escapeHtml(c.model||'—')}</td><td class="serial-cell">\${escapeHtml(c.serial||'—')}</td><td>\${escapeHtml((typeof fmtCardNumber==='function'?fmtCardNumber(c.cardNumber):c.cardNumber)||'—')}</td><td><span class="tag \${card.level}">\${escapeHtml(card.label)}</span></td><td>\${fmtDate(c.cardExpiry)}</td><td><span class="tag \${lic.level}">\${escapeHtml(lic.label)}</span></td><td>\${fmtDate(c.licenseExpiry)}</td><td><span class="tag \${insp.level}">\${escapeHtml(insp.label)}</span></td><td>\${escapeHtml(c.owner||'—')}</td><td>\${escapeHtml(c.branch||'—')}</td><td><span class="tag \${carTag.level}">\${escapeHtml(carTag.label)}</span></td><td><button type="button" class="btn btn-ghost btn-small fleet-edit-btn" data-edit-car="\${escapeHtml(c.id)}" title="تعديل السيارة \${escapeHtml(c.plate||'')}">✏️</button><button type="button" class="btn btn-ghost btn-small fleet-view-btn" data-view-car="\${escapeHtml(c.id)}">عرض الملف</button>\${canDelete?\` <button type="button" class="btn btn-danger btn-small fleet-del-btn" data-del-car="\${escapeHtml(c.id)}" title="حذف السيارة \${escapeHtml(c.plate||'')}">🗑</button>\`:''}</td></tr>\`;
       }
       function bindFleetRows(tbody){
         tbody.querySelectorAll('tr[data-id]').forEach(tr => {
@@ -629,16 +629,16 @@
             rowHeight: 52,
             overscan: 12,
             threshold: 35,
-            colCount: 19,
+            colCount: 16,
             renderRow: function(c){ return renderFleetRow(c); },
             afterRender: function(tbody){ bindFleetRows(tbody); },
-            emptyHtml: '<tr><td colspan="19"><div class="empty">لا توجد نتائج مطابقة للفلاتر الحالية</div></td></tr>'
+            emptyHtml: '<tr><td colspan="16"><div class="empty">لا توجد نتائج مطابقة للفلاتر الحالية</div></td></tr>'
           });
           window._fleetVT._tb = tb;
         }
         window._fleetVT.setItems(rows, true);
       } else {
-        tb.innerHTML=rows.length?rows.map(renderFleetRow).join(''):`<tr><td colspan="19"><div class="empty">لا توجد نتائج مطابقة للفلاتر الحالية</div></td></tr>`;
+        tb.innerHTML=rows.length?rows.map(renderFleetRow).join(''):`<tr><td colspan="16"><div class="empty">لا توجد نتائج مطابقة للفلاتر الحالية</div></td></tr>`;
         bindFleetRows(tb);
       }
     })();
