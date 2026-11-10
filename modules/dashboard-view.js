@@ -357,59 +357,7 @@ function dashboardTemplate(state) {
       </div>
     </div>
 
-    <!-- رسم بياني لتريند نسبة التشغيل -->
-    <div class="home-card">
-      <div class="home-card-head">
-        <h3>📈 اتجاه نسبة التشغيل (آخر 7 أيام)</h3>
-      </div>
-      <div class="home-trend-card" style="padding:16px">
-        <svg viewBox="0 0 600 200" style="width:100%;height:180px;display:block">
-          <defs>
-            <linearGradient id="occGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#0284c7" stop-opacity="0.4"/>
-              <stop offset="100%" stop-color="#0284c7" stop-opacity="0.05"/>
-            </linearGradient>
-          </defs>
-          <!-- محور Y -->
-          <line x1="40" y1="20" x2="40" y2="170" stroke="#e2e8f0" stroke-width="1"/>
-          <line x1="40" y2="170" x2="580" y2="170" stroke="#e2e8f0" stroke-width="1"/>
-          <!-- Linien الشبكة -->
-          <g stroke="#e2e8f0" stroke-dasharray="4 4" stroke-width="0.5">
-            <line x1="40" y1="40" x2="580" y2="40"/>
-            <line x1="40" y1="105" x2="580" y2="105"/>
-            <line x1="40" y1="170" x2="580" y2="170"/>
-          </g>
-          <text x="10" y="45" font-size="11" fill="#6b7280">100%</text>
-          <text x="10" y="110" font-size="11" fill="#6b7280">50%</text>
-          <text x="10" y="175" font-size="11" fill="#6b7280">0%</text>
-          <!-- الخط البياني -->
-          ${(() => {
-            const W = 540, H = 150, padL = 40, padT = 20, padB = 30;
-            const points = occupancyTrend;
-            const maxP = Math.max(...points.map(p => p.pct), 100);
-            const stepX = W / (points.length - 1);
-            const linePoints = points.map((p, i) => {
-              const x = padL + i * stepX;
-              const y = padT + H - (p.pct / maxP) * H;
-              return `${x},${y}`;
-            }).join(' ');
-            const areaPoints = `M ${padL},${padT + H} ${linePoints} L ${padL + W},${padT + H} Z`;
-            return `<path d="${areaPoints}" fill="url(#occGrad)"/>
-                    <polyline points="${linePoints}" fill="none" stroke="#0284c7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                    ${points.map((p, i) => {
-                      const x = padL + i * stepX;
-                      const y = padT + H - (p.pct / maxP) * H;
-                      return `<circle cx="${x}" cy="${y}" r="4" fill="#0284c7" stroke="#fff" stroke-width="2"/>`;
-                    }).join('')}
-                    ${points.map((p, i) => {
-                      const x = padL + i * stepX;
-                      return `<text x="${x}" y="185" font-size="10" text-anchor="middle" fill="#6b7280">${p.date.slice(5)}</text>`;
-                    }).join('')}`;
-          })()}
-        </svg>
-        <div class="muted-small" style="text-align:center;margin-top:8px">نسبة التشغيل اليومية المقدرة بناءً على البيانات الحالية</div>
-      </div>
-    </div>
+
 
     <!-- تم حذف تقرير أكثر السيارات المتاحة للإيجار بناءً على طلب المستخدم -->
 
@@ -485,17 +433,7 @@ function dashboardTemplate(state) {
         </div>
       </div>
     </div>
-    <!-- Fleet history -->
-    <div class="home-churn-grid">
-      <div class="home-card home-trend-card">
-        <div class="home-card-head">
-          <h3>📈 تاريخ الأسطول</h3>
-          <span class="muted-small">${trend.length >= 2 ? 'عدد السيارات + نسبة الجاهزية — آخر ' + trend.length + ' يوم' : 'بيبدأ التسجيل من اليوم — افتح المنصة يوميًا ليتراكم التاريخ'}</span>
-        </div>
-        ${trendSvg ? `<div class="home-trend-legend"><span><i style="background:#C6952E"></i>عدد السيارات (${trend[trend.length-1].total})</span><span><i style="background:#0BAA86"></i>الجاهزية (${trend[trend.length-1].pct || 0}%)</span></div>${trendSvg}`
-          : `<div class="home-trend-empty"><div class="home-trend-now"><b>${total.toLocaleString('en')}</b><span>سيارة اليوم</span><b>${pReady}%</b><span>الجاهزية</span></div><div class="muted-small">المنحنى بيظهر من يومينمختلفين — افتح المنصة كل يوم وسجل يومي تتراكم تلقائيًا.</div></div>`}
-      </div>
-    </div>
+
     <!-- Bottom row -->
     <div class="home-bottom">
       <div class="home-card">
