@@ -291,6 +291,13 @@ body.dark-mode .app-footer{background:#122235!important;border-color:#2A3C4D!imp
 .home-dash .tile-num{color:var(--hp-navy)!important}
 .home-dash .tile-label{color:var(--hp-muted)!important}
 /* الوضع الليلي — نفس الدرجات على خلفية داكنة */
+.topbar-actions .tb-add{
+  width:38px!important;height:38px!important;padding:0!important;border-radius:50%!important;
+  background:#EAF6F5!important;border-color:#BFE3E0!important;color:#0E7A76!important;
+  font-size:20px!important;box-shadow:none!important;align-items:center;justify-content:center
+}
+.topbar-actions .tb-add:hover{background:#DFF1F0!important;border-color:#A5D4D0!important;color:#0A5F5C!important}
+
 body.dark-mode .home-dash{
   --hp-ink:#E6EEF3;--hp-ink-soft:#C9D7E2;--hp-muted:#8FA6B5;
   --hp-line:#2A3C4D;--hp-panel:#142537;--hp-paper:#0D1926;
