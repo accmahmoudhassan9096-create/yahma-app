@@ -47,32 +47,10 @@ body{background:var(--yh-paper)!important;color:var(--yh-ink)!important;font-siz
 .topbar.topbar-v43 .topbar-statuses{margin-top:4px!important;gap:4px!important}
 /* ⭐ nowrap على الديسكتوب: الملف ده آخر ملف بيتحمّل وselectorه أعلى
    specificity، فكان بيلغي nowrap اللي في 01-base و04-dark-overrides
-   والنتيجة إن زرار «+» اللي جنب البحث كان بينزل سطر تاني والـtopbar
-   بيطلع بارتفاع صفين. على الموبايل (تحت 900px) بنرجّع wrap عشان
-   مربع البحث ياخد سطر كامل لوحده. */
+   والنتيجة إن شريط الأدوات كان بينقسم على صفين والـtopbar بيطلع
+   باهتي. على الموبايل (تحت 900px) بنرجّع wrap عشان مربع البحث
+   ياخد سطر كامل لوحده. */
 .topbar.topbar-v43 .topbar-actions{gap:6px!important;flex-wrap:nowrap!important;align-content:center}
-/* زرار «+» اللي جوّه مربع البحث (أضيف جنب البحث).
-   ⭐ لازم الـspecificity أعلى من .topbar.topbar-v43 .btn اللي فوق
-   (وكمان أعلى من body.dark-mode .topbar.topbar-v43 .btn)،
-   وإلا الغلاف العام بيلغي تنسيقه. */
-.topbar.topbar-v43 .topbar-actions .btn.tb-add-search{
-  width:auto!important;height:auto!important;min-height:0!important;
-  padding:6px 10px!important;margin-left:8px!important;
-  border:1px solid #BFE3E0!important;border-radius:8px!important;
-  background:#EAF6F5!important;color:#0E7A76!important;
-  display:inline-flex!important;align-items:center!important;justify-content:center!important;
-  /* ⭐ من غير flex-shrink:0 الأيقونة كانت بتتضغط (18px → 16px)
-     لما مربع البحث ياخد المساحة، فتظهر مضمومة. */
-  flex:0 0 auto!important;
-}
-.topbar.topbar-v43 .topbar-actions .btn.tb-add-search:hover{background:#DFF1F0!important;border-color:#A9D8D3!important;color:#0B5F5C!important}
-.topbar.topbar-v43 .topbar-actions .btn.tb-add-search svg{width:18px!important;height:18px!important;flex:0 0 auto!important}
-body.dark-mode .topbar.topbar-v43 .topbar-actions .btn.tb-add-search{
-  background:#1A3332!important;border-color:#2A4A48!important;color:#7DD3CE!important;
-}
-body.dark-mode .topbar.topbar-v43 .topbar-actions .btn.tb-add-search:hover{
-  background:#2A4A48!important;border-color:#3D5E5C!important;color:#9BF3F0!important;
-}
 .topbar.topbar-v43 .btn{min-height:36px!important;padding:7px 10px!important;border:1px solid #E5ECF0!important;border-radius:10px!important;background:#F8FAFB!important;color:#526777!important;box-shadow:none!important;font-size:11px!important}
 .topbar.topbar-v43 .btn:hover{background:#EFF8F7!important;border-color:#BFE4E0!important;color:#087D79!important;transform:translateY(-1px)}
 .topbar.topbar-v43 .topbar-user{padding:4px 7px!important;border:1px solid transparent!important;border-radius:11px!important;background:transparent!important}

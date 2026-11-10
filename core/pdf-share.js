@@ -398,7 +398,6 @@ document.getElementById('btn-clear-all').addEventListener('click', async ()=>{
 });
 
 document.getElementById('btn-add-car').addEventListener('click', ()=> openModal(null));
-document.getElementById('btn-add-car-search').addEventListener('click', ()=> openModal(null));
 document.getElementById('btn-cancel').addEventListener('click', closeModal);
 document.getElementById('overlay').addEventListener('click', (e)=>{ if(e.target.id==='overlay') closeModal(); });
 
