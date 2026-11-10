@@ -374,3 +374,127 @@ body.dark-mode .dark-card,body.dark-mode .dark-summary,body.dark-mode .dark-inne
 body.dark-mode .dark-num,body.dark-mode .dark-big,body.dark-mode .dark-inner-num,body.dark-mode .dark-summary-big{color:#F1F7FB !important}
 body.dark-mode .dark-label,body.dark-mode .dark-sub,body.dark-mode .dark-note,body.dark-mode .dark-inner-label,body.dark-mode .dark-summary-desc{color:#8FA6B5 !important}
 body.dark-mode .dark-bar,body.dark-mode .dark-row-track{background:#1D3042 !important}
+
+/* ===== YAHMAA Luxury & Modern Enterprise Refinement Layer ===== */
+*, *::before, *::after {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+::selection {
+  background: rgba(11, 145, 141, 0.22);
+  color: #087C7A;
+}
+
+/* أشرطة التمرير العصرية الناعمة */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.55);
+}
+
+/* كروت فخمة بتأثير زجاجي وانعكاسات ناعمة */
+.home-dash .home-card,
+.panel,
+.rp-card,
+.mock-hero-grid > div,
+.dark-sec {
+  border-radius: 18px !important;
+  box-shadow: 0 1px 3px rgba(15, 25, 60, 0.03), 0 8px 24px rgba(15, 25, 60, 0.05) !important;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+}
+.home-dash .home-card:hover,
+.panel:hover,
+.rp-card:hover {
+  box-shadow: 0 4px 12px rgba(15, 25, 60, 0.05), 0 16px 36px rgba(15, 25, 60, 0.08) !important;
+}
+
+/* الأزرار والعناصر التفاعلية الفخمة */
+.btn-primary {
+  background: linear-gradient(135deg, #12AAA6 0%, #087C7A 100%) !important;
+  border-radius: 10px !important;
+  font-weight: 750 !important;
+  box-shadow: 0 4px 14px rgba(8, 124, 122, 0.22) !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.btn-primary:hover {
+  filter: brightness(1.06) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px rgba(8, 124, 122, 0.30) !important;
+}
+.btn-primary:active {
+  transform: scale(0.98) !important;
+}
+.btn-ghost {
+  border-radius: 10px !important;
+  transition: all 0.15s ease !important;
+}
+.btn-ghost:hover {
+  background: #F1F5F9 !important;
+  border-color: #CBD5E1 !important;
+}
+
+/* جداول البيانات الحديثة */
+.fleet-table-wrap,
+.table-scroll {
+  border-radius: 16px !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 2px 10px rgba(15, 25, 60, 0.03) !important;
+}
+.fleet-table thead th,
+.rp-table thead th {
+  background: #F8FAFC !important;
+  color: #334155 !important;
+  font-weight: 800 !important;
+  border-bottom: 1.5px solid #E2E8F0 !important;
+}
+.fleet-table tbody tr:hover,
+.rp-table tbody tr:hover {
+  background: #F0FAF9 !important;
+}
+
+/* شارات الحالة الفخمة */
+.badge-ready, .good-text {
+  color: #059669 !important;
+}
+.badge-alert, .bad-text {
+  color: #DC2626 !important;
+}
+
+/* الوضع الليلي الفاخر */
+body.dark-mode {
+  background: #0B1320 !important;
+}
+body.dark-mode .app {
+  background: linear-gradient(145deg, #0B1320 0%, #0F1A2C 100%) !important;
+}
+body.dark-mode .home-dash .home-card,
+body.dark-mode .panel,
+body.dark-mode .rp-card,
+body.dark-mode .fleet-table-wrap {
+  background: #142537 !important;
+  border-color: #243B52 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+body.dark-mode .fleet-table thead th,
+body.dark-mode .rp-table thead th {
+  background: #101F2F !important;
+  color: #E2E8F0 !important;
+  border-bottom-color: #243B52 !important;
+}
+body.dark-mode .fleet-table tbody tr:hover,
+body.dark-mode .rp-table tbody tr:hover {
+  background: #183547 !important;
+}
