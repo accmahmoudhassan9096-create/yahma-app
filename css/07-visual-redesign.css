@@ -367,8 +367,8 @@ body.dark-mode .topbar.topbar-v43{background:linear-gradient(135deg, rgba(17,34,
   aspect-ratio:1400/440;
   z-index:0;
   pointer-events:none;
-  background-color:#6FE3C6;
-  opacity:.085;
+  background-color:#0B918D;
+  opacity:.04;
   -webkit-mask-image:url('../assets/hero-car.svg');
   mask-image:url('../assets/hero-car.svg');
   -webkit-mask-repeat:no-repeat;
@@ -392,3 +392,12 @@ body.dark-mode .topbar.topbar-v43{background:linear-gradient(135deg, rgba(17,34,
 }
 .home-hero-card > *{position:relative;z-index:1;}
 body.dark-mode .home-hero-card::before{opacity:.11;}
+body.dark-mode .mock-hero-grid > div{background:#142537 !important;border-color:#2A3C4D !important;color:#E6EEF3 !important}
+body.dark-mode .mock-hero-grid h2,body.dark-mode .mock-hero-grid h3{color:#F1F7FB !important}
+body.dark-mode .mock-hero-grid p{color:#8FA6B5 !important}
+body.dark-mode .dark-sec{background:#142537 !important;border-color:#2A3C4D !important;color:#E6EEF3 !important}
+body.dark-mode .dark-sec-title{color:#F1F7FB !important}
+body.dark-mode .dark-card,body.dark-mode .dark-summary,body.dark-mode .dark-inner,body.dark-mode .dark-cmp{background:#0D1926 !important;border-color:#2A3C4D !important;color:#E6EEF3 !important}
+body.dark-mode .dark-num,body.dark-mode .dark-big,body.dark-mode .dark-inner-num,body.dark-mode .dark-summary-big{color:#F1F7FB !important}
+body.dark-mode .dark-label,body.dark-mode .dark-sub,body.dark-mode .dark-note,body.dark-mode .dark-inner-label,body.dark-mode .dark-summary-desc{color:#8FA6B5 !important}
+body.dark-mode .dark-bar,body.dark-mode .dark-row-track{background:#1D3042 !important}
