@@ -124,13 +124,13 @@ input:focus,select:focus,textarea:focus{outline:0!important;border-color:#80D3CD
 .rp-bar i{border-radius:99px!important}
 .app-footer{border-top:1px solid #E5ECF0!important;background:rgba(255,255,255,.72)!important}
 body.dark-mode{
-  --yh-ink:#E6EEF3;--yh-muted:#A4B5C1;--yh-line:#2A3C4D;--yh-paper:#0D1926;--yh-panel:#142537;
+  --yh-ink:#E6EEF3;--yh-muted:#B8C7D4;--yh-line:#2A3C4D;--yh-paper:#0D1926;--yh-panel:#142537;
   background:#0D1926!important;color:#E6EEF3!important
 }
 body.dark-mode .app{background:#0D1926!important}
 body.dark-mode .topbar.topbar-v43{background:rgba(17,34,51,.97)!important;border-bottom-color:#2A3C4D!important}
 body.dark-mode .topbar.topbar-v43 .topbar-brand-copy strong,body.dark-mode .topbar.topbar-v43 .topbar-titles h1,body.dark-mode .topbar.topbar-v43 .topbar-user-meta b{color:#E8F0F4!important}
-body.dark-mode .topbar.topbar-v43 .topbar-brand-copy span,body.dark-mode .topbar.topbar-v43 .topbar-titles p,body.dark-mode .topbar.topbar-v43 .topbar-user-meta span{color:#A7BAC7!important}
+body.dark-mode .topbar.topbar-v43 .topbar-brand-copy span,body.dark-mode .topbar.topbar-v43 .topbar-titles p,body.dark-mode .topbar.topbar-v43 .topbar-user-meta span{color:#B8C7D4!important}
 body.dark-mode .topbar.topbar-v43 .btn{background:#1B3044!important;border-color:#344A5D!important;color:#DDE8EE!important}
 body.dark-mode .topbar.topbar-v43 .tb-theme{background:#080F17!important;border-color:#080F17!important}
 body.dark-mode .topbar.topbar-v43 .topbar-search-wrap input{background:#122438!important;border-color:#344A5D!important;color:#E6EEF3!important}
@@ -167,9 +167,26 @@ body.dark-mode .app-footer{background:#122235!important;border-color:#2A3C4D!imp
      بس 07 (اللي بيتحمّل بعده) كان بيلغيها بـ!important. */
   .content{padding:12px 10px calc(24px + env(safe-area-inset-bottom))!important}
   .topbar.topbar-v43{padding:10px!important;gap:8px!important}
-  .topbar.topbar-v43 .topbar-brand-copy{display:block}
+  /* ⭐ تخطيط الموبايل: عمود واحد للعلامة + زرار القائمة، وصف كامل
+     للأدوات تحتهم. قبل كده كان العمود التاني (auto) بياخد عرض
+     العناوين، والـactions (عمود 1fr) كان بياخد 73px بس — فالزراراير
+     كانت بتترص عمود عمود والهيدر بيطلع بارتفاع 328px.
+     ⭐ العناوين بتتخفي هنا لأن اسم المنصة ظاهر في الـbrand أصلاً. */
+  .topbar.topbar-v43{
+    grid-template-columns:1fr auto!important;
+    grid-template-rows:auto auto!important;
+    row-gap:6px!important;
+  }
+  .topbar.topbar-v43 .topbar-brand{grid-row:1;grid-column:1!important}
+  .topbar.topbar-v43 .topbar-left{grid-row:1;grid-column:2!important}
+  .topbar.topbar-v43 .topbar-actions{grid-row:2;grid-column:1/-1!important;width:100%!important}
+  .topbar.topbar-v43 .topbar-titles{display:none!important}
+  .topbar.topbar-v43 .topbar-statuses{display:none!important}
+  .topbar.topbar-v43 .topbar-brand-copy{display:flex}
+  /* ⭐ تسمية زرار الوضع (Liquid Glass) بتظهر في الوضع الليلي —
+     وبتداخل مع الأيقونة على الموبايل. */
+  .topbar.topbar-v43 .theme-label{display:none!important}
   .topbar.topbar-v43 .topbar-brand-mark{width:36px!important;height:36px!important}
-  .topbar.topbar-v43 .topbar-titles h1{font-size:14px!important}
   .topbar.topbar-v43 .topbar-actions{gap:5px!important}
   .topbar.topbar-v43 .topbar-actions .btn{min-height:34px!important;padding:6px 8px!important}
   .topbar.topbar-v43 .topbar-search-wrap{min-width:100%!important;order:30!important}

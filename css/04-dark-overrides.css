@@ -553,7 +553,12 @@ body.dark-mode .rp-card,body.dark-mode .home-card,body.dark-mode .card
     .btn-excel-import span{font-size:12.5px}
   }
   @media(max-width:700px){
-    .sidebar{position:fixed;z-index:60;right:-240px;top:0;bottom:0;width:240px;flex:0 0 240px;transition:right .22s ease;box-shadow:none}
+    /* ⭐ right:-100% مش -240px: عرض السايدبار بيتحسب في
+       07-visual-redesign بـmin(280px,86vw)!important — يعني 280px
+       على موبايل عادي. والقاعدة دي كانت بتخفيه بس 240px، فبيطلع
+       منه 40px على الشاشة ويفتح فوق المحتوى. النسبة بتضمن إنه
+       يختفي بالكامل مهما كان العرض. */
+    .sidebar{position:fixed;z-index:60;right:-100%;top:0;bottom:0;width:240px;flex:0 0 240px;transition:right .22s ease;box-shadow:none}
     .sidebar.open{right:0;box-shadow:-8px 0 30px rgba(0,0,0,.2)}
     .mobile-menu{display:inline-flex}
     .topbar{padding:12px 14px}

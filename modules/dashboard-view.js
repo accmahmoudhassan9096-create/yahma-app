@@ -173,11 +173,20 @@ function dashboardTemplate(state) {
       </div>
       <div style="background:#FFFFFF;border:1px solid #E3EAF0;border-radius:18px;padding:22px;color:#172B3D;box-shadow:0 4px 18px rgba(16,36,58,.04);position:relative;overflow:hidden">
         <div style="position:absolute;inset-inline-start:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(8,124,122,.04)"></div>
-        <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:#087C7A">📈 مؤشر التشغيل</p>
-        <p style="margin:18px 0 0;font-size:56px;font-weight:900;line-height:1;color:#087C7A">${occupancyRate}%</p>
-        <p style="margin:8px 0 0;font-weight:800;color:#10243A">نسبة التشغيل الإجمالية</p>
-        <p style="margin:4px 0 0;font-size:12px;color:#6C7C8D">${rented} من ${total} سيارة مؤجرة</p>
-        <p style="margin:20px 0 0;padding-top:16px;border-top:1px solid #E3EAF0;font-size:12px;line-height:1.7;color:#6C7C8D">التركيز التشغيلي الحالي: تقليل الركود، ورفع جاهزية السيارات المتاحة فوراً.</p>
+        <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:#087C7A">🩺 صحة الأسطول</p>
+         <div style="margin:12px 0 6px">${gaugeSvg}</div>
+         <p style="margin:0;font-size:12px;color:#6C7C8D">${rented} من ${total} سيارة مؤجرة</p>
+         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-top:14px;padding-top:12px;border-top:1px solid #E3EAF0">
+           <div><p style="margin:0;font-size:10px;color:#6C7C8D;font-weight:700">جاهزية</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:#0BAA86">${pReady}%</p></div>
+           <div><p style="margin:0;font-size:10px;color:#6C7C8D;font-weight:700">تشغيل</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:#087C7A">${occupancyRate}%</p></div>
+           <div><p style="margin:0;font-size:10px;color:#6C7C8D;font-weight:700">متاحة</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:#10243A">${availableCount}</p></div>
+         </div>
+         <div style="width:100%;margin-top:10px">
+           <svg viewBox="0 0 120 32" style="width:100%;height:32px;display:block">
+             ${(() => { const pts = occupancyTrend.map((p,i) => (i*20) + "," + (32 - ( (Number(p.pct)||0) /100)*28).toFixed(1)).join(" "); return "<polyline points=\"" + pts + "\" fill=\"none\" stroke=\"#087C7A\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"; })()}
+           </svg>
+           <p style="margin:4px 0 0;font-size:10px;color:#6C7C8D;text-align:center">اتجاه التشغيل (7 أيام)</p>
+         </div>
       </div>
     </div>
     <style>@media(max-width:900px){.mock-hero-grid{grid-template-columns:1fr !important}}</style>
@@ -188,7 +197,7 @@ function dashboardTemplate(state) {
     .dark-sec-label{margin:0;color:#087C7A;font-size:11px;font-weight:800}
     .dark-sec-title{margin:4px 0 0;font-size:24px;font-weight:900;color:#10243A}
     .dark-sec-pill{background:#E6F5F4;color:#087C7A;font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px;white-space:nowrap}
-    .dark-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .dark-grid-3{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
     @media(max-width:900px){.dark-grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:560px){.dark-grid-3{grid-template-columns:1fr}}
     .dark-card{background:#F8FAFB;border:1px solid #E3EAF0;border-radius:16px;padding:16px;color:#172B3D;min-height:150px}
