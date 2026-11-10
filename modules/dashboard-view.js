@@ -156,29 +156,7 @@ function dashboardTemplate(state) {
     .home-kpi-most-idle .home-kpi-icon { background: #fee2e2; color: #dc2626; }
   </style>
   <div class="home-dash">
-    <style>
-    .yahma-priority{display:grid;grid-template-columns:minmax(190px,.9fr) repeat(4,minmax(125px,1fr));gap:10px;margin:0 0 16px;padding:13px;border:1px solid #DDE9EC;border-radius:18px;background:linear-gradient(110deg,#F7FBFC 0%,#FFFFFF 58%,#F0FAF9 100%);box-shadow:0 5px 18px rgba(16,36,58,.045)}
-    .yahma-priority-intro{display:flex;flex-direction:column;justify-content:center;padding:5px 10px}
-    .yahma-priority-kicker{font-size:10px;font-weight:900;letter-spacing:.4px;color:#0B928D}
-    .yahma-priority-intro strong{font-size:16px;color:#102A40;margin-top:4px}
-    .yahma-priority-intro span:last-child{font-size:10px;color:#6A7E8D;margin-top:3px;line-height:1.5}
-    .yahma-priority-item{display:flex;align-items:center;gap:10px;min-width:0;padding:11px 12px;border:1px solid #E5ECEF;border-radius:13px;background:#fff;text-align:right;cursor:pointer;color:#17364C;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
-    .yahma-priority-item:hover{transform:translateY(-2px);border-color:#9DD9D5;box-shadow:0 6px 14px rgba(16,36,58,.07)}
-    .yahma-priority-count{display:grid;place-items:center;flex:none;width:37px;height:37px;border-radius:11px;background:#FFF4DE;color:#A66A00;font-size:17px;font-weight:900;font-variant-numeric:tabular-nums}
-    .yahma-priority-item[data-priority="urgent"] .yahma-priority-count{background:#FDECEC;color:#C24141}
-    .yahma-priority-copy{display:flex;flex-direction:column;min-width:0}.yahma-priority-copy b{font-size:11px;line-height:1.45}.yahma-priority-copy small{font-size:9px;color:#82919D;margin-top:3px}
-    .yahma-priority-empty{grid-column:span 4;display:flex;align-items:center;gap:10px;padding:12px 15px;border:1px solid #CDEBE2;border-radius:13px;background:#F3FBF8;color:#14745E;font-size:12px;font-weight:800}
-    @media(max-width:1050px){.yahma-priority{grid-template-columns:repeat(2,minmax(0,1fr))}.yahma-priority-intro{grid-column:1/-1}}
-    @media(max-width:560px){.yahma-priority{grid-template-columns:1fr;padding:10px}.yahma-priority-intro{grid-column:auto}.yahma-priority-empty{grid-column:auto}}
-    body.dark-mode .yahma-priority{background:linear-gradient(110deg,#14283A,#172F42);border-color:#30485B}
-    body.dark-mode .yahma-priority-intro strong,body.dark-mode .yahma-priority-item{color:#E4EEF3}
-    body.dark-mode .yahma-priority-intro span:last-child,body.dark-mode .yahma-priority-copy small{color:#A9BBC8}
-    body.dark-mode .yahma-priority-item{background:#1A3246;border-color:#344B5F}
-    body.dark-mode .yahma-priority-empty{background:#153A37;border-color:#285D56;color:#9DE1D4}
-    </style>
-    <section class="yahma-priority" aria-label="أولويات تجهيز الأسطول">
-      <div class="yahma-priority-intro"><span class="yahma-priority-kicker">YAHMAA · COMMAND CENTER</span><strong>أولويات التجهيز الآن</strong><span>${todayCount ? 'متابعة ' + todayCount.toLocaleString('en') + ' بندًا يحتاج إلى إجراء' : 'لا توجد مهام عاجلة مسجلة حاليًا'}</span></div>      ${todayTasks.filter(t => (t.n || 0) > 0).slice(0,4).map(t => { const urgent = /متأخرة|منتهية/.test(t.label || ''); return '<button type="button" class="yahma-priority-item" data-go="' + t.go + '" data-priority="' + (urgent ? 'urgent' : 'normal') + '"><span class="yahma-priority-count">' + Number(t.n).toLocaleString('en') + '</span><span class="yahma-priority-copy"><b>' + escapeHtml(t.label) + '</b><small>عرض التفاصيل والإجراء ←</small></span></button>'; }).join('') || '<button type="button" class="yahma-priority-empty" data-go="preparation"><span>✓</span><span>ممتاز! لا توجد أولويات عاجلة — افتح قائمة التجهيز لمراجعة الحالة الكاملة</span></button>'}
-    </section>
+    <!-- تم حذف قسم أولويات التجهيز (YAHMAA · COMMAND CENTER) بناءً على طلب المستخدم -->
     <!-- تم حذف شارة تنبيه التدخل الفوري (0% ⚠️) بناءً على طلب المستخدم -->
     <!-- Hero: كرت بتصميم موحّد مع باقي كروت الصفحة الرئيسية -->
     <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px" class="mock-hero-grid">
