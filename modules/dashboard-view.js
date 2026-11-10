@@ -433,26 +433,7 @@ function dashboardTemplate(state) {
       </div>
     </div>
 
-    <!-- أكثر السيارات المتاحة للإيجار -->
-    <div class="home-card">
-      <div class="home-card-head">
-        <h3>🅿️ أكثر السيارات المتاحة للإيجار (الأقل استخداماً)</h3>
-        <span class="home-badge">${topAvailableCars.length}</b> سيارة</span>
-      </div>
-      <div class="home-tasks">
-        ${topAvailableCars.map(c => `
-          <div class="home-task-row">
-            <button type="button" class="home-task" data-go="fleet">
-              <span class="home-task-n alert">${c.daysIdle} يوم</span>
-              <span class="home-task-label">${escapeHtml(c.plate)} - ${escapeHtml(c.model)}</span>
-              <span class="home-task-arrow">←</span>
-            </button>
-            <span class="home-kpi-pct warn">فرع: ${escapeHtml(c.branch)}</span>
-          </div>
-        `).join('')}
-        ${topAvailableCars.length === 0 ? '<div style="text-align:center;padding:20px;color:#6b7280">لا توجد سيارات متاحة للإيجار حالياً</div>' : ''}
-      </div>
-    </div>
+    <!-- تم حذف تقرير أكثر السيارات المتاحة للإيجار بناءً على طلب المستخدم -->
 
     <!-- Middle row -->
     <div class="home-mid">
