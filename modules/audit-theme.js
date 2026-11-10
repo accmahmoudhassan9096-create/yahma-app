@@ -204,27 +204,11 @@
   };
  };
 
- function ensureRoleBadge(){
-  if(document.getElementById('role-badge')) return;
-  const actions=document.querySelector('.topbar-actions');
-  if(!actions) return;
-  const roleBadge=document.createElement('span');
-  roleBadge.id='role-badge';
-  roleBadge.className='role-badge';
-  roleBadge.title='دورك الحالي (يحدده المدير عبر Supabase)';
-  const logout=document.createElement('button');
-  logout.className='btn btn-ghost';
-  logout.id='btn-logout';
-  logout.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span class="btn-label">خروج</span>';
-  logout.onclick=async ()=>{
-    log('تسجيل خروج', (window.currentUser&&window.currentUser.email)||'');
-    await window.yahmaSignOut();
-  };
-  // insert after mobile menu / notify
-  const firstBtn=actions.querySelector('#btn-refresh') || actions.firstChild;
-  actions.insertBefore(logout, firstBtn);
-  actions.insertBefore(roleBadge, logout);
- }
+ /* ⭐ اتشالت دالة ensureRoleBadge: كانت بتعمل شارة دور وزرار «خروج»
+    جوّه الشريط العلوي، والاتنين مخفيين بـCSS. زرار الخروج الحقيقي
+    موجود في قائمة المستخدم (#btn-profile-logout في index.html،
+    وmodules/topbar-user.js مربوط بيه) — فكان في نسختين، واحدة
+    شغالة وواحدة ميتة. */
 
  function initMoreMenu(){
   if(window._topDdBound) return;
@@ -447,7 +431,7 @@ function initTheme(){
       a.download='fleet-backup-'+todayStr()+'.json';
       a.click();
       log('نسخة احتياطية','تصدير البيانات');
-      document.getElementById('more-menu')?.classList.remove('open');
+
     };
   }
   const emailBackup=document.getElementById('btn-email-backup');
@@ -456,12 +440,12 @@ function initTheme(){
     emailBackup.onclick=async()=>{
       const data={version:2,exportedAt:new Date().toISOString(),fleet:fleet||[],audit:JSON.parse(localStorage.getItem(AUDIT)||'[]')};
       await shareFileByEmail('fleet-backup-'+todayStr()+'.json',JSON.stringify(data,null,2),'application/json','نسخة احتياطية للأسطول — '+todayStr(),'مرفق نسخة احتياطية من بيانات الأسطول وسجل النشاط.');
-      document.getElementById('more-menu')?.classList.remove('open');
+
     };
   }
   if(restoreBtn && input && !restoreBtn._bound){
     restoreBtn._bound=true;
-    restoreBtn.onclick=()=>{ input.click(); document.getElementById('more-menu')?.classList.remove('open'); };
+    restoreBtn.onclick=()=>{ input.click(); };
     input.onchange=()=>{
       const f=input.files[0]; if(!f) return;
       const rd=new FileReader();
@@ -495,8 +479,6 @@ function initTheme(){
        hint.innerHTML='<b>لا توجد أقسام متاحة لحسابك</b><span>صلاحيات حسابك فارغة. كلّم المدير لتفعيل الأقسام.</span>';
      }else if(hint){ hint.remove(); }
    }
-  const accountSettings=document.getElementById('btn-account-settings');
-  if(accountSettings) accountSettings.style.display='none';
   const badge=document.getElementById('role-badge');
   if(badge){ badge.textContent = ({admin:'مدير',ops:'تشغيل',view:'مشاهدة فقط'})[role] || role; badge.className='role-badge '+role; }
   document.querySelectorAll('#btn-clear-all,#btn-delete').forEach(x=>{
@@ -515,17 +497,12 @@ function initTheme(){
   /* «تحديث الفرع» و«رفع السيارات المباعة» اتشالوا من الواجهة:
    الرفع الرئيسي «رفع / تحديث سيارات الأسطول» بيحدّث الفرع وحالة السيارة
    (excel-import.js) وبيحذف المباع تلقائيًا لما حالة السيارة تكون «مباع».
-   سيبنا السطرين دول للتذكير لو حبيت ترجّعهم يوم. */
-  const branchImpBtn=document.getElementById('btn-branch-status-import');
-  if(branchImpBtn){ branchImpBtn.style.display='none'; }
-  const soldBtn=document.getElementById('btn-sold-import');
-  if(soldBtn){ soldBtn.style.display='none'; }
+   الزرارين موجودين في index.html بس بـhidden — شيل السمة لو حبيت ترجّعهم. */
   if(role==='view') document.querySelectorAll('#btn-add-car,#btn-save').forEach(x=>x.disabled=true);
   else document.querySelectorAll('#btn-add-car,#btn-save').forEach(x=>x.disabled=false);
  }
 
  function initUI(){
-  ensureRoleBadge();
   initMoreMenu();
   initTheme();
   initMobileMenu();

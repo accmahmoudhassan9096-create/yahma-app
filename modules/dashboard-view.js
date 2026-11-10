@@ -177,8 +177,7 @@ function dashboardTemplate(state) {
     body.dark-mode .yahma-priority-empty{background:#153A37;border-color:#285D56;color:#9DE1D4}
     </style>
     <section class="yahma-priority" aria-label="أولويات تجهيز الأسطول">
-      <div class="yahma-priority-intro"><span class="yahma-priority-kicker">YAHMAA · COMMAND CENTER</span><strong>أولويات التجهيز الآن</strong><span>${todayCount ? 'متابعة ' + todayCount.toLocaleString('en') + ' بندًا يحتاج إلى إجراء' : 'لا توجد مهام عاجلة مسجلة حاليًا'}</span></div>
-      ${todayTasks.filter(t => (t.n || 0) > 0).slice(0,4).map(t => { const urgent = /متأخرة|منتهية/.test(t.label || ''); return '<button type="button" class="yahma-priority-item" data-go="' + t.go + '" data-priority="' + (urgent ? 'urgent' : 'normal') + '"><span class="yahma-priority-count">' + Number(t.n).toLocaleString('en') + '</span><span class="yahma-priority-copy"><b>' + escapeHtml(t.label) + '</b><small>عرض التفاصيل والإجراء ←</small></span></button>'; }).join('') || '<button type="button" class="yahma-priority-empty" data-go="preparation"><span>✓</span><span>ممتاز! لا توجد أولويات عاجلة — افتح قائمة التجهيز لمراجعة الحالة الكاملة</span></button>'}
+      <div class="yahma-priority-intro"><span class="yahma-priority-kicker">YAHMAA · COMMAND CENTER <span class="dash-cloud-badge" id="dash-cloud-badge"><span class="dash-cloud-dot"></span><span class="dash-cloud-text">متصل بـ Supabase</span></span></span><strong>أولويات التجهيز الآن</strong><span>${todayCount ? 'متابعة ' + todayCount.toLocaleString('en') + ' بندًا يحتاج إلى إجراء' : 'لا توجد مهام عاجلة مسجلة حاليًا'}</span></div>      ${todayTasks.filter(t => (t.n || 0) > 0).slice(0,4).map(t => { const urgent = /متأخرة|منتهية/.test(t.label || ''); return '<button type="button" class="yahma-priority-item" data-go="' + t.go + '" data-priority="' + (urgent ? 'urgent' : 'normal') + '"><span class="yahma-priority-count">' + Number(t.n).toLocaleString('en') + '</span><span class="yahma-priority-copy"><b>' + escapeHtml(t.label) + '</b><small>عرض التفاصيل والإجراء ←</small></span></button>'; }).join('') || '<button type="button" class="yahma-priority-empty" data-go="preparation"><span>✓</span><span>ممتاز! لا توجد أولويات عاجلة — افتح قائمة التجهيز لمراجعة الحالة الكاملة</span></button>'}
     </section>
     <!-- تنبيه تدخل فوري: أيقونة زجاجية صغيرة على الشمال (مش بانر) -->
     ${leastOccupiedBranchName && leastOccupiedBranchName !== '—' && leastOccupiedBranchPct < 20 ? `<div style="display:flex;justify-content:flex-end;margin:6px 0 12px">
@@ -188,7 +187,7 @@ function dashboardTemplate(state) {
     </div>` : ''}
     <!-- Hero زي الصورة: كرت داكن + لوحة خضرا بنفس درجات القسم الداكن -->
     <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px" class="mock-hero-grid">
-      <div style="background:#0F2A24;border:1px solid #1E3D34;border-radius:18px;padding:22px 24px;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25),0 8px 24px rgba(0,0,0,.25)">
+      <div class="home-hero-card" style="background:#0F2A24;border:1px solid #1E3D34;border-radius:18px;padding:22px 24px;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25),0 8px 24px rgba(0,0,0,.25)">
         <p style="display:flex;align-items:center;gap:6px;color:#2DD4A0;font-weight:800;font-size:13px;margin:0 0 12px">✨ نظرة عامة تشغيلية</p>
         <div style="display:flex;align-items:flex-end;gap:10px"><h2 style="margin:0;font-size:56px;font-weight:900;line-height:.95;letter-spacing:-.02em;color:#fff">${total.toLocaleString('en')}</h2><span style="padding-bottom:6px;font-weight:800;color:#fff">سيارة</span></div>
         <h3 style="margin:6px 0 8px;font-size:18px;font-weight:900;color:#fff">إجمالي الأسطول</h3>
@@ -704,16 +703,7 @@ function bindDashboardEvents(content, context, state) {
         }
         const s=document.createElement('script'); s.src=local+'.js'; s.async=true;
         s.onload=drawMap;
-        s.onerror=()=>{
-          try{
-            /* النسخة الاحتياطية المحلية — مفيش CDN. الاعتماد على شبكة
-               خارجية كان بيخلّي الخريطة تفشل على أي شبكة بتقطع unpkg. */
-            const f=document.createElement('script');
-            f.src='vendor/fallback/leaflet.js'; f.async=true;
-            f.onload=drawMap; f.onerror=fail;
-            document.head.appendChild(f);
-          }catch(_){ yahmaErr(_,'dashboard.js:leaflet-fallback'); }
-        };
+        s.onerror=fail;
         document.head.appendChild(s);
       }catch(e){yahmaErr(e,'dashboard.js:774');}
     }, 300);
@@ -725,28 +715,6 @@ function bindDashboardEvents(content, context, state) {
   }));
 
   /* ===== توقّع الدوران: الانتقال للأسطول بالفلتر المناسب ===== */
-
-  // فيديو الواجهة: يعمل تلقائيًا بدون صوت — وإن غاب الملف يرجع لصورة السيارة
-  const heroVideo = content.querySelector('.home-hero-video');
-  if (heroVideo) {
-    const heroFallback = () => {
-      if (!heroVideo.isConnected || heroVideo.dataset.fbk) return;
-      heroVideo.dataset.fbk = '1';
-      const img = document.createElement('img');
-      img.src = 'assets/dashboard-hero.png'; img.alt = ''; img.decoding = 'async';
-      img.className = 'home-hero-car-img'; img.width = 720; img.height = 353;
-      heroVideo.replaceWith(img);
-    };
-    const heroSrc = heroVideo.querySelector('source');
-    if (heroSrc) heroSrc.addEventListener('error', heroFallback);
-    heroVideo.addEventListener('error', heroFallback);
-    setTimeout(() => { if (heroVideo.isConnected && heroVideo.networkState === 3) heroFallback(); }, 3000);
-    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      heroVideo.autoplay = false; heroVideo.pause && heroVideo.pause();
-    } else {
-      heroVideo.addEventListener('canplay', () => { heroVideo.play && heroVideo.play().catch(() => {}); }, { once: true });
-    }
-  }
 
   // Navigation helpers
   const goTab = (tab, filter) => {    if (filter) window.pendingFleetQuickFilter = filter;

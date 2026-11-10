@@ -90,7 +90,7 @@ function renderRenewals(content, mode='inspection'){
       </div>
       <div class="wa-toolbar-actions">
         <button class="btn btn-whatsapp" id="btn-wa-inspection">إرسال على واتساب</button>
-        <button class="btn btn-copy-inspection">نسخ القائمة</button>
+        <button class="btn btn-copy-inspection" id="btn-copy-inspection" type="button">نسخ القائمة</button>
         <!-- أزرار التصدير القديمة (ren-export-*) اتشالت: شريط التصدير
              الموحّد (yx-bar) بقي هو المسؤول وهو موجود جنب زر الرفع. -->
       </div>

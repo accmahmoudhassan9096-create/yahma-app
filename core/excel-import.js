@@ -396,7 +396,6 @@ async function exportCurrentTabPDF(){
       const branch=(document.getElementById('fu-branch')?.value||'').trim();
       const carSt=(document.getElementById('fu-car-status')?.value||'').trim();
       const cardCond=(document.getElementById('fu-card-condition')?.value||'').trim();
-      const ins=(document.getElementById('fu-ins-status')?.value||'').trim();
       list=list.filter(c=>{
         if(q && ![c.plate,c.owner,c.branch,c.brand,c.cardNumber].join(' ').toLowerCase().includes(q)) return false;
         if(branch && String(c.branch||'').trim()!==branch) return false;
@@ -491,16 +490,6 @@ function extractPlatesFromRows(rows){
     if(t) plates.push(t);
   });
   return plates;
-}
-async function downloadSoldTemplate(){
-  if(!(await ensureXlsxReady())){ alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.'); return; }
-  const headers=['رقم اللوحة'];
-  const example=['ر ن س 6724'];
-  const ws=XLSX.utils.aoa_to_sheet([headers, example, ['ر ن س 6725']]);
-  ws['!cols']=[{wch:20}];
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'سيارات مباعة');
-  XLSX.writeFile(wb, 'نموذج-سيارات-مباعة.xlsx');
 }
 async function removeSoldVehiclesByPlates(plates,options={}){
   const {skipConfirm=false,silent=false}=options;
@@ -604,15 +593,10 @@ async function handleSoldExcelFile(file){
 }
 
 document.getElementById('btn-refresh').addEventListener('click', manualRefresh);
-document.getElementById('btn-template')?.addEventListener('click', ()=>{ downloadTemplate(); document.getElementById('more-menu')?.classList.remove('open'); });
-document.getElementById('btn-sold-template')?.addEventListener('click', ()=>{ downloadSoldTemplate(); document.getElementById('more-menu')?.classList.remove('open'); });
-document.getElementById('btn-export')?.addEventListener('click', ()=>{ exportFleet(); document.getElementById('more-menu')?.classList.remove('open'); });
 document.getElementById('btn-import').addEventListener('click', ()=> document.getElementById('file-import').click());
-document.getElementById('btn-export-pdf')?.addEventListener('click', exportCurrentTabPDF);
 document.getElementById('btn-sold-import')?.addEventListener('click', ()=> document.getElementById('file-sold-import').click());
 document.getElementById('btn-branch-status-import')?.addEventListener('click', ()=> document.getElementById('file-branch-status').click());
-document.getElementById('btn-branch-status-template')?.addEventListener('click', ()=>{ downloadBranchStatusTemplate(); document.getElementById('more-menu')?.classList.remove('open'); });
-document.getElementById('btn-clear-all')?.addEventListener('click', ()=> document.getElementById('more-menu')?.classList.remove('open'));
+document.getElementById('btn-clear-all')?.addEventListener('click', ()=>{});
 document.getElementById('file-import').addEventListener('change', async (e)=>{
   const file = e.target.files[0];
   if(!file) return;

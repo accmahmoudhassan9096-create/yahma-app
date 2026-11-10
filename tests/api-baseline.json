@@ -41,12 +41,6 @@
   "YahmaAudit": [
     "render"
   ],
-  "YahmaBranchEmail": [
-    "call",
-    "mount",
-    "readDraft",
-    "writeDraft"
-  ],
   "YahmaBranches": [
     "render"
   ],
@@ -365,12 +359,6 @@
     "readLocal",
     "saveToday",
     "todayIso"
-  ],
-  "YahmaTV": [
-    "active",
-    "enter",
-    "exit",
-    "toggle"
   ],
   "YahmaTopbarMenu": [
     "bindMobileTools",

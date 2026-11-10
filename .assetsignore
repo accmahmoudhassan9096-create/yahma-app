@@ -20,6 +20,14 @@ node_modules/
 wrangler.toml
 .assetsignore
 .github/
+.gitattributes
+
+# أدوات التطوير — مش بتتشر على الموقع
+scripts/
+tests/
+supabase/
+*.md
+!README.md
 
 # توكنات/أسرار محلية لو اتحطت في المجلد بالغلط
 *.token

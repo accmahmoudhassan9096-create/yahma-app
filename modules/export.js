@@ -4,21 +4,18 @@
 (function (global) {
   'use strict';
 
-  /* المكتبات محلية أولًا (vendor/) والنسخة الثانية (vendor/fallback/) احتياط.
-     السبب: على شبكات بتحجب ملفاتنا، التصدير كان بيفشل بصمت.
+  /* المكتبات محلية من نطاقنا — مفيش CDN ولا نسخة احتياطية.
+     السبب: الاعتماد على شبكة خارجية كان بيخلّي التصدير يفشل صامت
+     على أي شبكة بتقطع jsdelivr/cdnjs. البديل كله local.
 
-     ⚠️ مفيش CDN هنا عن قصد: التبعية على شبكة خارجية كانت بتخلّي
-     التصدير يفشل صامت على أي شبكة بتقطع jsdelivr/cdnjs. البديل
-     كله local — النسخة الأولى، ولو فشلت النسخة التانية. */
-  const CDN = {
+     ⚠️ المكتبات دي (1.4MB) مش في precache الـSW عن قصد — بتتحمّل
+     أول مرة المستخدم يضغط «تصدير». وبما إن الـSW بيجيب من الشبكة
+     أولًا وبيخزّن أي ملف نجح، أول تحميل بيعمل الكاش والكود بيشتغل
+     أوفلاين بعد كده من غير ما نحمّل 1.4MB على كل جهاز. */
+  const LIB = {
     xlsx: 'vendor/xlsx.full.min.js',
     html2canvas: 'vendor/html2canvas.min.js',
     jspdf: 'vendor/jspdf.umd.min.js',
-  };
-  const CDN_FALLBACK = {
-    xlsx: 'vendor/fallback/xlsx.full.min.js',
-    html2canvas: 'vendor/fallback/html2canvas.min.js',
-    jspdf: 'vendor/fallback/jspdf.umd.min.js',
   };
 
   const loaded = Object.create(null);
@@ -44,14 +41,10 @@
     return loaded[url];
   }
 
-  /* بنجرب المحلي الأول، ولو فشل (شبكة بتقطع ملفاتنا) نرجع للنسخة المحلية التانية */
+  /* بنحمّل المكتبة المحلية. لو فشل — معناها الشبكة مقطوعة أو الملف
+     مش موجود، ونقول للمستخدم بوضوح بدل ما نكتم الخطأ. */
   async function loadLib(key) {
-    try {
-      await loadScript(CDN[key]);
-    } catch (e) {
-      console.warn('تعذر تحميل ' + key + ' محليًا، بنجرب النسخة الاحتياطية:', e);
-      await loadScript(CDN_FALLBACK[key]);
-    }
+    await loadScript(LIB[key]);
   }
 
   async function ensureXlsx() {

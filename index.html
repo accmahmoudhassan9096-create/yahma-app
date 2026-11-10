@@ -175,25 +175,6 @@
 
   <div class="main">
 
-<div id="platform-watermark" class="platform-watermark" aria-hidden="true">
-  <div class="wm-tile">
-    <svg class="wm-car" viewBox="0 0 240 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M28 62c6-10 18-24 34-30 14-6 30-8 48-6 20 2 38 10 52 22 8 7 14 14 18 20h22c4 0 6 2 6 5v6H22v-6c0-4 2-7 6-11z" stroke="currentColor" stroke-width="2.2" fill="none" opacity=".9"/>
-      <path d="M70 36c12-12 28-18 50-18 18 0 34 6 48 16" stroke="currentColor" stroke-width="1.8" fill="none" opacity=".75"/>
-      <circle cx="68" cy="78" r="11" stroke="currentColor" stroke-width="2.2" fill="none"/>
-      <circle cx="68" cy="78" r="4.5" fill="currentColor" opacity=".35"/>
-      <circle cx="155" cy="78" r="11" stroke="currentColor" stroke-width="2.2" fill="none"/>
-      <circle cx="155" cy="78" r="4.5" fill="currentColor" opacity=".35"/>
-      <path d="M30 58h20M175 58h18" stroke="currentColor" stroke-width="1.6" opacity=".5"/>
-    </svg>
-    <div class="wm-brand">
-      <div class="wm-brand-en">YAHMA</div>
-      <div class="wm-brand-ar">يهماء</div>
-      <div class="wm-brand-sub">لتأجير السيارات</div>
-    </div>
-  </div>
-</div>
-
     <div class="topbar topbar-v43">
       <div class="topbar-brand" aria-label="هوية منصة يهماء">
         <div class="topbar-brand-mark" aria-hidden="true">
@@ -456,7 +437,6 @@
 <!-- الوحدات الجديدة بعد التقسيم -->
 <script defer src="modules/data.js"></script>
 <script defer src="modules/payments-store.js"></script>
-<script defer src="modules/branch-email.js"></script>
 <script defer src="modules/realtime.js"></script>
 <script defer src="modules/utils.js"></script>
 <script defer src="modules/readiness.js"></script>
@@ -509,16 +489,13 @@
 <script defer src="modules/topbar-invoke.js"></script>
 <script defer src="modules/topbar-user.js"></script>
 <script defer src="modules/topbar-menu.js"></script>
-<script defer src="modules/topbar-quick.js"></script>
 <script defer src="modules/topbar-safe-dd.js"></script>
 <script defer src="modules/topbar-ui.js"></script>
 <script defer src="modules/users-tab.js"></script>
 <script defer src="modules/reports.js"></script>
 <script defer src="modules/app-version.js"></script>
-<script defer src="modules/tv-mode.js"></script>
 <script defer src="modules/scan-console.js"></script>
 <script defer src="modules/perf-vtable.js"></script>
-<script defer src="modules/cloud.js"></script>
 <script>
 // تسجيل الـ service worker لتخزين هيكل التطبيق أوفلاين — بره خدمة عادية من ملف مباشر
 if('serviceWorker' in navigator && location.protocol !== 'file:'){

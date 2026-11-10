@@ -52,7 +52,9 @@ function renderFollowUp(content){
         <strong>تأمين منتهي:</strong> <span class="wa-count">${needIns}</span>
       </div>
       <div class="wa-toolbar-actions">
-        <button class="btn btn-whatsapp" id="btn-wa-card">واتساب — الكارت</button>
+        <button class="btn btn-whatsapp" id="btn-wa-card" type="button">واتساب — الكارت</button>
+        <button class="btn btn-whatsapp" id="btn-wa-ins" type="button" title="تقرير التأمين غير الساري عبر واتساب">واتساب — التأمين</button>
+        <button class="btn btn-ghost btn-small" id="btn-copy-card" type="button">📋 نسخ قائمة الكارت</button>
         <button class="btn btn-ghost btn-small" id="ren-export-xlsx">📥 تصدير Excel</button>
         <button class="btn btn-ghost btn-small" id="ren-export-pdf">📄 تصدير PDF</button>
         <button class="btn btn-primary btn-small" id="fu-upload-btn" title="رفع شيت الكروت — يحدّث بيانات الكارت فقط">📥 رفع شيت الكروت</button>
@@ -225,7 +227,7 @@ function renderFollowUp(content){
         else if(want.includes('موقوف') && !raw.includes('موقوف')) return false;
         else if(want==='نشط' && (raw.includes('ملغ')||raw.includes('موقوف'))) return false;
       }
-      if(!activeFQ && !val('fu-card-condition') && !val('fu-card-status') && !val('fu-ins-status') && !q){
+      if(!activeFQ && !val('fu-card-condition') && !val('fu-card-status') && !q){
         const lvl = cardDisplayStatus(c.cardExpiry,c.cardStatus).level;
         const raw = norm(c.cardStatus);
         /* افتراضيًا: المنتهي + الملغي + اللي بدون تاريخ، مش بس الأحمر */

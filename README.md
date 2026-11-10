@@ -1,106 +1,152 @@
-# يهماء — هيكل المشروع
+# يهماء — منصة تحضير الأسطول للتأجير
+
+> تطبيق ويب ثابت (Vanilla JS، بدون build step، بدون `package.json`).
+> بيتشرى على Cloudflare Workers عبر `wrangler.toml`، وكل الداتا من Supabase.
+
+## التشغيل المحلي
+
+```bash
+npx wrangler dev          # http://127.0.0.1:8788
+```
+
+أو أي سيرفر ملفات ثابت:
+
+```bash
+npx serve .               # أو: python -m http.server 8080
+```
+
+## الفحوصات (كلها محلية، بدون تثبيت)
+
+```bash
+node --test tests/*.test.js   # 289 اختبار
+node scripts/check-shell.js   # صحّة precache الـservice worker
+node scripts/check-workflow.js # بنية ملف الـworkflow
+node scripts/css-prune.js     # تقرير: قوانين CSS ميتة (مع --apply بتحذفها)
+node scripts/minify-css.js    # توليد css/*.min.css من المصدر
+```
+
+كلهم بيشتغلوا على `node --test` المدمج — مفيش `package.json` عن قصد،
+لأن Cloudflare Pages لو شاف واحد بيحسّها مشروع Node وبيحاول يبني
+حاجة مش موجودة، فكل deploy بيفشل.
+
+## هيكل المشروع
 
 ```
 yahma-app/
-├── index.html          # الهيكل + manifest + تسجيل الـ service worker
-├── style.css           # (شاهد فارغ) — أنماطه في css/ بأربعة ملفات بنفس الترتيب
-├── css/                # (!) ترتيب التحميل مطابق حرفيًا لترتيب style.css القديم
-│   ├── 01-base.css       # الأساس + الشريط العلوي + الشاشات (السطور 1-888)
-│   ├── 02-components.css # المكوّنات + القوائم + طبقات z-index (889-1757)
-│   ├── 03-motion-layout.css # الحركة + التوالي + العمق والترويسات (1758-2637)
-│   └── 04-dark-overrides.css # الوضع الليلي + التقارير + التراكبات المتأخرة (2638-3524)
+├── index.html            # الهيكل + manifest + تسجيل الـservice worker
+├── app.js                # الإقلاع + Dexie/IndexedDB
+├── sw.js                 # service worker — يخزّن هيكل التطبيق أوفلاين
+├── manifest.json         # PWA
+├── diagnostic.html       # صفحة تشخيص المنصة (تعمل في أي وقت)
+├── _headers              # قواعد Cache-Control على Cloudflare
+├── wrangler.toml         # إعدادات النشر (static assets only)
 ├── assets/
-│   └── dashboard-hero.png # صورة بطل اللوحة (كانت base64 داخل dashboard.js — 475KB)
-├── app.js              # الإقلاع + Dexie/IndexedDB
-├── app-core.js         # شاهد نصي فقط — فُرّق محتواه إلى core/* (لا يُحمَّل من index.html)
-├── core/               # (!) ترتيب التحميل في index.html مطابق حرفيًا لترتيب السطور القديم
-│   ├── auth-boot.js       # الإقلاع + بوابة المصادقة + الأدوار والصلاحيات
-│   ├── branches-store.js  # مفاتيح التخزين + مخزن الفروع + البذور + الإقلاع الطارئ
-│   ├── sync.js            # طبقة Supabase/Realtime + تحميل/حفظ + التحديث اليدوي
-│   ├── report-glue.js     # الفترات والمؤشرات والإيميل المجدول والـPDF الرسمي والإنفوجرافيك
-│   ├── render-router.js   # render() + شاشات الفروع/الفحوصات + الرسوم البيانية
-│   ├── pdf-share.js       # توليد PDF وواتساب ونافذة المركبة وربط أزرار الواجهة
-│   └── excel-import.js    # استيراد/تصدير Excel والسيارات المباعة وشريط الأدوات العلوي
-├── manifest.json       # PWA — يسمح بتثبيت المنصة كتطبيق
-├── sw.js               # service worker لتخزين هيكل التطبيق أوفلاين (بره Supabase تمامًا)
-├── icon-192.png / icon-512.png   # أيقونات PWA
-└── modules/
-    # السبعة التالية استُخرجت من ذيل app-core.js وتُحمَّل بعد core/ بالترتيب نفسه:
-    ├── audit-theme.js    # سجل النشاط المحلي + تبديل الوضع الليلي
-    ├── notifications.js  # الإشعارات والتنبيهات
-    ├── preparation-live.js # أحداث ومهام التجهيز الحيّة
-    ├── vehicle-360.js    # ملف السيارة 360
-    ├── ops-intel.js      # الفلاتر المحفوظة والعرض الافتراضي
-    ├── topbar-ui.js      # تفاعلات الشريط العلوي والقوائم المنسدلة
-    ├── perf-vtable.js    # الأداء + أولوية تحميل YahmaDB + محرك الجدول
-    ├── auth.js           # (موقوف التحميل — كود ميت، الملف على القرص فقط)
-    ├── fleet.js        # عرض الأسطول والبحث والفلترة وكاش النتائج والجاهزية
-    ├── reports.js      # شاشة التقارير والفلاتر والمؤشرات وقوالب PDF والإنفوجرافيك
-    ├── dashboard.js    # لوحة المعلومات ومؤشرات الأسطول والتنقل من الرسوم
-    ├── branches.js     # عرض دليل الفروع والبحث وإجراءات الفروع
-    ├── audit.js        # واجهة سجل نشاط المستخدمين
-    ├── preparation-data.js # حساب مهام التجهيز وحالة المراجعة
-    ├── preparation-history.js # تسجيل أحداث التجهيز وعرض المسار الزمني
-    ├── renewals.js    # تجهيز بيانات الفحص والرخص ورسائل تقرير الفحص
-    ├── renewals-ui.js # شاشة الفحص والرخص والفلاتر والتصدير
-    ├── follow-up-ui.js # شاشة بطاقات التشغيل والتأمين
-    ├── vehicle-modal.js # فتح نموذج السيارة وملؤه وبيانات التجهيز
-    ├── vehicle-form.js # جمع بيانات السيارة والتحقق من التكرار
-    ├── vehicle-operations.js # حفظ السيارة وأرشفتها وإشعاراتها
-    ├── fleet-excel.js # أعمدة الأسطول وتطبيع Excel والتواريخ والتصدير
-    ├── cloud.js        # عميل Supabase المشترك (لصفحة test.html)
-    ├── utils.js        # أدوات التواريخ والنصوص المشتركة
-    ├── data.js         # تحميل/حفظ الأسطول والكاش وتحويل الصفوف وجلب Supabase
-    ├── email-schedule.js # المستلمون وسجل الإرسال وإعداد الجدولة
-    ├── realtime.js     # تحديث الأسطول التلقائي واليدوي واشتراك Supabase Realtime
-    ├── readiness.js    # قواعد جاهزية السيارة وإحصاءاتها
-    ├── smooth.js       # تحسينات السلاسة
-    └── export.js       # تصدير Excel/PDF مع Lazy Loading وتجميع تقرير PDF
+│   └── hero-car.svg      # silhouette السيارة (بتتلوّن من CSS كـmask)
+├── fonts/                # Cairo woff2 محلي (79KB) — مفيش Google Fonts
+├── vendor/               # مكتبات محلية: supabase, dexie, leaflet, xlsx, jspdf, html2canvas
+├── css/                  # 8 ملفات — المصدر (للتنسيق والصيانة) + المضغوط (اللي بيتشحن)
+│   ├── fonts.css
+│   ├── 01-base.css           # الأساس + الشريط العلوي + النوافذ
+│   ├── 02-components.css     # المكوّنات + القوائم + z-index
+│   ├── 03-motion-layout.css  # الحركة + التوالي + الترويسات
+│   ├── 04-dark-overrides.css # الوضع الليلي + التقارير + التراكبات المتأخرة
+│   ├── 05-offline-badge.css
+│   ├── 06-premium-design.css
+│   └── 07-visual-redesign.css # آخر ملف — بيلغي اللي قبله بـ!important
+├── core/                 # منطق التطبيق (14 ملف)
+│   ├── auth-boot.js          # الإقلاع + بوابة المصادقة + الأدوار
+│   ├── permissions.js        # صلاحيات الأدوار
+│   ├── branches-store.js     # مخزن الفروع + البذور
+│   ├── sync.js               # طبقة Supabase/Realtime
+│   ├── data / render / pdf / excel …
+│   └── router-payments*.js   # شاشات المدفوعات (6 ملفات)
+├── modules/              # الوحدات (54 ملف) — الشاشات والمكوّنات
+└── supabase/             # المخطط + Edge Functions + سكربتات SQL
 ```
 
-> **ترتيب التحميل في `index.html` (مهم عند أي تعديل):**
-> - **JS:** `app.js` ← وحدات النطاق (`modules/*` الحالية) ← `core/*` (سبعة بالترتيب) ← محزوزات الذيل السبعة ← `cloud.js`
-> - **CSS:** `css/01-base` ← `02-components` ← `03-motion-layout` ← `04-dark-overrides` (يجب أن يبقى `04` آخرًا لأنه يحمل التراكبات المتأخرة والوضع الليلي)
-> - أي ملف جديد يجب أن يدخل في موضعه من هذا التسلسل حتى يبقى توقيع التنفيذ كما هو.
+> **ترتيب التحميل في `index.html` مهم عند أي تعديل.**
+> - **JS:** `app.js` ← `core/*` ← `modules/*` — الترتيب الحرفي زي ما هو.
+> - **CSS:** `fonts` ← `01` ← `02` ← `03` ← `04` ← `05` ← `06` ← `07`.
+>   آخر ملف لازم يفضل `07` لأنه يحمل التراكبات المتأخرة والوضع الليلي.
 
+## قواعد لازم تلتزم بيها
+
+### 1. أي تعديل على ملف مشحون = رفع رقم الكاش
+
+الـservice worker بيشتغل **cache-first**. لو غيّرت CSS أو JS من غير ما
+ترفع `CACHE_NAME` في `sw.js`، المستخدم هيضل يشغّل النسخة القديمة من
+Cache Storage — ولافتة التحديث مش هتظهر (لأن رقم النسخة واحد).
+
+```bash
+# غيّر CACHE_NAME في sw.js:  yahma-shell-v384 → v385
+node scripts/check-shell.js   # بيفشل لو نسيت
 ```
-supabase/functions/
-├── admin-create-user/index.ts    # إنشاء مستخدم (Auth + profiles) — يتطلب دور admin
-└── admin-delete-user/index.ts    # حذف مستخدم (Auth + profiles) — يتطلب دور admin، ملف admin-delete-user.index.ts هنا يترفع في المسار ده
-└── send-user-email/index.ts      # إرسال تعميم/تقرير لحسابات المنصة عبر Resend — يتطلب دور admin
+
+الفحص ده في `check-shell.js` وبيشتغل على CI بعد كل push.
+
+### 2. مفيش CDN خارجي
+
+كل الأصول من نطاقنا: الخطوط local، المكتبات local، صورة السيارة SVG
+محلي. طلب خارجي واحد بيكسر تشغيل المنصة على شبكة بتقطعه — وده اللي
+حصل قبل كده.
+
+### 3. مصدر الـCSS هو الحقيقة
+
+`css/*.css` هو المصدر المقروء (التعليقات العربية فيه هي التوثيق)،
+و`css/*.min.css` هو اللي بيتشحن ويتخزّن. بعد أي تعديل على المصدر:
+
+```bash
+node scripts/minify-css.js
 ```
 
-## IndexedDB (Dexie)
-- قاعدة `yahma-fleet-db` جدول `vehicles` بمفاتيح: id, plate, branch, owner...
-- ترحيل تلقائي من `localStorage` (`fleet-data-v2`) عند أول تشغيل
-- الحفظ على دفعات (500 سجل) لتجنب تجميد الواجهة مع بيانات ضخمة
-
-## Lazy Loading
-- `xlsx` و `jspdf` و `html2canvas` **لا تُحمَّل عند فتح المنصة**
-- تُحمَّل فقط عند الضغط على أزرار التصدير (انظر `modules/export.js`)
-
-## التشغيل
-افتح `index.html` عبر خادم محلي مفضل (أو مباشرة في المتصفح).
-
-## Supabase (السحابة الوحيدة)
-- الدخول: Supabase Auth (بريد/كلمة مرور + Google) — الأدوار من جدول `profiles`
-- البيانات: جدول `vehicles` (المفتاح `car_id`، والسيارة كاملة في عمود `data` jsonb، وأعمدة صريحة زي `branch`/`plate` للفلاتر و RLS)
-- التحديث المباشر: Realtime على جدول `vehicles` (الجدول بيتضاف تلقائيًا لـ publication في migration)
-- شغّل `supabase/supabase-migration.sql` في SQL Editor عند إعداد المشروع، وأعد تشغيله عند إضافة تغييرات مخطط جديدة؛ أوامره تستخدم `if not exists` وسياسات قابلة لإعادة التطبيق.
-- انشر دوال `admin-create-user` و`admin-delete-user` و`send-user-email` كـ Supabase Edge Functions.
-- لإرسال التعميمات من شاشة التقارير، اضبط أسرار Supabase التالية: `RESEND_API_KEY` و`RESEND_FROM_EMAIL` (عنوان مُعتمد لدى Resend)، بالإضافة إلى `YAHMA_SERVICE_ROLE_KEY` و`SUPABASE_ANON_KEY`. الإرسال يستهدف مستخدمي Auth الحاليين، لذا يشمل الحسابات التي تُضاف لاحقًا تلقائيًا.
-- زر البريد في الشريط العلوي يرسل PDF لنتائج الصفحة بعد تطبيق فلاترها إلى مستخدمين تختارهم من حسابات Auth؛ متاح للمدير فقط وبحد أقصى 25 مستلمًا في الإرسال الواحد. بعد تحديث الميزة، أعد نشر `send-user-email` وملفات الواجهة.
-- إشعارات الأحداث تُطلق من منطق الواجهة بعد نجاح الإجراء: إضافة سيارة أو اعتماد جاهزيتها يرسل للمديرين، وإنشاء حساب يرسل رسالة ترحيب للحساب الجديد فقط. لا يُرسل كلمة المرور بالبريد.
-- شغّل تحديث `supabase-migration.sql` لإضافة جدول `email_schedule`، ثم أضف سرًا عشوائيًا طويلًا باسم `YAHMA_CRON_SECRET` إلى أسرار الدوال. افتح `supabase/scheduled-email-setup.sql`، واستبدل `REPLACE_WITH_A_LONG_RANDOM_SECRET` بالقيمة نفسها و`REPLACE_WITH_SUPABASE_ANON_KEY` بمفتاح anon الخاص بالمشروع، ثم شغّله مرة واحدة في SQL Editor لتفعيل فحص المواعيد كل دقيقة عبر pg_cron وpg_net وVault. لا تشارك سر Cron أو تضعه في الواجهة الأمامية.
-- شاشة التقارير تحفظ الجدولة السحابية بتوقيت الرياض: تقرير يومي وتنبيه مستندات أسبوعي. لا يبدأ الإرسال إلا بعد تفعيل الجدولة وحفظها، ويصل إلى حسابات Auth التي لديها بريد، بما فيها الحسابات المضافة لاحقًا.
-- بعد تثبيت Supabase CLI وتسجيل الدخول، انشر الدالة بالأمر `supabase functions deploy send-user-email --project-ref dzildqysxdlnfsmjttjg` ثم انشر ملفات الواجهة على Netlify. بعد حفظ أسرار Resend وتشغيل SQL للـ Cron، فعّل الجدولة من شاشة التقارير.
-- أي مستخدم يدخل بـ Google لأول مرة بياخد صف `profiles` تلقائيًا بدور `view` (عبر trigger على `auth.users`)، وبعدين المدير يقدر يغيّر دوره من "إدارة المستخدمين"
-- إعادة تعيين كلمة المرور متاحة من شاشة الدخول ("نسيت كلمة المرور؟")
-- Firebase اتشال بالكامل
+`check-shell.js` بيكشف لو المصدر والمضغوط مش متسابقين.
 
 ## PWA / أوفلاين
-- المنصة قابلة للتثبيت (Add to Home Screen) عبر `manifest.json`
-- `sw.js` بيخزن هيكل التطبيق (HTML/CSS/JS) للفتح بدون إنترنت — طلبات Supabase نفسها ما بتتخزنش أبدًا وتفضل تعدي على الشبكة مباشرة
+
+- المنصة قابلة للتثبيت (Add to Home Screen) عبر `manifest.json`.
+- `sw.js` بيخزّن هيكل التطبيق (HTML/CSS/JS) — طلبات Supabase نفسها ما
+  بتتخزّنش أبدًا وبتعدّي على الشبكة دايمًا.
+- مكتبات التصدير (xlsx/jspdf/html2canvas = 1.4MB) **مش** في الـprecache:
+  بتتحمّل أول مرة المستخدم يضغط «تصدير»، والـSW بيخزّنها بعد كده فتشتغل
+  أوفلاين من بعدها.
+
+## Supabase
+
+- الدخول: Supabase Auth (بريد/كلمة مرور + Google) — الأدوار من جدول
+  `profiles`.
+- البيانات: جدول `vehicles` (المفتاح `car_id`، والسيارة كاملة في عمود
+  `data` jsonb + أعمدة صريحة زي `branch`/`plate` للفلاتر) و RLS.
+- التحديث المباشر: Realtime على جدول `vehicles`.
+- شغّل `supabase/supabase-migration.sql` في SQL Editor — أوامره
+  `if not exists` وقابلة لإعادة التطبيق.
+- انشر الدوال: `admin-create-user` و `admin-delete-user` و
+  `send-user-email` كـ Supabase Edge Functions.
+
+```bash
+supabase functions deploy send-user-email --project-ref dzildqysxdlnfsmjttjg
+```
+
+- أسرار الإرسال: `RESEND_API_KEY` و `RESEND_FROM_EMAIL` (عنوان مُعتمد
+  لدى Resend) + `YAHMA_SERVICE_ROLE_KEY` و `SUPABASE_ANON_KEY`.
+- الجدولة السحابية (تقرير يومي + تنبيه أسبوعي): شغّل
+  `supabase/scheduled-email-setup.sql` بعد ما تحط سر
+  `YAHMA_CRON_SECRET` في أسرار الدوال.
+- أي مستخدم يدخل بـ Google لأول مرة بياخد صف `profiles` تلقائيًا بدور
+  `view` (trigger على `auth.users`)، وبعدين المدير يقدر يغيّر دوره.
+
+## النشر
+
+```bash
+npx wrangler deploy
+npx wrangler versions list --name yahma-app
+npx wrangler rollback --name yahma-app
+```
+
+التفاصيل في [DEPLOY-CLOUDFLARE.md](DEPLOY-CLOUDFLARE.md).
 
 ## ملاحظات
-- `test.html` صفحة اختبار اتصال بـ Supabase لمرحلة التطوير فقط — يُفضّل حذفها أو حمايتها قبل النشر الفعلي للمنصة.
+
+- `diagnostic.html` صفحة تشخيص: بتقول لك حالة الـservice worker، نسخة
+  الكاش، اتصال Supabase، وسعة التخزين — افتحها قبل ما تفتح تذكرة دعم.
+- `.env.example` فيه توثيق المتغيرات — **مش** بيتقرأ وقت التشغيل
+  (التطبيق static والمفاتيح في `core/auth-boot.js`).

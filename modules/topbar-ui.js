@@ -25,21 +25,6 @@
         userDropdown.style.display = isHidden ? '' : 'none';
       };
     }
-    /* زر "إدارة المستخدمين" داخل القائمة يفتح تبويب المستخدمين (للمدير فقط) */
-    const adminBtn=document.getElementById('btn-account-settings');
-    if(adminBtn){
-      adminBtn.onclick=function(e){
-        e.preventDefault();
-        e.stopPropagation();
-        if(userDropdown) { userDropdown.hidden = true; userDropdown.style.display = 'none'; }
-        if(window.currentRole!=='admin'){ alert('إدارة المستخدمين متاحة للمدير فقط.'); return; }
-        if(typeof window.yahmaGoTab === 'function') window.yahmaGoTab('users');
-        else if(typeof window.yahmaSetTab === 'function'){
-          window.yahmaSetTab('users');
-          if(typeof window.render === 'function') window.render();
-        }
-      };
-    }
     /* زر "بياناتي وكلمة المرور" يفتح شاشة البيانات الشخصية */
     const myAccountBtn=document.getElementById('btn-my-account');
     if(myAccountBtn){

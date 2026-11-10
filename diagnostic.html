@@ -6,9 +6,10 @@
 <title>تشخيص المنصة — يهماء</title>
 <script src="vendor/supabase.min.js"></script>
 <script>
-/* شبكة أمان محلية — لو vendor/fallback موجود بنستخدمه، ومفيش CDN. */
+/* لو المكتبة المحلية مفقودة بنقوله صراحةً — مفيش نسخة احتياطية
+   ولا CDN (النسخة المزدوجة اللي كانت هنا بتطلب ملف مش موجود). */
 if (typeof supabase === 'undefined') {
-  document.write('<script src="vendor/fallback/supabase.min.js"><\/script>');
+  console.warn('[yahma-diagnostic] vendor/supabase.min.js مش متحمّل');
 }
 </script>
 <style>

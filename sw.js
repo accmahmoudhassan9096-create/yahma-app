@@ -2,27 +2,31 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v384';
+const CACHE_NAME = 'yahma-shell-v385';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
   './diagnostic.html',
-  /* ⭐ المكتبات محلية مش CDN — كاش إجباري.
+  /* ⭐ المكتبات الأساسية محلية مش CDN — كاش إجباري.
      لو الـCDN اتحجب، Supabase ماحمّلتش والتطبيق فتح «وضع محلي»
      وطلع 0 سيارة (اللي حصل لأمين على الآيفون). دلوقتي كل مكتبة
-     لازمة موجودة عندنا وبتتكيّش مع التطبيق. */
+     لازمة موجودة عندنا وبتتكيّش مع التطبيق.
+
+     ⚠️ مكتبات التصدير (xlsx / html2canvas / jspdf = 1.4MB) مش هنا
+     عن قصد: هي بتتحمّل أول مرة المستخدم يضغط «تصدير» من modules/export.js.
+     تحميلها مع كل install كان بيحمّل 1.4MB على كل موبايل عشان
+     أكتر من نص المستخدمين مش بيصدّروا حاجة. */
   './vendor/supabase.min.js',
   './vendor/dexie.min.js',
-  './vendor/xlsx.full.min.js',
-  './vendor/html2canvas.min.js',
-  './vendor/jspdf.umd.min.js',
-  /* النسخة الاحتياطية: لو الأولى فشلت (شبكة بتقطع ملفاتنا) بنرجع
-     ليها بدل ما نرجع لـCDN — عشان المنصة تفتح حتى مع شبكة ضعيفة. */
   './css/01-base.min.css',
   './css/02-components.min.css',
   './css/03-motion-layout.min.css',
   './css/04-dark-overrides.min.css',
-  './assets/dashboard-hero.png',
+  './css/05-offline-badge.min.css',
+  './css/06-premium-design.min.css',
+  './css/07-visual-redesign.min.css',
+  './css/fonts.min.css',
+  './assets/hero-car.svg',
   './app.js',
   './core/permissions.js',
   './core/auth-boot.js',
@@ -52,20 +56,17 @@ const LOCAL_APP_SHELL = [
   './modules/topbar-invoke.js',
   './modules/topbar-user.js',
   './modules/topbar-menu.js',
-  './modules/topbar-quick.js',
   './modules/topbar-safe-dd.js',
   './modules/topbar-ui.js',
   './modules/users-tab.js',
   './modules/reports.js',
   './modules/app-version.js',
-  './modules/tv-mode.js',
   './modules/scan-console.js',
   './modules/nav-guard.js',
   './modules/perf-vtable.js',
   './manifest.json',
   './modules/data.js',
   './modules/payments-store.js',
-  './modules/branch-email.js',
   './modules/realtime.js',
   './modules/utils.js',
   './modules/readiness.js',
@@ -95,7 +96,6 @@ const LOCAL_APP_SHELL = [
   './modules/vehicle-operations.js',
   './modules/fleet-excel.js',
   './modules/smooth.js',
-  './modules/cloud.js',
   './vendor/leaflet.js',
   './vendor/leaflet.css',
   './vendor/images/layers.png',
@@ -111,12 +111,6 @@ const LOCAL_APP_SHELL = [
   './icon-192.png',
   './icon-512.png',
 ];
-/* مفيش CDN اختياري بقى.
-   كان الخط من fonts.googleapis.com وكنا بنعمله cache كشبكة أمان.
-   دلوقتي الخط local على نطاقنا (fonts/*.woff2، 79KB)، فمفيش أي
-   سبب يفضل في القائمة — والقائمة دي كانتمعناها إنها آخر نقطة
-   فشل في السلسلة. */
-const OPTIONAL_CDN = [];
 
 /* التثبيت لازم يكون صامد: cache.addAll بيفشل ذرّيًا لو ملف واحد رجّع
    خطأ، وكان معناه إن التحديث كله بيموت صامت والمستخدم يفضل على
@@ -127,10 +121,9 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME).then(async (cache) => {
       const results = await Promise.allSettled([
         ...LOCAL_APP_SHELL.map((url) => cache.add(new Request(url, { cache: 'reload' }))),
-        ...OPTIONAL_CDN.map((url) => cache.add(url)),
       ]);
       const failed = results
-        .map((r, i) => (r.status === 'rejected' ? (i < LOCAL_APP_SHELL.length ? LOCAL_APP_SHELL[i] : OPTIONAL_CDN[i - LOCAL_APP_SHELL.length]) : null))
+        .map((r, i) => (r.status === 'rejected' ? LOCAL_APP_SHELL[i] : null))
         .filter(Boolean);
       if (failed.length) console.warn('[yahma-sw] precache failed for:', failed);
       /* index.html لو غاب، الـfetch handler بيرسم من الشبكة (network-first

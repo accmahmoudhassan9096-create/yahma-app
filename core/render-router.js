@@ -145,7 +145,6 @@ function render(){
     const renewedCount=document.getElementById('count-renewed'); if(renewedCount) renewedCount.textContent=loadRenewedInspections().length;
     try{ if(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function'){ window.YahmaPayments.localByStatus('pending'); window.YahmaPayments.localByStatus('paid'); } }catch(_){yahmaErr(_,'render-router.js:540');}
   const cb=document.getElementById('count-branches'); if(cb) cb.textContent = branches.length;
-  const cp=document.getElementById('count-preparation'); if(cp) cp.textContent = getPrepTasks().filter(t=>t.status!=='done').length;
   const sync=document.getElementById('sync-status');if(sync){sync.textContent=window.syncMessage||'جاري الاتصال';sync.className='sync-status '+(window.supabaseReady?'online':'offline');}
   updateLastSyncLabel();
 

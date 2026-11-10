@@ -85,13 +85,25 @@ npx wrangler tail --name yahma-app
 
 | البند | الوضع |
 |---|---|
-| عدد الملفات | 62 (الحد 20,000) ✓ |
-| `assets/hero-video.mp4` | 7.76MB (الحد 25MB للملف) ✓ |
+| عدد الملفات | ~180 (الحد 20,000) ✓ |
+| أكبر ملف | `vendor/xlsx.full.min.js` 861KB (الحد 25MB للملف) ✓ |
 | `supabase/functions/*` | **لا يُنشر مع الموقع** — منفصل على Supabase Edge Functions ✓ |
 | `sw.js` | يجب أن يبقى في جذر الموقع (وهو كذلك) ✓ |
 | Service worker + نطاق جديد | النطاق القديم لـNetlify سيبقى يخدم نفسه — انقل DNS بعد التأكد ✓ |
 | Supabase Auth/RLS/Realtime | **لا يتأثر بالنقل** إطلاقًا ✓ |
 
+## بعد كل نشر — خطوة إجبارية
+
+**ارفع `CACHE_NAME` في `sw.js`** (`yahma-shell-vNNN` → `vNNN+1`).
+
+الـservice worker بيشتغل cache-first. لو الملف اتغيّر من غير ما الرقم
+يتحرّك، المستخدم هيضل يشغّل النسخة القديمة من Cache Storage، ولافتة
+التحديث مش هتظهر. ده كان بيحصل فعليًا: سبعة commits متتالية غيّرت
+CSS/JS من غير رفع الرقم.
+
+الفحص `node scripts/check-shell.js` بيكشف ده وبيشتغل على CI — بس
+الخطوة نفسها إجبارية قبل الـdeploy.
+
 ## بعد أول نشر على النطاق الجديد
-- حدّث `sw.js`: `CACHE_NAME = 'yahma-shell-v114'`.
+- حدّث `sw.js`: `CACHE_NAME = 'yahma-shell-vNNN'`.
 - تحقّق من الإنتاج: افتح `https://<your-site>/sw.js` وتأكد أن `yahma-shell-vNNN` مطابق، وسجّل دخول، وجرّب فتح التطبيق بلا إنترنت، وجرّب استيراد ملف Excel.

@@ -550,12 +550,23 @@ test('مفيش CDN خارجي — كل المكتبات محلية', () => {
    نفسها متحطّطة في precache الـservice worker — يعني الـSW هو
    خط الأمان الحقيقي. النسخة المزدوجة كانت بتضاعف حجم التحميل
    على كل جهاز من غير فايدة. اتشالت. */
-test('مكتبات التصدير في precache الـSW — من غير نسخة مزدوجة', () => {
+test('مكتبات التصدير: موجودة على القرص وبتتحمّل عند الطلب — مش في precache', () => {
   const sw = read('sw.js');
-  ['supabase.min.js', 'dexie.min.js', 'xlsx.full.min.js',
-   'html2canvas.min.js', 'jspdf.umd.min.js'].forEach((f) => {
+  /* ⭐ المكتبات الأساسية (supabase/dexie) لازم تكون في الـprecache:
+     لو ماحملتش، التطبيق يفتح «وضع محلي» ويطلع 0 سيارة. */
+  ['supabase.min.js', 'dexie.min.js'].forEach((f) => {
     assert.ok(sw.indexOf("'./vendor/" + f + "'") > -1,
       'vendor/' + f + ' لازم يكون في precache الـSW');
+    const p = path.join(ROOT, 'vendor', f);
+    assert.ok(fs.existsSync(p), 'vendor/' + f + ' مفقود');
+    assert.ok(fs.statSync(p).size > 1000, 'vendor/' + f + ' ملف فاضي');
+  });
+  /* ⭐ مكتبات التصدير (1.4MB) مش في الـprecache عن قصد — بتتحمّل أول
+     مرة المستخدم يضغط «تصدير». تحميلها مع كل install كان بيعمل
+     1.4MB زيادة على كل موبايل. لازم تكون على القرص بس. */
+  ['xlsx.full.min.js', 'html2canvas.min.js', 'jspdf.umd.min.js'].forEach((f) => {
+    assert.ok(sw.indexOf("'./vendor/" + f + "'") === -1,
+      'vendor/' + f + ' مش المفروض يكون في precache — بيزوّد حجم التحميل');
     const p = path.join(ROOT, 'vendor', f);
     assert.ok(fs.existsSync(p), 'vendor/' + f + ' مفقود');
     assert.ok(fs.statSync(p).size > 1000, 'vendor/' + f + ' ملف فاضي');
@@ -568,10 +579,9 @@ test('مكتبات التصدير في precache الـSW — من غير نسخ�
 
 test('مفيش اسم عمومي معرّف في أكتر من ملف', () => {
   /* استثناءات مقصودة ومراجعة:
-     - supabaseClient: cloud.js بيعمل `window.supabaseClient || createClient(...)`
-       وبيرجّع نفس العميل تاني — نفس الـURL ونفس المفتاح (تحققت).
-       فمش تعارض، وبيبقى آمن مهما كان الترتيب. */
-  const ALLOWED = { supabaseClient: 'cloud.js بيعيد استخدام نفس العميل — نفس الرابط والمفتاح' };
+     - (مفيش استثناءات حاليًا) Supabase عميل واحد بس، بينشأ في
+       core/auth-boot.js. */
+  const ALLOWED = {};
 
   const owners = new Map();
   const dups = [];

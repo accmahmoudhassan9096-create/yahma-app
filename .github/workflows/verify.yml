@@ -23,18 +23,22 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # ⭐ مثبّت مش latest: GitHub بيحوّل ubuntu-latest لـUbuntu 26،
+    # والـrunners тогда مش مضمون. التثبيت بيخلّي البناء مستقر.
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # ⭐ عمق 2 مش 1: فحص «رقم الكاش بيتحرّك مع الملفات» بيقارن
           # الـcommit الحالي باللي قبله، فلو الـclone shallow بيبقى
           # مفيش HEAD~1 والفحص بيتخطّى من غير ما يكتشف حاجة.
           fetch-depth: 2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          # ⭐ Node 20 خلص عمره (EOL أبريل 2026) وv4/v5 من الـactions
+          # بيستهدفوا Node runtime قديم. Node 24 هوCurrent.
+          node-version: '24'
 
       - name: Unit tests
         # بلا علامات تنصيص عمداً: bash لازم يوسّع الـglob بنفسه.
@@ -46,3 +50,8 @@ jobs:
 
       - name: Workflow syntax check
         run: node scripts/check-workflow.js
+
+      - name: Dead CSS check
+        # ⭐ بيقول إيه الـCSS الميت اللي لسه في المصدر من غير ما
+        # يغير حاجة — تنبيه فقط. التنظيف الفعلي بـ--apply.
+        run: node scripts/css-prune.js

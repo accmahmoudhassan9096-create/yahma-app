@@ -132,7 +132,6 @@ input:focus,select:focus,textarea:focus{outline:0!important;border-color:#80D3CD
 .rp-exp-btn.teal{background:#087C79!important;border-color:#087C79!important}
 .rp-bar{border-radius:99px!important;overflow:hidden}
 .rp-bar i{border-radius:99px!important}
-.platform-watermark{display:none!important}
 .app-footer{border-top:1px solid #E5ECF0!important;background:rgba(255,255,255,.72)!important}
 body.dark-mode{
   --yh-ink:#E6EEF3;--yh-muted:#A4B5C1;--yh-line:#2A3C4D;--yh-paper:#0D1926;--yh-panel:#142537;
@@ -321,7 +320,11 @@ body.dark-mode .home-dash .home-hero-text p,body.dark-mode .home-dash .home-hero
 body.dark-mode .home-dash .home-cta{background:linear-gradient(150deg,#142B3D 0%,#142537 100%)!important}
 body.dark-mode .home-dash .home-cta-visual{background:linear-gradient(180deg,#122A3B 0%,#0F2333 100%)!important}
 
-/* ===== خلفية سيارات فخمه للهيدر — نقية وحديثة ===== */
+/* ===== خلفية الهيدر — نظيفة ومريحة للعين =====
+   ⭐ كانت صورة من CDN خارجي (Unsplash): كانت بتطلب شبكة خارجية،
+   وبتكسر أي رابط خارجي (privacy)، وبتخلّي الهيدر أتقل. دلوقتي
+   تدرّج ناعم محلي بس — نقي ومريح ومفيش طلب خارجي خالص.
+   صورة السيارة بقت في كارت «الرئيسية» (home-hero-card) بحجمها الصح. */
 .topbar.topbar-v43{
   position: relative;
   overflow: hidden;
@@ -332,12 +335,60 @@ body.dark-mode .home-dash .home-cta-visual{background:linear-gradient(180deg,#12
   position:absolute;
   inset:0;
   z-index:0;
-  background-image:url('https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=1920&auto=format&fit=crop');
-  background-size:cover;
-  background-position:center;
-  opacity:.14;
+  background:
+    radial-gradient(120% 160% at 88% -30%, rgba(11,146,141,.10) 0%, rgba(11,146,141,0) 62%),
+    radial-gradient(90% 140% at 4% 130%, rgba(99,102,241,.08) 0%, rgba(99,102,241,0) 60%);
   pointer-events:none;
 }
 .topbar.topbar-v43 > *{position:relative;z-index:1;}
-body.dark-mode .topbar.topbar-v43::before{opacity:.10;}
+body.dark-mode .topbar.topbar-v43::before{
+  background:
+    radial-gradient(120% 160% at 88% -30%, rgba(94,234,212,.13) 0%, rgba(94,234,212,0) 62%),
+    radial-gradient(90% 140% at 4% 130%, rgba(129,140,248,.10) 0%, rgba(129,140,248,0) 60%);
+}
 body.dark-mode .topbar.topbar-v43{background:linear-gradient(135deg, rgba(17,34,51,.92) 0%, rgba(13,25,40,.88) 100%) !important;}
+
+/* ===== خلفية سيارات في كارت الرئيسية (نظرة عامة تشغيلية) =====
+   الكارت أخضر غامق، فالسيارة بتظهر بلون تركوازي فاتح بشفافية
+   منخفضة — باين كـ«ظل» مش كصورة، من غير ما تزعج العين.
+   الـSVG بيتلوّن من هنا (mask) عشان نفس الملف ينفع فاتح وغامق. */
+.home-hero-card{
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+}
+.home-hero-card::before{
+  content:'';
+  position:absolute;
+  left:-10%;
+  bottom:-6%;
+  width:120%;
+  height:auto;
+  aspect-ratio:1400/440;
+  z-index:0;
+  pointer-events:none;
+  background-color:#6FE3C6;
+  opacity:.085;
+  -webkit-mask-image:url('../assets/hero-car.svg');
+  mask-image:url('../assets/hero-car.svg');
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  -webkit-mask-position:center;
+  mask-position:center;
+  -webkit-mask-size:100% 100%;
+  mask-size:100% 100%;
+}
+/* لمعة دايرة خفيفة فوق الكارت — بتدي إحساس «عمق» من غير زحمة */
+.home-hero-card::after{
+  content:'';
+  position:absolute;
+  top:-40%;
+  right:-18%;
+  width:58%;
+  height:120%;
+  z-index:0;
+  pointer-events:none;
+  background:radial-gradient(closest-side, rgba(94,234,212,.16), rgba(94,234,212,0));
+}
+.home-hero-card > *{position:relative;z-index:1;}
+body.dark-mode .home-hero-card::before{opacity:.11;}

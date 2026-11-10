@@ -87,11 +87,16 @@ for (const rel of required) {
    التطبيق مش هيشتغل أوفلاين. الصور الكبار والشعارات اتستثنت
    من الـprecache عمداً فيبقت لهن استثناء. */
 const EXEMPT = /(icon-|manifest|apple-touch|^sw\.js$)/i;
+/* مكتبات التصدير (Excel/PDF): 1.4MB بتتحمّل أول مرة المستخدم يضغط
+   «تصدير» من modules/export.js، فمفيش داعي تتحمّل مع كل install.
+   لازم تفضل على القرص، بس مش في الكاش الإجباري. */
+const LAZY_VENDOR = /^(vendor\/(xlsx\.full|html2canvas|jspdf\.umd)\.min\.js)$/;
 const shipped = walk(ROOT, []).map((p) => path.relative(ROOT, p).split(path.sep).join('/'));
 let unlisted = 0;
 for (const rel of shipped) {
   if (required.includes(rel)) continue;
   if (EXEMPT.test(rel)) continue;
+  if (LAZY_VENDOR.test(rel)) continue;
   if (/^manifest\.json$/i.test(rel)) continue;
   console.error('NOT in precache: ' + rel);
   unlisted++;

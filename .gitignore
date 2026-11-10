@@ -1,7 +1,12 @@
-﻿\supabase/.temp/
-\
-/supabase/scheduled-email-setup.local.sql
-
-# wrangler — مخرجات النشر المحلي
+﻿# --- wrangler — مخرجات النشر المحلي ---
 .wrangler/
 .wrangler-dryrun/
+
+# --- Supabase ---
+/supabase/.temp/
+/supabase/scheduled-email-setup.local.sql
+
+# --- ملفات محلية ---
+*.log
+.DS_Store
+Thumbs.db

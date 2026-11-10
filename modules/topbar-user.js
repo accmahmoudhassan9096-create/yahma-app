@@ -55,6 +55,8 @@
     e.preventDefault();
     e.stopImmediatePropagation();
     closeMenu();
+    /* سجل النشاط: تسجيل خروج عملية تستحق التسجيل */
+    try{ if(typeof window.log==='function') window.log('تسجيل خروج',(window.currentUser&&window.currentUser.email)||''); }catch(_){}
     if(logout._yahmaLogoutRunning) return;
     logout._yahmaLogoutRunning=true;
     var previous=logout.textContent;
