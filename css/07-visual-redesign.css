@@ -32,6 +32,17 @@ body{background:var(--yh-paper)!important;color:var(--yh-ink)!important;font-siz
 .sidebar .nav-count{background:rgba(255,255,255,.12)!important;border-radius:20px!important;color:#E4EFF4!important}
 .sidebar .yahma-side-cta-inner{border:1px solid rgba(104,219,209,.18)!important;background:linear-gradient(135deg,rgba(23,179,170,.13),rgba(255,255,255,.025))!important;border-radius:14px!important}
 .main{min-width:0;background:transparent!important}
+/* ⭐ position:relative مقصور على الديسكتوب. كان في القاعدة العامة
+   فكان بيلغي position:sticky اللي في 04-dark-overrides جوه
+   @media(max-width:700px) — وmedia query مابيزوّدش specificity،
+   والملف المتأخر بيكسب. النتيجة: الهيدر ماكانش بيثبت فوق على
+   الموبايل خالص. */
+@media(min-width:701px){
+  .topbar.topbar-v43{
+    position: relative;
+    overflow: hidden;
+  }
+}
 .topbar.topbar-v43{
   min-height:76px!important;padding:11px 20px!important;gap:14px!important;
   background:rgba(255,255,255,.96)!important;border:0!important;border-bottom:1px solid var(--yh-line)!important;
@@ -67,44 +78,23 @@ body{background:var(--yh-paper)!important;color:var(--yh-ink)!important;font-siz
 .user-dropdown,.top-dd-menu,.notify-panel{border:1px solid #E4EBEF!important;border-radius:14px!important;box-shadow:0 18px 42px rgba(16,40,61,.14)!important}
 .content{padding:22px 24px 34px!important;scrollbar-gutter:stable;overflow-x:hidden!important}
 .content>*{max-width:100%}
-.panel,.tile,.home-kpi,.rp2-kpi,.rp-card,.rp-chart-card,.rp-branch-card,.fleet-summary-card{
+.panel,.rp2-kpi,.rp-card,.rp-chart-card,.rp-branch-card,.fleet-summary-card{
   border:1px solid var(--yh-line)!important;border-radius:15px!important;box-shadow:var(--yh-shadow)!important
 }
 .panel{padding:19px 20px!important;background:#fff!important}
 .panel h3{font-size:13.5px!important;font-weight:850!important;color:#1B374B!important}
-.tiles{gap:12px!important;margin-bottom:17px!important}
-.tile{padding:16px 17px!important;background:#fff!important;border-right-width:3px!important}
-.tile-num{font-size:26px!important;font-weight:900!important;color:#19364B!important}
-.tile-label{font-size:11px!important;color:#7B8B98!important}
 .btn-primary{background:linear-gradient(135deg,#13A9A2,#087C79)!important;border-color:#087C79!important;box-shadow:0 5px 13px rgba(8,124,121,.15)!important}
 .btn-primary:hover{filter:brightness(1.04)!important;box-shadow:0 8px 18px rgba(8,124,121,.2)!important}
 .btn-ghost{background:#fff!important;border:1px solid #E1E9ED!important;color:#476071!important}
 input,select,textarea{border-color:#DDE6EB!important;border-radius:9px!important}
 input:focus,select:focus,textarea:focus{outline:0!important;border-color:#80D3CD!important;box-shadow:0 0 0 3px rgba(22,179,170,.09)!important}
 .home-dash{display:flex;flex-direction:column;gap:16px}
-.home-hero{
-  position:relative!important;display:flex!important;align-items:center!important;justify-content:space-between!important;
-  min-height:176px!important;padding:25px 30px!important;border-radius:19px!important;
-  border:1px solid #D7EBE9!important;box-shadow:0 10px 28px rgba(12,105,102,.07)!important;overflow:hidden!important
-}
-.home-hero:after{content:"";position:absolute;inset:auto -7% -110px auto;width:390px;height:260px;border:1px solid rgba(11,145,141,.12);border-radius:50%;box-shadow:0 0 0 28px rgba(11,145,141,.035),0 0 0 58px rgba(11,145,141,.025);pointer-events:none}
-.home-hero-text{max-width:520px!important}
-.home-hero-text h2,.home-hero-title-copy h2{font-size:25px!important;font-weight:900!important;line-height:1.35!important}
-.home-hero-text p,.home-hero-title-copy p{font-size:12px!important;line-height:1.8!important}
-.home-hero-car-img{max-width:340px!important;max-height:150px!important;object-fit:contain!important}
-.home-kpis{gap:12px!important}
-.home-kpi{min-height:116px!important;padding:15px!important;background:#fff!important;border-radius:15px!important}
-.home-kpi-body{padding-top:27px!important}
-.home-kpi-num{font-size:25px!important;color:#17364B!important}
-.home-kpi-icon{width:38px!important;height:38px!important;border-radius:12px!important;box-shadow:none!important}
-.home-kpi-bar{height:4px!important}
 .yahma-priority{grid-template-columns:minmax(175px,.9fr) repeat(4,minmax(110px,1fr))!important;gap:9px!important;padding:11px!important;border-radius:16px!important;box-shadow:none!important}
 .yahma-priority-intro strong{font-size:14px!important}
 .yahma-priority-item{padding:10px!important;border-radius:11px!important}
 .yahma-priority-count{width:34px!important;height:34px!important;border-radius:10px!important}
-.home-donut-wrap,.home-chart-col,.home-cta,.home-reasons,.home-branch-table,.home-activity{min-width:0}
-.home-donut-wrap,.home-chart-col,.home-branch-table,.home-activity,.home-cta,.home-reasons{border-radius:15px!important}
-.home-dash .panels{gap:14px!important}
+.home-donut-wrap,.home-chart-col,.home-reasons,.home-activity{min-width:0}
+.home-donut-wrap,.home-chart-col,.home-activity,.home-reasons{border-radius:15px!important}
 .home-dash .panel{min-width:0}
 .fleet-summary-strip{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:11px!important;margin-bottom:15px!important}
 .fleet-summary-card{min-height:82px!important;padding:13px 15px!important;border-radius:14px!important;background:#fff!important}
@@ -144,9 +134,9 @@ body.dark-mode .topbar.topbar-v43 .topbar-brand-copy span,body.dark-mode .topbar
 body.dark-mode .topbar.topbar-v43 .btn{background:#1B3044!important;border-color:#344A5D!important;color:#DDE8EE!important}
 body.dark-mode .topbar.topbar-v43 .tb-theme{background:#080F17!important;border-color:#080F17!important}
 body.dark-mode .topbar.topbar-v43 .topbar-search-wrap input{background:#122438!important;border-color:#344A5D!important;color:#E6EEF3!important}
-body.dark-mode .panel,body.dark-mode .tile,body.dark-mode .home-kpi,body.dark-mode .rp2-kpi,body.dark-mode .rp-card,body.dark-mode .rp-chart-card,body.dark-mode .rp-branch-card,body.dark-mode .fleet-summary-card,body.dark-mode .fleet-tools-head,body.dark-mode .table-scroll{background:#142537!important;border-color:#2A3C4D!important;color:#E6EEF3!important}
-body.dark-mode .panel h3,body.dark-mode .tile-num,body.dark-mode .home-kpi-num,body.dark-mode .rp2-num,body.dark-mode .rp-head-text h2,body.dark-mode .fleet-summary-card b{color:#E6EEF3!important}
-body.dark-mode .tile-label,body.dark-mode .fleet-summary-card small{color:#A7BAC7!important}
+body.dark-mode .panel,body.dark-mode .rp2-kpi,body.dark-mode .rp-card,body.dark-mode .rp-chart-card,body.dark-mode .rp-branch-card,body.dark-mode .fleet-summary-card,body.dark-mode .fleet-tools-head,body.dark-mode .table-scroll{background:#142537!important;border-color:#2A3C4D!important;color:#E6EEF3!important}
+body.dark-mode .panel h3,body.dark-mode .rp2-num,body.dark-mode .rp-head-text h2,body.dark-mode .fleet-summary-card b{color:#E6EEF3!important}
+body.dark-mode .fleet-summary-card small{color:#A7BAC7!important}
 body.dark-mode .table-scroll thead th{background:#1A3044!important;color:#DCE8EE!important;border-color:#2A3C4D!important}
 body.dark-mode .table-scroll tbody td{color:#D1DEE6!important;border-color:#24384A!important}
 body.dark-mode .table-scroll tbody tr:hover td{background:#1B3044!important}
@@ -172,7 +162,10 @@ body.dark-mode .app-footer{background:#122235!important;border-color:#2A3C4D!imp
 }
 @media(max-width:700px){
   .sidebar{width:min(280px,86vw)!important;flex-basis:min(280px,86vw)!important}
-  .content{padding:12px 10px 24px!important}
+  /* ⭐ env(safe-area-inset-bottom) لازم تفضل: من غيرها آخر صف
+     في المحتوى بيختفي تحت مؤشر البيت في آيفون. الـ04 كان عاملينها
+     بس 07 (اللي بيتحمّل بعده) كان بيلغيها بـ!important. */
+  .content{padding:12px 10px calc(24px + env(safe-area-inset-bottom))!important}
   .topbar.topbar-v43{padding:10px!important;gap:8px!important}
   .topbar.topbar-v43 .topbar-brand-copy{display:block}
   .topbar.topbar-v43 .topbar-brand-mark{width:36px!important;height:36px!important}
@@ -210,15 +203,6 @@ body.dark-mode .app-footer{background:#122235!important;border-color:#2A3C4D!imp
   --hp-grey-soft:#EEF2F6; --hp-grey:#647B8C;
 }
 /* الهيرو — نفس روح النظام بس بألوان متوحّدة */
-.home-dash .home-hero{
-  background:linear-gradient(120deg,#F2FBFA 0%,#EAF6F4 55%,#DFF0EC 100%)!important;
-  border:1px solid var(--hp-line)!important;
-  box-shadow:0 10px 28px rgba(16,36,58,.07)!important;
-}
-.home-dash .home-hero-text h2,.home-dash .home-hero-title-copy h2{color:var(--hp-navy)!important;text-shadow:none!important}
-.home-dash .home-hero-text p,.home-dash .home-hero-title-copy p{color:var(--hp-muted)!important}
-.home-dash .home-hero-accent{background:var(--hp-tq)!important}
-.home-dash .home-hero:after{border-color:rgba(23,170,164,.16)!important;box-shadow:0 0 0 28px rgba(23,170,164,.04),0 0 0 58px rgba(23,170,164,.03)!important}
 /* أولويات Command Center — نفس الأسرة */
 .home-dash .yahma-priority{background:linear-gradient(110deg,#F4FAFA 0%,#FFFFFF 55%,#EEF7F5 100%)!important;border-color:var(--hp-line)!important}
 .home-dash .yahma-priority-kicker{color:var(--hp-tq-dark)!important}
@@ -230,21 +214,7 @@ body.dark-mode .app-footer{background:#122235!important;border-color:#2A3C4D!imp
 .home-dash .yahma-priority-item[data-priority="urgent"]{border-color:#F0D4D4!important}
 .home-dash .yahma-priority-empty{background:var(--hp-ok-soft)!important;border-color:#CBE8DE!important;color:var(--hp-ok)!important}
 /* كروت المؤشرات الخمسة — نفس الدرجات */
-.home-dash .home-kpi{background:var(--hp-panel)!important;border:1px solid var(--hp-line)!important}
-.home-dash .home-kpi-label{color:var(--hp-muted)!important}
-.home-dash .home-kpi-num{color:var(--hp-navy)!important}
-.home-dash .home-kpi-link{color:var(--hp-tq-dark)!important}
-.home-dash .home-kpi-pct.good{color:var(--hp-ok)!important}
 .home-dash .home-kpi-pct.warn{color:var(--hp-warn)!important}
-.home-dash .home-kpi-pct.bad{color:var(--hp-bad)!important}
-.home-dash .home-kpi-bar{background:var(--hp-grey-soft)!important}
-.home-dash .home-kpi-icon.blue{background:var(--hp-tq-soft)!important;color:var(--hp-tq-dark)!important}
-.home-dash .home-kpi-icon.green{background:var(--hp-ok-soft)!important;color:var(--hp-ok)!important}
-.home-dash .home-kpi-icon.amber{background:var(--hp-warn-soft)!important;color:var(--hp-warn)!important}
-.home-dash .home-kpi-icon.red{background:var(--hp-bad-soft)!important;color:var(--hp-bad)!important}
-.home-dash .home-kpi-icon.grey{background:var(--hp-grey-soft)!important;color:var(--hp-grey)!important}
-.home-dash .home-kpi-bar i{background:linear-gradient(90deg,var(--hp-tq),var(--hp-tq-dark))!important}
-.home-dash .home-kpi-most-idle .home-kpi-icon{background:var(--hp-bad-soft)!important;color:var(--hp-bad)!important}
 /* حالة الدونات + الليجند */
 .home-dash .home-donut-hole{background:var(--hp-panel)!important;box-shadow:inset 0 0 0 1px var(--hp-line)!important}
 .home-dash .home-donut-hole b{color:var(--hp-navy)!important}
@@ -262,11 +232,6 @@ body.dark-mode .app-footer{background:#122235!important;border-color:#2A3C4D!imp
 .home-dash .home-task-wa{background:var(--hp-ok-soft)!important;color:var(--hp-ok)!important;border-color:#CBE8DE!important}
 .home-dash .home-link-all{color:var(--hp-tq-dark)!important}
 /* CTA */
-.home-dash .home-cta{background:linear-gradient(150deg,#F0F9F8 0%,#FFFFFF 100%)!important;border-color:var(--hp-line)!important}
-.home-dash .home-cta h3{color:var(--hp-tq-dark)!important}
-.home-dash .home-cta p{color:var(--hp-muted)!important}
-.home-dash .home-cta-badge{background:var(--hp-panel)!important;border-color:var(--hp-line)!important}
-.home-dash .home-cta-visual{background:linear-gradient(180deg,#E8F5F3 0%,#F4FBFA 100%)!important}
 /* أسباب الانخفاض + أشرطة */
 .home-dash .home-reason-top span{color:var(--hp-ink-soft)!important}
 .home-dash .home-reason-top b{color:var(--hp-navy)!important}
@@ -294,8 +259,6 @@ body.dark-mode .app-footer{background:#122235!important;border-color:#2A3C4D!imp
 /* تنبيه التدخل الفوري */
 .home-dash #dash-immediate-alert{background:var(--hp-bad-soft)!important;border-color:#F0D4D4!important;color:var(--hp-bad)!important;box-shadow:none!important}
 /* التيلز الرئيسية */
-.home-dash .tile-num{color:var(--hp-navy)!important}
-.home-dash .tile-label{color:var(--hp-muted)!important}
 /* الوضع الليلي — نفس الدرجات على خلفية داكنة */
 .topbar-actions .tb-add{
   width:38px!important;height:38px!important;padding:0!important;border-radius:50%!important;
@@ -314,11 +277,6 @@ body.dark-mode .home-dash{
   --hp-bad:#F87171;--hp-bad-soft:#3D1D1D;
   --hp-grey-soft:#1D3042;--hp-grey:#8FA6B5;
 }
-body.dark-mode .home-dash .home-hero{background:linear-gradient(120deg,#122C3B 0%,#0F2637 60%,#0D1F2E 100%)!important;border-color:#2A3C4D!important}
-body.dark-mode .home-dash .home-hero-text h2,body.dark-mode .home-dash .home-hero-title-copy h2{color:#F1F7FB!important}
-body.dark-mode .home-dash .home-hero-text p,body.dark-mode .home-dash .home-hero-title-copy p{color:#8FA6B5!important}
-body.dark-mode .home-dash .home-cta{background:linear-gradient(150deg,#142B3D 0%,#142537 100%)!important}
-body.dark-mode .home-dash .home-cta-visual{background:linear-gradient(180deg,#122A3B 0%,#0F2333 100%)!important}
 
 /* ===== خلفية الهيدر — نظيفة ومريحة للعين =====
    ⭐ كانت صورة من CDN خارجي (Unsplash): كانت بتطلب شبكة خارجية،
@@ -326,8 +284,6 @@ body.dark-mode .home-dash .home-cta-visual{background:linear-gradient(180deg,#12
    تدرّج ناعم محلي بس — نقي ومريح ومفيش طلب خارجي خالص.
    صورة السيارة بقت في كارت «الرئيسية» (home-hero-card) بحجمها الصح. */
 .topbar.topbar-v43{
-  position: relative;
-  overflow: hidden;
   background: linear-gradient(135deg, rgba(255,255,255,.88) 0%, rgba(245,248,250,.92) 100%) !important;
 }
 .topbar.topbar-v43::before{

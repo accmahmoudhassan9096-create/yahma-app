@@ -115,19 +115,12 @@ button{ -webkit-tap-highlight-color:transparent }
 
 /* Content surfaces */
 .content{padding:25px 28px 34px!important;scrollbar-gutter:stable}
-.panel,.tile,.home-kpi,.rp2-kpi,.rp-card,.rp-chart-card,.rp-branch-card{
+.panel,.rp2-kpi,.rp-card,.rp-chart-card,.rp-branch-card{
   border-color:#E4EBF0!important;border-radius:16px!important;box-shadow:var(--shadow-sm)!important
 }
 .panel{padding:20px 22px!important;background:#fff!important}
 .panel h3{font-size:14px!important;font-weight:850!important;color:#193247!important}
-.tiles{gap:14px!important;margin-bottom:20px!important}
-.tile{padding:18px!important;border-right-width:3px!important}
-.tile-num{font-size:28px!important;font-weight:900!important;color:#173248!important}
-.tile-label{font-size:12px!important;color:#748696!important}
-.home-kpi{border-radius:17px!important}
-.home-kpi:hover,.tile:hover,.rp-chart-card:hover{box-shadow:var(--shadow-md)!important}
-.home-hero{border-radius:20px!important;overflow:hidden}
-.toolbar{gap:9px!important}
+.rp-chart-card:hover{box-shadow:var(--shadow-md)!important}
 input,select,textarea{border-radius:10px}
 .btn-primary{background:linear-gradient(135deg,#159E99,#087C7A)!important;box-shadow:0 5px 14px rgba(8,124,122,.18)!important}
 .btn-primary:hover{filter:brightness(1.04)!important;box-shadow:0 8px 18px rgba(8,124,122,.22)!important}
@@ -160,11 +153,10 @@ body.dark-mode .topbar.topbar-v43 .topbar-user-meta span{color:#A9BBC8!important
 body.dark-mode .topbar.topbar-v43 .btn{background:#1A2B40!important;border-color:#30465B!important;color:#DCE8EF!important}
 body.dark-mode .topbar.topbar-v43 .tb-theme{background:#080F18!important;border-color:#080F18!important;color:#F8FAFC!important}
 body.dark-mode .topbar.topbar-v43 .topbar-search-wrap input{background:#101E2E!important;border-color:#30465B!important;color:#E6EEF4!important}
-body.dark-mode .content .panel,body.dark-mode .content .tile,body.dark-mode .content .home-kpi,
-body.dark-mode .content .rp2-kpi,body.dark-mode .content .rp-card,body.dark-mode .content .rp-chart-card,
-body.dark-mode .content .rp-branch-card{background:#142235!important;border-color:#2A3A4D!important;color:#E6EEF4!important}
-body.dark-mode .content .panel h3,body.dark-mode .tile-num,body.dark-mode .rp2-num,
-body.dark-mode .rp-head-text h2{color:#E6EEF4!important}
+body.dark-mode .content .panel,body.dark-mode .content .rp2-kpi,body.dark-mode .content .rp-card,body.dark-mode .content .rp-chart-card,body.dark-mode .content .rp-branch-card
+{background:#142235!important;border-color:#2A3A4D!important;color:#E6EEF4!important}
+body.dark-mode .content .panel h3,body.dark-mode .rp2-num,body.dark-mode .rp-head-text h2
+{color:#E6EEF4!important}
 body.dark-mode .rp-tab{background:#17283B!important;border-color:#30465B!important;color:#B7C7D2!important}
 body.dark-mode .rp-tab.active{background:#087C7A!important;color:#fff!important;border-color:#087C7A!important}
 body.dark-mode .btn-ghost{background:#17283B!important;border-color:#30465B!important;color:#DCE8EF!important}
@@ -303,7 +295,6 @@ body.dark-mode .btn-ghost{background:#17283B!important;border-color:#30465B!impo
 .fleet-table .tag.amber,.fleet-table .readiness-pill.amber{background:#FFF4DF!important;color:#A66A12!important}
 .fleet-table .tag.red,.fleet-table .readiness-pill.red{background:#FCEAEA!important;color:#BE4545!important}
 .fleet-table .tag.grey,.fleet-table .readiness-pill.grey{background:#EEF2F6!important;color:#687B8A!important}
-.fleet-table .tag.blue,.fleet-table .readiness-pill.blue{background:#EAF1FC!important;color:#416C9B!important}
 .fleet-table .fleet-edit-btn,.fleet-table .fleet-view-btn,.fleet-table .fleet-del-btn{
   min-height:29px!important;padding:5px 8px!important;margin:0 2px!important;border-radius:8px!important;font-size:10px!important
 }
@@ -318,7 +309,7 @@ body.dark-mode .btn-ghost{background:#17283B!important;border-color:#30465B!impo
 /* Reports */
 #content .rp-head-text{margin-bottom:16px!important}
 #content .rp-head-text h2{letter-spacing:-.25px!important}
-#content .rp-kpis,#content .rp2-kpis{gap:12px!important}
+#content .rp-kpis{gap:12px!important}
 #content .rp2-kpi{
   position:relative!important;overflow:hidden!important;min-height:104px!important;
   border:1px solid #E3EAF0!important;border-radius:16px!important;background:#fff!important;
@@ -337,8 +328,6 @@ body.dark-mode .btn-ghost{background:#17283B!important;border-color:#30465B!impo
 #content .rp-badge{border-radius:7px!important;font-size:10px!important;font-weight:800!important}
 
 /* Other modules and forms */
-#content .section-title{font-size:15px!important;font-weight:900!important;color:#173248!important}
-#content .toolbar{padding:11px!important;border:1px solid #E4EBF0!important;border-radius:14px!important;background:#fff!important;box-shadow:var(--shadow-sm)!important}
 #content .field input,#content .field select,#content .field textarea{
   min-height:39px;border:1px solid #E1E9EF!important;border-radius:10px!important;
   background:#FBFCFD!important;color:#243D51!important;box-shadow:none!important
@@ -355,14 +344,12 @@ body.dark-mode .btn-ghost{background:#17283B!important;border-color:#30465B!impo
 #content table:not(.fleet-table) tbody tr:hover{background:#F0FAF9!important}
 
 /* Dark theme for new phase-2 surfaces */
-body.dark-mode .fleet-summary-card,body.dark-mode .fleet-tools-head,
-body.dark-mode .filter-panel,body.dark-mode .table-scroll.fleet-table-wrap,
-body.dark-mode .pager,body.dark-mode #content .toolbar,
-body.dark-mode #content .rp-charts-section,body.dark-mode #content .rp-chart-card{
+body.dark-mode .fleet-summary-card,body.dark-mode .fleet-tools-head,body.dark-mode .filter-panel,body.dark-mode .table-scroll.fleet-table-wrap,body.dark-mode .pager,body.dark-mode #content .rp-charts-section,body.dark-mode #content .rp-chart-card
+{
   background:#142235!important;border-color:#2A3A4D!important;color:#DDE8EF!important
 }
-body.dark-mode .fleet-summary-card b,body.dark-mode .filter-panel-title strong,
-body.dark-mode #content .rp-section-head h3,body.dark-mode #content .section-title{color:#E6EEF4!important}
+body.dark-mode .fleet-summary-card b,body.dark-mode .filter-panel-title strong,body.dark-mode #content .rp-section-head h3
+{color:#E6EEF4!important}
 body.dark-mode .fleet-summary-card small,body.dark-mode .filter-panel-title span,
 body.dark-mode .filter-footer{color:#9AAEBE!important}
 body.dark-mode .fleet-search-wrap,body.dark-mode .fleet-filter-grid select,

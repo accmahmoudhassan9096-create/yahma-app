@@ -23,6 +23,9 @@
         const isHidden = userDropdown.hidden;
         userDropdown.hidden = !isHidden;
         userDropdown.style.display = isHidden ? '' : 'none';
+        /* ⭐ aria-expanded كان بيفضل false طول الوقت — قارئ الشاشة
+           كان بيقول إن القائمة مقفولة وهي مفتوحة. */
+        userBtn.setAttribute('aria-expanded', String(isHidden));
       };
     }
     /* زر "بياناتي وكلمة المرور" يفتح شاشة البيانات الشخصية */
@@ -49,6 +52,8 @@
     if(userDropdown && userBtn && !userDropdown.hidden && !userDropdown.contains(e.target) && !userBtn.contains(e.target)){
       userDropdown.hidden = true;
       userDropdown.style.display = 'none';
+      /* ⭐ نفس الحاجة: aria-expanded لازم يرجع false مع الإغلاق */
+      userBtn.setAttribute('aria-expanded','false');
     }
   });
 })();

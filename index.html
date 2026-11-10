@@ -146,6 +146,11 @@
       بطاقات التشغيل
       <span class="nav-count" id="count-inspections">0</span>
     </button>
+    <button type="button" class="nav-item" data-tab="preparation">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      قائمة التجهيز
+      <span class="nav-count" id="count-preparation">0</span>
+    </button>
     <button type="button" class="nav-item" data-tab="reports">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 17v-4M12 17v-7M16 17v-2"/></svg>
       التقارير
@@ -252,7 +257,7 @@
           <span id="theme-label" class="theme-label">لiquid Glass</span>
         </button>
 
-        <button class="btn tb-icon tb-refresh" id="btn-refresh" title="تحديث البيانات" type="button">
+        <button class="btn tb-icon tb-refresh" id="btn-refresh" title="تحديث البيانات" aria-label="تحديث البيانات" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
         </button>
 
@@ -303,7 +308,7 @@
           <span class="topbar-search-ico">⌕</span>
           <input type="search" id="global-search" placeholder="بحث موحّد: لوحة، فرع، مالك..." aria-label="بحث موحّد: لوحة، فرع، مالك" autocomplete="off">
         </div>
-        <button class="btn tb-icon tb-add" id="btn-add-car" type="button" title="إضافة عربية">
+        <button class="btn tb-icon tb-add" id="btn-add-car" type="button" title="إضافة عربية" aria-label="إضافة عربية">
           <span aria-hidden="true">+</span>
         </button>
 
@@ -358,10 +363,10 @@
       <div id="f-prep-tasks" class="prep-task-editor"></div>
       <div class="prep-final-row"><label><input type="checkbox" id="f-prep-final"> تمت المراجعة النهائية للسيارة</label><input id="f-prep-final-note" placeholder="ملاحظة المراجعة النهائية"></div>
     </div>
-    <datalist id="dl-cardstatus"><option value="نشط"><option value="ملغى"><option value="موقوف"></datalist>
-    <datalist id="dl-inspection"><option value="سليم"><option value="يحتاج فحص"><option value="لم يتم الفحص"></datalist>
-    <datalist id="dl-insurance"><option value="ساري"><option value="منتهي"><option value="لا يوجد"></datalist>
-    <datalist id="dl-carstatus"><option value="نشط"><option value="تحت الصيانة"><option value="خارج الخدمة"></datalist>
+    <datalist id="dl-cardstatus"><option value="نشط"></option><option value="ملغى"></option><option value="موقوف"></option></datalist>
+    <datalist id="dl-inspection"><option value="سليم"></option><option value="يحتاج فحص"></option><option value="لم يتم الفحص"></option></datalist>
+    <datalist id="dl-insurance"><option value="ساري"></option><option value="منتهي"></option><option value="لا يوجد"></option></datalist>
+    <datalist id="dl-carstatus"><option value="نشط"></option><option value="تحت الصيانة"></option><option value="خارج الخدمة"></option></datalist>
     <div class="modal-actions">
       <div><button class="btn btn-danger" id="btn-delete" style="display:none;">أرشفة العربية</button></div>
       <div class="modal-actions-right">

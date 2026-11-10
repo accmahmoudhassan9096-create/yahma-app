@@ -103,15 +103,41 @@ function parseCss(file) {
   return rules;
 }
 
-/* specificity: id*10000 + class*100 + type */
+/* specificity: id*10000 + class*100 + type
+   ⭐ لازم تتحسب لكل جزء من قائمة الـselectors لوحده وناخد
+   الأعلى. '.a, .b.c' عندنا الـb.c أقوى — ولو حسبنا السلسلة كلها
+   كانت الـspecificity بتاعة '.a' هتكون غلط. */
 function specificity(sel) {
-  const s = sel.trim();
-  const ids = (s.match(/#[\w-]+/g) || []).length;
-  const classes = (s.match(/\.[\w-]+/g) || []).length;
-  const attrs = (s.match(/\[[^\]]+\]/g) || []).length;
-  const pseudo = (s.match(/:(?!:)[\w-]+/g) || []).length;
-  const types = (s.match(/(^|[\s>+~,(])[a-zA-Z][\w-]*/g) || []).length;
-  return ids * 10000 + (classes + attrs + pseudo) * 100 + types;
+  let best = 0;
+  for (const part of sel.split(',')) {
+    const s = part.trim();
+    if (!s) continue;
+    const ids = (s.match(/#[\w-]+/g) || []).length;
+    const classes = (s.match(/\.[\w-]+/g) || []).length;
+    const attrs = (s.match(/\[[^\]]+\]/g) || []).length;
+    const pseudo = (s.match(/:(?!:)[\w-]+/g) || []).length;
+    const types = (s.match(/(^|[\s>+~,(])[a-zA-Z][\w-]*/g) || []).length;
+    const v = ids * 10000 + (classes + attrs + pseudo) * 100 + types;
+    if (v > best) best = v;
+  }
+  return best;
+}
+
+/* ⭐ ترتيب الكاسكاد الحقيقي في CSS:
+   1) !important بيكسب على أي قاعدة عادية — حتى لو الـspecificity
+      بتاعها أقل. ده اللي كنت فاكره غلط أول مرة.
+   2) جوّه نفس الفئة (important مع important، أو عادي مع عادي):
+      الـspecificity الأعلى بيكسب.
+   3) لو الـspecificity متساوي: الملف المتأخر بيكسب. */
+function pickWinner(cands, specOf) {
+  if (!cands.length) return null;
+  const important = cands.filter((r) => r.important);
+  const pool = important.length ? important : cands;
+  const maxSpec = Math.max.apply(null, pool.map(specOf));
+  const top = pool.filter((r) => specOf(r) === maxSpec);
+  const maxFile = Math.max.apply(null, top.map((r) => CSS_FILES.indexOf(r.file)));
+  const inFile = top.filter((r) => CSS_FILES.indexOf(r.file) === maxFile);
+  return inFile[inFile.length - 1];
 }
 
 /* ============ الكاسكاد ============ */
@@ -125,14 +151,79 @@ function winner(all, selector, prop, mediaFilter) {
   let cands = all.filter((r) => r.selector === selector && r.prop === prop);
   if (mediaFilter === null) cands = cands.filter((r) => !r.media);
   else if (typeof mediaFilter === 'string') cands = cands.filter((r) => r.media && r.media.indexOf(mediaFilter) > -1);
+  return pickWinner(cands, (r) => r.spec);
+}
+
+/* ---------- حل الكاسكاد على عنصر حقيقي ---------- */
+
+/* ⭐ ده الحل الصح: نشوف مين بيكسب على **عنصر** معيّن، مش على
+   selector نصّي. لما نجمّع بالـselector النصّي، كل القواعد في
+   المجموعة ليها نفس الـspecificity بالضرورة — فمفيش طريقة
+   تكتشف تعارض صامت. لازم نجمّع حسب العنصر. */
+
+const lastCompound = (sel) => {
+  const parts = sel.split(/[\s>+~]+/).filter(Boolean);
+  return parts[parts.length - 1] || '';
+};
+const classesOfSel = (sel) => [...sel.matchAll(/\.([\w-]+)/g)].map((m) => m[1]);
+/* اسم الوسم في آخر جزء (th / button / span…) */
+const typeOf = (compound) => {
+  const m = compound.match(/(^|[\s>+~(])([a-zA-Z][\w-]*)/);
+  return m ? m[2] : null;
+};
+const idsOfSel = (sel) => [...sel.matchAll(/#([\w-]+)/g)].map((m) => m[1]);
+
+/* هل القاعدة بتنطبق على العنصر ده؟ */
+function appliesTo(ruleSel, probePath) {
+  /* ⭐ قاعدة فيها '>' أو '+' أو '~' بتستهدف عنصر ابن/أخ، مش العنصر
+     نفسه. المجموع بيوصف عنصر واحد — فالقاعدة دي مش بتنطبق عليه.
+     (من غير ده، '.a > *' كانت بتتطبق على أي عنصر في الصفحة.) */
+  if (/[>+~]/.test(ruleSel)) return false;
+  const r = lastCompound(ruleSel);
+  const p = lastCompound(probePath);
+  /* ⭐ pseudo-element (::before/::after) مش العنصر نفسه */
+  if (/::/.test(r)) return false;
+  /* ⭐ قاعدة على وسم (th / button) مش بتنطبق على عنصر من وسم تاني */
+  const rt = typeOf(r);
+  if (rt && typeOf(p) !== rt) return false;
+  const rIds = idsOfSel(r);
+  const rCls = classesOfSel(r);
+  if (rIds.length && rIds.some((i) => idsOfSel(p).indexOf(i) === -1)) return false;
+  if (rCls.length && rCls.some((c) => classesOfSel(p).indexOf(c) === -1)) return false;
+  /* قاعدة على body/html بتطبق على كل حاجة */
+  const rTypes = r.match(/(^|[\s>+~])([a-zA-Z][\w-]*)/g) || [];
+  if (rTypes.length) {
+    const types = rTypes.map((t) => t.replace(/[\s>+~]/g, ''));
+    const pTypes = (p.match(/(^|[\s>+~])([a-zA-Z][\w-]*)/g) || []).map((t) => t.replace(/[\s>+~]/g, ''));
+    if (!types.some((t) => pTypes.indexOf(t) > -1)) return false;
+  }
+  return true;
+}
+
+/* solve: مين بيكسب على العنصر ده للخاصية دي؟
+   opts: { media: null|string, mode: 'light'|'dark'|'any' } */
+function solve(all, probePath, prop, opts) {
+  opts = opts || {};
+  const media = opts.media === undefined ? null : opts.media;
+  const mode = opts.mode || 'any';
+
+  let cands = all.filter((r) => r.prop === prop && appliesTo(r.selector, probePath));
+  /* ⭐ media query مابيلغيش القواعد اللي برّه أي media — دي بتتطبق
+     دايمًا. فلو الشاشة موبايل، القواعد العامة + قواعد الـmax-width
+     بتتطبق مع بعض. (كنت بستبعد القواعد العامة وده كان بيوصل
+     لنتايج غلط.) */
+  if (media === null) cands = cands.filter((r) => !r.media);
+  else if (typeof media === 'string') {
+    cands = cands.filter((r) => !r.media || (r.media && r.media.indexOf(media) > -1));
+  }
+
+  if (mode === 'light') cands = cands.filter((r) => r.selector.indexOf('.dark-mode') === -1);
+
   if (!cands.length) return null;
-  const maxSpec = Math.max.apply(null, cands.map((r) => r.spec));
-  const top = cands.filter((r) => r.spec === maxSpec);
-  const anyImportant = top.some((r) => r.important);
-  const pool = anyImportant ? top.filter((r) => r.important) : top;
-  const maxFile = Math.max.apply(null, pool.map((r) => CSS_FILES.indexOf(r.file)));
-  const inFile = pool.filter((r) => CSS_FILES.indexOf(r.file) === maxFile);
-  return inFile[inFile.length - 1];
+
+  /* الـspecificity الفعلية: body.dark-mode بيزوّد class واحد */
+  const specOf = (r) => r.spec + (mode === 'dark' && r.selector.indexOf('.dark-mode') > -1 ? 100 : 0);
+  return pickWinner(cands, specOf);
 }
 
 /* هل العنصر ده بيتخبّى بـCSS (مش بالـhidden attribute)؟ */
@@ -251,36 +342,105 @@ test('كل azرار الـHTML ليها CSS (مفيش زرار مش معرّف)'
   assert.deepStrictEqual(missing, [], 'أزرار في index.html من غير أي CSS:');
 });
 
-test('مفيش تعارض كاسكاد صامت (ملف متأخر بسpecificity أقل من اللي قبله)', () => {
-  /* ⭐ الحالة الخطرة: نفس الـselector ونفس الخاصية في ملفين، والملف
-     المتأخر ماعندوش specificity أعلى — يعني التعديل الجديد مش
-     بيشتغل أصلاً (القديم بيكسب) والكاتب مش واخد باله.
-     التكرار العادي (الملف المتأخر بـspecificity أعلى أو !important)
-     هو النمط المقصود في المشروع. */
-  const bySel = new Map();
-  for (const r of ALL) {
-    if (r.media) continue;
-    if (!bySel.has(r.selector)) bySel.set(r.selector, []);
-    bySel.get(r.selector).push(r);
-  }
+test('الهيدر يثبت فوق على الموبايل (sticky)', () => {
+  /* ⭐ كسر حقيقي كان موجود: 07-visual-redesign كان فيه
+     `position:relative` في القاعدة العامة، فكان بيلغي
+     `position:sticky` اللي في 04-dark-overrides جوه
+     @media(max-width:700px). وmedia query مابيزوّدش specificity،
+     والملف المتأخر بيكسب. النتيجة: الهيدر ماكانش بيثبت. */
+  const w = solve(ALL, 'body .topbar.topbar-v43', 'position', { media: 'max-width:700px', mode: 'light' });
+  assert.ok(w, 'مفيش قاعدة position للهيدر');
+  assert.strictEqual(w.value, 'sticky',
+    'الهيدر لازم يثبت فوق على الموبايل — غلطه: ' + w.value + ' (من ' + w.file + ')');
+});
+
+test('المحتوى بيحترم منطقة الأمان السفلية في آيفون', () => {
+  /* ⭐ كسر تاني: 07 كان بيلغي env(safe-area-inset-bottom) من
+     padding الـcontent على الموبايل، فآخر صف في المحتوى بيختفي
+     تحت مؤشر البيت في آيفون. */
+  const w = solve(ALL, 'body .content', 'padding', { media: 'max-width:700px', mode: 'light' });
+  assert.ok(w, 'مفيش قاعدة padding للـcontent');
+  assert.ok(/env\(safe-area-inset-bottom\)/.test(w.value),
+    'padding تحت 700px لازم يحترم env(safe-area-inset-bottom) — غلطه: ' + w.value);
+});
+
+test('سطر الشريط العلوي: واحد على الديسكتوب، اثنين على الموبايل', () => {
+  const desk = solve(ALL, 'body .topbar.topbar-v43 .topbar-actions', 'flex-wrap', { mode: 'light' });
+  assert.ok(desk, 'مفيش قاعدة flex-wrap');
+  assert.strictEqual(desk.value, 'nowrap', 'على الديسكتوب: ' + desk.value + ' (' + desk.file + ')');
+
+  const mob = solve(ALL, 'body .topbar.topbar-v43 .topbar-actions', 'flex-wrap', { media: 'max-width:900px', mode: 'light' });
+  assert.ok(mob, 'مفيش قاعدة flex-wrap على الموبايل');
+  assert.strictEqual(mob.value, 'wrap', 'على الموبايل: ' + mob.value + ' (' + mob.file + ')');
+});
+
+test('أزرار الشريط العلوي شفافة في الوضع الليلي (مش رمادية فاتحة)', () => {
+  /* الـdark override بتاع 04 كان بيتلغى بـ!important في 07 —
+     النتيجة إن أزرار الهيدر بتبقى فاتحة حتى في الوضع الليلي. */
+  const w = solve(ALL, 'body .topbar.topbar-v43 .btn', 'background', { mode: 'dark' });
+  assert.ok(w, 'مفيش قاعدة background لزراير الشريط');
+  assert.ok(!/255\s*,\s*255\s*,\s*255/.test(w.value),
+    'زرار الهيدر في الوضع الليلي لازم يكون غامق — غلطه: ' + w.value + ' (' + w.file + ')');
+});
+
+test('التبويب اللي عليه الصلاحية بيبقى مفعّل للعامل', () => {
+  /* canAccessYahmaTab لازم تسمح بتبويب مفيش له استثناء. */
+  const src = fs.readFileSync(path.join(ROOT, 'core', 'branches-store.js'), 'utf8');
+  const m = /PAGE_PERMISSION_OPTIONS=\[([\s\S]*?)\];/.exec(src);
+  assert.ok(m, 'لقائمة الأقسام');
+  const tabs = [...m[1].matchAll(/id:'([^']+)'/g)].map((x) => x[1]);
+  const router = fs.readFileSync(path.join(ROOT, 'core', 'render-router.js'), 'utf8');
+  /* كل تبويب بيتعرض في الراوتر لازم يكون في قائمة الصلاحيات */
+  const routed = [...router.matchAll(/currentTab\s*===\s*'([^']+)'/g)].map((x) => x[1]);
+  const missing = routed.filter((t) => tabs.indexOf(t) === -1 && t !== 'dashboard');
+  assert.deepStrictEqual(missing, [],
+    'تبويبات بتتعرض في الراوتر بس مش في قائمة الصلاحيات — هتتقفل لغير المدير:');
+});
+
+test('مفيش قاعدة بتلغي قاعدة أهم من غير ما تكون واضحة', () => {
+  /* ⭐ القاعدة العامة: لو ملف متأخر بيلغي خاصية لعنصر معروف،
+     لازم يكون إما بـ!important أو بـspecificity أعلى — وإلا فالنية
+     كانت إن الملف الأقدم يكسب واللي في المتأخر مالوش لازمة.
+     بنطلّع الحالات اللي فيها تعارض فعلي بين ملفين. */
+  const probes = [
+    { path: 'body .topbar.topbar-v43', props: ['background', 'position', 'padding'] },
+    { path: 'body .topbar.topbar-v43 .btn', props: ['background', 'color', 'border'] },
+    { path: 'body .content', props: ['padding'] },
+    { path: 'body .sidebar', props: ['width', 'background'] },
+    { path: 'body .panel', props: ['background', 'border'] }
+  ];
   const silent = [];
-  bySel.forEach((rs, sel) => {
-    const byProp = new Map();
-    for (const r of rs) {
-      if (!byProp.has(r.prop)) byProp.set(r.prop, []);
-      byProp.get(r.prop).push(r);
-    }
-    byProp.forEach((list, prop) => {
-      if (list.length < 2) return;
-      const sorted = list.slice().sort((a, b) =>
-        CSS_FILES.indexOf(a.file) - CSS_FILES.indexOf(b.file) || a.order - b.order);
-      const last = sorted[sorted.length - 1];
-      const winners = sorted.filter((r) => r.important === last.important);
-      const maxSpec = Math.max.apply(null, winners.map((r) => r.spec));
-      if (last.spec < maxSpec) {
-        silent.push(sel + ' { ' + prop + ' } — ' + last.file + ' (spec ' + last.spec + ') بيخسر قدام spec ' + maxSpec);
+  probes.forEach((pr) => {
+    pr.props.forEach((prop) => {
+      const byFile = new Map();
+      for (const r of ALL) {
+        if (r.media) continue;
+        if (r.prop !== prop) continue;
+        if (!appliesTo(r.selector, pr.path)) continue;
+        if (!byFile.has(r.file)) byFile.set(r.file, []);
+        byFile.get(r.file).push(r);
       }
+      if (byFile.size < 2) return;
+      const all = [];
+      byFile.forEach((list) => list.forEach((r) => all.push(r)));
+      /* الملف اللي بيكسب فعليًا — في النور بس. في الوضع الليلي
+         الملف الليلي هو المفروض يكسب (أعلى specificity) وده مقصود
+         في بنية المشروع، فحسابه مع fairer كان بيدي تعارضات وهمية. */
+      ['light'].forEach((mode) => {
+        const cands = all.filter((r) => mode !== 'light' || r.selector.indexOf('.dark-mode') === -1);
+        const win = pickWinner(cands, (r) => r.spec + (mode === 'dark' && r.selector.indexOf('.dark-mode') > -1 ? 100 : 0));
+        if (!win) return;
+        const winFile = win.file;
+        /* لو فيه ملف تاني فيه نفس الخاصية بس الملف الأقدم بيكسب →
+           التعديل في المتأخر مالوش لازمة (ساكت) */
+        const later = cands.filter((r) => CSS_FILES.indexOf(r.file) > CSS_FILES.indexOf(winFile));
+
+        if (later.length) {
+          silent.push(pr.path + ' { ' + prop + ' } [' + mode + '] — ' + winFile +
+            ' بيكسب، وفيه قاعدة في ' + later.map((r) => r.file).join(', '));
+        }
+      });
     });
   });
-  assert.deepStrictEqual(silent, [], 'تعارض كاسكاد صامت:');
+  assert.deepStrictEqual(silent, [], 'قواعد بتتكسر بصمت:');
 });

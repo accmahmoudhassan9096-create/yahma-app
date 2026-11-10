@@ -11,8 +11,8 @@
   transition:background .15s,color .15s,box-shadow .15s;
 }
 .sync-status.online{background:var(--green-soft);color:var(--green)}
-.sync-status.offline,
-.sync-status.is-offline{
+.sync-status.offline
+{
   background:#FEE2E2;
   color:#B91C1C;
   border:1px solid #F87171;
@@ -22,20 +22,10 @@
   color:#B45309;
   border:1px solid #F59E0B;
 }
-.sync-status.is-clickable{cursor:pointer}
-.sync-status.is-clickable:hover{
-  filter:brightness(.95);
-  box-shadow:0 1px 4px rgba(180,83,9,.25);
-}
 body.dark-mode .sync-status.is-pending{
   background:#78350F;
   color:#FDE68A;
   border-color:#D97706;
-}
-body.dark-mode .sync-status.is-offline{
-  background:#7F1D1D;
-  color:#FECACA;
-  border-color:#EF4444;
 }
 
 /* ===== زر الأخطاء العائم =====

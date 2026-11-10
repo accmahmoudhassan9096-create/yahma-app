@@ -1009,7 +1009,11 @@ test('النسخ المضغوطة من الـCSS متSynchronize مع المصد
    ⭐ وكمان: كل script و link مربوط لازم يكون موجود على القرص. */
 test('index.html: توازن وسوم HTML + كل الملفات المربوطة موجودة', () => {
   const html = read('index.html');
-  const VOID_TAGS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr', 'option'];
+  /* ⭐ void elements الحقيقية بس. كان فيها 'option' — وده مش void
+     في HTML5 (('<option value="x">' من غير </option> بيقفل تلقائيًا
+     في المتصفح، بس الفحص مش بيكشف لو اتنقص واحد).第一批 option
+     في index.html كانت فعلاً ناقصة قوس الإغلاق والاختبار عدّى. */
+  const VOID_TAGS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
   const tags = html.match(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g) || [];
   const stack = [];
   const problems = [];

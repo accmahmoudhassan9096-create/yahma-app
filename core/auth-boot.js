@@ -52,7 +52,6 @@ window.currentUser = null;
 // بتبقى false لحد ما يتحسم مصير الدخول (جلسة/لا جلسة/وضع تجريبي/فشل SDK).
 // شبكات الأمان الزمنية (forceLocalBoot / emergencyUnstick) ممنوعة تعمل أي حاجة قبلها،
 // عشان ما تخفيش شاشة الدخول أو تحوّل المستخدم للوضع التجريبي من تلقاء نفسه.
-window._authResolved = false;
 
 function renderEmergencyFleet(content){
   content = content || document.getElementById('content');
@@ -639,7 +638,6 @@ function initAuthGate(){
   if(!window.supabaseReady || !window.supabaseClient){
     // لا يوجد Supabase (CDN محجوب/أوفلاين/مانع إعلانات): ممنوع الدخول التلقائي تمامًا —
     // اعرض شاشة الدخول مع تنبيه. الدخول بحساب فقط (حُذف الوضع التجريبي نهائيًا).
-    window._authResolved = true;
     window._demoMode = false;
     window.currentRole = 'view';
     showAuthScreen('تعذّر تحميل مكتبة تسجيل الدخول. اعمل «تحديث قسري للتطبيق» من القائمة، وإن استمرت المشكلة اعمل «تحديث الآن» وهيحمّل الملف تاني.');
@@ -653,7 +651,6 @@ function initAuthGate(){
       return;
     }
     if(session && session.user){
-      window._authResolved = true;
       // Supabase بيبعت SIGNED_IN تاني كل ما ترجع للتبويب + TOKEN_REFRESHED كل ساعة.
       // لو نفس المستخدم مفتوح بالفعل، لا تعيد تحميل البيانات (ده كان سبب الرمش المتكرر).
       if(window._bootedUid===session.user.id && !window._demoMode){ window.currentUser = session.user; return; }
@@ -661,7 +658,6 @@ function initAuthGate(){
     } else {
       // لا تطرد المستخدم لو دخل بالوضع التجريبي المحلي
       if(window._demoMode) return;
-      window._authResolved = true;
       window._bootedUid = null;
       _sessionBootUid=null;
       window.currentUser = null;
@@ -673,7 +669,6 @@ function initAuthGate(){
 
   // تحقق من الجلسة الحالية عند التحميل
   window.supabaseClient.auth.getSession().then(({ data: { session } }) => {
-    window._authResolved = true;
     if(session && session.user){
       activateAuthenticatedSession(session.user);
     } else if(!window._demoMode){
@@ -681,7 +676,6 @@ function initAuthGate(){
     }
   }).catch(e=>{
     console.warn('خطأ في فحص الجلسة:', e);
-    window._authResolved = true;
     if(!window._demoMode) showAuthScreen();
   });
 }

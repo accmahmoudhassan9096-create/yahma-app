@@ -120,6 +120,12 @@ const PAGE_PERMISSION_OPTIONS=[
   {id:'fleet',label:'الأسطول'},{id:'branches',label:'الفروع'},{id:'reports',label:'التقارير'},{id:'renewals',label:'الفحص'},
   {id:'payments',label:'تحت الدفع'},{id:'paid',label:'تم الدفع'},{id:'renewed',label:'تم التجديد'},{id:'license-renewals',label:'رخص منتهية'},
   {id:'insurance-renewals',label:'التأمين'},{id:'inspections',label:'بطاقات التشغيل'},
+  /* ⭐ «قائمة التجهيز» — الشاشة كاملة (renderPreparation + بيانات +
+     اختصارات) وLinked من الرئيسية، بس كانت مش في القائمة دي.
+     النتيجة: canAccessYahmaTab('preparation') كانت false لغير المدير،
+     فالضغط على «عرض كل المهام» في الرئيسية كان بيعيدك للرئيسية من
+     غير ما يقولك حاجة، والاختصار 'p' ماكانش بيشتغل. */
+  {id:'preparation',label:'قائمة التجهيز'},
   {id:'audit',label:'سجل النشاط'},{id:'users',label:'المستخدمون'}
 ];
 window.PAGE_PERMISSION_OPTIONS=PAGE_PERMISSION_OPTIONS;

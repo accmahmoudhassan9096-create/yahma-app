@@ -8,68 +8,6 @@ function prepChecklistForCar(car){ return window.YahmaPreparationData.checklistF
 function prepStatusForCar(car){ return window.YahmaPreparationData.statusForCar(car, vehicleReadiness); }
 function getPrepTasks(){ return window.YahmaPreparationData.getTasks(fleet, vehicleReadiness); }
 function savePrepTask(task){ return window.YahmaPreparationData.saveTask(fleet, task); }
-function renderPreparation(content){
-  document.getElementById('topbar-title').textContent='التجهيز والمهام';
-  document.getElementById('topbar-sub').textContent='تحويل أسباب عدم الجاهزية إلى خطوات ومهام واضحة حتى تصبح السيارة جاهزة للتأجير';
-  const tasks=getPrepTasks();
-  const open=tasks.filter(t=>t.status==='open').length;
-  const progress=tasks.filter(t=>t.status==='progress').length;
-  const done=tasks.filter(t=>t.status==='done').length;
-  const needsReview=fleet.filter(c=>vehicleReadiness(c).ready && !prepChecklistForCar(c).final).length;
-  content.innerHTML=`
-    <div class="prep-page-head"><div><h2 style="margin:0;font-size:18px">مركز تجهيز الأسطول</h2><div class="muted-small">كل مشكلة في السيارة تظهر هنا كإجراء قابل للمتابعة.</div></div><button class="btn btn-primary" id="prep-refresh">↻ تحديث</button></div>
-    <div class="prep-kpis"><div class="prep-kpi"><b>${open}</b><span>مهام مفتوحة</span></div><div class="prep-kpi"><b>${progress}</b><span>قيد التنفيذ</span></div><div class="prep-kpi"><b>${done}</b><span>مكتملة</span></div><div class="prep-kpi"><b>${needsReview}</b><span>جاهزة وتحتاج مراجعة نهائية</span></div></div>
-    <div class="panel">
-      <div class="prep-filter"><input id="prep-search" placeholder="بحث باللوحة أو الفرع أو المهمة"><select id="prep-status"><option value="">كل الحالات</option><option value="open">مفتوحة</option><option value="progress">قيد التنفيذ</option><option value="done">مكتملة</option></select><select id="prep-type"><option value="">كل الأسباب</option>${[...new Set(tasks.map(t=>t.type))].map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('')}</select>
-        <button class="btn btn-excel-export btn-small" id="prep-export-xlsx" type="button">📊 Excel</button>
-        <button class="btn btn-ghost btn-small" id="prep-export-pdf" type="button">📄 PDF</button>
-      </div>
-      <div style="overflow:auto"><table class="task-table"><thead><tr><th>السيارة</th><th>الفرع</th><th>المهمة</th><th>المسؤول</th><th>الاستحقاق</th><th>الحالة</th><th></th></tr></thead><tbody id="prep-task-body"></tbody></table></div>
-    </div>`;
-  const getPrepFiltered=()=>{
-    const q=(document.getElementById('prep-search')?.value||'').trim().toLowerCase(), st=document.getElementById('prep-status')?.value||'', type=document.getElementById('prep-type')?.value||'';
-    return tasks.filter(t=>(!q||[t.plate,t.branch,t.title,t.assignee].join(' ').toLowerCase().includes(q))&&(!st||t.status===st)&&(!type||t.type===type));
-  };
-  const exportPrep=async (fmt)=>{
-    const list=getPrepFiltered();
-    if(!list.length){alert('لا توجد مهام مطابقة للفلاتر.');return;}
-    const headers=['رقم اللوحة','الفرع','المهمة','المسؤول','الاستحقاق','الحالة'];
-    const data=list.map(t=>{
-      const label=t.status==='done'?'مكتملة':t.status==='progress'?'قيد التنفيذ':'مفتوحة';
-      return [t.plate||'',t.branch||'',t.title||'',t.assignee||'',t.dueDate||'',label];
-    });
-    if(fmt==='pdf'){
-      const name='مهام-تجهيز-مفلترة-'+new Date().toISOString().slice(0,10)+'.pdf';
-      if(window.YahmaExport&&window.YahmaExport.exportTablePdf){
-        window.YahmaExport.exportTablePdf({title:'مهام التجهيز المفلترة',subtitle:'عدد المهام: '+list.length,headers:headers,rows:data,buttonId:'prep-export-pdf',filename:name});
-      } else if(typeof openPrintWindow==='function') openPrintWindow('مهام التجهيز المفلترة','عدد المهام: '+list.length,headers,data);
-      return;
-    }
-    if(!(await ensureXlsxReady())){alert('مكتبة Excel غير متاحة');return;}
-    const ws=XLSX.utils.aoa_to_sheet([headers,...data]);
-    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'مهام-التجهيز');
-    XLSX.writeFile(wb,'مهام-تجهيز-مفلترة-'+(typeof todayStr==='function'?todayStr():Date.now())+'.xlsx');
-  };
-  window._yahmaCurrentPdfData=()=>({title:'مهام التجهيز المفلترة',subtitle:'عدد المهام: '+getPrepFiltered().length,headers:['رقم اللوحة','الفرع','المهمة','المسؤول','الاستحقاق','الحالة'],rows:getPrepFiltered().map(t=>[t.plate||'',t.branch||'',t.title||'',t.assignee||'',t.dueDate||'',t.status==='done'?'مكتملة':t.status==='progress'?'قيد التنفيذ':'مفتوحة'])});
-  const draw=()=>{
-    const list=getPrepFiltered();
-    const tb = document.getElementById('prep-task-body');
-    if(!tb) return;
-    tb.innerHTML=list.length?list.map(t=>{const cls=t.status==='done'?'task-done':t.status==='progress'?'task-progress':'task-open';const label=t.status==='done'?'مكتملة':t.status==='progress'?'قيد التنفيذ':'مفتوحة';return `<tr><td class="plate">${escapeHtml(t.plate)}</td><td>${escapeHtml(t.branch)}</td><td>${escapeHtml(t.title)}</td><td>${escapeHtml(t.assignee||'—')}</td><td>${escapeHtml(t.dueDate||'—')}</td><td><span class="task-status ${cls}">${label}</span></td><td><button class="btn btn-ghost btn-small" data-prep-edit="${escapeHtml(t.carId)}">فتح السيارة</button></td></tr>`}).join(''):'<tr><td colspan="7"><div class="empty">لا توجد مهام حسب الفلاتر الحالية</div></td></tr>';
-    document.querySelectorAll('[data-prep-edit]').forEach(b=>b.onclick=()=>openModal(b.dataset.prepEdit));
-  };
-  ['prep-search','prep-status','prep-type'].forEach(id=>{
-    const el=document.getElementById(id); if(!el) return;
-    if(id==='prep-search'){ let t=null; el.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(draw,180);}); }
-    else el.addEventListener('change',draw);
-  });
-  document.getElementById('prep-refresh')?.addEventListener('click',render);
-  document.getElementById('prep-export-xlsx')?.addEventListener('click',()=>exportPrep('xlsx'));
-  document.getElementById('prep-export-pdf')?.addEventListener('click',()=>exportPrep('pdf'));
-  window._yahmaModuleExport = function(fmt){ exportPrep(fmt==='pdf'?'pdf':'xlsx'); };
-  draw();
-}
-
 function renderAuditPage(content){
   return window.YahmaAudit.render(content, {currentRole: window.currentRole});
 }
@@ -145,6 +83,16 @@ function render(){
     const renewedCount=document.getElementById('count-renewed'); if(renewedCount) renewedCount.textContent=loadRenewedInspections().length;
     try{ if(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function'){ window.YahmaPayments.localByStatus('pending'); window.YahmaPayments.localByStatus('paid'); } }catch(_){yahmaErr(_,'render-router.js:540');}
   const cb=document.getElementById('count-branches'); if(cb) cb.textContent = branches.length;
+  /* عدّاد «قائمة التجهيز» — نفس منطق dashboard-core.js بالظبط:
+     المهام المتأخرة بس (status مش done و dueDate قبل اليوم). */
+  try {
+    const cp=document.getElementById('count-preparation');
+    if(cp){
+      const today=typeof todayStr==='function'?todayStr():new Date().toISOString().slice(0,10);
+      const tasks=getPrepTasks()||[];
+      cp.textContent=tasks.filter(t=>t.status!=='done'&&t.dueDate&&t.dueDate<today).length;
+    }
+  } catch(_){yahmaErr(_,'render-router.js:preparation-count');}
   const sync=document.getElementById('sync-status');if(sync){sync.textContent=window.syncMessage||'جاري الاتصال';sync.className='sync-status '+(window.supabaseReady?'online':'offline');}
   updateLastSyncLabel();
 
