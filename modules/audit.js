@@ -124,37 +124,40 @@
         <div class="fleet-summary-card out"><span class="fleet-summary-icon">⏱️</span><span><b id="audit-last-time" style="font-size:11.5px">—</b><small>آخر حركة مسجلة</small></span></div>
       </div>
 
-      <div class="filter-panel" style="margin-bottom:14px">
+      <div class="filter-panel" id="audit-filter-panel" style="margin-bottom:14px">
         <div class="filter-panel-title">
           <div>
             <strong>🔎 فلترة سجل النشاط وحركات المستخدمين</strong>
             <span>اختر مستخدمًا لعرض جميع عملياته بالتفصيل</span>
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <button type="button" class="btn btn-ghost btn-small fleet-filter-toggle" id="audit-filter-toggle" aria-expanded="false">إظهار الفلاتر <span aria-hidden="true">⌄</span></button>
             <button type="button" class="btn btn-ghost btn-small" id="audit-refresh-btn">↻ تحديث</button>
             <button type="button" class="btn btn-ghost btn-small" id="audit-export-xlsx">📊 Excel</button>
             <button type="button" class="btn btn-ghost btn-small" id="audit-export-csv">📄 CSV</button>
             <button type="button" class="btn btn-ghost btn-small" id="audit-export-pdf">📑 PDF</button>
           </div>
         </div>
-        <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
-          <label><b>المستخدم:</b>
-            <select id="audit-sel-user" style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px;background:var(--paper,#fff);color:var(--text);width:100%">
-              <option value="">جاري التحميل...</option>
-            </select>
-          </label>
-          <label><b>نوع العملية:</b>
-            <select id="audit-sel-action" style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px;background:var(--paper,#fff);color:var(--text);width:100%">
-              <option value="">كل العمليات</option>
-            </select>
-          </label>
-          <label style="grid-column:span 2"><b>بحث في السجل:</b>
-            <input id="audit-ipt-search" placeholder="ابحث بالحركة، التفاصيل، رقم اللوحة..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px;width:100%">
-          </label>
-        </div>
-        <div class="filter-footer" style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px">
-          <span id="audit-count-label" style="font-size:12px;color:var(--muted)">جاري جلب البيانات...</span>
-          <button type="button" class="btn btn-ghost btn-small" id="audit-clear-btn">↺ مسح الفلاتر</button>
+        <div class="filter-panel-body" id="audit-filter-body">
+          <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+            <label><b>المستخدم:</b>
+              <select id="audit-sel-user" style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px;background:var(--paper,#fff);color:var(--text);width:100%">
+                <option value="">جاري التحميل...</option>
+              </select>
+            </label>
+            <label><b>نوع العملية:</b>
+              <select id="audit-sel-action" style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px;background:var(--paper,#fff);color:var(--text);width:100%">
+                <option value="">كل العمليات</option>
+              </select>
+            </label>
+            <label style="grid-column:span 2"><b>بحث في السجل:</b>
+              <input id="audit-ipt-search" placeholder="ابحث بالحركة، التفاصيل، رقم اللوحة..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px;width:100%">
+            </label>
+          </div>
+          <div class="filter-footer" style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px">
+            <span id="audit-count-label" style="font-size:12px;color:var(--muted)">جاري جلب البيانات...</span>
+            <button type="button" class="btn btn-ghost btn-small" id="audit-clear-btn">↺ مسح الفلاتر</button>
+          </div>
         </div>
       </div>
 
@@ -411,6 +414,24 @@
       pageSize = parseInt(e.target.value, 10) || 0;
       page = 1; draw();
     });
+
+    const auditFilterPanel = document.getElementById('audit-filter-panel');
+    const auditFilterToggle = document.getElementById('audit-filter-toggle');
+    const auditFilterBody = document.getElementById('audit-filter-body');
+    const setAuditFiltersOpen = (open) => {
+      if (!auditFilterPanel || !auditFilterToggle || !auditFilterBody) return;
+      auditFilterPanel.classList.toggle('is-open', open);
+      auditFilterBody.hidden = !open;
+      auditFilterToggle.setAttribute('aria-expanded', String(open));
+      const arrow = auditFilterToggle.querySelector('span[aria-hidden]');
+      if (arrow) arrow.textContent = open ? '⌃' : '⌄';
+      if (auditFilterToggle.firstChild) auditFilterToggle.firstChild.textContent = open ? 'إخفاء الفلاتر ' : 'إظهار الفلاتر ';
+      window._auditFiltersOpen = open;
+    };
+    if (auditFilterToggle) {
+      auditFilterToggle.addEventListener('click', () => setAuditFiltersOpen(!window._auditFiltersOpen));
+      setAuditFiltersOpen(window._auditFiltersOpen === true);
+    }
 
     loadData();
   }

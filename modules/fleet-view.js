@@ -743,6 +743,8 @@
     filterPanel.classList.toggle('is-open',open);
     filterBody.hidden=!open;
     filterToggle.setAttribute('aria-expanded',String(open));
+    const arrow = filterToggle.querySelector('span[aria-hidden]');
+    if (arrow) arrow.textContent = open ? '⌃' : '⌄';
     if(filterToggle.firstChild) filterToggle.firstChild.textContent=open?'إخفاء الفلاتر ':'إظهار الفلاتر ';
     else filterToggle.textContent=open?'إخفاء الفلاتر ':'إظهار الفلاتر ';
     window._fleetFiltersOpen=open;

@@ -96,8 +96,12 @@ function renderRenewals(content, mode='inspection'){
       </div>
     </div>`}
     ${(!licenseMode&&!insuranceMode&&pendingExcluded>0)?`<div style="display:flex;justify-content:flex-end;margin:6px 0"><button type="button" id="ren-pending-info" title="${pendingExcluded} سيارة لم يُفحص بالفعل في طابور الدفع — مش ظاهرة هنا عشان الدورة: الفحص ← تحت الدفع ← تم الدفع" style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;background:rgba(217,119,6,0.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(217,119,6,0.28);color:#d97706;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(217,119,6,0.12)"><span style="font-size:14px">🕐</span><span>تحت الدفع: ${pendingExcluded}</span></button></div>`:''}
-    <div class="filter-panel">
-      <div class="filter-panel-title"><strong>🔎 فلاتر ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</strong><span>${isOpsInspection?'البحث في سيارات الفحص':'صفِّ النتائج حسب أي بند — ثم صدّر Excel أو PDF'}</span></div>
+    <div class="filter-panel" id="ren-filter-panel">
+      <div class="filter-panel-title">
+        <div><strong>🔎 فلاتر ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</strong><span>${isOpsInspection?'البحث في سيارات الفحص':'صفِّ النتائج حسب أي بند — ثم صدّر Excel أو PDF'}</span></div>
+        <button type="button" class="btn btn-ghost btn-small fleet-filter-toggle ren-filter-toggle" id="ren-filter-toggle" aria-expanded="false">إظهار الفلاتر <span aria-hidden="true">⌄</span></button>
+      </div>
+      <div class="filter-panel-body" id="ren-filter-body">
       ${isOpsInspection ? '' : `
       <div class="quick-filters" id="ren-quick">
         ${insuranceMode?`<button type="button" class="quick-filter" data-rq="insurance_bad">🛡️ يحتاج متابعة</button>`:licenseMode?`<button type="button" class="quick-filter" data-rq="lic_expired">🔴 منتهية</button><button type="button" class="quick-filter" data-rq="lic_soon">🟡 قريبة الانتهاء</button><button type="button" class="quick-filter" data-rq="lic_unknown">⚪ مفيش تاريخ</button>`:`<button type="button" class="quick-filter" data-rq="insp_bad">🔍 تحتاج فحص</button>${pendingExcluded>0?`<button type="button" class="quick-filter" data-rq="in_payment">🕐 قيد الدفع (${pendingExcluded})</button>`:''}`}
@@ -130,6 +134,7 @@ function renderRenewals(content, mode='inspection'){
       <button class="btn btn-ghost btn-small" id="ren-export-pdf">📄 تصدير PDF</button>
         <button class="btn btn-primary btn-small" id="ren-upload-btn" title="رفع شيت ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'} — ${insuranceMode?'يحدّث: حالة التأمين، الشركة، الانتهاء، اللون، المدينة، الرقم التسلسلي، المالك، الفرع، حالة السيارة':licenseMode?'يحدّث تاريخ وحالة الرخصة فقط':'يحدّث: حالة الفحص، الرقم التسلسلي، رقم الحاسب الآلي، اسم الشركة، والملاحظات'}">📥 رفع شيت ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</button>
         <input type="file" id="file-ren-upload" accept=".xlsx,.xls,.csv" style="display:none">
+      </div>
       </div>
     </div>
     ${canBulk?`<div class="bulk-bar" id="ren-bulk-bar" style="display:none">
@@ -213,6 +218,24 @@ function renderRenewals(content, mode='inspection'){
     }
   });
   document.getElementById('btn-copy-inspection')?.addEventListener('click', copyUninspectedList);
+
+  const renFilterPanel = document.getElementById('ren-filter-panel');
+  const renFilterToggle = document.getElementById('ren-filter-toggle');
+  const renFilterBody = document.getElementById('ren-filter-body');
+  const setRenFiltersOpen = (open) => {
+    if (!renFilterPanel || !renFilterToggle || !renFilterBody) return;
+    renFilterPanel.classList.toggle('is-open', open);
+    renFilterBody.hidden = !open;
+    renFilterToggle.setAttribute('aria-expanded', String(open));
+    const arrow = renFilterToggle.querySelector('span[aria-hidden]');
+    if (arrow) arrow.textContent = open ? '⌃' : '⌄';
+    if (renFilterToggle.firstChild) renFilterToggle.firstChild.textContent = open ? 'إخفاء الفلاتر ' : 'إظهار الفلاتر ';
+    window._renFiltersOpen = open;
+  };
+  if (renFilterToggle) {
+    renFilterToggle.addEventListener('click', () => setRenFiltersOpen(!window._renFiltersOpen));
+    setRenFiltersOpen(window._renFiltersOpen === true);
+  }
 
   const $=id=>document.getElementById(id);
   let activeRQ='', page=1, pageSize=25;

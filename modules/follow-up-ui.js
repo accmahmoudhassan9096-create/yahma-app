@@ -486,6 +486,8 @@ function renderFollowUp(content){
     fuFilterPanel.classList.toggle('is-open', open);
     fuFilterBody.hidden = !open;
     fuFilterToggle.setAttribute('aria-expanded', String(open));
+    const arrow = fuFilterToggle.querySelector('span[aria-hidden]');
+    if (arrow) arrow.textContent = open ? '⌃' : '⌄';
     if (fuFilterToggle.firstChild) fuFilterToggle.firstChild.textContent = open ? 'إخفاء الفلاتر ' : 'إظهار الفلاتر ';
     else fuFilterToggle.textContent = open ? 'إخفاء الفلاتر ' : 'إظهار الفلاتر ';
     window._fuFiltersOpen = open;

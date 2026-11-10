@@ -24,10 +24,15 @@
           <button class="btn btn-ghost" id="btn-branch-status-template-2" hidden>نموذج Excel</button>
         </div>
       </div>
-      <div class="filter-panel">
-        <div class="filter-panel-title"><strong>البحث</strong></div>
-        <div class="fleet-tools-head">
-          <div class="fleet-search-wrap"><span>⌕</span><input id="br-search" aria-label="بحث في الفروع" placeholder="اسم الفرع، المسؤول، الإيميل..."></div>
+      <div class="filter-panel" id="br-filter-panel">
+        <div class="filter-panel-title">
+          <div><strong>🔎 فلاتر وبحث الفروع</strong><span>البحث في الفروع والمسؤولين ومعلومات الاتصال</span></div>
+          <button type="button" class="btn btn-ghost btn-small fleet-filter-toggle" id="br-filter-toggle" aria-expanded="false">إظهار الفلاتر <span aria-hidden="true">⌄</span></button>
+        </div>
+        <div class="filter-panel-body" id="br-filter-body">
+          <div class="fleet-tools-head">
+            <div class="fleet-search-wrap"><span>⌕</span><input id="br-search" aria-label="بحث في الفروع" placeholder="اسم الفرع، المسؤول، الإيميل..."></div>
+          </div>
         </div>
       </div>
       <div class="table-scroll" style="max-height:calc(100vh - 280px)">
@@ -118,6 +123,24 @@
     $('btn-add-branch').onclick = () => openBranchModal(null);
     $('btn-branch-status-import-2').onclick = () => $('file-branch-status')?.click();
     $('btn-branch-status-template-2').onclick = downloadBranchStatusTemplate;
+    const brFilterPanel = document.getElementById('br-filter-panel');
+    const brFilterToggle = document.getElementById('br-filter-toggle');
+    const brFilterBody = document.getElementById('br-filter-body');
+    const setBrFiltersOpen = (open) => {
+      if (!brFilterPanel || !brFilterToggle || !brFilterBody) return;
+      brFilterPanel.classList.toggle('is-open', open);
+      brFilterBody.hidden = !open;
+      brFilterToggle.setAttribute('aria-expanded', String(open));
+      const arrow = brFilterToggle.querySelector('span[aria-hidden]');
+      if (arrow) arrow.textContent = open ? '⌃' : '⌄';
+      if (brFilterToggle.firstChild) brFilterToggle.firstChild.textContent = open ? 'إخفاء الفلاتر ' : 'إظهار الفلاتر ';
+      window._brFiltersOpen = open;
+    };
+    if (brFilterToggle) {
+      brFilterToggle.addEventListener('click', () => setBrFiltersOpen(!window._brFiltersOpen));
+      setBrFiltersOpen(window._brFiltersOpen === true);
+    }
+
     /* العناصر المخفية اتشالت من الواجهة — الربط الاختياري بيخلّيها آمنة لو رجعت */
     $('br-search').oninput = draw;
     draw();

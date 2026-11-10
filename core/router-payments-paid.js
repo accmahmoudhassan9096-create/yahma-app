@@ -59,24 +59,29 @@ function renderPaidInspections(content){
     <div class="fleet-summary-card ${pendingLicense?'attention':''}"><span class="fleet-summary-icon">📄</span><span><b>${pendingLicense}</b><small>بانتظار تجديد الرخصة</small></span></div>
     <div class="fleet-summary-card"><span class="fleet-summary-icon">✅</span><span><b>${doneCount}</b><small>تم تجديد رخصها</small></span></div>
   </div>
-  <div class="filter-panel">
-    <div class="filter-panel-title"><strong>🔎 فلاتر طلبات تم الدفع</strong><span>صفِّ النتائج حسب اللوحة، الفرع، حالة الرخصة، أو المستخدم</span></div>
-    <div class="quick-filters" id="paid-quick">
-      <button type="button" class="quick-filter active" data-pq="all">الكل</button>
-      <button type="button" class="quick-filter" data-pq="need_lic">📄 بانتظار تجديد الرخصة</button>
-      <button type="button" class="quick-filter" data-pq="has_lic">✅ الرخصة سارية</button>
-      <button type="button" class="quick-filter" data-pq="today">📅 مدفوع اليوم</button>
+  <div class="filter-panel" id="pay-paid-filter-panel">
+    <div class="filter-panel-title">
+      <div><strong>🔎 فلاتر طلبات تم الدفع</strong><span>صفِّ النتائج حسب اللوحة، الفرع، حالة الرخصة، أو المستخدم</span></div>
+      <button type="button" class="btn btn-ghost btn-small fleet-filter-toggle" id="pay-paid-filter-toggle" aria-expanded="false">إظهار الفلاتر <span aria-hidden="true">⌄</span></button>
     </div>
-    <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
-      <label>بحث<input id="pay-search-paid" placeholder="رقم اللوحة، الفرع، المالك، المستخدم، الملاحظات..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
-      <label>الفرع<select id="pay-branch-paid">${branchOpts}</select></label>
-      <label>اسم المالك<select id="pay-owner-paid">${ownerOpts}</select></label>
-      <label>حالة الرخصة<select id="pay-lic-status-paid"><option value="">كل الحالات</option><option value="need">بانتظار تجديد الرخصة</option><option value="valid">الرخصة سارية</option></select></label>
-      <label>المستخدم<select id="pay-user-paid">${userOpts}</select></label>
-    </div>
-    <div class="filter-footer">
-      <span id="pay-count-paid">عرض ${rows.length} من ${rows.length} طلب</span>
-      <button type="button" class="btn btn-ghost btn-small" id="pay-clear-paid">↺ مسح الفلاتر</button>
+    <div class="filter-panel-body" id="pay-paid-filter-body">
+      <div class="quick-filters" id="paid-quick">
+        <button type="button" class="quick-filter active" data-pq="all">الكل</button>
+        <button type="button" class="quick-filter" data-pq="need_lic">📄 بانتظار تجديد الرخصة</button>
+        <button type="button" class="quick-filter" data-pq="has_lic">✅ الرخصة سارية</button>
+        <button type="button" class="quick-filter" data-pq="today">📅 مدفوع اليوم</button>
+      </div>
+      <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+        <label>بحث<input id="pay-search-paid" placeholder="رقم اللوحة، الفرع، المالك، المستخدم، الملاحظات..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
+        <label>الفرع<select id="pay-branch-paid">${branchOpts}</select></label>
+        <label>اسم المالك<select id="pay-owner-paid">${ownerOpts}</select></label>
+        <label>حالة الرخصة<select id="pay-lic-status-paid"><option value="">كل الحالات</option><option value="need">بانتظار تجديد الرخصة</option><option value="valid">الرخصة سارية</option></select></label>
+        <label>المستخدم<select id="pay-user-paid">${userOpts}</select></label>
+      </div>
+      <div class="filter-footer">
+        <span id="pay-count-paid">عرض ${rows.length} من ${rows.length} طلب</span>
+        <button type="button" class="btn btn-ghost btn-small" id="pay-clear-paid">↺ مسح الفلاتر</button>
+      </div>
     </div>
   </div>
   ${paymentsSyncWarningHtml()}
@@ -169,6 +174,24 @@ function renderPaidInspections(content){
         await PAY_ITEM_ACTION.back(item, fleet.find(c=>String(c.id)===String(item.carId)), false);
       };
     });
+  }
+
+  const payPaidFilterPanel = document.getElementById('pay-paid-filter-panel');
+  const payPaidFilterToggle = document.getElementById('pay-paid-filter-toggle');
+  const payPaidFilterBody = document.getElementById('pay-paid-filter-body');
+  const setPayPaidFiltersOpen = (open) => {
+    if (!payPaidFilterPanel || !payPaidFilterToggle || !payPaidFilterBody) return;
+    payPaidFilterPanel.classList.toggle('is-open', open);
+    payPaidFilterBody.hidden = !open;
+    payPaidFilterToggle.setAttribute('aria-expanded', String(open));
+    const arrow = payPaidFilterToggle.querySelector('span[aria-hidden]');
+    if (arrow) arrow.textContent = open ? '⌃' : '⌄';
+    if (payPaidFilterToggle.firstChild) payPaidFilterToggle.firstChild.textContent = open ? 'إخفاء الفلاتر ' : 'إظهار الفلاتر ';
+    window._payPaidFiltersOpen = open;
+  };
+  if (payPaidFilterToggle) {
+    payPaidFilterToggle.addEventListener('click', () => setPayPaidFiltersOpen(!window._payPaidFiltersOpen));
+    setPayPaidFiltersOpen(window._payPaidFiltersOpen === true);
   }
 
   content.querySelectorAll('#paid-quick .quick-filter').forEach(btn => {

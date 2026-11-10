@@ -63,22 +63,27 @@ function renderRenewedInspections(content){
     </div>
     ${(typeof payMovableRole === 'function' && payMovableRole()) ? `<button type="button" class="btn btn-primary btn-small" id="btn-revert-unrenewed">↩ إعادة ${pendingLicenseCount} سيارة غير مجددة إلى «تم الدفع»</button>` : ''}
   </div>` : ''}
-  <div class="filter-panel">
-    <div class="filter-panel-title"><strong>🔎 فلاتر تم التجديد</strong><span>صفِّ النتائج حسب اللوحة، الفرع، المستخدم، أو التاريخ</span></div>
-    <div class="quick-filters" id="renewed-quick">
-      <button type="button" class="quick-filter active" data-rq="all">الكل</button>
-      <button type="button" class="quick-filter" data-rq="today">📅 تم تجديدها اليوم</button>
-      ${pendingLicenseCount > 0 ? `<button type="button" class="quick-filter" data-rq="needs-license">⚠️ بانتظار تجديد الرخصة (${pendingLicenseCount})</button>` : ''}
+  <div class="filter-panel" id="pay-renewed-filter-panel">
+    <div class="filter-panel-title">
+      <div><strong>🔎 فلاتر تم التجديد</strong><span>صفِّ النتائج حسب اللوحة، الفرع، المستخدم، أو التاريخ</span></div>
+      <button type="button" class="btn btn-ghost btn-small fleet-filter-toggle" id="pay-renewed-filter-toggle" aria-expanded="false">إظهار الفلاتر <span aria-hidden="true">⌄</span></button>
     </div>
-    <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
-      <label>بحث<input id="pay-search-renewed" placeholder="رقم اللوحة، الفرع، المالك، المستخدم، الملاحظات..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
-      <label>الفرع<select id="pay-branch-renewed">${branchOpts}</select></label>
-      <label>اسم المالك<select id="pay-owner-renewed">${ownerOpts}</select></label>
-      <label>المستخدم<select id="pay-user-renewed">${userOpts}</select></label>
-    </div>
-    <div class="filter-footer">
-      <span id="pay-count-renewed">عرض ${rows.length} من ${rows.length} سيارة</span>
-      <button type="button" class="btn btn-ghost btn-small" id="pay-clear-renewed">↺ مسح الفلاتر</button>
+    <div class="filter-panel-body" id="pay-renewed-filter-body">
+      <div class="quick-filters" id="renewed-quick">
+        <button type="button" class="quick-filter active" data-rq="all">الكل</button>
+        <button type="button" class="quick-filter" data-rq="today">📅 تم تجديدها اليوم</button>
+        ${pendingLicenseCount > 0 ? `<button type="button" class="quick-filter" data-rq="needs-license">⚠️ بانتظار تجديد الرخصة (${pendingLicenseCount})</button>` : ''}
+      </div>
+      <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+        <label>بحث<input id="pay-search-renewed" placeholder="رقم اللوحة، الفرع، المالك، المستخدم، الملاحظات..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
+        <label>الفرع<select id="pay-branch-renewed">${branchOpts}</select></label>
+        <label>اسم المالك<select id="pay-owner-renewed">${ownerOpts}</select></label>
+        <label>المستخدم<select id="pay-user-renewed">${userOpts}</select></label>
+      </div>
+      <div class="filter-footer">
+        <span id="pay-count-renewed">عرض ${rows.length} من ${rows.length} سيارة</span>
+        <button type="button" class="btn btn-ghost btn-small" id="pay-clear-renewed">↺ مسح الفلاتر</button>
+      </div>
     </div>
   </div>
   ${paymentsSyncWarningHtml()}
@@ -185,6 +190,24 @@ function renderRenewedInspections(content){
       draw();
     };
   });
+
+  const payRenewedFilterPanel = document.getElementById('pay-renewed-filter-panel');
+  const payRenewedFilterToggle = document.getElementById('pay-renewed-filter-toggle');
+  const payRenewedFilterBody = document.getElementById('pay-renewed-filter-body');
+  const setPayRenewedFiltersOpen = (open) => {
+    if (!payRenewedFilterPanel || !payRenewedFilterToggle || !payRenewedFilterBody) return;
+    payRenewedFilterPanel.classList.toggle('is-open', open);
+    payRenewedFilterBody.hidden = !open;
+    payRenewedFilterToggle.setAttribute('aria-expanded', String(open));
+    const arrow = payRenewedFilterToggle.querySelector('span[aria-hidden]');
+    if (arrow) arrow.textContent = open ? '⌃' : '⌄';
+    if (payRenewedFilterToggle.firstChild) payRenewedFilterToggle.firstChild.textContent = open ? 'إخفاء الفلاتر ' : 'إظهار الفلاتر ';
+    window._payRenewedFiltersOpen = open;
+  };
+  if (payRenewedFilterToggle) {
+    payRenewedFilterToggle.addEventListener('click', () => setPayRenewedFiltersOpen(!window._payRenewedFiltersOpen));
+    setPayRenewedFiltersOpen(window._payRenewedFiltersOpen === true);
+  }
 
   ['pay-search-renewed', 'pay-branch-renewed', 'pay-owner-renewed', 'pay-user-renewed'].forEach(id => {
     const el = document.getElementById(id);

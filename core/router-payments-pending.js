@@ -58,23 +58,28 @@ function renderInspectionPayments(content){
       : '');
 
   content.innerHTML=`<div class="fleet-summary-strip module-summary-strip"><div class="fleet-summary-card attention"><span class="fleet-summary-icon">$</span><span><b>${rows.length}</b><small>طلبات تحت الدفع</small></span></div></div>
-  <div class="filter-panel">
-    <div class="filter-panel-title"><strong>🔎 فلاتر طلبات تحت الدفع</strong><span>صفِّ النتائج حسب اللوحة، الفرع، الشركة، الملاحظات، أو المستخدم</span></div>
-    <div class="quick-filters" id="pending-quick">
-      <button type="button" class="quick-filter active" data-pq="all">الكل (${rows.length})</button>
-      <button type="button" class="quick-filter" data-pq="has_notes">📝 يوجد ملاحظات (${hasNotesCount})</button>
-      <button type="button" class="quick-filter" data-pq="no_notes">⚪ بدون ملاحظات (${noNotesCount})</button>
+  <div class="filter-panel" id="pay-pending-filter-panel">
+    <div class="filter-panel-title">
+      <div><strong>🔎 فلاتر طلبات تحت الدفع</strong><span>صفِّ النتائج حسب اللوحة، الفرع، الشركة، الملاحظات، أو المستخدم</span></div>
+      <button type="button" class="btn btn-ghost btn-small fleet-filter-toggle" id="pay-pending-filter-toggle" aria-expanded="false">إظهار الفلاتر <span aria-hidden="true">⌄</span></button>
     </div>
-    <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
-      <label>بحث<input id="pay-search-payments" placeholder="رقم اللوحة، الفرع، الشركة، الرقم التسلسلي، المستخدم..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
-      <label>الفرع<select id="pay-branch-payments">${branchOpts}</select></label>
-      <label>الشركة<select id="pay-company-payments">${compOpts}</select></label>
-      <label>الملاحظات<select id="pay-note-payments">${noteOpts}</select></label>
-      <label>المستخدم<select id="pay-user-payments">${userOpts}</select></label>
-    </div>
-    <div class="filter-footer">
-      <span id="pay-count-payments">عرض ${rows.length} من ${rows.length} طلب</span>
-      <button type="button" class="btn btn-ghost btn-small" id="pay-clear-payments">↺ مسح الفلاتر</button>
+    <div class="filter-panel-body" id="pay-pending-filter-body">
+      <div class="quick-filters" id="pending-quick">
+        <button type="button" class="quick-filter active" data-pq="all">الكل (${rows.length})</button>
+        <button type="button" class="quick-filter" data-pq="has_notes">📝 يوجد ملاحظات (${hasNotesCount})</button>
+        <button type="button" class="quick-filter" data-pq="no_notes">⚪ بدون ملاحظات (${noNotesCount})</button>
+      </div>
+      <div class="fleet-filter-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+        <label>بحث<input id="pay-search-payments" placeholder="رقم اللوحة، الفرع، الشركة، الرقم التسلسلي، المستخدم..." style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12px"></label>
+        <label>الفرع<select id="pay-branch-payments">${branchOpts}</select></label>
+        <label>الشركة<select id="pay-company-payments">${compOpts}</select></label>
+        <label>الملاحظات<select id="pay-note-payments">${noteOpts}</select></label>
+        <label>المستخدم<select id="pay-user-payments">${userOpts}</select></label>
+      </div>
+      <div class="filter-footer">
+        <span id="pay-count-payments">عرض ${rows.length} من ${rows.length} طلب</span>
+        <button type="button" class="btn btn-ghost btn-small" id="pay-clear-payments">↺ مسح الفلاتر</button>
+      </div>
     </div>
   </div>
   ${paymentsSyncWarningHtml()}
@@ -168,6 +173,24 @@ function renderInspectionPayments(content){
         await PAY_ITEM_ACTION.cancel(item, byId.get(String(item.carId)), false);
       };
     });
+  }
+
+  const payFilterPanel = document.getElementById('pay-pending-filter-panel');
+  const payFilterToggle = document.getElementById('pay-pending-filter-toggle');
+  const payFilterBody = document.getElementById('pay-pending-filter-body');
+  const setPayFiltersOpen = (open) => {
+    if (!payFilterPanel || !payFilterToggle || !payFilterBody) return;
+    payFilterPanel.classList.toggle('is-open', open);
+    payFilterBody.hidden = !open;
+    payFilterToggle.setAttribute('aria-expanded', String(open));
+    const arrow = payFilterToggle.querySelector('span[aria-hidden]');
+    if (arrow) arrow.textContent = open ? '⌃' : '⌄';
+    if (payFilterToggle.firstChild) payFilterToggle.firstChild.textContent = open ? 'إخفاء الفلاتر ' : 'إظهار الفلاتر ';
+    window._payPendingFiltersOpen = open;
+  };
+  if (payFilterToggle) {
+    payFilterToggle.addEventListener('click', () => setPayFiltersOpen(!window._payPendingFiltersOpen));
+    setPayFiltersOpen(window._payPendingFiltersOpen === true);
   }
 
   content.querySelectorAll('#pending-quick .quick-filter').forEach(btn => {
