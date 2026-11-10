@@ -76,6 +76,11 @@
   color:#0A5F5C !important;
 }
 
+/* أيقونة الإضافة بجانب مربع البحث — الوضع الليلي
+   ⭐ تنسيقها الحقيقي في css/07-visual-redesign.css (آخر ملف بيتحمّل).
+   هنا كانت موجودة بـspecificity أقل من
+   body.dark-mode .topbar.topbar-v43 .btn فكانت بتتلغى. */
+
 /* جرس الإشعارات إن وُجد */
 .topbar-actions .notify-btn,
 .topbar-actions #notify-btn{
@@ -1368,6 +1373,11 @@ body.dark-mode .yx-perm-hint{background:#332808;border-color:#7A5B1E;border-inli
 .yx-count{font-size:10.5px;color:var(--muted,#6B7A88);}
 
 .yx-actions{display:flex;gap:8px;}
+
+/* أيقونات التصدير بدون نصوص — أزرار جنب بعضها فقط */
+.yx-txt{display:none !important;}
+.yx-btn{display:inline-flex;align-items:center;justify-content:center;gap:0 !important;padding:8px 12px !important;}
+.yx-btn .yx-ico{font-size:16px !important;}
 
 .yx-btn{
   position:relative;

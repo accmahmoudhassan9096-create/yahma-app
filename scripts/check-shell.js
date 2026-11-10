@@ -45,14 +45,23 @@ function readRequiredList() {
 function walk(dir, out, depth) {
   if (depth > 4) return out;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    /* ⭐ .wrangler فيها بقايا `wrangler dev` (bundles مولّدة آليًا).
+       هي مش من المشروع، وفحصها كان بيعمل إخفاقات وهمية على أي
+       جهاز development شغّل السيرفر المحلي مرة واحدة. */
     if (entry.name === '.git' || entry.name === 'node_modules' ||
-        entry.name === 'tests' || entry.name === 'scripts') continue;
+        entry.name === 'tests' || entry.name === 'scripts' ||
+        entry.name === '.wrangler' || entry.name === '.wrangler-dryrun') continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full, out, depth + 1);
     else if (/\.(js|css|html|woff2|png|webmanifest)$/i.test(entry.name)) {
       /* ⭐ ملفات CSS المصدر (من غير .min) موجودة في المستودع للصيانة
-         بس هي مش مشحونة — المشحون هو النسخة المضغوطة بس. */
-      if (/\.css$/i.test(entry.name) && !/\.min\.css$/i.test(entry.name)) return;
+         بس هي مش مشحونة — المشحون هو النسخة المضغوطة بس.
+
+         ⭐ لازم continue مش return: بالـreturn كان الفحص بيتوقف عن
+         باقي مجلد css/ أول ما يلاقي أول ملف مصدر (مثل 01-base.css)،
+         فالنسخ المضغوطة اللي جواه كانت مش بتتحفّص خالص — وملف
+         ناقص من الـprecache كان بيمرّ من غير ما يتكتشف. */
+      if (/\.css$/i.test(entry.name) && !/\.min\.css$/i.test(entry.name)) continue;
       out.push(full);
     }
   }

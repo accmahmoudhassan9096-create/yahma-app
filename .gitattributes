@@ -1,0 +1,22 @@
+# ===== line endings ثابتة على كل الأجهزة =====
+#
+# بدون الملف ده، git بيفتح الملفات بـCRLF على Windows وبـLF على
+# Linux. الاختبارات بتقارن نصوص الكود حرفيًا، فكانت بتعدّي على CI
+# وبتتفشل على جهاز التطوير العادي — وده أخطر من الاختبار نفسه،
+# لأن المطور بيتعلّم إن الاختبارات "بتكسر" ويبطل يثق فيها.
+#
+# eol=lf بيخلي الملفات تتفتح بـLF على كل الأجهزة، والـindex يفضل
+# نظيف (LF) زي ما هو، فمفيش أي diff غير مقصود.
+* text=auto eol=lf
+
+# صور وأ.binary — ماتتلمّسش خالص
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.pdf   binary
+*.xlsx  binary

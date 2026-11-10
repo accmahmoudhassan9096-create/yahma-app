@@ -70,12 +70,16 @@
       + '<span class="yx-count" id="yx-count"></span>'
       + '</div>'
       + '<div class="yx-actions">'
-      + '<button type="button" class="yx-btn yx-xlsx" id="yx-excel" title="تصدير Excel (عربي RTL)">'
-      + '<span class="yx-ico">📊</span><span class="yx-txt">Excel</span>'
+      /* ⭐ النصوص مخفية بـCSS (.yx-txt)، فـaria-label هو اللي بيقول
+         لقارئ الشاشة إيه الزرار ده — من غيره الزراير بتطلع unlabeled. */
+      + '<button type="button" class="yx-btn yx-xlsx" id="yx-excel" title="تصدير Excel" aria-label="تصدير Excel">'
+      + '<span class="yx-ico">📊</span>'
+      + '<span class="yx-txt">Excel</span>'
       + '<span class="yx-shine" aria-hidden="true"></span>'
       + '</button>'
-      + '<button type="button" class="yx-btn yx-pdf" id="yx-pdf" title="تصدير PDF (عربي)">'
-      + '<span class="yx-ico">📄</span><span class="yx-txt">PDF</span>'
+      + '<button type="button" class="yx-btn yx-pdf" id="yx-pdf" title="تصدير PDF" aria-label="تصدير PDF">'
+      + '<span class="yx-ico">📄</span>'
+      + '<span class="yx-txt">PDF</span>'
       + '<span class="yx-shine" aria-hidden="true"></span>'
       + '</button>'
       + '</div>';

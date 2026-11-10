@@ -362,7 +362,11 @@ test('الـcolspan بيتحسب من الترويسات مش رقم ثابت', 
     'colspan «تحت الدفع» لسه محسوب بتعبير — عرض الترويسة أدق');
   assert.ok(/function fixPaySpans\(content\)/.test(rr), 'مفيش fixPaySpans');
   ['payments', 'paid', 'renewed'].forEach((tab) => {
-    assert.ok(rr.includes("bindPaySelection(content,'" + tab + "');\n  fixPaySpans(content);"),
+    /* ⭐ \r? مش \n بس: على Windows الـgit بيفتح الملفات بـCRLF،
+       فلو قارنّا بسطر حرفي كانت المطابقة هتفشل على جهاز التطوير
+       وتعدّي على CI — وده أخطر من الاختبار نفسه. */
+    assert.ok(
+      new RegExp("bindPaySelection\\(content,'" + tab + "'\\);\\r?\\n\\s*fixPaySpans\\(content\\);").test(rr),
       tab + ' مفيش fixPaySpans بعد الرسم');
   });
 });

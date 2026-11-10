@@ -452,7 +452,11 @@ test('سطر «لا توجد نتائج» بيتحسب من الترويسة —
      في نص الجدول. نفس الفكرة اللي اتعملت في «الفحص». */
   const code = ROUTER();
   TABS.forEach((tab) => {
-    assert.ok(code.includes('bindPaySelection(content,\'' + tab + '\');\n  fixPaySpans(content);'),
+    /* ⭐ \r? مش \n بس: على Windows الـgit بيفتح الملفات بـCRLF،
+       فلو قارنّا بسطر حرفي كانت المطابقة هتفشل على جهاز التطوير
+       وتعدّي على CI — وده أخطر من الاختبار نفسه. */
+    assert.ok(
+      new RegExp("bindPaySelection\\(content,'" + tab + "'\\);\\r?\\n\\s*fixPaySpans\\(content\\);").test(code),
       tab + ' مفيش fixPaySpans بعد الرسم');
   });
   assert.ok(/function fixPaySpans\(content\)/.test(code), 'مفيش fixPaySpans');

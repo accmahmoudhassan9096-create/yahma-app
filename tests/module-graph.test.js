@@ -648,7 +648,10 @@ test('مفيش متغير module-level مستخدم ومش معرّف', () => {
   const files = [];
   const walk = (dir) => {
     fs.readdirSync(dir, { withFileTypes: true }).forEach((e) => {
-      if (['node_modules', 'vendor', '.git', 'tests'].includes(e.name)) return;
+      /* ⭐ .wrangler فيها بقايا `wrangler dev` (bundles مولّدة آليًا).
+         هي مش من المشروع، وفحصها كان بيعمل إخفاقات وهمية على أي
+         جهاز development شغّل السيرفر المحلي مرة واحدة. */
+      if (['node_modules', 'vendor', '.git', 'tests', '.wrangler', '.wrangler-dryrun'].includes(e.name)) return;
       const full = path.join(dir, e.name);
       if (e.isDirectory()) walk(full);
       else if (/\.js$/.test(e.name)) files.push(full);
@@ -945,11 +948,15 @@ test('النسخ المضغوطة من الـCSS متSynchronize مع المصد
   });
 
   /* نقارن كل ملف */
+  /* ⭐ بنوحّد الـline endings قبل المقارنة: على Windows الـgit بيفتح
+     الملفات بـCRLF، فالمقارنة الحرفية كانت هتفشل على جهاز التطوير
+     وتعدّي على CI (Linux/LF) — وده أخطر من الاختبار نفسه. */
+  const normEol = (s) => s.replace(/\r\n/g, '\n');
   sources.forEach((name) => {
     const minName = name.replace(/\.css$/, '.min.css');
     const onDisk = fs.readFileSync(path.join(cssDir, minName), 'utf8');
     const fresh = fs.readFileSync(path.join(tmp, minName), 'utf8');
-    assert.equal(onDisk, fresh,
+    assert.equal(normEol(onDisk), normEol(fresh),
       'نسخة ' + minName + ' مش متSynchronize مع المصدر — أعد توليدها بـ node scripts/minify-css.js');
   });
 

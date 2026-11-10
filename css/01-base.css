@@ -1041,6 +1041,12 @@ body.dark-mode .topbar-actions .tb-theme{background:#2A3340; border-color:#3D4A5
 }
 .topbar-actions .tb-add:hover{background:#DFF1F0 !important;}
 
+/* أيقونة الإضافة بجانب مربع البحث
+   ⭐ تنسيقها الحقيقي في css/07-visual-redesign.css — لأنه آخر ملف
+   بيتحمّل، وأي قاعدة هنا بـspecificity أقل كانت بتتلغى منه.
+   (المحاولة الأولى حُطت هنا وبالوضع الليلي في 04-dark-overrides.css،
+   فاتلغت كلتَين من قِبل .topbar.topbar-v43 .btn في ملف 07.) */
+
 /* إلغاء تدرجات التصدير/الاستيراد الصاخبة */
 .topbar-actions .btn-export-dd,
 .topbar-actions .btn-import-dd,

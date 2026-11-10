@@ -727,7 +727,7 @@ body.dark-mode .home-hero.hero-executive{background:linear-gradient(110deg,#102d
 }
 .btn:not(:disabled):hover{transform:translateY(-2px);box-shadow:var(--yahma-lift-hover)}
 .btn:not(:disabled):active{transform:translateY(1px);box-shadow:var(--yahma-press)}
-.btn-primary,.tb-add,.btn-excel-export,.btn-whatsapp{
+.btn-primary,.tb-add,.tb-add-search,.btn-excel-export,.btn-whatsapp{
   box-shadow:0 9px 16px rgba(8,112,111,.22),inset 0 1px 0 rgba(255,255,255,.25)!important;
 }
 .btn-ghost,.tb-icon,.tb-action{box-shadow:0 6px 13px rgba(8,112,111,.08),inset 0 1px 0 rgba(255,255,255,.9)!important}

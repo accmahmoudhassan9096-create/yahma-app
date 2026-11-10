@@ -520,8 +520,8 @@ function initTheme(){
   if(branchImpBtn){ branchImpBtn.style.display='none'; }
   const soldBtn=document.getElementById('btn-sold-import');
   if(soldBtn){ soldBtn.style.display='none'; }
-  if(role==='view') document.querySelectorAll('#btn-add-car,#btn-save').forEach(x=>x.disabled=true);
-  else document.querySelectorAll('#btn-add-car,#btn-save').forEach(x=>x.disabled=false);
+  if(role==='view') document.querySelectorAll('#btn-add-car,#btn-add-car-search,#btn-save').forEach(x=>x.disabled=true);
+  else document.querySelectorAll('#btn-add-car,#btn-add-car-search,#btn-save').forEach(x=>x.disabled=false);
  }
 
  function initUI(){
