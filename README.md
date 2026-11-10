@@ -94,7 +94,7 @@ yahma-app/
 Cache Storage — ولافتة التحديث مش هتظهر (لأن رقم النسخة واحد).
 
 ```bash
-# غيّر CACHE_NAME في sw.js:  yahma-shell-v384 → v385
+# غيّر CACHE_NAME في sw.js:  yahma-shell-vNNN → vNNN+1
 node scripts/check-shell.js   # بيفشل لو نسيت
 ```
 
@@ -156,6 +156,12 @@ supabase functions deploy send-user-email --project-ref dzildqysxdlnfsmjttjg
 
 - أسرار الإرسال: `RESEND_API_KEY` و `RESEND_FROM_EMAIL` (عنوان مُعتمد
   لدى Resend) + `YAHMA_SERVICE_ROLE_KEY` و `SUPABASE_ANON_KEY`.
+  وفيه طريقة بديلة احتياطية بـEmailJS: `EMAILJS_SERVICE_ID` +
+  `EMAILJS_TEMPLATE_ID` + `EMAILJS_PRIVATE_KEY`.
+- `YAHMA_SITE_URL` — رابط المنصة، بيتّسخ في روابط الإيميل.
+- ⚠️ **الأسماء أعلاه حرفيّة** — الـEdge Functions بتقرأها بـ
+  `Deno.env.get` بالاسم نفسه. الاسم الغلط = دالة شغّالة بـ`undefined`.
+  كل الأسماء موثّقة في `.env.example`.
 - الجدولة السحابية (تقرير يومي + تنبيه أسبوعي): شغّل
   `supabase/scheduled-email-setup.sql` بعد ما تحط سر
   `YAHMA_CRON_SECRET` في أسرار الدوال.

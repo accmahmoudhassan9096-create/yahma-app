@@ -128,9 +128,7 @@ window.currentUserPermissions=Array.isArray(window.currentUserPermissions)?windo
    الدالة كانت بترجّع مصفوفة فاضية لو الحقل اتسجل null أو [] في profiles،
    فالمستخدم كان بيفضل محبوس في الرئيسية (dashboard) على الموبايل.
    القاعدة الجديدة: لو مفيش تحديد صريح، امنح كل الأقسام عدا السجل الإداري. */
-window.ALL_YAHMA_TABS=(typeof PAGE_PERMISSION_OPTIONS!=='undefined'&&Array.isArray(PAGE_PERMISSION_OPTIONS))
-  ? PAGE_PERMISSION_OPTIONS.map(function(p){return p.id;})
-  : ['dashboard','fleet','branches','reports','renewals','payments','paid','renewed','license-renewals','insurance-renewals','inspections','audit'];
+window.ALL_YAHMA_TABS=PAGE_PERMISSION_OPTIONS.map(function(p){return p.id;});
 window.defaultYahmaTabsForRole=function(role){
   var all=window.ALL_YAHMA_TABS||[];
   if(role==='admin') return all.slice();

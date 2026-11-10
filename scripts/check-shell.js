@@ -140,9 +140,12 @@ function checkCacheBump() {
     cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']
   });
 
+  /* ⭐ الـbaseline هو آخر commit (HEAD) — هو الـparent للـcommit اللي
+     إحنا بنعمله دلوقتي. على CI الشجرة == HEAD فبيبقى نفس الحساب.
+     (كان HEAD~1 فكان بيدي نتيجة غلط لما يكون فيه شغل غير محفوظ). */
   let prevSw;
   try {
-    prevSw = git(['show', 'HEAD~1:sw.js']);
+    prevSw = git(['show', 'HEAD:sw.js']);
   } catch (_) {
     console.log('cache bump check : skipped (لا يوجد تاريخ git هنا)');
     return 0;
@@ -156,7 +159,7 @@ function checkCacheBump() {
 
   let changed = [];
   try {
-    changed = git(['diff', '--name-only', 'HEAD~1', '--', '.'])
+    changed = git(['diff', '--name-only', 'HEAD', '--', '.'])
       .split('\n').map((s) => s.trim()).filter(Boolean);
   } catch (_) {
     console.log('cache bump check : skipped (مش قادرين نقارن الملفات)');
