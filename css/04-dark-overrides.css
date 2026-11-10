@@ -2073,10 +2073,11 @@ body.dark-mode .rp-btn{background:#111827}
 .yx-btn{width:28px !important;height:28px !important;min-width:28px !important;padding:0 !important;}
 .yx-ico{font-size:13px !important;}
 
-/* إخفاء فلتر التاريخ اليوم (مباشر) بناء على طلب المستخدم */
+/* إخفاء فلتر التاريخ اليوم (مباشر) وتنبيه التدخل الفوري بناء على طلب المستخدم */
 #yahma-global-date-filter-row,
 .global-date-filter-tab,
-.global-date-filter{display:none !important;}
+.global-date-filter,
+#dash-immediate-alert{display:none !important;}
 .global-date-filter label{font-size:14px;line-height:1}
 .global-date-filter select{border:0;background:transparent;font-family:inherit;font-size:11.5px;font-weight:800;color:var(--navy,#152350);cursor:pointer;max-width:190px;outline:none}
 .global-date-filter select.is-active{color:#0E6E6C}

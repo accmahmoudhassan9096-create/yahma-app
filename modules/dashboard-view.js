@@ -179,12 +179,7 @@ function dashboardTemplate(state) {
     <section class="yahma-priority" aria-label="أولويات تجهيز الأسطول">
       <div class="yahma-priority-intro"><span class="yahma-priority-kicker">YAHMAA · COMMAND CENTER <span class="dash-cloud-badge" id="dash-cloud-badge"><span class="dash-cloud-dot"></span><span class="dash-cloud-text">متصل بـ Supabase</span></span></span><strong>أولويات التجهيز الآن</strong><span>${todayCount ? 'متابعة ' + todayCount.toLocaleString('en') + ' بندًا يحتاج إلى إجراء' : 'لا توجد مهام عاجلة مسجلة حاليًا'}</span></div>      ${todayTasks.filter(t => (t.n || 0) > 0).slice(0,4).map(t => { const urgent = /متأخرة|منتهية/.test(t.label || ''); return '<button type="button" class="yahma-priority-item" data-go="' + t.go + '" data-priority="' + (urgent ? 'urgent' : 'normal') + '"><span class="yahma-priority-count">' + Number(t.n).toLocaleString('en') + '</span><span class="yahma-priority-copy"><b>' + escapeHtml(t.label) + '</b><small>عرض التفاصيل والإجراء ←</small></span></button>'; }).join('') || '<button type="button" class="yahma-priority-empty" data-go="preparation"><span>✓</span><span>ممتاز! لا توجد أولويات عاجلة — افتح قائمة التجهيز لمراجعة الحالة الكاملة</span></button>'}
     </section>
-    <!-- تنبيه تدخل فوري: أيقونة زجاجية صغيرة على الشمال (مش بانر) -->
-    ${leastOccupiedBranchName && leastOccupiedBranchName !== '—' && leastOccupiedBranchPct < 20 ? `<div style="display:flex;justify-content:flex-end;margin:6px 0 12px">
-      <button type="button" id="dash-immediate-alert" title="فرع ${escapeHtml(leastOccupiedBranchName)} يحتاج تدخل فوري — ${leastOccupiedBranchPct}% تشغيل — أقل فرع تشغيلاً في التقرير، مع ${leastIdleBranchCount || 0} سيارات راقدة غير مؤجرة. راجع توزيع الفروع ورفع جاهزية الفرع." style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;background:rgba(211,47,47,0.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(211,47,47,0.28);color:#d32f2f;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(211,47,47,0.12)">
-        <span style="font-size:14px">⚠️</span><span>${leastOccupiedBranchPct}%</span>
-      </button>
-    </div>` : ''}
+    <!-- تم حذف شارة تنبيه التدخل الفوري (0% ⚠️) بناءً على طلب المستخدم -->
     <!-- Hero زي الصورة: كرت داكن + لوحة خضرا بنفس درجات القسم الداكن -->
     <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px" class="mock-hero-grid">
       <div class="home-hero-card" style="background:#0F2A24;border:1px solid #1E3D34;border-radius:18px;padding:22px 24px;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25),0 8px 24px rgba(0,0,0,.25)">
