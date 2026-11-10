@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v385';
+const CACHE_NAME = 'yahma-shell-v386';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -96,11 +96,10 @@ const LOCAL_APP_SHELL = [
   './modules/vehicle-operations.js',
   './modules/fleet-excel.js',
   './modules/smooth.js',
-  './vendor/leaflet.js',
-  './vendor/leaflet.css',
-  './vendor/images/layers.png',
-  './vendor/images/layers-2x.png',
-  './vendor/images/marker-icon.png',
+  /* Leaflet (162KB) مش هنا عن قصد: بيتحقن ديناميكياً في
+     modules/dashboard-view.js لما خريطة الأقسام تظهر بس. أول ما
+     يُحمّل مرة واحدة، الـSW (شبكة أولًا) بيخزّنه فبيشتغل أوفلاين
+     بعد كده من غير ما نحمّله على كل جهاز. */
   './css/fonts.min.css',
   './css/05-offline-badge.min.css',
   './css/06-premium-design.min.css',

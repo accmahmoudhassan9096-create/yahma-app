@@ -91,12 +91,16 @@ const EXEMPT = /(icon-|manifest|apple-touch|^sw\.js$)/i;
    «تصدير» من modules/export.js، فمفيش داعي تتحمّل مع كل install.
    لازم تفضل على القرص، بس مش في الكاش الإجباري. */
 const LAZY_VENDOR = /^(vendor\/(xlsx\.full|html2canvas|jspdf\.umd)\.min\.js)$/;
+/* Leaflet (162KB): بيتحقن ديناميكياً في modules/dashboard-view.js لما
+   خريطة الأقسام تظهر بس. مش محتاجه مع كل install. */
+const LAZY_VENDOR_EXTRA = /^(vendor\/leaflet\.(js|css)|vendor\/images\/(layers|layers-2x|marker-icon)\.png)$/;
 const shipped = walk(ROOT, []).map((p) => path.relative(ROOT, p).split(path.sep).join('/'));
 let unlisted = 0;
 for (const rel of shipped) {
   if (required.includes(rel)) continue;
   if (EXEMPT.test(rel)) continue;
   if (LAZY_VENDOR.test(rel)) continue;
+  if (LAZY_VENDOR_EXTRA.test(rel)) continue;
   if (/^manifest\.json$/i.test(rel)) continue;
   console.error('NOT in precache: ' + rel);
   unlisted++;

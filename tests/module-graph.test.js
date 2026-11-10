@@ -575,6 +575,15 @@ test('مكتبات التصدير: موجودة على القرص وبتتحمّ
     'vendor/fallback/ لازم يكون اتشال — النسخة المزدوجة اتشالت');
   assert.ok(sw.indexOf('vendor/fallback/') === -1,
     'مفيش ملفات fallback في precache الـSW');
+  /* ⭐ Leaflet (162KB) كمان lazy — بيتحقن لما خريطة الأقسام تظهر
+     بس في modules/dashboard-view.js. تحميله مع كل install كان
+     بيحمّل 162KB على كل موبايل عشان أكتر من نص المستخدمين مالهمش
+     علاقة بالخريطة أصلاً. */
+  ['leaflet.js', 'leaflet.css'].forEach((f) => {
+    assert.ok(sw.indexOf("'./vendor/" + f + "'") === -1,
+      'vendor/' + f + ' مش المفروض يكون في precache — بيزوّد حجم التحميل');
+    assert.ok(fs.existsSync(path.join(ROOT, 'vendor', f)), 'vendor/' + f + ' مفقود');
+  });
 });
 
 test('مفيش اسم عمومي معرّف في أكتر من ملف', () => {
