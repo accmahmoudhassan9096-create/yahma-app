@@ -361,46 +361,7 @@ function dashboardTemplate(state) {
 
     <!-- تم حذف تقرير أكثر السيارات المتاحة للإيجار بناءً على طلب المستخدم -->
 
-    <!-- Middle row -->
-    <div class="home-mid">
-      <div class="home-card">
-        <h3>حالة التجهيز</h3>
-        <div class="home-donut-wrap">
-          <div class="home-donut" style="background:conic-gradient(${conicParts})">
-            <div class="home-donut-hole">
-              <b>${total.toLocaleString('en')}</b>
-              <span>سيارة</span>
-            </div>
-          </div>
-          <div class="home-legend">
-            <div class="home-leg"><i style="background:${colors[0]}"></i><span>جاهزة للتأجير</span><b>${dReady.toLocaleString('en')}</b><em>${pct(dReady)}%</em></div>
-            <div class="home-leg"><i style="background:${colors[1]}"></i><span>قيد التجهيز</span><b>${dPrep.toLocaleString('en')}</b><em>${pct(dPrep)}%</em></div>
-            <div class="home-leg"><i style="background:${colors[2]}"></i><span>تحتاج إجراء</span><b>${dNeed.toLocaleString('en')}</b><em>${pct(dNeed)}%</em></div>
-            <div class="home-leg"><i style="background:${colors[3]}"></i><span>مراجعة نهائية</span><b>${dFinal.toLocaleString('en')}</b><em>${pct(dFinal)}%</em></div>
-          </div>
-        </div>
-      </div>
 
-      <div class="home-card">
-        <div class="home-card-head">
-          <h3>مهامي اليوم</h3>
-          <button type="button" class="home-task-history-btn" id="btn-wa-history" title="سجل التنبيهات المرسلة عبر واتساب">🕘 سجل التنبيهات</button>
-          <span class="home-badge">${todayCount || todayTasks.length}</span>
-        </div>
-        <div class="home-tasks">
-          ${todayTasks.map(t => `
-            <div class="home-task-row">
-              <button type="button" class="home-task" data-go="${t.go}">
-                <span class="home-task-n ${t.alert ? 'alert' : ''}">${t.n}</span>
-                <span class="home-task-label">${escapeHtml(t.label)}</span>
-                <span class="home-task-arrow">←</span>
-              </button>
-              ${t.kind ? `<button type="button" class="home-task-wa" data-wa-task="${t.kind}" title="واتساب + PDF — تنبيه المستلمين بالسيارات دي" aria-label="واتساب ${escapeHtml(t.label)}">💬</button>` : ''}
-            </div>`).join('')}
-        </div>
-        <button type="button" class="home-link-all" data-go="preparation">عرض كل المهام ←</button>
-      </div>
-    </div>
     <!-- Regions map -->
     <div class="home-card home-map-card">
       <div class="home-card-head">
