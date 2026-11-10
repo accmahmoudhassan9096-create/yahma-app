@@ -26,6 +26,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # ⭐ عمق 2 مش 1: فحص «رقم الكاش بيتحرّك مع الملفات» بيقارن
+          # الـcommit الحالي باللي قبله، فلو الـclone shallow بيبقى
+          # مفيش HEAD~1 والفحص بيتخطّى من غير ما يكتشف حاجة.
+          fetch-depth: 2
 
       - uses: actions/setup-node@v4
         with:

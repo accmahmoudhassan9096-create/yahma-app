@@ -107,4 +107,78 @@ if (missing || unlisted) {
   console.error('  - a shipped asset is not cached, so it will not work offline');
   process.exit(1);
 }
+
+/* ===== حماية: رقم الكاش لازم يتحرّك مع أي ملف مشحون =====
+
+   الـSW بيشتغل cache-first. لو اتغيّر ملف مشحون (CSS/JS/HTML)
+   من غير ما الـCACHE_NAME في sw.js يتغيّر، المستخدم اللي عنده
+   النسخة القديمة بيفضل بياخد الملفات القديمة من Cache Storage
+   للأبد — ولافتة التحديث مش هتظهر خالص، لأن رقم النسخة
+   (yahma-shell-vNNN) واحد على السيرفر وعلى جهازه.
+
+   ده حصل قبل كده: سبعة commits متتالية غيّرت الـCSS من غير ما
+   الكاش يتحرّك، فالتحديثات الجديدة مابوصلتش لحد.
+
+   القاعدة: أي commit يغيّر ملفًا مشحونًا لازم يرفع CACHE_NAME. */
+function cacheNameOf(text) {
+  const m = String(text).match(/CACHE_NAME\s*=\s*['"]([^'"]+)['"]/);
+  return m ? m[1] : '';
+}
+
+function checkCacheBump() {
+  const cp = require('child_process');
+  const git = (args) => cp.execFileSync('git', args, {
+    cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']
+  });
+
+  let prevSw;
+  try {
+    prevSw = git(['show', 'HEAD~1:sw.js']);
+  } catch (_) {
+    console.log('cache bump check : skipped (لا يوجد تاريخ git هنا)');
+    return 0;
+  }
+  const prev = cacheNameOf(prevSw);
+  const cur = cacheNameOf(fs.readFileSync(SW, 'utf8'));
+  if (!prev || !cur) {
+    console.log('cache bump check : skipped (مش قادرين نقرا رقم النسخة)');
+    return 0;
+  }
+
+  let changed = [];
+  try {
+    changed = git(['diff', '--name-only', 'HEAD~1', '--', '.'])
+      .split('\n').map((s) => s.trim()).filter(Boolean);
+  } catch (_) {
+    console.log('cache bump check : skipped (مش قادرين نقارن الملفات)');
+    return 0;
+  }
+
+  const shipped = changed.filter((f) =>
+    /\.(js|css|html|woff2|png|webmanifest)$/i.test(f) &&
+    !/^sw\.js$/i.test(f) &&
+    !/^(tests|scripts)\//.test(f)
+  );
+
+  if (shipped.length && prev === cur) {
+    const next = cur.replace(/v(\d+)$/, (_, n) => 'v' + (parseInt(n, 10) + 1));
+    console.error('\nCache version NOT bumped (' + cur + '), but shipped files changed:');
+    shipped.forEach((f) => console.error('  - ' + f));
+    console.error('Bump CACHE_NAME in sw.js → ' + next);
+    console.error('من غير كده المستخدم هيضل على النسخة القديمة من الكاش');
+    console.error('ومش هيشوف التعديل ده خالص.');
+    return 1;
+  }
+
+  console.log('cache bump check : ok (' + prev + ' → ' + cur + ')');
+  return 0;
+}
+
+const bump = checkCacheBump();
+if (bump) {
+  console.error('\nShell check FAILED. Fix before deploying:');
+  console.error('  - CACHE_NAME in sw.js was not bumped although shipped files changed');
+  process.exit(1);
+}
+
 console.log('\nShell check passed.');
