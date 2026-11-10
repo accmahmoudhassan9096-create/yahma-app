@@ -385,7 +385,7 @@ function initTheme(){
     }
     document.body.classList.toggle('dark-mode',dark);
     if(label) label.textContent=dark?'الوضع النهاري':'نسخة Liquid Glass';
-    if(icon) icon.textContent=dark?'☀':'💎';
+    if(icon) icon.textContent=dark?'🌙':'☀';
     if(btn) btn.setAttribute('title', dark ? 'التبديل إلى الوضع النهاري' : 'التبديل إلى نسخة Liquid Glass الفاخرة');
     try{
       var meta=document.querySelector('meta[name="theme-color"]');
