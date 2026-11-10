@@ -52,7 +52,7 @@
 
   function populateSelect(sel, dates, selected) {
     const cur = (selected !== undefined) ? selected : sel.value;
-    const opts = ['<option value="">اليوم (مباشر)</option>'];
+    const opts = ['<option value="">اليوم</option>'];
     (dates || []).forEach((d) => {
       opts.push('<option value="' + d + '">' + fmtAr(d) + '</option>');
     });

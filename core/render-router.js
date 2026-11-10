@@ -229,19 +229,10 @@ if(currentTab === 'dashboard') renderDashboard(content);
   if(__yahmaFullFleet && Array.isArray(__yahmaFullFleet)){ fleet = __yahmaFullFleet; }
   __yahmaFullFleet = null;
   try{ if(typeof applyBranchScopeUI==='function') applyBranchScopeUI(); }catch(_){yahmaErr(_,'render-router.js:601');}
-  // فلتر التاريخ داخل كل تبويب (مش في الهيدر) — قائمة منسدلة بنفس شكل الهيدر القديم
+  // تم إزالة فلتر التاريخ "اليوم (مباشر)" بناءً على طلب المستخدم
   try {
-    if (content && !document.getElementById('yahma-global-date-filter-row')) {
-      const row = document.createElement('div');
-      row.id = 'yahma-global-date-filter-row';
-      row.style.cssText = 'display:flex;justify-content:flex-end;margin:0 0 10px';
-      row.innerHTML = '<div class="global-date-filter-tab" title="فلتر التاريخ: يختار يوم من اللقطات اليومية ويأثر على فلترة الجدول في التبويب ده"><label for="global-date-filter-tab">📅</label><select id="global-date-filter-tab" class="global-date-select" aria-label="فلتر التاريخ — يوم من اللقطات اليومية"><option value="">اليوم (مباشر)</option></select><span class="global-date-badge" hidden></span></div>';
-      const first = content.firstElementChild;
-      if (first) content.insertBefore(row, first); else content.appendChild(row);
-      // عبّي القايمة من اللقطات
-      const sel = row.querySelector('.global-date-select');
-      if (sel && global.YahmaGlobalDate) global.YahmaGlobalDate.bind();
-    }
+    const existingDateRow = document.getElementById('yahma-global-date-filter-row');
+    if (existingDateRow) existingDateRow.remove();
   } catch (_) {}
   // بانر فلتر التاريخ الشامل (عرض لقطة يوم)
   try {

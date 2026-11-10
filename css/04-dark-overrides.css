@@ -1315,39 +1315,67 @@ body.dark-mode .yx-perm-hint{background:#332808;border-color:#7A5B1E;border-inli
 
 .yx-actions{display:flex;gap:8px;}
 
-/* أيقونات التصدير بدون نصوص — أزرار جنب بعضها فقط */
+/* أيقونات التصدير بدون نصوص — أزرار بلورية صغيرة */
 .yx-txt{display:none !important;}
-.yx-btn{display:inline-flex;align-items:center;justify-content:center;gap:0 !important;padding:8px 12px !important;}
-.yx-btn .yx-ico{font-size:16px !important;}
-
+.yx-title:empty{display:none !important;}
 .yx-btn{
   position:relative;
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:8px 16px;
-  border:0;
-  border-radius:999px;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:0 !important;
+  width:28px !important;
+  height:28px !important;
+  min-width:28px !important;
+  padding:0 !important;
+  border-radius:50% !important;
   font-family:inherit;
-  font-size:12.5px;
-  font-weight:800;
-  color:#fff;
   cursor:pointer;
   overflow:hidden;
   isolation:isolate;
   white-space:nowrap;
-  transition:transform .16s ease, box-shadow .18s ease, filter .18s ease;
-  box-shadow:0 4px 14px rgba(0,0,0,.16);
+  transition:transform .16s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease;
+  backdrop-filter:blur(8px) saturate(160%) !important;
+  -webkit-backdrop-filter:blur(8px) saturate(160%) !important;
 }
-.yx-btn:hover:not(:disabled){transform:none !important;filter:brightness(1.08);}
-.yx-btn:active:not(:disabled){transform:translateY(0);}
-.yx-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;}
+.yx-btn:hover:not(:disabled){transform:scale(1.08) !important;}
+.yx-btn:active:not(:disabled){transform:scale(0.96) !important;}
+.yx-btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;}
 .yx-btn:focus-visible{outline:2px solid #12AAA6;outline-offset:2px;}
 
-.yx-xlsx{background:linear-gradient(135deg,#0F9B6C 0%,#0B7C57 55%,#075E43 100%);}
-.yx-xlsx:hover:not(:disabled){box-shadow:0 8px 22px rgba(11,124,87,.42);}
-.yx-pdf{background:linear-gradient(135deg,#E0483A 0%,#C8322A 55%,#9E221C 100%);}
-.yx-pdf:hover:not(:disabled){box-shadow:0 8px 22px rgba(200,50,42,.42);}
+.yx-xlsx{
+  background:rgba(16, 185, 129, 0.14) !important;
+  border:1px solid rgba(16, 185, 129, 0.38) !important;
+  box-shadow:0 2px 8px rgba(16, 185, 129, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
+}
+.yx-xlsx:hover:not(:disabled){
+  background:rgba(16, 185, 129, 0.26) !important;
+  border-color:rgba(16, 185, 129, 0.6) !important;
+  box-shadow:0 4px 12px rgba(16, 185, 129, 0.28), inset 0 1px 1px #fff !important;
+}
+.yx-pdf{
+  background:rgba(239, 68, 68, 0.14) !important;
+  border:1px solid rgba(239, 68, 68, 0.38) !important;
+  box-shadow:0 2px 8px rgba(239, 68, 68, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
+}
+.yx-pdf:hover:not(:disabled){
+  background:rgba(239, 68, 68, 0.26) !important;
+  border-color:rgba(239, 68, 68, 0.6) !important;
+  box-shadow:0 4px 12px rgba(239, 68, 68, 0.28), inset 0 1px 1px #fff !important;
+}
+
+body.dark-mode .yx-xlsx{
+  background:rgba(16, 185, 129, 0.20) !important;
+  border-color:rgba(52, 211, 153, 0.45) !important;
+  box-shadow:0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.2) !important;
+}
+body.dark-mode .yx-pdf{
+  background:rgba(239, 68, 68, 0.20) !important;
+  border-color:rgba(248, 113, 113, 0.45) !important;
+  box-shadow:0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+.yx-btn::after{display:none !important;}
 
 /* اللمعة: شريط ضوئي يعدّي على الزر */
 .yx-shine{
@@ -1365,16 +1393,6 @@ body.dark-mode .yx-perm-hint{background:#332808;border-color:#7A5B1E;border-inli
 .yx-shine{display:none !important;}
 .yx-btn:hover:not(:disabled) .yx-shine{display:none !important;}
 @keyframes yx-sweep{to{transform:translateX(120%);}}
-
-/* لمعة دايمة خفيفة على الزرار */
-.yx-btn::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  z-index:-2;
-  border-radius:inherit;
-  background:linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0) 55%);
-}
 
 .yx-ico{font-size:14px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
 
@@ -1402,7 +1420,7 @@ body.dark-mode .yx-count{color:#9AA5B8;}
   }
   .yx-info{display:flex;min-width:0;flex:1;}
   .yx-title{max-width:44vw;}
-  .yx-btn{padding:9px 15px;font-size:13px;}
+  .yx-btn{width:28px !important;height:28px !important;padding:0 !important;}
 }
 .tr-toolbar{
   position: sticky;
@@ -2050,13 +2068,15 @@ body.dark-mode .rp-btn{background:#111827}
 .fleet-summary-card.attention{border-top-width:2px}
 .fleet-summary-card.out{border-top-width:2px}
 .fleet-tools-head{margin-bottom:8px}
-.yx-bar.is-inline .yx-btn{padding:5px 10px;font-size:11px}
-.yx-bar.is-inline .yx-ico{font-size:12px}
-.yx-btn{padding:6px 12px;font-size:11px}
-.yx-ico{font-size:12px}
+.yx-bar.is-inline .yx-btn{width:26px !important;height:26px !important;min-width:26px !important;padding:0 !important;}
+.yx-bar.is-inline .yx-ico{font-size:12px !important;}
+.yx-btn{width:28px !important;height:28px !important;min-width:28px !important;padding:0 !important;}
+.yx-ico{font-size:13px !important;}
 
-/* ???? ??????? ??????? ?? ?????? */
-.global-date-filter{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.65);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(21,35,80,.14);box-shadow:0 2px 8px rgba(21,35,80,.08)}
+/* إخفاء فلتر التاريخ اليوم (مباشر) بناء على طلب المستخدم */
+#yahma-global-date-filter-row,
+.global-date-filter-tab,
+.global-date-filter{display:none !important;}
 .global-date-filter label{font-size:14px;line-height:1}
 .global-date-filter select{border:0;background:transparent;font-family:inherit;font-size:11.5px;font-weight:800;color:var(--navy,#152350);cursor:pointer;max-width:190px;outline:none}
 .global-date-filter select.is-active{color:#0E6E6C}

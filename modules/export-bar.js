@@ -158,7 +158,14 @@
     var title = document.getElementById('yx-title');
     var count = document.getElementById('yx-count');
     var fallback = (document.getElementById('topbar-title') || {}).textContent || '';
-    if (title) title.textContent = (d && d.title) || clean(fallback) || 'تصدير';
+    var titleText = (d && d.title) || clean(fallback) || '';
+    if (titleText === 'الملخص التنفيذي للأسطول' || titleText.indexOf('الملخص التنفيذي') > -1 || titleText === 'تصدير') {
+      titleText = '';
+    }
+    if (title) {
+      title.textContent = titleText;
+      title.style.display = titleText ? '' : 'none';
+    }
     if (count) count.textContent = d && d.rows.length ? (d.rows.length + ' سجل') : '';
     var off = !(d && d.rows.length);
     bar.querySelectorAll('.yx-btn').forEach(function (b) { b.disabled = off; });
