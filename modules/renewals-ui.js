@@ -1,4 +1,4 @@
-﻿(function(global){
+(function(global){
   'use strict';
 
 const _persistentSelectedRenIds = new Set();
@@ -68,7 +68,7 @@ function renderRenewals(content, mode='inspection'){
       const full = (typeof window !== 'undefined' && Array.isArray(window.__yahmaFullFleet) && window.__yahmaFullFleet.length) ? window.__yahmaFullFleet : fleet;
       const reds = full.filter(c => {
         if (!pendingIds.has(String(c.id))) return false;
-        try { return inspectionDisplayStatus(c.inspectionStatus).level === 'red'; } catch (_) { return String(c.inspectionStatus || '').includes('لم'); }
+        try { return inspectionDisplayStatus(c.inspectionStatus).level !== 'green'; } catch (_) { return true; }
       });
       return reds.length;
     } catch (_) { return 0; }
@@ -100,7 +100,7 @@ function renderRenewals(content, mode='inspection'){
       <div class="filter-panel-title"><strong>🔎 فلاتر ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</strong><span>${isOpsInspection?'البحث في سيارات الفحص':'صفِّ النتائج حسب أي بند — ثم صدّر Excel أو PDF'}</span></div>
       ${isOpsInspection ? '' : `
       <div class="quick-filters" id="ren-quick">
-        ${insuranceMode?`<button type="button" class="quick-filter" data-rq="insurance_bad">🛡️ يحتاج متابعة</button>`:licenseMode?`<button type="button" class="quick-filter" data-rq="lic_expired">🔴 منتهية</button><button type="button" class="quick-filter" data-rq="lic_soon">🟡 قريبة الانتهاء</button><button type="button" class="quick-filter" data-rq="lic_unknown">⚪ مفيش تاريخ</button>`:`<button type="button" class="quick-filter" data-rq="insp_bad">🔍 تحتاج فحص</button>`}
+        ${insuranceMode?`<button type="button" class="quick-filter" data-rq="insurance_bad">🛡️ يحتاج متابعة</button>`:licenseMode?`<button type="button" class="quick-filter" data-rq="lic_expired">🔴 منتهية</button><button type="button" class="quick-filter" data-rq="lic_soon">🟡 قريبة الانتهاء</button><button type="button" class="quick-filter" data-rq="lic_unknown">⚪ مفيش تاريخ</button>`:`<button type="button" class="quick-filter" data-rq="insp_bad">🔍 تحتاج فحص</button>${pendingExcluded>0?`<button type="button" class="quick-filter" data-rq="in_payment">🕐 قيد الدفع (${pendingExcluded})</button>`:''}`}
         ${licenseMode||insuranceMode?'':`
         <button type="button" class="quick-filter" data-rq="active">🟢 سيارة نشطة</button>
         <button type="button" class="quick-filter" data-rq="maintenance">🔧 تحت الصيانة</button>
@@ -199,8 +199,13 @@ function renderRenewals(content, mode='inspection'){
 
   document.getElementById('btn-wa-inspection')?.addEventListener('click', shareUninspectedWhatsApp);
   document.getElementById('ren-pending-info')?.addEventListener('click', () => {
-    const target = document.querySelector('.nav-item[data-tab="payments"]');
-    if (target) target.click();
+    const btn = document.querySelector('#ren-quick [data-rq="in_payment"]');
+    if (btn) {
+      btn.click();
+    } else {
+      const target = document.querySelector('.nav-item[data-tab="payments"]');
+      if (target) target.click();
+    }
   });
   document.getElementById('btn-scan-console')?.addEventListener('click', () => {
     if (window.YahmaScanConsole && typeof window.YahmaScanConsole.open === 'function') {
@@ -220,9 +225,17 @@ function renderRenewals(content, mode='inspection'){
 
   function getRows(){
     const q=val('ren-search').toLowerCase();
+    const isSearching = Boolean(q);
+    const showInPayment = activeRQ === 'in_payment';
     return fleet.filter(c=>{
       // تبويبات الفحص والرخص والتأمين تعرض كل السيارات (الأسوأ أولًا حسب الفرز) — الفلاتر السريعة تضيّق عند الحاجة
-      if(!licenseMode&&!insuranceMode&&pendingIds.has(String(c.id))) return false;
+      if(!licenseMode&&!insuranceMode){
+        if(showInPayment){
+          if(!pendingIds.has(String(c.id))) return false;
+        } else if(!isSearching){
+          if(pendingIds.has(String(c.id))) return false;
+        }
+      }
       /* تبويب الرخص: بيعرض كل حاجة محتاجة متابعة افتراضيًا —
          منتهية + قاربت الانتهاء + مفيش لها تاريخ.
          الرقم في القائمة (needLic) بيحسب نفس الثلاثة بالظبط،
@@ -236,8 +249,8 @@ function renderRenewals(content, mode='inspection'){
         var _expSt = c.insuranceExpiry && typeof dateStatus === 'function' ? dateStatus(c.insuranceExpiry).level : null;
         if(_insSt !== 'red' && _expSt !== 'red') return false;
       }
-      if(!licenseMode && !insuranceMode && !activeRQ && !val('ren-insp-status')){
-        if(inspectionDisplayStatus(c.inspectionStatus).level !== 'red') return false;
+      if(!licenseMode && !insuranceMode && !activeRQ && !val('ren-insp-status') && !isSearching){
+        if(inspectionDisplayStatus(c.inspectionStatus).level === 'green') return false;
       }
       if(q){
         /* نفس منطق تبويب الأسطول: أرقام اللوحة القصيرة ما تتطابقش مع
@@ -272,6 +285,7 @@ function renderRenewals(content, mode='inspection'){
         const st=norm(c.carStatus);
         if(activeRQ==='insp_bad' && insp==='green') return false;
         if(activeRQ==='insp_ok' && insp!=='green') return false;
+        if(activeRQ==='in_payment' && !pendingIds.has(String(c.id))) return false;
         if(activeRQ==='lic_bad' && lic==='green') return false;
         if(activeRQ==='lic_ok' && lic!=='green') return false;
         if(activeRQ==='lic_expired' && lic!=='red') return false;
@@ -400,7 +414,7 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
         <td>${escapeHtml(c.color||'—')}</td>
         <td>${escapeHtml(c.city||'—')}</td>
         ${(!licenseMode&&!insuranceMode)?renDataCells(c):`<td>${escapeHtml(c.serial||'—')}</td>`}
-        ${(!licenseMode&&!insuranceMode)?`<td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td>`:''}
+        ${(!licenseMode&&!insuranceMode)?`<td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span>${pendingIds.has(String(c.id))?' <span class="tag amber" title="السيارة في طابور الدفع">🕐 قيد الدفع</span>':''}</td>`:''}
         ${licenseMode?`<td>${fmtDate(c.licenseExpiry)}</td>
         <td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td>`:''}
         ${insuranceMode?`<td><span class="tag ${ins.level}">${escapeHtml(ins.label)}</span></td><td>${fmtDate(c.insuranceExpiry)}</td><td>${escapeHtml(c.insuranceCompany||'—')}</td><td>${escapeHtml(c.owner||'—')}</td>`:''}

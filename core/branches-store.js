@@ -1,4 +1,4 @@
-﻿/* ===== التخزين المحلي والفروع والبذور ===== */
+/* ===== التخزين المحلي والفروع والبذور ===== */
 /* استُخرج من app-core.js (السطور 415-604) ضمن تقسيم الملفات.
    يُحمَّل بنفس الترتيب السابق بالضبط ضمن كتلة core/* قبل الوحدات المُستخرجة من الذيل. */
 
@@ -216,7 +216,7 @@ function fleetForTab(tab, list){
           window.YahmaPayments.localByStatus('pending').forEach(function(p){ inPayment.add(String(p.carId)); });
         }
       } catch(_) {}
-      return all.filter(function(c){ return insp(c) === 'red' && (!inPayment.size || !inPayment.has(String(c.id))); });
+      return all.filter(function(c){ return insp(c) !== 'green' && (!inPayment.size || !inPayment.has(String(c.id))); });
     }
     case 'payments':      return window.YahmaPayments ? filterByPaymentIds(all,'pending') : all;
     case 'paid':          return window.YahmaPayments ? filterByPaymentIds(all,'paid') : all;

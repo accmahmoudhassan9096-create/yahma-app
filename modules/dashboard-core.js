@@ -39,7 +39,7 @@ function computeDashboardState(fleet) {
     return null;
   };
   const countRenInsp = tabCount('renewals', c => !pendingInspIds.has(String(c.id)));
-  const renInsp = countRenInsp !== null ? countRenInsp : fleet.filter(c => (typeof inspectionDisplayStatus === 'function' ? inspectionDisplayStatus(c.inspectionStatus).level === 'red' : c.inspectionStatus !== 'تم الفحص')).length;
+  const renInsp = countRenInsp !== null ? countRenInsp : fleet.filter(c => (typeof inspectionDisplayStatus === 'function' ? inspectionDisplayStatus(c.inspectionStatus).level !== 'green' : c.inspectionStatus !== 'تم الفحص')).length;
 
   const countRenLic = tabCount('license-renewals');
   const renLic = countRenLic !== null ? countRenLic : fleet.filter(c => (typeof dateStatus === 'function' ? dateStatus(c.licenseExpiry).level === 'red' : false)).length;

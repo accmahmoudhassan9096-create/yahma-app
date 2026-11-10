@@ -102,12 +102,12 @@
   function inspectionDisplayStatus(value) {
     const t = String(value ?? '').trim();
     if (!t || t === 'غير محدد') return { level: 'grey', label: 'غير محدد' };
-    if (t === 'سليم' || t === 'تم الفحص' || t === 'ساري' || t.startsWith('ساري ')) return { level: 'green', label: t };
-    if (t.includes('يحتاج')) return { level: 'amber', label: 'يحتاج فحص' };
+    if (t === 'سليم' || t === 'تم الفحص' || t === 'ساري' || t.startsWith('ساري ') || t === 'مفحوص' || t === 'مفحوصة' || t === 'ناجح' || t === 'اجتاز') return { level: 'green', label: t };
+    if (t.includes('يحتاج') || t.includes('تحتاج')) return { level: 'amber', label: 'يحتاج فحص' };
     // لم يفحص / لم تفحص / لم تُفحص — كل صيغ "لم + فحص" تُعامل لم يفحص
-    if (t === 'لم يفحص' || (t.includes('لم') && t.includes('فحص'))) return { level: 'red', label: 'لم يفحص' };
+    if (t === 'لم يفحص' || t === 'لم تفحص' || (t.includes('لم') && (t.includes('فحص') || t.includes('تفحص')))) return { level: 'red', label: 'لم يفحص' };
     if (t.includes('لم يتم') || t.includes('منتهي') || t.includes('غير سليم')) return { level: 'red', label: 'لم يتم الفحص' };
-    if (t.includes('غير') && t.includes('فحص')) return { level: 'red', label: 'لم يتم الفحص' };
+    if ((t.includes('غير') || t.includes('بدون')) && (t.includes('فحص') || t.includes('مفحوص') || t.includes('تفحص'))) return { level: 'red', label: 'لم يتم الفحص' };
     return { level: 'grey', label: t };
   }
 

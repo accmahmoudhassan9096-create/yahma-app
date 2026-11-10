@@ -510,7 +510,19 @@
     const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'نتائج الفلترة');
     XLSX.writeFile(wb,`سيارات-الأسطول-المفلترة-${todayStr()}.xlsx`);
   }
+  const getInPaymentIds = () => {
+    try {
+      if (typeof window !== 'undefined' && window.YahmaPayments && typeof window.YahmaPayments.localAll === 'function') {
+        return new Set(window.YahmaPayments.localAll().map(p => String(p.carId)));
+      }
+      if (typeof loadInspectionPayments === 'function') {
+        return new Set(loadInspectionPayments().map(p => String(p.carId)));
+      }
+    } catch (_) {}
+    return new Set();
+  };
   function draw(){
+    const inPaymentIds = getInPaymentIds();
     const allRows=getFilteredRows(),tb=$('fleet-tbody');
     const cardsEl=$('fleet-cards');
     if(!tb && !cardsEl) return;
@@ -557,7 +569,7 @@
       const scrollEl = document.getElementById('fleet-scroll');
       function renderFleetRow(c){
         const card=cardState(c),lic=licenseState(c),insp=inspectionState(c),carTag=textTag(c.carStatus);
-        return `<tr data-id="${escapeHtml(c.id)}"><td class="td-check"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" ${selectedIds.has(String(c.id))?'checked':''} aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td><td class="plate">${escapeHtml(c.plate||'—')}</td><td>${escapeHtml(c.brand||'—')}</td><td>${escapeHtml(c.type||'—')}</td><td>${escapeHtml(c.model||'—')}</td><td class="serial-cell">${escapeHtml(c.serial||'—')}</td><td>${escapeHtml((typeof fmtCardNumber==='function'?fmtCardNumber(c.cardNumber):c.cardNumber)||'—')}</td><td><span class="tag ${card.level}">${escapeHtml(card.label)}</span></td><td>${fmtDate(c.cardExpiry)}</td><td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td><td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span></td><td>${escapeHtml(c.owner||'—')}</td><td>${escapeHtml(c.branch||'—')}</td><td><span class="tag ${carTag.level}">${escapeHtml(carTag.label)}</span></td><td><button type="button" class="btn btn-ghost btn-small fleet-edit-btn" data-edit-car="${escapeHtml(c.id)}" title="تعديل السيارة ${escapeHtml(c.plate||'')}">✏️</button><button type="button" class="btn btn-ghost btn-small fleet-view-btn" data-view-car="${escapeHtml(c.id)}">عرض الملف</button>${canDelete?` <button type="button" class="btn btn-danger btn-small fleet-del-btn" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة ${escapeHtml(c.plate||'')}">🗑</button>`:''}</td></tr>`;
+        return `<tr data-id="${escapeHtml(c.id)}"><td class="td-check"><input type="checkbox" class="row-check" data-id="${escapeHtml(c.id)}" ${selectedIds.has(String(c.id))?'checked':''} aria-label="تحديد السيارة ${escapeHtml(c.plate||'—')}"></td><td class="plate">${escapeHtml(c.plate||'—')}</td><td>${escapeHtml(c.brand||'—')}</td><td>${escapeHtml(c.type||'—')}</td><td>${escapeHtml(c.model||'—')}</td><td class="serial-cell">${escapeHtml(c.serial||'—')}</td><td>${escapeHtml((typeof fmtCardNumber==='function'?fmtCardNumber(c.cardNumber):c.cardNumber)||'—')}</td><td><span class="tag ${card.level}">${escapeHtml(card.label)}</span></td><td>${fmtDate(c.cardExpiry)}</td><td><span class="tag ${lic.level}">${escapeHtml(lic.label)}</span></td><td>${fmtDate(c.licenseExpiry)}</td><td><span class="tag ${insp.level}">${escapeHtml(insp.label)}</span>${inPaymentIds.has(String(c.id)) ? ' <span class="tag amber" title="السيارة في طابور الدفع">🕐 قيد الدفع</span>' : ''}</td><td>${escapeHtml(c.owner||'—')}</td><td>${escapeHtml(c.branch||'—')}</td><td><span class="tag ${carTag.level}">${escapeHtml(carTag.label)}</span></td><td><button type="button" class="btn btn-ghost btn-small fleet-edit-btn" data-edit-car="${escapeHtml(c.id)}" title="تعديل السيارة ${escapeHtml(c.plate||'')}">✏️</button><button type="button" class="btn btn-ghost btn-small fleet-view-btn" data-view-car="${escapeHtml(c.id)}">عرض الملف</button>${canDelete?` <button type="button" class="btn btn-danger btn-small fleet-del-btn" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة ${escapeHtml(c.plate||'')}">🗑</button>`:''}</td></tr>`;
       }
       function bindFleetRows(tbody){
         tbody.querySelectorAll('tr[data-id]').forEach(tr => {
@@ -661,7 +673,7 @@
           <div class="fleet-card-tags">
             <span class="tag ${card.level}">كارت: ${escapeHtml(card.label)}</span>
             <span class="tag ${lic.level}">رخصة: ${escapeHtml(lic.label)}</span>
-            <span class="tag ${insp.level}">فحص: ${escapeHtml(insp.label)}</span>
+            <span class="tag ${insp.level}">فحص: ${escapeHtml(insp.label)}</span>${inPaymentIds.has(String(c.id)) ? ' <span class="tag amber">🕐 قيد الدفع</span>' : ''}
             <span class="tag ${textTag(c.insuranceStatus).level}">تأمين: ${escapeHtml(textTag(c.insuranceStatus).label)}</span>
           </div><div style="margin-top:12px;display:flex;justify-content:flex-start;gap:8px"><button type="button" class="btn btn-ghost btn-small fleet-view-btn" data-view-car="${escapeHtml(c.id)}">عرض الملف الكامل</button>${canDelete?`<button type="button" class="btn btn-danger btn-small fleet-del-btn" data-del-car="${escapeHtml(c.id)}" title="حذف السيارة">🗑</button>`:''}</div>
         </div>`;
