@@ -460,7 +460,7 @@ test('دوال الـrouter الأساسية شغّالة فعلاً بعد ال
   });
   /* واللي المفروض تستدعي الدوال دي من ملفات تانية لازم تفعلها */
   ctx.currentRole = 'admin'; ctx._demoMode = false; ctx.fleet = [];
-  ['payments', 'paid', 'renewed', 'branches', 'audit', 'preparation'].forEach((tab) => {
+  ['payments', 'paid', 'renewed', 'branches', 'audit'].forEach((tab) => {
     try {
       ctx.yahmaSetTab(tab);
       ctx.currentTab = tab;

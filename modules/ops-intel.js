@@ -232,9 +232,9 @@
     const content=document.getElementById('content')||document.querySelector('.content');
     if(!content) return;
     if(document.getElementById('saved-filters-bar')) return;
-    // only on fleet/preparation
+    // only on fleet
     const tab=(typeof currentTab!=='undefined'?currentTab:'');
-    if(tab!=='fleet' && tab!=='preparation') return;
+    if(tab!=='fleet') return;
     const bar=document.createElement('div');
     bar.id='saved-filters-bar';
     bar.className='saved-filters';
@@ -348,7 +348,7 @@
         if(k==='notify') openNotifyCenter();
         else if(k==='overdue'||k==='today'){
           try{
-            currentTab='preparation';
+            currentTab='dashboard';
             if(typeof render==='function') render();
             else if(typeof window.render==='function') window.render();
             setTimeout(()=>{
@@ -387,7 +387,7 @@
 
   /* ---------- Mobile prep tabs ---------- */
   function injectMobilePrep(){
-    if(typeof currentTab==='undefined' || currentTab!=='preparation') return;
+    if(typeof currentTab==='undefined' || currentTab!=='dashboard') return;
     const content=document.getElementById('content')||document.querySelector('.content');
     if(!content || document.getElementById('mobile-prep-tabs')) return;
     const tabs=document.createElement('div');
@@ -460,7 +460,7 @@
     }
     if(e.key==='g'||e.key==='G'){ gotoWait=true; toastKbd('G ثم D/F/P/R…'); setTimeout(()=>gotoWait=false, 1200); return; }
     if(gotoWait){
-      const map={d:'dashboard', f:'fleet', p:'preparation', r:'reports', b:'branches'};
+      const map={d:'dashboard', f:'fleet', r:'reports', b:'branches'};
       const k=e.key.toLowerCase();
       if(map[k]){
         e.preventDefault();

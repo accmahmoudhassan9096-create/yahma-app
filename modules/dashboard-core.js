@@ -402,13 +402,13 @@ function computeDashboardState(fleet) {
       { n: cardSoon, label: 'بطاقات تشغيل منتهية', go: 'inspections', alert: false, kind: 'card' },
       { n: licSoon, label: 'رخص سير منتهية', go: 'license-renewals', alert: false, kind: 'license' },
       { n: countRenIns, label: 'تأمين منتهي', go: 'insurance-renewals', alert: false, kind: 'insurance' },
-      { n: overdue, label: 'مهام متأخرة', go: 'preparation', alert: true, kind: null }
+      { n: overdue, label: 'مهام متأخرة', go: 'dashboard', alert: true, kind: null }
     ].filter(x => x.n > 0);
     if (!todayTasks.length) {
-      todayTasks = [{ n: 0, label: 'لا توجد مهام عاجلة اليوم', go: 'preparation', alert: false }];
+      todayTasks = [{ n: 0, label: 'لا توجد مهام عاجلة اليوم', go: 'dashboard', alert: false }];
     }
   } catch(e) {
-    todayTasks = [{ n: 0, label: 'لا توجد مهام', go: 'preparation', alert: false }];
+    todayTasks = [{ n: 0, label: 'لا توجد مهام', go: 'dashboard', alert: false }];
   }
   const todayCount = todayTasks.reduce((s, t) => s + (t.n || 0), 0);
 

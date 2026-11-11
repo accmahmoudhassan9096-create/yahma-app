@@ -37,7 +37,7 @@
     overlay.onclick=e=>{if(e.target===overlay)closeVehicle360()};
     document.getElementById('vehicle360-close').onclick=closeVehicle360;
     document.getElementById('vehicle360-edit').onclick=()=>{closeVehicle360();openModal(car.id)};
-    document.getElementById('vehicle360-prep').onclick=()=>{closeVehicle360(); if(typeof openPrepLifecycle==='function')openPrepLifecycle(car); else if(typeof window.renderPreparationPhase2==='function'){currentTab='preparation';render();}};
+    document.getElementById('vehicle360-prep').onclick=()=>{closeVehicle360(); if(typeof openPrepLifecycle==='function')openPrepLifecycle(car);};
   };
   window.closeVehicle360=function(){const o=document.getElementById('vehicle360-overlay');if(o)o.remove()};
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeVehicle360()});

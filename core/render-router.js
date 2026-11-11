@@ -83,16 +83,6 @@ function render(){
     const renewedCount=document.getElementById('count-renewed'); if(renewedCount) renewedCount.textContent=loadRenewedInspections().length;
     try{ if(window.YahmaPayments&&typeof window.YahmaPayments.localByStatus==='function'){ window.YahmaPayments.localByStatus('pending'); window.YahmaPayments.localByStatus('paid'); } }catch(_){yahmaErr(_,'render-router.js:540');}
   const cb=document.getElementById('count-branches'); if(cb) cb.textContent = branches.length;
-  /* عدّاد «قائمة التجهيز» — نفس منطق dashboard-core.js بالظبط:
-     المهام المتأخرة بس (status مش done و dueDate قبل اليوم). */
-  try {
-    const cp=document.getElementById('count-preparation');
-    if(cp){
-      const today=typeof todayStr==='function'?todayStr():new Date().toISOString().slice(0,10);
-      const tasks=getPrepTasks()||[];
-      cp.textContent=tasks.filter(t=>t.status!=='done'&&t.dueDate&&t.dueDate<today).length;
-    }
-  } catch(_){yahmaErr(_,'render-router.js:preparation-count');}
   const sync=document.getElementById('sync-status');if(sync){sync.textContent=window.syncMessage||'جاري الاتصال';sync.className='sync-status '+(window.supabaseReady?'online':'offline');}
   updateLastSyncLabel();
 
@@ -112,7 +102,7 @@ function render(){
   } catch (_) { globalDateSelected = ''; }
   let scopedFleet=null;
   if (typeof fleetForTab==='function' && currentTab
-      && ['dashboard','fleet','branches','reports','audit','preparation','users'].indexOf(currentTab)<0){
+      && ['dashboard','fleet','branches','reports','audit','users'].indexOf(currentTab)<0){
     try{
       __yahmaFullFleet = fleet;
       scopedFleet = fleetForTab(currentTab, fleet);
@@ -162,7 +152,6 @@ if(currentTab === 'dashboard') renderDashboard(content);
     else if(currentTab === 'audit') renderAuditPage(content);
     else if(currentTab === 'users') renderUsers(content);
     else if(currentTab === 'branches') renderBranches(content);
-    else if(currentTab === 'preparation') renderPreparation(content);
   }catch(e){
     window.__lastError=(e&&e.stack)||String(e);
     console.error('render failed for tab '+currentTab,e);
