@@ -54,7 +54,6 @@ function renderFollowUp(content){
     </div>
     <div class="filter-panel">
       <div class="filter-panel-title"><div><strong>🔎 فلاتر الكارت والتأمين</strong><span>صفِّ النتائج حسب أي بند — ثم صدّر Excel أو PDF</span></div><button type="button" class="btn btn-ghost btn-small fleet-filter-toggle fu-filter-toggle" id="fu-filter-toggle" aria-expanded="false">إظهار الفلاتر <span aria-hidden="true">⌄</span></button></div>
-    ${needCard > 10 ? `<div style="display:flex;justify-content:flex-end;margin:6px 0"><button type="button" id="fu-expiry-alert" title="تنبيه: ${needCard} سيارة بحاجة فحص فورًا — مسؤولية مشرف الفرع" style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;background:rgba(211,47,47,0.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(211,47,47,0.28);color:#d32f2f;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(211,47,47,0.12)"><span style="font-size:14px">⚠️</span><span>${needCard}</span></button></div>` : ''}
       <div class="filter-panel-body" id="fu-filter-body">
       <div class="quick-filters" id="fu-quick">
         <button type="button" class="quick-filter" data-fq="card_bad">🪪 كارت يحتاج متابعة</button>
