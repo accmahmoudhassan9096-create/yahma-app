@@ -257,7 +257,8 @@ function renderRenewals(content, mode='inspection'){
         if(_insSt !== 'red' && _expSt !== 'red') return false;
       }
       if(!licenseMode && !insuranceMode && !activeRQ && !val('ren-insp-status')){
-        if(inspectionDisplayStatus(c.inspectionStatus).level === 'green') return false;
+        const _insLevel = inspectionDisplayStatus(c.inspectionStatus).level;
+        if(_insLevel === 'green' || _insLevel === 'grey') return false;
       }
       if(q){
         /* نفس منطق تبويب الأسطول: أرقام اللوحة القصيرة ما تتطابقش مع
