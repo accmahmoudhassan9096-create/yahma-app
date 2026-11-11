@@ -48,15 +48,8 @@ function renderFollowUp(content){
     <div class="wa-toolbar">
       <div class="wa-toolbar-info">
         <strong>كروت منتهية:</strong> <span class="wa-count">${needCard}</span>
-        &nbsp;|&nbsp;
-        <strong>تأمين منتهي:</strong> <span class="wa-count">${needIns}</span>
       </div>
       <div class="wa-toolbar-actions">
-        <button class="btn btn-whatsapp" id="btn-wa-card" type="button">واتساب — الكارت</button>
-        <button class="btn btn-whatsapp" id="btn-wa-ins" type="button" title="تقرير التأمين غير الساري عبر واتساب">واتساب — التأمين</button>
-        <button class="btn btn-ghost btn-small" id="btn-copy-card" type="button">📋 نسخ قائمة الكارت</button>
-        <button class="btn btn-ghost btn-small" id="ren-export-xlsx">📥 تصدير Excel</button>
-        <button class="btn btn-ghost btn-small" id="ren-export-pdf">📄 تصدير PDF</button>
         <button class="btn btn-primary btn-small" id="fu-upload-btn" title="رفع شيت الكروت — يحدّث بيانات الكارت فقط">📥 رفع شيت الكروت</button>
         <input type="file" id="file-fu-upload" accept=".xlsx,.xls,.csv" style="display:none">
       </div>
@@ -96,7 +89,6 @@ function renderFollowUp(content){
       <div class="bulk-bar-info"><span id="fu-bulk-count">0 محددة</span></div>
       <div class="bulk-bar-actions">
         <button class="btn btn-primary btn-small" id="fu-bulk-card-renew">🪪 تجديد الكارت (سنة)</button>
-        <button class="btn btn-ghost btn-small" id="fu-bulk-card-status">ضبط حالة الكارت</button>
         <button class="btn btn-ghost btn-small" id="fu-bulk-ins-ok">🛡️ تأمين «ساري»</button>
         <button class="btn btn-danger btn-small" id="fu-bulk-delete">🗑 حذف المحددة</button>
         <button class="btn btn-ghost btn-small" id="fu-bulk-clear">إلغاء التحديد</button>
