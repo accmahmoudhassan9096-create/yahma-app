@@ -24,8 +24,13 @@ function computeDashboardState(fleet) {
   // بطاقات التجديد لكل وثيقة — مطابقة تمامًا للتبويبات والأرقام في الشريط الجانبي
   let pendingInspIds = new Set();
   try {
-    if (typeof loadInspectionPayments === 'function') {
-      pendingInspIds = new Set(loadInspectionPayments().map(item => String(item.carId)));
+    if (typeof loadInspectionPayments === 'function') loadInspectionPayments().forEach(item => pendingInspIds.add(String(item.carId)));
+    if (typeof loadPaidInspections === 'function') loadPaidInspections().forEach(item => pendingInspIds.add(String(item.carId)));
+    if (typeof loadRenewedInspections === 'function') loadRenewedInspections().forEach(item => pendingInspIds.add(String(item.carId)));
+    if (!pendingInspIds.size && typeof window !== 'undefined' && window.YahmaPayments && typeof window.YahmaPayments.localByStatus === 'function') {
+      ['pending','paid','renewed'].forEach(st => {
+        try { (window.YahmaPayments.localByStatus(st) || []).forEach(item => pendingInspIds.add(String(item.carId))); } catch(_) {}
+      });
     }
   } catch(_) {}
   const tabCount = (tab, extra) => {
