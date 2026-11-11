@@ -68,7 +68,7 @@ function render(){
       return extra ? list.filter(extra).length : list.length;
     }catch(_){ return 0; }
   };
-  const renewalAlerts = tabCount('renewals', c=>!pendingInspectionIds.has(String(c.id)));
+  const renewalAlerts = tabCount('renewals');
   const licenseAlerts = tabCount('license-renewals');
   const insuranceAlerts = tabCount('insurance-renewals');
   // تاب "بطاقات التشغيل": تنبيهات الكارت (بطاقة التشغيل)
