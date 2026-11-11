@@ -206,11 +206,20 @@ function fleetForTab(tab, list){
       try {
         if (typeof loadInspectionPayments === 'function') {
           loadInspectionPayments().forEach(function(p){ inPayment.add(String(p.carId)); });
-        } else if (typeof window !== 'undefined' && window.YahmaPayments && typeof window.YahmaPayments.localByStatus === 'function') {
-          window.YahmaPayments.localByStatus('pending').forEach(function(p){ inPayment.add(String(p.carId)); });
+        }
+        if (typeof loadPaidInspections === 'function') {
+          loadPaidInspections().forEach(function(p){ inPayment.add(String(p.carId)); });
+        }
+        if (typeof loadRenewedInspections === 'function') {
+          loadRenewedInspections().forEach(function(p){ inPayment.add(String(p.carId)); });
+        }
+        if (!inPayment.size && typeof window !== 'undefined' && window.YahmaPayments && typeof window.YahmaPayments.localByStatus === 'function') {
+          ['pending','paid','renewed'].forEach(function(st){
+            try { (window.YahmaPayments.localByStatus(st)||[]).forEach(function(p){ inPayment.add(String(p.carId)); }); } catch(_) {}
+          });
         }
       } catch(_) {}
-      return all.filter(function(c){ return insp(c) !== 'green' && (!inPayment.size || !inPayment.has(String(c.id))); });
+      return all.filter(function(c){ return insp(c) !== 'green' && !inPayment.has(String(c.id)); });
     }
     case 'payments':      return window.YahmaPayments ? filterByPaymentIds(all,'pending') : all;
     case 'paid':          return window.YahmaPayments ? filterByPaymentIds(all,'paid') : all;
