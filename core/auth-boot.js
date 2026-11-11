@@ -364,6 +364,7 @@ function activateAuthenticatedSession(user){
          جوه الـIIFE في audit-theme.js، فالنداء كان بيسقط والتبويبات
          (المستخدمين / سجل النشاط) فاضلت مخفية للأدمن. */
       try{ if(typeof window.yahmaApplyRole==='function') window.yahmaApplyRole(); }catch(_){yahmaErr(_,'auth-boot.js:applyRole');}
+       try{ if(window.YahmaTopbarUser && typeof window.YahmaTopbarUser.syncProfileMenu==='function') window.YahmaTopbarUser.syncProfileMenu(); }catch(_){}
       /* ⭐ تنظيف سجل النشاط: السجل بيكبر ~500 صف في اليوم (كل حفظ
          وكل إجراء بيكتب سطر). من غير سياسة احتفاظ بيوصل 60 MB
          في السنة. الدالة cleanup_audit_logs في القاعدة بتمسح
@@ -401,6 +402,7 @@ function activateAuthenticatedSession(user){
       console.error('تعذر تهيئة حساب المستخدم',error);
       if(window.currentUser&&window.currentUser.id===uid){
         window.currentRole=cachedRoleOrView(uid);
+         try{ if(window.YahmaTopbarUser && typeof window.YahmaTopbarUser.syncProfileMenu==='function') window.YahmaTopbarUser.syncProfileMenu(); }catch(_){}
         putBoot(async function(){
           showAppScreen();
           if(typeof loadData==='function') await loadData(false);
