@@ -1512,8 +1512,8 @@ function bindDashboardEvents(content, context, state) {
       if (av) av.textContent = (nm.trim()[0] || 'م').toUpperCase();
     }
     if (window.currentRole && roleEl) {
-      const map = { admin: 'مدير النظام', ops: 'تشغيل', view: 'عرض' };
-      roleEl.textContent = map[window.currentRole] || window.currentRole;
+      const map = { admin: 'مدير النظام', manager: 'إداري', ops: 'تشغيل', view: 'عرض' };
+      roleEl.textContent = (window.YahmaPerms && typeof window.YahmaPerms.label === 'function') ? window.YahmaPerms.label(window.currentRole) : (map[window.currentRole] || window.currentRole);
     }
   } catch(e){yahmaErr(e,'dashboard.js:996');}
 }
