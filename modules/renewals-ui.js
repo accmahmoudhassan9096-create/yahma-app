@@ -239,7 +239,7 @@ function renderRenewals(content, mode='inspection'){
       if(!licenseMode&&!insuranceMode){
         if(showInPayment){
           if(!pendingIds.has(String(c.id))) return false;
-        } else if(!isSearching){
+        } else {
           if(pendingIds.has(String(c.id))) return false;
         }
       }
