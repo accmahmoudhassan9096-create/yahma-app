@@ -86,7 +86,6 @@ function renderFollowUp(content){
       <div class="bulk-bar-info"><span id="fu-bulk-count">0 محددة</span></div>
       <div class="bulk-bar-actions">
         <button class="btn btn-primary btn-small" id="fu-bulk-card-renew">🪪 تجديد الكارت (سنة)</button>
-        <button class="btn btn-ghost btn-small" id="fu-bulk-ins-ok">🛡️ تأمين «ساري»</button>
         <button class="btn btn-danger btn-small" id="fu-bulk-delete">🗑 حذف المحددة</button>
         <button class="btn btn-ghost btn-small" id="fu-bulk-clear">إلغاء التحديد</button>
       </div>
@@ -506,7 +505,6 @@ function renderFollowUp(content){
   });
   $('fu-bulk-delete')?.addEventListener('click',()=>deleteFuCars([...selectedFuIds]));
   $('fu-bulk-card-renew')?.addEventListener('click',bulkRenewCard);
-  $('fu-bulk-ins-ok')?.addEventListener('click',bulkSetInsurance);
   $('fu-bulk-clear')?.addEventListener('click',()=>{selectedFuIds.clear();draw();});
   document.getElementById('btn-scan-console')?.addEventListener('click',()=>{
     if (window.YahmaScanConsole && typeof window.YahmaScanConsole.open === 'function') window.YahmaScanConsole.open('card');
