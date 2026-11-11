@@ -256,7 +256,7 @@ function renderRenewals(content, mode='inspection'){
         var _expSt = c.insuranceExpiry && typeof dateStatus === 'function' ? dateStatus(c.insuranceExpiry).level : null;
         if(_insSt !== 'red' && _expSt !== 'red') return false;
       }
-      if(!licenseMode && !insuranceMode && !activeRQ && !val('ren-insp-status') && !isSearching){
+      if(!licenseMode && !insuranceMode && !activeRQ && !val('ren-insp-status')){
         if(inspectionDisplayStatus(c.inspectionStatus).level === 'green') return false;
       }
       if(q){
