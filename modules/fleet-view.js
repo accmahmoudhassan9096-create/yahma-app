@@ -99,25 +99,6 @@
   const fleetStats=readinessStats();
   const fleetAttention=Math.max(0, fleetStats.total-fleetStats.ready-fleetStats.out);
 
-  /* تنبيه وثائق تنتهي خلال 7 أيام */
-  const expiring7 = fleet.filter(c => {
-    const fields = ['cardExpiry', 'licenseExpiry', 'insuranceExpiry'];
-    return fields.some(f => {
-      const d = new Date(c[f]).getTime();
-      if (isNaN(d)) return false;
-      const days = Math.round((d - Date.now()) / 86400000);
-      return days >= 0 && days <= 7;
-    });
-  }).length;
-
-  const expiringNotice = expiring7 > 0 ? `
-    <div style="display:flex;justify-content:flex-end;margin:6px 0">
-      <button type="button" id="fleet-expiring-alert" title="${expiring7} سيارة لديها وثائق تنتهي خلال 7 أيام — رخصة، تأمين، أو كارت تشغيل — راجع تبويب التجديدات" style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;background:rgba(211,47,47,0.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(211,47,47,0.28);color:#d32f2f;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(211,47,47,0.12)">
-        <span style="font-size:14px">⚠️</span><span>${expiring7}</span>
-      </button>
-    </div>
-  ` : '';
-
   const uniq=(field)=>{
     const map=new Map(); // normalized -> display
     fleet.forEach(c=>{
@@ -140,7 +121,6 @@
         <button type="button" class="fleet-summary-card attention" data-fleet-quick="not_ready"><span class="fleet-summary-icon">!</span><span><b>0</b><small>تحتاج إجراء</small></span></button>
         <button type="button" class="fleet-summary-card out" data-fleet-quick="out"><span class="fleet-summary-icon">×</span><span><b>0</b><small>خارج الخدمة</small></span></button>
       </div>
-      ${expiringNotice}
       <div class="fleet-tools-head">
         <button class="btn btn-ghost" id="fleet-back-branches" type="button" title="رجوع لدليل الفروع" style="display:none">→ رجوع للفروع</button>
         <div class="fleet-search-wrap"><span>⌕</span><input id="fleet-search" aria-label="بحث في الأسطول" placeholder="ابحث برقم اللوحة، الماركة، النوع، الموديل، الشاسيه، المالك أو الفرع..."></div>
@@ -195,7 +175,6 @@
       <button type="button" class="fleet-summary-card attention" data-fleet-quick="not_ready"><span class="fleet-summary-icon">!</span><span><b>${fleetAttention}</b><small>تحتاج إجراء</small></span></button>
       <button type="button" class="fleet-summary-card out" data-fleet-quick="out"><span class="fleet-summary-icon">×</span><span><b>${fleetStats.out}</b><small>خارج الخدمة</small></span></button>
     </div>
-    ${expiringNotice}
     <div class="fleet-tools-head">
       <button class="btn btn-ghost" id="fleet-back-branches" type="button" title="رجوع لدليل الفروع" style="display:none">→ رجوع للفروع</button>
       <div class="fleet-search-wrap"><span>⌕</span><input id="fleet-search" aria-label="بحث في الأسطول" placeholder="ابحث برقم اللوحة، الماركة، النوع، الموديل، الشاسيه، المالك أو الفرع..."></div>
@@ -1091,12 +1070,6 @@
   };
 
   $('fleet-excel-import')?.addEventListener('click', () => fleetFileInput.click());
-  // الأيقونة الزجاجية للتنبيه — تفتح تبويب التجديدات من غير onclick داخل HTML
-  $('fleet-expiring-alert')?.addEventListener('click', () => {
-    const target = document.querySelector('.nav-item[data-tab="renewals"]');
-    if (target) target.click();
-  });
-
   // Pagination controls
   $('pager-first')?.addEventListener('click', ()=>{ currentPage=1; requestAnimationFrame(draw); });
   $('pager-prev')?.addEventListener('click', ()=>{ currentPage=Math.max(1,currentPage-1); requestAnimationFrame(draw); });
