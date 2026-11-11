@@ -78,8 +78,6 @@ function renderRenewals(content, mode='inspection'){
         <strong>السيارات غير المفحوصة:</strong> <span class="wa-count">${needInsp}</span>
       </div>
       <div class="wa-toolbar-actions">
-        <button class="btn btn-whatsapp" id="btn-wa-inspection">إرسال على واتساب</button>
-        <button class="btn btn-copy-inspection" id="btn-copy-inspection" type="button">نسخ القائمة</button>
         <!-- أزرار التصدير القديمة (ren-export-*) اتشالت: شريط التصدير
              الموحّد (yx-bar) بقي هو المسؤول وهو موجود جنب زر الرفع. -->
       </div>
@@ -118,8 +116,6 @@ function renderRenewals(content, mode='inspection'){
         <span id="ren-filter-count">عرض 0 من ${fleet.length}</span>
         <button class="btn btn-ghost btn-small" id="ren-clear">↺ مسح الفلاتر</button>
         <button class="btn btn-ghost btn-small" id="btn-scan-console" title="وضع المسح الشامل — شاشة الرادار والمؤشر للفرع">🛰 وضع المسح الشامل</button>
-      <button class="btn btn-ghost btn-small" id="ren-export-xlsx">📥 تصدير Excel</button>
-      <button class="btn btn-ghost btn-small" id="ren-export-pdf">📄 تصدير PDF</button>
         <button class="btn btn-primary btn-small" id="ren-upload-btn" title="رفع شيت ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'} — ${insuranceMode?'يحدّث: حالة التأمين، الشركة، الانتهاء، اللون، المدينة، الرقم التسلسلي، المالك، الفرع، حالة السيارة':licenseMode?'يحدّث تاريخ وحالة الرخصة فقط':'يحدّث: حالة الفحص، الرقم التسلسلي، رقم الحاسب الآلي، اسم الشركة، والملاحظات'}">📥 رفع شيت ${insuranceMode?'التأمين':licenseMode?'الرخص':'الفحص'}</button>
         <input type="file" id="file-ren-upload" accept=".xlsx,.xls,.csv" style="display:none">
       </div>
