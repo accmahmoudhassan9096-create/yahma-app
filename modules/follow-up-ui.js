@@ -42,8 +42,6 @@ function renderFollowUp(content){
     <div class="fleet-summary-strip module-summary-strip" aria-label="ملخص بطاقات التشغيل والتأمين">
       <button type="button" class="fleet-summary-card attention" data-fq="card_bad"><span class="fleet-summary-icon">!</span><span><b>${needCard}</b><small>كروت منتهية</small></span></button>
       <button type="button" class="fleet-summary-card ready" data-fq="card_ok"><span class="fleet-summary-icon">✓</span><span><b>${goodCard}</b><small>كارت ساري</small></span></button>
-      <button type="button" class="fleet-summary-card out" data-fq="ins_bad"><span class="fleet-summary-icon">!</span><span><b>${needIns}</b><small>تأمين منتهي</small></span></button>
-      <button type="button" class="fleet-summary-card total" data-fq="ins_ok"><span class="fleet-summary-icon">✓</span><span><b>${goodIns}</b><small>تأمين ساري</small></span></button>
     </div>
     <div class="wa-toolbar">
       <div class="wa-toolbar-info">
@@ -509,7 +507,6 @@ function renderFollowUp(content){
   });
   $('fu-bulk-delete')?.addEventListener('click',()=>deleteFuCars([...selectedFuIds]));
   $('fu-bulk-card-renew')?.addEventListener('click',bulkRenewCard);
-  $('fu-bulk-card-status')?.addEventListener('click',bulkSetCardStatus);
   $('fu-bulk-ins-ok')?.addEventListener('click',bulkSetInsurance);
   $('fu-bulk-clear')?.addEventListener('click',()=>{selectedFuIds.clear();draw();});
   document.getElementById('btn-scan-console')?.addEventListener('click',()=>{
