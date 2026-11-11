@@ -1855,6 +1855,19 @@ body.dark-mode .global-date-badge{background:rgba(94,234,212,.10);border-color:r
   box-shadow: 0 10px 28px rgba(15,23,60,.22);
   color: #fff;
 }
+@media(min-width:701px){
+  .topbar.topbar-v43{ position: relative; overflow: hidden; }
+  .topbar.topbar-v43::after{
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('../assets/hero-car.svg') center / 55% no-repeat;
+    opacity: .07;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .topbar.topbar-v43 > *{ position: relative; z-index: 1; }
+}
 .topbar.topbar-v43 .topbar-brand-copy strong{color:#fff}
 .topbar.topbar-v43 .topbar-brand-copy span{color:rgba(255,255,255,.72)}
 /* زرار الموبايل + الأيقونات */
