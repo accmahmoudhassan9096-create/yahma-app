@@ -38,7 +38,8 @@
     if(!name) return;
     var currentName = (window.currentUserName && window.currentUserName.trim()) || name.textContent || 'المدير';
     if(dn) dn.textContent = currentName;
-    if(dr) dr.textContent = role ? role.textContent : (window.YahmaPerms && window.YahmaPerms.label ? window.YahmaPerms.label(window.currentRole) : 'مدير النظام');
+    if(role) role.textContent = (window.YahmaPerms && typeof window.YahmaPerms.label === 'function') ? window.YahmaPerms.label(window.currentRole) : (window.currentRole || 'مدير النظام');
+    if(dr) dr.textContent = role ? role.textContent : ((window.YahmaPerms && typeof window.YahmaPerms.label === 'function') ? window.YahmaPerms.label(window.currentRole) : (window.currentRole || 'مدير النظام'));
     var letter = currentName.replace(/^[\s\.\-_]+/, '').charAt(0) || 'م';
     if(av) av.textContent = letter;
     if(dav) dav.textContent = letter;
