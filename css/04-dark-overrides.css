@@ -1602,16 +1602,16 @@ body.dark-mode .pay-cell,body.dark-mode .ren-data-cell{color:inherit}
   border-color:#FCA5A5;
 }
 .dash-cloud-dot{
-  width:8px;
-  height:8px;
+  width:12px;
+  height:12px;
   border-radius:50%;
   background:#10B981;
-  box-shadow:0 0 0 2px rgba(16,185,129,.3);
+  box-shadow:0 0 0 3px rgba(16,185,129,.35), 0 0 12px rgba(16,185,129,.75);
   animation:dashPulse 2s infinite;
 }
 .dash-cloud-badge.offline .dash-cloud-dot{
   background:#EF4444;
-  box-shadow:0 0 0 2px rgba(239,68,68,.3);
+  box-shadow:0 0 0 3px rgba(239,68,68,.35), 0 0 12px rgba(239,68,68,.75);
   animation:none;
 }
 @keyframes dashPulse{
