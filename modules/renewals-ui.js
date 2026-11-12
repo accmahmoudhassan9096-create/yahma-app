@@ -697,7 +697,11 @@ const noteEditable=noteMode&&(typeof window.YahmaPerms==='object'?window.YahmaPe
     const paidNotRen=P.localByStatus('paid').filter(p=>!P.isRenewed(p));
     const alreadyRen=P.localByStatus('paid').filter(P.isRenewed);
     const pend=P.localByStatus('pending');
-    const mapBy=new Map(list=>{const m=new Map();list.forEach(p=>{const c=carOf(p);if(!c)return;variantOf(c.plate).forEach(k=>{if(k&&!m.has(k))m.set(k,p);});});return m;});
+    /* ⭐ كان مكتوب: new Map(list=>{...}) — و«new Map» بياخد iterable،
+       والدالة مش iterable، فكان بيرمي
+       «TypeError: function is not iterable» لحظة رفع شيت التجديد.
+       الصح: mapBy دالة عادية ترجّع Map، والداخل Map جديد. */
+    const mapBy=list=>{const m=new Map();list.forEach(p=>{const c=carOf(p);if(!c)return;variantOf(c.plate).forEach(k=>{if(k&&!m.has(k))m.set(k,p);});});return m;};
     const paidMap=mapBy(paidNotRen), renMap=mapBy(alreadyRen), pendMap=mapBy(pend);
     const hits=[],pendHits=[],already=[],misses=[];
     rows.forEach(r=>{
