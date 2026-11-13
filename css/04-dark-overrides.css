@@ -391,17 +391,17 @@ body.dark-mode .tb-theme:hover {
   box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
 }
 
-/* التسمية sotto الزر */
+/* التسمية تحت الزر — بقت مخفية دايمًا:
+   الكلمة كانت بتتلبّس بالأيقونة وبتتداخل مع زرار التحديث. */
 .theme-label {
   font-size: 10px;
   font-weight: 700;
   margin-left: 6px;
-  display: none; /* مخفي افتراضياً، يظهر في الليلي */
+  display: none !important;
 }
 
 body.dark-mode .theme-label {
-  display: inline-block;
-  color: #FCD34D;
+  display: none !important;
 }
 
 /* مؤشر المزامنة والعدادات */

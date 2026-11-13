@@ -356,8 +356,6 @@
 
 function initTheme(){
   const btn=document.getElementById('btn-theme');
-  const label=document.getElementById('theme-label');
-  const icon=document.getElementById('theme-icon');
   const apply=()=>{
     let stored=localStorage.getItem('fleet-theme');
     let dark;
@@ -368,9 +366,12 @@ function initTheme(){
       dark=(stored==='dark');
     }
     document.body.classList.toggle('dark-mode',dark);
-    if(label) label.textContent=dark?'الوضع النهاري':'نسخة Liquid Glass';
-    if(icon) icon.textContent=dark?'🌙':'☀';
-    if(btn) btn.setAttribute('title', dark ? 'التبديل إلى الوضع النهاري' : 'التبديل إلى نسخة Liquid Glass الفاخرة');
+    /* ⭐ الأيقونة نفسها (شمس/قمر) موجودة في HTML وبتتقلب بـCSS حسب
+       body.dark-mode — فمفيش نص ولا إيموجي بيتكتب بالجافاسكربت. */
+    if(btn){
+      btn.setAttribute('title', dark ? 'الوضع الليلي مفعّل — اضغط للرجوع للوضع النهاري' : 'الوضع النهاري مفعّل — اضغط لتفعيل الوضع الليلي');
+      btn.setAttribute('aria-label', dark ? 'الرجوع للوضع النهاري' : 'تفعيل الوضع الليلي');
+    }
     try{
       var meta=document.querySelector('meta[name="theme-color"]');
       if(meta) meta.setAttribute('content', dark?'#0D1626':'#152350');

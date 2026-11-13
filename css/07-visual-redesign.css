@@ -671,7 +671,46 @@ body .topbar.topbar-v43 .sync-status{color:#4E6270!important}
 .pager{color:#5F6E7E!important}
 .pager-num{color:#4E6270!important}
 
-/* ---------- 9) لمسات مريحة للعين ---------- */
+/* ---------- 9) زر المظهر: أيقونة فقط (من غير أي نص) ----------
+   كان فيه كلمة «الوضع النهاري» جوه الزر، فكانت بتتداخل مع زرار
+   التحديث وبتقطع الأيقونة. دلوقتي الزر مربّع بالأيقونة بس.
+   ⭐ بنستخدم #btn-theme عشان نكسر قاعدة 03 اللي فيها !important بـid. */
+.topbar.topbar-v43 #btn-theme,
+.topbar.topbar-v43 .tb-theme{
+  width:42px!important;height:42px!important;min-height:42px!important;
+  padding:0!important;gap:0!important;border-radius:13px!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+}
+.topbar.topbar-v43 #btn-theme #theme-icon,
+.topbar.topbar-v43 .tb-theme #theme-icon{
+  display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;opacity:1!important;
+}
+.topbar.topbar-v43 #btn-theme .theme-ico,
+.topbar.topbar-v43 .tb-theme .theme-ico{
+  width:19px!important;height:19px!important;flex:0 0 19px!important;
+  display:block;
+  transition:transform .3s cubic-bezier(.16,1,.3,1),opacity .18s ease;
+}
+/* الأيقونة بتتبدّل حسب الوضع: شمس بالنهار، قمر بالليل */
+.topbar.topbar-v43 #btn-theme .theme-ico-moon,
+.topbar.topbar-v43 .tb-theme .theme-ico-moon{display:none}
+body.dark-mode .topbar.topbar-v43 #btn-theme .theme-ico-sun,
+body.dark-mode .topbar.topbar-v43 .tb-theme .theme-ico-sun{display:none}
+body.dark-mode .topbar.topbar-v43 #btn-theme .theme-ico-moon,
+body.dark-mode .topbar.topbar-v43 .tb-theme .theme-ico-moon{display:block}
+/* لمسة حلوة: الأيقونة بتلف شوية لما تعدي عليها */
+.topbar.topbar-v43 #btn-theme:hover .theme-ico-sun,
+.topbar.topbar-v43 .tb-theme:hover .theme-ico-sun{transform:rotate(70deg) scale(1.06)}
+.topbar.topbar-v43 #btn-theme:hover .theme-ico-moon,
+.topbar.topbar-v43 .tb-theme:hover .theme-ico-moon{transform:rotate(-22deg) scale(1.08)}
+/* قمر ذهبي فاتح فوق الخلفية الغامقة — واضح ومريح للعين */
+body.dark-mode .topbar.topbar-v43 #btn-theme,
+body.dark-mode .topbar.topbar-v43 .tb-theme{color:#F7C96B!important}
+/* شمس نهارية تركوازية فوق الزر الفاتح (تباين 5.3:1) */
+.topbar.topbar-v43 #btn-theme,
+.topbar.topbar-v43 .tb-theme{color:#07726F!important}
+
+/* ---------- 10) لمسات مريحة للعين ---------- */
 /* نظام ألوان داكن: عناصر النموذج (قوائم، صناديق، شريط تمرير) بتتبع
    الوضع الليلي بدل ما تطلع بيضاء وتقطع العين. */
 body.dark-mode { color-scheme: dark; }

@@ -174,3 +174,40 @@ test('ملف الـminified مطابق للملف المصدر (عشان الك�
       'الملف المضغوط لازم يحتوي "' + token + '" — شغّل node scripts/minify-css.js');
   });
 });
+
+/* ---------- زر المظهر: أيقونة بس، من غير نص ---------- */
+
+test('زر المظهر: أيقونة فقط — مفيش كلمة "الوضع النهاري"', () => {
+  const html = read('index.html');
+  assert.ok(html.indexOf('theme-label') === -1,
+    'تسمية "الوضع النهاري" اتشالت من زرار المظهر — لازم يبقى أيقونة بس');
+  assert.ok(html.indexOf('theme-ico-sun') >= 0 && html.indexOf('theme-ico-moon') >= 0,
+    'لازم يكون فيه أيقونتين: شمس (نهار) وقمر (ليل)');
+  assert.ok(html.indexOf('id="btn-theme"') >= 0, 'زرار المطور اتغيّر مكانه');
+});
+
+test('تسمية زرار المظهر ما بتظهرش أبدًا (لا في النور ولا في الليل)', () => {
+  /* كانت بتظهر بالليل (body.dark-mode .theme-label{display:inline-block})
+     وبتتداخل مع زرار التحديث. */
+  const src = read('css', '04-dark-overrides.css');
+  const m = src.match(/body\.dark-mode \.theme-label\s*\{([^}]*)\}/);
+  assert.ok(m, 'قاعدة .theme-label في الوضع الليلي مفقودة');
+  assert.ok(/display\s*:\s*none/.test(m[1]),
+    'تسمية زرار المظهر لازم تفضل مخفية في الوضع الليلي: ' + m[1]);
+});
+
+test('أيقونة زرار المظهر بتتبدّل حسب الوضع (شمس/قمر)', () => {
+  const design = read('css', '07-visual-redesign.css');
+  assert.ok(/body\.dark-mode [^{]*\.theme-ico-sun\s*\{[^}]*display\s*:\s*none/.test(design),
+    'الشمس لازم تختفي في الوضع الليلي');
+  assert.ok(/body\.dark-mode [^{]*\.theme-ico-moon\s*\{[^}]*display\s*:\s*block/.test(design),
+    'القمر لازم يظهر في الوضع الليلي');
+});
+
+test('زرار المظهر مربّع بالأيقونة (مش نص بياخد مكان)', () => {
+  const design = read('css', '07-visual-redesign.css');
+  const m = design.match(/\.topbar\.topbar-v43 #btn-theme[\s\S]{0,320}?\{([^}]*)\}/);
+  assert.ok(m, 'قاعدة زرار المظهر المربّع مفقودة');
+  assert.ok(/width\s*:\s*42px\s*!important/.test(m[1]), 'الزر لازم يكون 42px عرض');
+  assert.ok(/padding\s*:\s*0\s*!important/.test(m[1]), 'الزر لازم يكون من غير padding');
+});
