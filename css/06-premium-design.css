@@ -9,14 +9,14 @@
   --paper:#F4F7FA;
   --panel:#FFFFFF;
   --ink:#172B3D;
-  --muted:#6C7C8D;
+  --muted:#5F6E7E;
   --gold:#C7A66A;
   --gold-light:#E2C58F;
   --green:#16866F;
   --green-soft:#E5F5F0;
   --amber:#B7791F;
   --amber-soft:#FFF4DF;
-  --red:#C84C4C;
+  --red:#A83232;
   --red-soft:#FCEAEA;
   --grey:#738397;
   --grey-soft:#EEF2F6;
@@ -230,7 +230,7 @@ body.dark-mode .btn-ghost{background:#17283B!important;border-color:#30465B!impo
 .fleet-search-wrap:focus-within{background:#fff!important;border-color:#7DD6D0!important;box-shadow:0 0 0 4px rgba(23,170,164,.09)!important}
 .fleet-search-wrap input{min-width:0!important;width:100%!important;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;color:#173248!important;font-size:12px!important}
 .fleet-search-wrap input::placeholder{color:#91A1AD!important}
-#fleet-excel-import{background:linear-gradient(135deg,#159E99,#087C7A)!important;color:#fff!important;border:1px solid #087C7A!important;border-radius:11px!important;box-shadow:0 5px 13px rgba(8,124,122,.16)!important}
+#fleet-excel-import{background:linear-gradient(135deg,#0C9690,#07635F)!important;color:#fff!important;border:1px solid #07635F!important;border-radius:11px!important;box-shadow:0 5px 13px rgba(7,99,95,.16)!important}
 #fleet-excel-import:hover{filter:brightness(1.05)!important;transform:translateY(-1px)}
 .view-toggle{display:inline-flex!important;align-items:center;gap:3px!important;padding:4px!important;border:1px solid #E5ECF1!important;border-radius:11px!important;background:#F3F7F9!important}
 .view-toggle button{border:0!important;border-radius:8px!important;background:transparent!important;color:#6E8291!important;padding:7px 11px!important;font-size:11px!important;font-weight:750!important}

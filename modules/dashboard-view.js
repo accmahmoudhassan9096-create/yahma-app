@@ -404,7 +404,7 @@ function dashboardTemplate(state) {
       font-size: 11px;
     }
     .br-stat-ready {
-      color: #059669;
+      color: #0A7057;
       font-weight: 700;
     }
     .br-stat-ready b {
@@ -438,7 +438,7 @@ function dashboardTemplate(state) {
       color: #0F172A;
     }
     .modern-card-footer-btn {
-      background: #0B918D;
+      background: #07726F;
       color: #ffffff;
       border: none;
       border-radius: 10px;
@@ -456,7 +456,7 @@ function dashboardTemplate(state) {
       font-family: inherit;
     }
     .modern-card-footer-btn:hover {
-      background: #087572;
+      background: #065E5C;
       box-shadow: 0 4px 12px rgba(11, 145, 141, 0.28);
     }
     .modern-card-footer-btn:active {
@@ -631,78 +631,80 @@ function dashboardTemplate(state) {
     <!-- تم حذف شارة تنبيه التدخل الفوري (0% ⚠️) بناءً على طلب المستخدم -->
     <!-- Hero: كرت بتصميم موحّد مع باقي كروت الصفحة الرئيسية -->
     <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px" class="mock-hero-grid">
-      <div class="home-hero-card" style="background:#FFFFFF;border:1px solid #E3EAF0;border-radius:18px;padding:22px 24px;color:#172B3D;box-shadow:0 4px 18px rgba(16,36,58,.04)">
-        <p style="display:flex;align-items:center;gap:6px;color:#087C7A;font-weight:800;font-size:13px;margin:0 0 12px">✨ نظرة عامة تشغيلية</p>
-        <div style="display:flex;align-items:flex-end;gap:10px"><h2 style="margin:0;font-size:56px;font-weight:900;line-height:.95;letter-spacing:-.02em;color:#10243A">${total.toLocaleString('en')}</h2><span style="padding-bottom:6px;font-weight:800;color:#6C7C8D">سيارة</span></div>
-        <h3 style="margin:6px 0 8px;font-size:18px;font-weight:900;color:#10243A">إجمالي الأسطول</h3>
-        <p style="margin:0 0 18px;color:#6C7C8D;line-height:1.7;font-size:13px">صورة تشغيلية موحّدة لحركة الأسطول والركود والتوفر الفوري، من دون تشتيت بين التقارير.</p>
+      <div class="home-hero-card" style="background:var(--ds-card);border:1px solid var(--ds-line);border-radius:18px;padding:22px 24px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04)">
+        <p style="display:flex;align-items:center;gap:6px;color:var(--ds-teal);font-weight:800;font-size:13px;margin:0 0 12px">✨ نظرة عامة تشغيلية</p>
+        <div style="display:flex;align-items:flex-end;gap:10px"><h2 style="margin:0;font-size:56px;font-weight:900;line-height:.95;letter-spacing:-.02em;color:var(--ds-ink)">${total.toLocaleString('en')}</h2><span style="padding-bottom:6px;font-weight:800;color:var(--ds-muted)">سيارة</span></div>
+        <h3 style="margin:6px 0 8px;font-size:18px;font-weight:900;color:var(--ds-ink)">إجمالي الأسطول</h3>
+        <p style="margin:0 0 18px;color:var(--ds-muted);line-height:1.7;font-size:13px">صورة تشغيلية موحّدة لحركة الأسطول والركود والتوفر الفوري، من دون تشتيت بين التقارير.</p>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-          <div style="background:#F8FAFB;border:1px solid #E3EAF0;border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#087C7A">↗ مؤجرة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#10243A">${rented.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#6C7C8D">سيارة ضمن التشغيل</p></div>
-          <div style="background:#F8FAFB;border:1px solid #E3EAF0;border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#16866F">✓ متاحة فوراً</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#10243A">${availableCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#6C7C8D">جاهزة للإيجار الآن</p></div>
-          <div style="background:rgba(223,79,79,.08);border:1px solid rgba(223,79,79,.20);border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:#C84C4C">↘ راقدة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#10243A">${idleCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:#6C7C8D">غير مؤجرة</p></div>
+          <div style="background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:var(--ds-teal)">↗ مؤجرة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:var(--ds-ink)">${rented.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:var(--ds-muted)">سيارة ضمن التشغيل</p></div>
+          <div style="background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:var(--ds-teal-2)">✓ متاحة فوراً</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:var(--ds-ink)">${availableCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:var(--ds-muted)">جاهزة للإيجار الآن</p></div>
+          <div style="background:rgba(223,79,79,.08);border:1px solid rgba(223,79,79,.20);border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:var(--ds-red)">↘ راقدة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:var(--ds-ink)">${idleCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:var(--ds-muted)">غير مؤجرة</p></div>
         </div>
       </div>
-      <div style="background:#FFFFFF;border:1px solid #E3EAF0;border-radius:18px;padding:22px;color:#172B3D;box-shadow:0 4px 18px rgba(16,36,58,.04);position:relative;overflow:hidden">
+      <div style="background:var(--ds-card);border:1px solid var(--ds-line);border-radius:18px;padding:22px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04);position:relative;overflow:hidden">
         <div style="position:absolute;inset-inline-start:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(8,124,122,.04)"></div>
-        <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:#087C7A">🩺 صحة الأسطول</p>
+        <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:var(--ds-teal)">🩺 صحة الأسطول</p>
          <div style="margin:12px 0 6px">${gaugeSvg}</div>
-         <p style="margin:0;font-size:12px;color:#6C7C8D">${rented} من ${total} سيارة مؤجرة</p>
-         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-top:14px;padding-top:12px;border-top:1px solid #E3EAF0">
-           <div><p style="margin:0;font-size:10px;color:#6C7C8D;font-weight:700">جاهزية</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:#0BAA86">${pReady}%</p></div>
-           <div><p style="margin:0;font-size:10px;color:#6C7C8D;font-weight:700">تشغيل</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:#087C7A">${occupancyRate}%</p></div>
-           <div><p style="margin:0;font-size:10px;color:#6C7C8D;font-weight:700">متاحة</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:#10243A">${availableCount}</p></div>
+         <p style="margin:0;font-size:12px;color:var(--ds-muted)">${rented} من ${total} سيارة مؤجرة</p>
+         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-top:14px;padding-top:12px;border-top:1px solid var(--ds-line)">
+           <div><p style="margin:0;font-size:10px;color:var(--ds-muted);font-weight:700">جاهزية</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:var(--ds-green)">${pReady}%</p></div>
+           <div><p style="margin:0;font-size:10px;color:var(--ds-muted);font-weight:700">تشغيل</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:var(--ds-teal)">${occupancyRate}%</p></div>
+           <div><p style="margin:0;font-size:10px;color:var(--ds-muted);font-weight:700">متاحة</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:var(--ds-ink)">${availableCount}</p></div>
          </div>
          <div style="width:100%;margin-top:10px">
            <svg viewBox="0 0 120 32" style="width:100%;height:32px;display:block">
-             ${(() => { const pts = occupancyTrend.map((p,i) => (i*20) + "," + (32 - ( (Number(p.pct)||0) /100)*28).toFixed(1)).join(" "); return "<polyline points=\"" + pts + "\" fill=\"none\" stroke=\"#087C7A\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"; })()}
+             ${(() => { const pts = occupancyTrend.map((p,i) => (i*20) + "," + (32 - ( (Number(p.pct)||0) /100)*28).toFixed(1)).join(" "); return "<polyline points=\"" + pts + "\" fill=\"none\" stroke=\"var(--ds-teal)\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"; })()}
            </svg>
-           <p style="margin:4px 0 0;font-size:10px;color:#6C7C8D;text-align:center">اتجاه التشغيل (7 أيام)</p>
+           <p style="margin:4px 0 0;font-size:10px;color:var(--ds-muted);text-align:center">اتجاه التشغيل (7 أيام)</p>
          </div>
       </div>
     </div>
     <style>@media(max-width:900px){.mock-hero-grid{grid-template-columns:1fr !important}}</style>
 
     <style>
-    .dark-sec{background:#FFFFFF;border:1px solid #E3EAF0;border-radius:20px;padding:20px;margin-bottom:14px;color:#172B3D;box-shadow:0 4px 18px rgba(16,36,58,.04)}
+    /* الألوان هنا كلها بتتمشي على توكنات (var(--ds-*)) — والتوكن نفسه
+       بيتبدّل بين النور والليل، فالكارت بيبقى مقروء في الوضعين. */
+    .dark-sec{background:var(--ds-card);border:1px solid var(--ds-line);border-radius:20px;padding:20px;margin-bottom:14px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04)}
     .dark-sec-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
-    .dark-sec-label{margin:0;color:#087C7A;font-size:11px;font-weight:800}
-    .dark-sec-title{margin:4px 0 0;font-size:24px;font-weight:900;color:#10243A}
-    .dark-sec-pill{background:#E6F5F4;color:#087C7A;font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px;white-space:nowrap}
+    .dark-sec-label{margin:0;color:var(--ds-teal);font-size:11px;font-weight:800}
+    .dark-sec-title{margin:4px 0 0;font-size:24px;font-weight:900;color:var(--ds-ink)}
+    .dark-sec-pill{background:var(--ds-pill);color:var(--ds-teal);font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px;white-space:nowrap}
     .dark-grid-3{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
     @media(max-width:900px){.dark-grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:560px){.dark-grid-3{grid-template-columns:1fr}}
-    .dark-card{background:#F8FAFB;border:1px solid #E3EAF0;border-radius:16px;padding:16px;color:#172B3D;min-height:150px}
+    .dark-card{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:16px;padding:16px;color:var(--ds-ink-soft);min-height:150px}
     .dark-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-    .dark-tile{width:42px;height:42px;border-radius:12px;background:#F8FAFB;border:1px solid #E3EAF0;display:grid;place-items:center;font-size:20px;flex:none}
-    .dark-tile.green{background:#E8F5F3;color:#16866F;border-color:#CBE8DE}
+    .dark-tile{width:42px;height:42px;border-radius:12px;background:var(--ds-soft);border:1px solid var(--ds-line);display:grid;place-items:center;font-size:20px;flex:none}
+    .dark-tile.green{background:var(--ds-tint-green);color:var(--ds-teal-2);border-color:var(--ds-line-green)}
     .dark-pct{font-size:11px;font-weight:900;padding:4px 8px;border-radius:999px;white-space:nowrap}
-    .dark-label{margin:14px 0 4px;color:#6C7C8D;font-size:12px;font-weight:700;line-height:1.5}
-    .dark-num{margin:0;font-size:30px;font-weight:900;color:#10243A;line-height:1.1;text-align:center}
-    .dark-bar{margin-top:12px;height:6px;background:#E3EAF0;border-radius:999px;overflow:hidden}
+    .dark-label{margin:14px 0 4px;color:var(--ds-muted);font-size:12px;font-weight:700;line-height:1.5}
+    .dark-num{margin:0;font-size:30px;font-weight:900;color:var(--ds-ink);line-height:1.1;text-align:center}
+    .dark-bar{margin-top:12px;height:6px;background:var(--ds-line);border-radius:999px;overflow:hidden}
     .dark-bar i{display:block;height:100%;border-radius:999px;position:relative}
-    .dark-bar i::after{content:'';position:absolute;inset-inline-end:-4px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:inherit;box-shadow:0 0 0 2px #fff}
-    .dark-note{margin:8px 0 0;color:#6C7C8D;font-size:11px;line-height:1.6;text-align:left}
-    .dark-summary{background:#F8FAFB;border:1px solid #E3EAF0;border-radius:16px;padding:16px;color:#172B3D;min-height:150px}
+    .dark-bar i::after{content:'';position:absolute;inset-inline-end:-4px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:inherit;box-shadow:0 0 0 2px var(--ds-soft)}
+    .dark-note{margin:8px 0 0;color:var(--ds-muted);font-size:11px;line-height:1.6;text-align:left}
+    .dark-summary{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:16px;padding:16px;color:var(--ds-ink-soft);min-height:150px}
     .dark-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
     @media(max-width:900px){.dark-2col{grid-template-columns:1fr}}
-    .dark-big{font-size:54px;font-weight:900;line-height:1;color:#10243A}
-    .dark-sub{color:#6C7C8D;font-size:12px;line-height:1.7}
-    .dark-inner{background:#F8FAFB;border:1px solid #E3EAF0;border-radius:14px;padding:14px}
-    .dark-inner-label{margin:0;color:#6C7C8D;font-size:11px;font-weight:700}
-    .dark-inner-num{margin:6px 0 0;font-size:22px;font-weight:900;color:#10243A}
-    .dark-cmp{background:#F8FAFB;border:1px solid #E3EAF0;border-radius:14px;padding:14px;margin-top:12px}
-    .dark-cmp-title{margin:0;font-size:13px;font-weight:800;color:#10243A}
+    .dark-big{font-size:54px;font-weight:900;line-height:1;color:var(--ds-ink)}
+    .dark-sub{color:var(--ds-muted);font-size:12px;line-height:1.7}
+    .dark-inner{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:14px}
+    .dark-inner-label{margin:0;color:var(--ds-muted);font-size:11px;font-weight:700}
+    .dark-inner-num{margin:6px 0 0;font-size:22px;font-weight:900;color:var(--ds-ink)}
+    .dark-cmp{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:14px;margin-top:12px}
+    .dark-cmp-title{margin:0;font-size:13px;font-weight:800;color:var(--ds-ink)}
     .dark-row{margin-top:12px}
-    .dark-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:800;color:#10243A}
-    .dark-row-track{margin-top:7px;height:6px;background:#E3EAF0;border-radius:999px;overflow:hidden}
+    .dark-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:800;color:var(--ds-ink)}
+    .dark-row-track{margin-top:7px;height:6px;background:var(--ds-line);border-radius:999px;overflow:hidden}
     .dark-row-fill{height:100%;border-radius:999px;position:relative}
-    .dark-row-note{margin:4px 0 0;text-align:left;color:#6C7C8D;font-size:11px}
+    .dark-row-note{margin:4px 0 0;text-align:left;color:var(--ds-muted);font-size:11px}
     .dark-foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;justify-content:center}
     .dark-foot span{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px}
-    .dark-summary-title{margin:0;color:#087C7A;font-size:12px;font-weight:800}
-    .dark-summary-big{margin:10px 0 0;font-size:24px;font-weight:900;line-height:1.5;color:#10243A}
-    .dark-summary-desc{margin:8px 0 0;color:#6C7C8D;font-size:12px;line-height:1.7}
-    .dark-summary-foot{display:flex;align-items:center;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid #E3EAF0;color:#10243A;font-size:12px;font-weight:800}
+    .dark-summary-title{margin:0;color:var(--ds-teal);font-size:12px;font-weight:800}
+    .dark-summary-big{margin:10px 0 0;font-size:24px;font-weight:900;line-height:1.5;color:var(--ds-ink)}
+    .dark-summary-desc{margin:8px 0 0;color:var(--ds-muted);font-size:12px;line-height:1.7}
+    .dark-summary-foot{display:flex;align-items:center;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid var(--ds-line);color:var(--ds-ink);font-size:12px;font-weight:800}
     </style>
     <!-- قسم 01 — حالة الأسطول (نسخة الصورة الداكنة) -->
     <div class="dark-sec">
@@ -715,21 +717,21 @@ function dashboardTemplate(state) {
       </div>
       <div class="dark-grid-3">
         <div class="dark-card" data-go="fleet" data-filter="ready" style="cursor:pointer">
-          <div class="dark-card-top"><span class="dark-pct" style="background:rgba(31,169,113,.18);color:#2DD4A0">${pReady}%</span><div class="dark-tile green">✓</div></div>
+          <div class="dark-card-top"><span class="dark-pct" style="background:var(--ds-pct-green-bg);color:var(--ds-pct-green)">${pReady}%</span><div class="dark-tile green">✓</div></div>
           <p class="dark-label">سيارات جاهزة للتأجير</p>
           <p class="dark-num">${ready.toLocaleString('en')}</p>
           <div class="dark-bar"><i style="width:${pReady}%;background:#1FA971"></i></div>
           <p class="dark-note">جاهزة للحركة · ${pReady}% من الأسطول</p>
         </div>
         <div class="dark-card" data-go="renewals" style="cursor:pointer">
-          <div class="dark-card-top"><span class="dark-pct" style="background:rgba(232,165,44,.16);color:#F5B545">${pRenInsp}%</span><div class="dark-tile">🔧</div></div>
+          <div class="dark-card-top"><span class="dark-pct" style="background:var(--ds-pct-amber-bg);color:var(--ds-pct-amber)">${pRenInsp}%</span><div class="dark-tile">🔧</div></div>
           <p class="dark-label">تجديد فحص</p>
           <p class="dark-num">${renInsp.toLocaleString('en')}</p>
           <div class="dark-bar"><i style="width:${pRenInsp}%;background:#E8A52C"></i></div>
           <p class="dark-note">بحاجة إلى متابعة · ${pRenInsp}% من الأسطول</p>
         </div>
         <div class="dark-card" data-go="license-renewals" style="cursor:pointer">
-          <div class="dark-card-top"><span class="dark-pct" style="background:rgba(232,165,44,.16);color:#F5B545">${pRenLic}%</span><div class="dark-tile">📄</div></div>
+          <div class="dark-card-top"><span class="dark-pct" style="background:var(--ds-pct-amber-bg);color:var(--ds-pct-amber)">${pRenLic}%</span><div class="dark-tile">📄</div></div>
           <p class="dark-label">تجديد رخصة</p>
           <p class="dark-num">${renLic.toLocaleString('en')}</p>
           <div class="dark-bar"><i style="width:${pRenLic}%;background:#E8A52C"></i></div>
@@ -742,14 +744,14 @@ function dashboardTemplate(state) {
           <div class="dark-summary-foot">↗ حالة الأسطول الحالية</div>
         </div>
         <div class="dark-card" data-go="insurance-renewals" style="cursor:pointer">
-          <div class="dark-card-top"><span class="dark-pct" style="background:rgba(238,116,52,.16);color:#F0A06A">${pRenIns}%</span><div class="dark-tile">🛡️</div></div>
+          <div class="dark-card-top"><span class="dark-pct" style="background:var(--ds-pct-orange-bg);color:var(--ds-pct-orange)">${pRenIns}%</span><div class="dark-tile">🛡️</div></div>
           <p class="dark-label">تجديد تأمين</p>
           <p class="dark-num">${renIns.toLocaleString('en')}</p>
           <div class="dark-bar"><i style="width:${pRenIns}%;background:#EE7434"></i></div>
           <p class="dark-note">أولوية متوسطة · ${pRenIns}% من الأسطول</p>
         </div>
         <div class="dark-card" data-go="inspections" style="cursor:pointer">
-          <div class="dark-card-top"><span class="dark-pct" style="background:rgba(223,79,79,.16);color:#FF8A8A">${pRenCard}%</span><div class="dark-tile">🔑</div></div>
+          <div class="dark-card-top"><span class="dark-pct" style="background:var(--ds-pct-red-bg);color:var(--ds-pct-red)">${pRenCard}%</span><div class="dark-tile">🔑</div></div>
           <p class="dark-label">تجديد بطاقة تشغيل</p>
           <p class="dark-num">${renCard.toLocaleString('en')}</p>
           <div class="dark-bar"><i style="width:${pRenCard}%;background:#DF4F4F"></i></div>
@@ -767,29 +769,29 @@ function dashboardTemplate(state) {
             <p class="dark-sec-label">02 · تقرير التشغيل</p>
             <h2 class="dark-sec-title">سيارات راقدة غير مؤجرة</h2>
           </div>
-          <span class="dark-sec-pill" style="background:rgba(223,79,79,.16);color:#FF8A8A">ركود</span>
+          <span class="dark-sec-pill" style="background:var(--ds-pct-red-bg);color:var(--ds-pct-red)">ركود</span>
         </div>
-        <div style="display:flex;align-items:flex-end;gap:10px;margin-top:6px"><p class="dark-big">${idleCount.toLocaleString('en')}</p><span style="padding-bottom:8px;font-weight:800;color:#6C7C8D">سيارة</span></div>
+        <div style="display:flex;align-items:flex-end;gap:10px;margin-top:6px"><p class="dark-big">${idleCount.toLocaleString('en')}</p><span style="padding-bottom:8px;font-weight:800;color:var(--ds-muted)">سيارة</span></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
-          <div class="dark-inner"><p class="dark-inner-label">الخسارة من الركود</p><p class="dark-inner-num">${idleLossRounded.toLocaleString('en')} <span style="font-size:13px;color:#6C7C8D">ر.س</span></p></div>
+          <div class="dark-inner"><p class="dark-inner-label">الخسارة من الركود</p><p class="dark-inner-num">${idleLossRounded.toLocaleString('en')} <span style="font-size:13px;color:var(--ds-muted)">ر.س</span></p></div>
           <div class="dark-inner"><p class="dark-inner-label">إجمالي الراكد</p><p class="dark-inner-num">${idleCount.toLocaleString('en')}</p></div>
         </div>
         <div class="dark-cmp">
           <p class="dark-cmp-title">مقارنة ركود الفروع</p>
           <div class="dark-row">
-            <div class="dark-row-head"><span>${escapeHtml(topIdleBranchName)} · ${topIdleBranchCount} سيارة</span><span style="color:#2DD4A0">☐</span></div>
+            <div class="dark-row-head"><span>${escapeHtml(topIdleBranchName)} · ${topIdleBranchCount} سيارة</span><span style="color:var(--ds-pct-green)">☐</span></div>
             <div class="dark-row-track"><div class="dark-row-fill" style="width:${Math.min(100, Number(topIdleBranchCount) || 0)}%;background:#1FA971"></div></div>
             <p class="dark-row-note">${topIdleBranchCount} من أصل 100</p>
           </div>
           <div class="dark-row">
-            <div class="dark-row-head"><span>${escapeHtml(leastIdleBranchName)} · ${leastIdleBranchCount} سيارة</span><span style="color:#FF8A8A">●</span></div>
+            <div class="dark-row-head"><span>${escapeHtml(leastIdleBranchName)} · ${leastIdleBranchCount} سيارة</span><span style="color:var(--ds-pct-red)">●</span></div>
             <div class="dark-row-track"><div class="dark-row-fill" style="width:${Math.max(3, Math.min(100, Number(leastIdleBranchCount) || 0))}%;background:#DF4F4F"></div></div>
             <p class="dark-row-note">${leastIdleBranchCount} من أصل 100</p>
           </div>
         </div>
         <div class="dark-foot">
-          <span style="background:rgba(223,79,79,.16);color:#FF8A8A">أكثر فرع ركوداً: ${escapeHtml(topIdleBranchName)}</span>
-          <span style="background:rgba(31,169,113,.16);color:#2DD4A0">أقل فرع ركوداً: ${escapeHtml(leastIdleBranchName)}</span>
+          <span style="background:var(--ds-pct-red-bg);color:var(--ds-pct-red)">أكثر فرع ركوداً: ${escapeHtml(topIdleBranchName)}</span>
+          <span style="background:var(--ds-pct-green-bg);color:var(--ds-pct-green)">أقل فرع ركوداً: ${escapeHtml(leastIdleBranchName)}</span>
         </div>
       </div>
 
@@ -805,34 +807,34 @@ function dashboardTemplate(state) {
         <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px">
           <div style="flex:1;min-width:180px">
             <p class="dark-sub" style="margin:0">متاحة للإيجار فوراً</p>
-            <p style="margin:6px 0 0;font-size:44px;font-weight:900;color:#10243A;line-height:1">${availableCount.toLocaleString('en')}</p>
+            <p style="margin:6px 0 0;font-size:44px;font-weight:900;color:var(--ds-ink);line-height:1">${availableCount.toLocaleString('en')}</p>
             <p class="dark-sub" style="margin:8px 0 0">${rented} من ${total} سيارة مؤجرة ضمن نسبة التشغيل الإجمالية.</p>
           </div>
           <div style="position:relative;width:150px;height:150px;flex:none;margin-inline:auto">
             <svg viewBox="0 0 160 160" style="width:100%;height:100%;transform:rotate(-90deg)">
-              <circle cx="80" cy="80" r="68" fill="none" stroke="#E3EAF0" stroke-width="16"></circle>
+              <circle cx="80" cy="80" r="68" fill="none" style="stroke:var(--ds-line)" stroke-width="16"></circle>
               <circle cx="80" cy="80" r="68" fill="none" stroke="#0BAA86" stroke-width="16" stroke-linecap="round" stroke-dasharray="${(2 * Math.PI * 68).toFixed(1)}" stroke-dashoffset="${(2 * Math.PI * 68 * (1 - Math.min(100, Number(occupancyRate) || 0) / 100)).toFixed(1)}"></circle>
             </svg>
-            <div style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#10243A">
-              <div><p style="margin:0;font-size:30px;font-weight:900;line-height:1">${occupancyRate}%</p><p style="margin:4px 0 0;font-size:11px;color:#6C7C8D;font-weight:700">التشغيل</p></div>
+            <div style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--ds-ink)">
+              <div><p style="margin:0;font-size:30px;font-weight:900;line-height:1">${occupancyRate}%</p><p style="margin:4px 0 0;font-size:11px;color:var(--ds-muted);font-weight:700">التشغيل</p></div>
             </div>
           </div>
         </div>
         <div class="dark-cmp">
           <p class="dark-cmp-title">مقارنة تشغيل الفروع</p>
           <div class="dark-row">
-            <div class="dark-row-head"><span>${escapeHtml(mostOccupiedBranchName)} · تشغيل ${mostOccupiedBranchPct}%</span><span style="color:#2DD4A0">☐</span></div>
+            <div class="dark-row-head"><span>${escapeHtml(mostOccupiedBranchName)} · تشغيل ${mostOccupiedBranchPct}%</span><span style="color:var(--ds-pct-green)">☐</span></div>
             <div class="dark-row-track"><div class="dark-row-fill" style="width:${mostOccupiedBranchPct}%;background:#1FA971"></div></div>
             <p class="dark-row-note">${mostOccupiedBranchPct} من أصل 100</p>
           </div>
           <div class="dark-row">
-            <div class="dark-row-head"><span>${escapeHtml(leastOccupiedBranchName)} · تشغيل ${leastOccupiedBranchPct}%</span><span style="color:#FF8A8A">●</span></div>
+            <div class="dark-row-head"><span>${escapeHtml(leastOccupiedBranchName)} · تشغيل ${leastOccupiedBranchPct}%</span><span style="color:var(--ds-pct-red)">●</span></div>
             <div class="dark-row-track"><div class="dark-row-fill" style="width:${Math.max(3, Math.min(100, Number(leastOccupiedBranchPct) || 0))}%;background:#DF4F4F"></div></div>
             <p class="dark-row-note">${leastOccupiedBranchPct} من أصل 100</p>
           </div>
         </div>
         <div class="dark-foot" style="justify-content:center">
-          <span style="background:rgba(31,169,113,.14);color:#2DD4A0">↗ أكثر فرع تشغيلاً: ${escapeHtml(mostOccupiedBranchName)} · أقل فرع تشغيلاً: ${escapeHtml(leastOccupiedBranchName)}</span>
+          <span style="background:var(--ds-pct-green-bg);color:var(--ds-pct-green)">↗ أكثر فرع تشغيلاً: ${escapeHtml(mostOccupiedBranchName)} · أقل فرع تشغيلاً: ${escapeHtml(leastOccupiedBranchName)}</span>
         </div>
       </div>
     </div>

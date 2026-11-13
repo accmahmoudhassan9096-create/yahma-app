@@ -377,7 +377,7 @@ function payBulkBarFor(tab) {
   }).join('') : '';
   const moveGroup = moveBtns
     ? '<div class="admin-transfer-group" style="display:inline-flex;gap:4px;align-items:center;background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:6px;flex-wrap:wrap;">'
-      + '<span style="font-size:11px;font-weight:bold;color:#0e8f8d">نقل المحددة (إداري):</span>' + moveBtns + '</div>'
+      + '<span style="font-size:11px;font-weight:bold;color:var(--ds-teal)">نقل المحددة (إداري):</span>' + moveBtns + '</div>'
     : '';
   const btns = moveBtns ? '' : actions.map(function (a) {
     /* canBulk بيحدد وجود الشريط. الإجراء المدمر (رجوع/إلغاء)

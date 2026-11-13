@@ -365,15 +365,17 @@ body.dark-mode .topbar.topbar-v43{background:linear-gradient(135deg, rgba(17,34,
 }
 .home-hero-card > *{position:relative;z-index:1;}
 body.dark-mode .home-hero-card::before{opacity:.11;}
-body.dark-mode .mock-hero-grid > div{background:#142537 !important;border-color:#2A3C4D !important;color:#E6EEF3 !important}
-body.dark-mode .mock-hero-grid h2,body.dark-mode .mock-hero-grid h3{color:#F1F7FB !important}
-body.dark-mode .mock-hero-grid p{color:#8FA6B5 !important}
-body.dark-mode .dark-sec{background:#142537 !important;border-color:#2A3C4D !important;color:#E6EEF3 !important}
-body.dark-mode .dark-sec-title{color:#F1F7FB !important}
-body.dark-mode .dark-card,body.dark-mode .dark-summary,body.dark-mode .dark-inner,body.dark-mode .dark-cmp{background:#0D1926 !important;border-color:#2A3C4D !important;color:#E6EEF3 !important}
-body.dark-mode .dark-num,body.dark-mode .dark-big,body.dark-mode .dark-inner-num,body.dark-mode .dark-summary-big{color:#F1F7FB !important}
-body.dark-mode .dark-label,body.dark-mode .dark-sub,body.dark-mode .dark-note,body.dark-mode .dark-inner-label,body.dark-mode .dark-summary-desc{color:#8FA6B5 !important}
-body.dark-mode .dark-bar,body.dark-mode .dark-row-track{background:#1D3042 !important}
+/* ملاحظة: القاعدة العامة على كل <p> جوه الهيرو كانت بتكسف لون
+   العناوين الفرعية (زي «↗ مؤجرة») — اتشالت عشان كل عنصر بقى
+   بيتلوّن من الـinline style بتاعه (والتوكن بيتبدّل بالليل). */
+body.dark-mode .mock-hero-grid > div{background:var(--ds-card) !important;border-color:var(--ds-line) !important;color:var(--ds-ink) !important}
+body.dark-mode .mock-hero-grid h2,body.dark-mode .mock-hero-grid h3{color:var(--ds-ink) !important}
+body.dark-mode .dark-sec{background:var(--ds-card) !important;border-color:var(--ds-line) !important;color:var(--ds-ink-soft) !important}
+body.dark-mode .dark-sec-title{color:var(--ds-ink) !important}
+body.dark-mode .dark-card,body.dark-mode .dark-summary,body.dark-mode .dark-inner,body.dark-mode .dark-cmp{background:var(--ds-soft) !important;border-color:var(--ds-line) !important;color:var(--ds-ink-soft) !important}
+body.dark-mode .dark-num,body.dark-mode .dark-big,body.dark-mode .dark-inner-num,body.dark-mode .dark-summary-big{color:var(--ds-ink) !important}
+body.dark-mode .dark-label,body.dark-mode .dark-sub,body.dark-mode .dark-note,body.dark-mode .dark-inner-label,body.dark-mode .dark-summary-desc{color:var(--ds-muted) !important}
+body.dark-mode .dark-bar,body.dark-mode .dark-row-track{background:var(--ds-line) !important}
 
 /* ===== YAHMAA Luxury & Modern Enterprise Refinement Layer ===== */
 *, *::before, *::after {
@@ -498,3 +500,189 @@ body.dark-mode .fleet-table tbody tr:hover,
 body.dark-mode .rp-table tbody tr:hover {
   background: #183547 !important;
 }
+
+/* ===================================================================
+   الوضع الليلي — راحة العين + إصلاح الألوان
+   -------------------------------------------------------------------
+   المشكلة الحقيقية كانت إن صفحات كتير (الرئيسية + التقارير) بتكتب
+   ألوانها ثابتة جوه inline styles، فكانت بتفضل فاتحة فوق الخلفية
+   الغامقة وبتتعطّل القراءة. الحل هنا:
+     1) توكنات بأسماء ثابتة تتبدّل بين الوضعين (نفس الاسم، قيمتين)
+        — أي عنصر بيستعمل var(--ds-*) بيلّي ملوّن صح من غير تكرار.
+     2) إصلاح التباين: الشارات، التاج، الكروت، الجداول، التقارير.
+     3) لمسات مريحة للعين: نظام ألوان داكن، تخفيف التوهّج، ورفع أسود
+        الخلفية شوية عشان فروق التباين ما تقتلش العين بالليل.
+   =================================================================== */
+
+/* ---------- 1) توكنات الصفحة الرئيسية ---------- */
+body {
+  --ds-ink: #10243A;
+  --ds-ink-soft: #172B3D;
+  --ds-muted: #5F6E7E;
+  --ds-teal: #07726F;
+  --ds-teal-2: #11705F;
+  --ds-green: #0B8367;
+  --ds-red: #A83232;
+  --ds-card: #FFFFFF;
+  --ds-soft: #F8FAFB;
+  --ds-line: #E3EAF0;
+  --ds-pill: #E6F5F4;
+  --ds-tint-green: #E8F5F3;
+  --ds-line-green: #CBE8DE;
+  /* شارات الحالة (نِسَب) — في النور كانت فاتحة على فاتح وبتضيع */
+  --ds-pct-green-bg: rgba(31, 169, 113, .14); --ds-pct-green: #0B6A4A;
+  --ds-pct-amber-bg: rgba(232, 165, 44, .16); --ds-pct-amber: #8A5A00;
+  --ds-pct-orange-bg: rgba(238, 116, 52, .16); --ds-pct-orange: #A0430F;
+  --ds-pct-red-bg: rgba(223, 79, 79, .14); --ds-pct-red: #A32424;
+}
+body.dark-mode {
+  --ds-ink: #E6EEF3;
+  --ds-ink-soft: #D5E2EA;
+  --ds-muted: #9DB1C0;
+  --ds-teal: #5FD8CE;
+  --ds-teal-2: #7BE3C3;
+  --ds-green: #5EE0A8;
+  --ds-red: #FF9A9A;
+  --ds-card: #142537;
+  --ds-soft: #101E2E;
+  --ds-line: #2A3C4D;
+  --ds-pill: #12333A;
+  --ds-tint-green: #12332F;
+  --ds-line-green: #1E4E47;
+  --ds-pct-green-bg: rgba(31, 169, 113, .22); --ds-pct-green: #5EE0A8;
+  --ds-pct-amber-bg: rgba(232, 165, 44, .20); --ds-pct-amber: #F5C26B;
+  --ds-pct-orange-bg: rgba(238, 116, 52, .20); --ds-pct-orange: #F0A06A;
+  --ds-pct-red-bg: rgba(223, 79, 79, .22); --ds-pct-red: #FF9A9A;
+}
+
+/* ---------- 2) توكنات التقارير ---------- */
+body {
+  --rp-ink: #111827;
+  --rp-muted: #5A6478;
+  --rp-muted-2: #5F6B7F;
+  --rp-line: #E6EAF2;
+  --rp-soft: #F2F5F9;
+  --rp-green: #0A7057; --rp-green-soft: #E6F7EE;
+  --rp-amber: #8A5A00; --rp-amber-soft: #FFF2D5;
+  --rp-orange: #A0430F; --rp-orange-soft: #FFE7D7;
+  --rp-red: #A32424; --rp-red-soft: #FFE0E0;
+}
+body.dark-mode {
+  --rp-ink: #E6EEF3;
+  --rp-muted: #A3B7C6;
+  --rp-muted-2: #93A9BA;
+  --rp-line: #2A3C4D;
+  --rp-soft: #16283A;
+  --rp-green: #5EE0A8; --rp-green-soft: #12352C;
+  --rp-amber: #F5C26B; --rp-amber-soft: #3B321E;
+  --rp-orange: #F0A06A; --rp-orange-soft: #3D2A1B;
+  --rp-red: #FF9A9A; --rp-red-soft: #3B2024;
+}
+
+/* ---------- 3) شارات واتجاهات بطاقات KPIs في التقارير ----------
+   الألوان بتتغيّر مع الـtone (حالة الكارت) والتون نفسه بيتبدّل
+   بين النور والليل — فالبطاقة مقروءة في الوضعين. */
+.rp2-pill.rp-tone-green { background: var(--rp-green-soft); color: var(--rp-green); }
+.rp2-pill.rp-tone-amber { background: var(--rp-amber-soft); color: var(--rp-amber); }
+.rp2-pill.rp-tone-orange { background: var(--rp-orange-soft); color: var(--rp-orange); }
+.rp2-pill.rp-tone-red { background: var(--rp-red-soft); color: var(--rp-red); }
+.rp2-pill.rp-tone-muted { background: var(--rp-soft); color: var(--rp-muted); }
+.rp2-trend.rp-tone-green { color: var(--rp-green); }
+.rp2-trend.rp-tone-amber { color: var(--rp-amber); }
+.rp2-trend.rp-tone-orange { color: var(--rp-orange); }
+.rp2-trend.rp-tone-red { color: var(--rp-red); }
+.rp2-trend.rp-tone-muted { color: var(--rp-muted); }
+.rp-legend-item { background: var(--rp-soft); }
+.rp-legend-label { font-weight: 700; color: var(--rp-muted); }
+.rp-legend-val { margin-left: auto; color: var(--rp-ink); }
+
+/* ---------- 4) التقارير: عناصر كانت فاتحة فوق الخلفية الغامقة ---------- */
+body.dark-mode .rp-branch-name,
+body.dark-mode .rp-branch-total { color: var(--rp-ink) !important; }
+body.dark-mode .rp-branch-metrics { color: var(--rp-muted) !important; }
+body.dark-mode .rp2-note { color: var(--rp-muted) !important; }
+body.dark-mode .rp-section-head .muted-small { color: var(--rp-muted-2) !important; }
+body.dark-mode #content .rp2-tile { background: #123A3A !important; color: #5EE0D8 !important; }
+
+/* ---------- 5) شارات الجداول في الوضع الليلي ----------
+   06-premium-design كان بيفرض ألوان فاتحة بـ!important، فكانت
+   وسوم الحالة (نشطة / قريب / لم يفحص) بتضيع فوق خلفية غامقة. */
+body.dark-mode .fleet-table .tag.green,
+body.dark-mode .fleet-table .readiness-pill.green { background: #12352C !important; color: #5EE0A8 !important; }
+body.dark-mode .fleet-table .tag.amber,
+body.dark-mode .fleet-table .readiness-pill.amber { background: #3B321E !important; color: #F5C26B !important; }
+body.dark-mode .fleet-table .tag.red,
+body.dark-mode .fleet-table .readiness-pill.red { background: #3B2024 !important; color: #FF9A9A !important; }
+body.dark-mode .fleet-table .tag.grey,
+body.dark-mode .fleet-table .readiness-pill.grey { background: #26313F !important; color: #A9BCCC !important; }
+
+/* ---------- 6) الشريط العلوي: شارة الإشعارات والأفاتار والحالة ---------- */
+body.dark-mode .notify-badge { background: #B3261E !important; color: #FFFFFF !important; }
+body.dark-mode .notify-badge.zero { background: #64748B !important; }
+body.dark-mode .topbar.topbar-v43 .topbar-user-avatar {
+  background: linear-gradient(145deg, #0E8F89, #065E5B) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .35) !important;
+}
+body.dark-mode .topbar.topbar-v43 .sync-status {
+  background: #13283C !important;
+  border-color: #2E4459 !important;
+  color: #B9CBD8 !important;
+}
+body.dark-mode .topbar.topbar-v43 .topbar-search-ico { color: #7FD8D3 !important; }
+
+/* ---------- 7) أزرار ملوّنة + نص أبيض: تعميق الدرجات ----------
+   الأزرار الأساسية (تركوازي/أخضر/أحمر) كان النص الأبيض عليها بيبقى
+   تحت 4.5:1 — فالنص كان بيبان باهت. deepening the backgrounds fixes it
+   من غير ما نغيّر هوية اللون. */
+.btn-primary{background:linear-gradient(135deg,#0C9690,#07635F)!important;border-color:#07635F!important}
+#content .btn-whatsapp{background:#11705F!important;border-color:#11705F!important}
+.bulk-bar-actions .btn-danger{background:rgba(178,58,44,.9)!important}
+/* وفي الوضع الليلي: 04-dark-overrides كان بيحوّل كل الأزرار لنفس
+   الرمادي الشفاف — فالأزرار الأساسية والمدمّرة فقدت لونها entirely. */
+body.dark-mode .btn-primary{background:linear-gradient(135deg,#0A7F7A,#05605C)!important;border-color:#05605C!important;color:#FFFFFF!important}
+body.dark-mode .btn-danger{background:#8C2F26!important;border-color:#B4443A!important;color:#FFE3DF!important}
+body.dark-mode .btn-branch-import{background:#0A6C82!important;border-color:#0A6C82!important;color:#FFFFFF!important}
+body.dark-mode #content .btn-whatsapp{background:#11705F!important;border-color:#11705F!important;color:#FFFFFF!important}
+
+/* ---------- 8) تباين النصوص الثانوية في الوضع الفاتح ----------
+   النصوص الرمادية في الهيدر والجداول كانت تحت 4.5:1 — الـhex deepened
+   شوية من غير ما نغيّر الإحساس العام بالتصميم. */
+.topbar.topbar-v43 .topbar-titles p{color:#5E6E7D!important}
+.topbar.topbar-v43 .topbar-user-meta span{color:#5E6E7D!important}
+.topbar.topbar-v43 .topbar-search-ico{color:#07726F!important}
+.topbar.topbar-v43 .topbar-user-avatar{background:linear-gradient(145deg,#0E8F89,#065E5B)!important}
+.fleet-summary-card small{color:#5E6E7D!important}
+body .topbar.topbar-v43 .sync-status{color:#4E6270!important}
+.view-toggle button{color:#55697A!important}
+.fleet-table .serial-cell{color:#4E6270!important}
+.fleet-table .tag.green,.fleet-table .readiness-pill.green{color:#0E6B57!important}
+.fleet-table .tag.amber,.fleet-table .readiness-pill.amber{color:#8A5300!important}
+.fleet-table .tag.red,.fleet-table .readiness-pill.red{color:#A32F2F!important}
+.fleet-table .tag.grey,.fleet-table .readiness-pill.grey{color:#52636F!important}
+.btn-branch-import{background:linear-gradient(135deg,#0A6C82,#075E70)!important}
+#content .rp-exp-btn.teal{background:linear-gradient(135deg,#0F9C96,#07635F)!important;border-color:#07635F!important}
+.bulk-bar-actions .btn-primary{color:#FFFFFF!important}
+/* نصوص رمادية باقية + أيقونات فوق أزرار ملوّنة */
+#content .empty{color:#5F6E7E!important}
+#content .user-admin-head p{color:#5F6E7E!important}
+#content .ua-permissions-block>small{color:#5F6E7E!important}
+.filter-panel-title span{color:#5F6E7E!important}
+.yx-btn .yx-ico{color:#FFFFFF!important}
+.pager{color:#5F6E7E!important}
+.pager-num{color:#4E6270!important}
+
+/* ---------- 9) لمسات مريحة للعين ---------- */
+/* نظام ألوان داكن: عناصر النموذج (قوائم، صناديق، شريط تمرير) بتتبع
+   الوضع الليلي بدل ما تطلع بيضاء وتقطع العين. */
+body.dark-mode { color-scheme: dark; }
+/* اختيار النص: في الوضع الليلي لازم يكون فاتح مش غامق */
+body.dark-mode ::selection { background: rgba(94, 234, 212, .28); color: #EAF6F5; }
+/* توهّج لمبة الاتصال: كان قوي أوي وبيأثر في العين بالليل */
+body.dark-mode .dash-cloud-dot { box-shadow: 0 0 0 3px rgba(16, 185, 129, .22), 0 0 7px rgba(16, 185, 129, .40); }
+body.dark-mode .dash-cloud-badge.offline .dash-cloud-dot { box-shadow: 0 0 0 3px rgba(239, 68, 68, .22), 0 0 7px rgba(239, 68, 68, .40); }
+/* أسود الخلفية: مرفوع شوية — فروق التباين الحادّة بتتعب العين */
+body.dark-mode { background: #0C1522 !important; }
+body.dark-mode .app { background: linear-gradient(145deg, #0C1522 0%, #111E31 100%) !important; }
+/* النصوصsecondary في الوضع الليلي: رمادي أفتح شوية عشان ما تتعبش العين */
+body.dark-mode .br-stat-ready { color: #5EE0A8 !important; }
+body.dark-mode .br-stat-unready { color: #FF9A9A !important; }

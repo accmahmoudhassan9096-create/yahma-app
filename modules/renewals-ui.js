@@ -134,7 +134,7 @@ function renderRenewals(content, mode='inspection'){
         ${canDelete?'<button class="btn btn-danger btn-small" id="ren-bulk-delete">🗑 حذف المحددة</button>':''}
         ${canMoveCycle?`
           <div class="admin-transfer-group" style="display:inline-flex;gap:4px;align-items:center;background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:6px;flex-wrap:wrap;">
-            <span style="font-size:11px;font-weight:bold;color:var(--accent,#008080)">نقل المحددة (إداري):</span>
+            <span style="font-size:11px;font-weight:bold;color:var(--ds-teal)">نقل المحددة (إداري):</span>
             <button class="btn btn-ghost btn-small" id="ren-admin-to-payments" type="button" title="نقل السيارات المحددة لتبويب «تحت الدفع»">📥 تحت الدفع</button>
             <button class="btn btn-ghost btn-small" id="ren-admin-to-paid" type="button" title="نقل السيارات المحددة لتبويب «تم الدفع»">💵 تم الدفع</button>
             <button class="btn btn-ghost btn-small" id="ren-admin-to-renewed" type="button" title="نقل السيارات المحددة لتبويب «تم التجديد»">✅ تم التجديد</button>

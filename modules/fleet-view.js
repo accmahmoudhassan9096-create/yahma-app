@@ -187,7 +187,7 @@
       </button>
       <input type="file" id="fleet-file-input" accept=".xlsx,.xls,.csv" style="display:none">
     </div>
-    ${canDelete ? '<button class="btn btn-ghost" id="fleet-clean-duplicates" type="button" title="فحص الأسطول واكتشاف وحذف أي سيارات مكررة" style="color:var(--accent,#008080)">🔍 فحص وحذف المكرر</button>' : ''}
+    ${canDelete ? '<button class="btn btn-ghost" id="fleet-clean-duplicates" type="button" title="فحص الأسطول واكتشاف وحذف أي سيارات مكررة" style="color:var(--ds-teal)">🔍 فحص وحذف المكرر</button>' : ''}
     <button class="btn btn-ghost" id="fleet-clear-filters" title="إلغاء جميع الفلاتر">↺ مسح الفلاتر</button>
     <button class="btn btn-ghost" id="fleet-export-custom" title="تصدير مخصص — اختيار الأعمدة">⚙️ تصدير مخصص</button>
     <div class="bulk-bar" id="bulk-bar" style="display:none">
@@ -892,7 +892,7 @@
     if(!container) return;
     container.innerHTML=EXPORT_COLUMNS.map(col=>`
       <label style="display:flex;align-items:center;gap:6px;padding:6px;border:1px solid var(--line,#e1e6f1);border-radius:8px;cursor:pointer;background:#fff">
-        <input type="checkbox" class="export-col-chk" data-key="${col.key}" checked style="accent-color:var(--accent,#008080)">
+        <input type="checkbox" class="export-col-chk" data-key="${col.key}" checked style="accent-color:#0B918D">
         <span>${col.label}</span>
       </label>
     `).join('');
