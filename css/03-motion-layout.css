@@ -93,21 +93,7 @@
 
 
 
-.home-donut-wrap,.home-chart-col,.home-reasons,.home-activity
-{
-  opacity: 0;
-  animation: yahmaFadeUp var(--motion-med) var(--ease-standard) forwards;
-}
-.home-donut-wrap{ animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 4); }
-.home-chart-col{ animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 6); }
-.home-reasons{ animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 7); }
-.home-activity{ animation-delay: calc(var(--stagger-base) + var(--stagger-step) * 9); }
 
-.home-reason-bar i
-{
-  transform-origin: right center;
-  animation: yahmaGrowX var(--motion-slow) var(--ease-out) calc(var(--stagger-base) + var(--stagger-step) * 5) both;
-}
 
 .nav-item.active::before,.nav-count
 {

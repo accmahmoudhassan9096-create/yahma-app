@@ -25,6 +25,12 @@
    ⚠️ ملف واحد بس بيتقلم: ملف المصدر (css/NN-name.css). النسخة
    المضغوطة (css/NN-name.min.css) بتتولّد تاني من المصدر بـ
    scripts/minify-css.js.
+
+   🛡️ طبقة الحماية (شوف قسم 0 تحت):
+   - أي class مذكور في tests/ بيتعتبر حي — الاختبارات هي العقد.
+   - أي بادئة class بتتولّد في الـJS بالتجميع زي 'rp-tone-' + tone
+     بتعيش كل ما يتبعها.
+   الاتنين اتجاههم آمن: بيزودوا الأحياء، فمفيش حاجة تتحذف غلط.
  */
 'use strict';
 
@@ -54,8 +60,47 @@ collect(ROOT);
 
 const cssFiles = fs.readdirSync(CSS_DIR).filter((n) => n.endsWith('.css') && !n.endsWith('.min.css'));
 
+/* ---------- 0. الحماية — الكلاسزات اللي الماسح الاستاتيكي ما يشوفهاش ----------
+
+   هناك نوعين كلاسزات بتبان «ميتة» للماسح وهي مش ميتة:
+   1) كلاسزات بتتولّد بالتجميع في الـJS زي 'rp-tone-' + tone — الاستخدام
+      مش literal فما بيتلقطش في أنماط class=/classList أعلاه.
+   2) كلاسزات الاختبارات بتحميها (قواعد دفاعية زي
+      body.dark-mode .theme-label{display:none} — موجودة بالقصد
+      عشان تمنع رجوع باج قديم، ومحدش بيكتبها في HTML).
+
+   الحمايتين اتجاههم آمن: بيزودوا aliveNames — يعني قواعد أكتر
+   تعيش، ومفيش حاجة تتحذف غلط. الاختبارات هي العقد، فأي class
+   مذكور في tests/ بيتحترم حتى لو الماسح شاكك فيه. */
+
+/* (أ) بادئات الـJS الديناميكية: أي string literal بينتهي بـ- ومتبوع
+   بـ+ بيتعتبر بادئة class بتتولّد — كل class بيبدأ بيها حي. */
+const dynamicPrefixes = new Set();
+for (const f of usageSources) {
+  const text = fs.readFileSync(f, 'utf8');
+  for (const m of text.matchAll(/(['"])([A-Za-z_][\w-]*-)\1\s*\+/g)) {
+    dynamicPrefixes.add(m[2]);
+  }
+}
+const prefixAlive = (n) => {
+  for (const p of dynamicPrefixes) if (n.startsWith(p)) return true;
+  return false;
+};
+
 /* ---------- 1. الأحياء ---------- */
 const aliveNames = new Set();
+
+/* (ب) الكلاسزات اللي الاختبارات بتذكرها — بتنضاف لـaliveNames على طول.
+   الاختبارات هي العقد: أي class مطلوب فيها بيتحترم حتى لو الماسح
+   شاكك إنه ميت (قواعد دفاعية / كلاسزات ديناميكية). */
+const testsDir = path.join(ROOT, 'tests');
+if (fs.existsSync(testsDir)) {
+  for (const e of fs.readdirSync(testsDir)) {
+    if (!/\.(js|json)$/i.test(e)) continue;
+    const text = fs.readFileSync(path.join(testsDir, e), 'utf8');
+    for (const m of text.matchAll(/\.([A-Za-z_][\w-]*)/g)) aliveNames.add(m[1]);
+  }
+}
 const addWords = (chunk) => {
   for (const w of String(chunk).split(/[\s<>"']+/)) {
     for (const t of (w.match(/[A-Za-z_][\w-]*/g) || [])) aliveNames.add(t);
@@ -142,7 +187,7 @@ for (const file of cssFiles) {
 const partAlive = (part) => {
   const names = classesOf(part);
   if (!names.length) return true;          /* body/html — دايمًا حي */
-  return names.every((n) => aliveNames.has(n));
+  return names.every((n) => aliveNames.has(n) || prefixAlive(n));
 };
 
 let changed = true;

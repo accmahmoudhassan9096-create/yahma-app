@@ -655,19 +655,16 @@ input:focus, select:focus, textarea:focus, .search input:focus, .topbar-search-w
 }
 
 /* Links / task rows */
-.home-task,.home-link-all,.mp-item,.more-item{
+.mp-item,.more-item{
   transition:
     background var(--t-fast) var(--ease-soft),
     color var(--t-fast) linear,
     transform var(--t-fast) var(--ease-soft),
     box-shadow var(--t-med) var(--ease-soft) !important;
 }
-.home-task:hover{
-  transform: translateX(-2px);
-}
 
 /* Progress bars — width animated when data-w applied */
-.home-reason-bar i,.prep-progress > span
+.prep-progress > span
 {
   transition: width var(--t-slow) var(--ease-out) !important;
 }

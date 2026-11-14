@@ -89,12 +89,6 @@ body{background:var(--yh-paper)!important;color:var(--yh-ink)!important;font-siz
 input,select,textarea{border-color:#DDE6EB!important;border-radius:9px!important}
 input:focus,select:focus,textarea:focus{outline:0!important;border-color:#80D3CD!important;box-shadow:0 0 0 3px rgba(22,179,170,.09)!important}
 .home-dash{display:flex;flex-direction:column;gap:16px}
-.yahma-priority{grid-template-columns:minmax(175px,.9fr) repeat(4,minmax(110px,1fr))!important;gap:9px!important;padding:11px!important;border-radius:16px!important;box-shadow:none!important}
-.yahma-priority-intro strong{font-size:14px!important}
-.yahma-priority-item{padding:10px!important;border-radius:11px!important}
-.yahma-priority-count{width:34px!important;height:34px!important;border-radius:10px!important}
-.home-donut-wrap,.home-chart-col,.home-reasons,.home-activity{min-width:0}
-.home-donut-wrap,.home-chart-col,.home-activity,.home-reasons{border-radius:15px!important}
 .home-dash .panel{min-width:0}
 .fleet-summary-strip{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:11px!important;margin-bottom:15px!important}
 .fleet-summary-card{min-height:82px!important;padding:13px 15px!important;border-radius:14px!important;background:#fff!important}
@@ -221,58 +215,18 @@ body.dark-mode .app-footer{background:#122235!important;border-color:#2A3C4D!imp
 }
 /* الهيرو — نفس روح النظام بس بألوان متوحّدة */
 /* أولويات Command Center — نفس الأسرة */
-.home-dash .yahma-priority{background:linear-gradient(110deg,#F4FAFA 0%,#FFFFFF 55%,#EEF7F5 100%)!important;border-color:var(--hp-line)!important}
-.home-dash .yahma-priority-kicker{color:var(--hp-tq-dark)!important}
-.home-dash .yahma-priority-intro strong{color:var(--hp-navy)!important}
-.home-dash .yahma-priority-intro span:last-child{color:var(--hp-muted)!important}
-.home-dash .yahma-priority-item{background:var(--hp-panel)!important;border-color:var(--hp-line)!important}
-.home-dash .yahma-priority-count{background:var(--hp-grey-soft)!important;color:var(--hp-navy)!important}
-.home-dash .yahma-priority-item[data-priority="urgent"] .yahma-priority-count{background:var(--hp-bad-soft)!important;color:var(--hp-bad)!important}
-.home-dash .yahma-priority-item[data-priority="urgent"]{border-color:#F0D4D4!important}
-.home-dash .yahma-priority-empty{background:var(--hp-ok-soft)!important;border-color:#CBE8DE!important;color:var(--hp-ok)!important}
 /* كروت المؤشرات الخمسة — نفس الدرجات */
-.home-dash .home-kpi-pct.warn{color:var(--hp-warn)!important}
 /* حالة الدونات + الليجند */
-.home-dash .home-donut-hole{background:var(--hp-panel)!important;box-shadow:inset 0 0 0 1px var(--hp-line)!important}
-.home-dash .home-donut-hole b{color:var(--hp-navy)!important}
-.home-dash .home-donut-hole span{color:var(--hp-muted)!important}
 .home-dash .home-leg span{color:var(--hp-ink-soft)!important}
 .home-dash .home-leg b{color:var(--hp-navy)!important}
 .home-dash .home-leg em{color:var(--hp-muted)!important}
 .home-dash .home-leg:hover,.home-dash .home-leg.active{background:var(--hp-grey-soft)!important}
 /* المهام + زرار الواتس */
-.home-dash .home-task{background:var(--hp-panel)!important;border-color:var(--hp-line)!important}
-.home-dash .home-task-n{background:var(--hp-grey-soft)!important;color:var(--hp-navy)!important}
-.home-dash .home-task-n.alert{background:var(--hp-bad-soft)!important;color:var(--hp-bad)!important}
-.home-dash .home-task-label{color:var(--hp-ink-soft)!important}
-.home-dash .home-task-arrow{color:var(--hp-muted)!important}
-.home-dash .home-task-wa{background:var(--hp-ok-soft)!important;color:var(--hp-ok)!important;border-color:#CBE8DE!important}
-.home-dash .home-link-all{color:var(--hp-tq-dark)!important}
 /* CTA */
 /* أسباب الانخفاض + أشرطة */
-.home-dash .home-reason-top span{color:var(--hp-ink-soft)!important}
-.home-dash .home-reason-top b{color:var(--hp-navy)!important}
-.home-dash .home-reason-top em{color:var(--hp-muted)!important}
-.home-dash .home-reason-bar{background:var(--hp-grey-soft)!important}
-.home-dash .home-reason-bar i{background:linear-gradient(90deg,var(--hp-bad),var(--hp-warn))!important}
 /* جدول الفروع */
-.home-dash .home-br-head{color:var(--hp-muted)!important;border-color:var(--hp-line)!important}
-.home-dash .home-br-row{border-color:var(--hp-line)!important}
-.home-dash .home-br-name{color:var(--hp-ink-soft)!important}
-.home-dash .home-br-pct em{background:linear-gradient(90deg,var(--hp-tq),var(--hp-tq-dark))!important}
 /* النشاط */
-.home-dash .home-act-time b{color:var(--hp-navy)!important}
-.home-dash .home-act-time span{color:var(--hp-muted)!important}
-.home-dash .home-act-body b{color:var(--hp-ink-soft)!important}
-.home-dash .home-act-body span{color:var(--hp-muted)!important}
-.home-dash .home-act{border-color:var(--hp-line)!important}
 /* الرسم الشريطي */
-.home-dash .home-chart-col .bar{background:linear-gradient(180deg,var(--hp-tq),var(--hp-tq-dark))!important}
-.home-dash .home-chart-col .bar-n{color:var(--hp-navy)!important}
-.home-dash .home-chart-col .bar-l{color:var(--hp-muted)!important}
-.home-dash .home-badge{background:var(--hp-bad)!important}
-.home-dash .good-text{color:var(--hp-ok)!important}
-.home-dash .bad-text{color:var(--hp-bad)!important}
 /* تنبيه التدخل الفوري */
 .home-dash #dash-immediate-alert{background:var(--hp-bad-soft)!important;border-color:#F0D4D4!important;color:var(--hp-bad)!important;box-shadow:none!important}
 /* التيلز الرئيسية */
@@ -468,12 +422,6 @@ body.dark-mode .dark-bar,body.dark-mode .dark-row-track{background:var(--ds-line
 }
 
 /* شارات الحالة الفخمة */
-.badge-ready, .good-text {
-  color: #059669 !important;
-}
-.badge-alert, .bad-text {
-  color: #DC2626 !important;
-}
 
 /* الوضع الليلي الفاخر */
 body.dark-mode {
@@ -717,8 +665,6 @@ body.dark-mode { color-scheme: dark; }
 /* اختيار النص: في الوضع الليلي لازم يكون فاتح مش غامق */
 body.dark-mode ::selection { background: rgba(94, 234, 212, .28); color: #EAF6F5; }
 /* توهّج لمبة الاتصال: كان قوي أوي وبيأثر في العين بالليل */
-body.dark-mode .dash-cloud-dot { box-shadow: 0 0 0 3px rgba(16, 185, 129, .22), 0 0 7px rgba(16, 185, 129, .40); }
-body.dark-mode .dash-cloud-badge.offline .dash-cloud-dot { box-shadow: 0 0 0 3px rgba(239, 68, 68, .22), 0 0 7px rgba(239, 68, 68, .40); }
 /* أسود الخلفية: مرفوع شوية — فروق التباين الحادّة بتتعب العين */
 body.dark-mode { background: #0C1522 !important; }
 body.dark-mode .app { background: linear-gradient(145deg, #0C1522 0%, #111E31 100%) !important; }
