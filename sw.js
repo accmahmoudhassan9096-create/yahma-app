@@ -2,7 +2,7 @@
  * لا يلمس أي طلب لـ Supabase أبدًا — الدخول والبيانات الحية لازم تدايمًا
  * تعدي عبر الشبكة، مش من الكاش.
  */
-const CACHE_NAME = 'yahma-shell-v404';
+const CACHE_NAME = 'yahma-shell-v405';
 const LOCAL_APP_SHELL = [
   './',
   './index.html',
@@ -27,6 +27,7 @@ const LOCAL_APP_SHELL = [
   './css/07-visual-redesign.min.css',
   './css/fonts.min.css',
   './assets/hero-car.svg',
+  './assets/logo.png',
   './app.js',
   './core/permissions.js',
   './core/auth-boot.js',
