@@ -11,6 +11,18 @@
  let shownToastIds=new Set();
  try{shownToastIds=new Set(JSON.parse(localStorage.getItem(TOAST_KEY)||'[]'))}catch(e){shownToastIds=new Set()}
  const _E = (v)=>typeof escapeHtml==='function'?escapeHtml(v):String(v==null?'':v);
+ /* ⭐ مدة الركود من idle_since المحفوظ في قاعدة البيانات
+    (YahmaSnapshots.idleDaysFor). daysSinceMovement ما كانش بيوصل
+    من Supabase أبداً (مفيش عمود له في vehicles)، فإشعار «سيارة راكدة»
+    ما كانش بيظهر خالص في الإنتاج.
+
+    ⚠️ لازم تكون في مستوى الـIIFE (مش جوّه draw) — لأن
+    notificationItems() فوق بتستدعيها، فلو اتقفلت جوه draw()
+    بتطلع ReferenceError كل 20 ثانية. */
+ const idleDaysOf=(c)=>{
+  try{ if(window.YahmaSnapshots&&typeof window.YahmaSnapshots.idleDaysFor==='function'){const d=Number(window.YahmaSnapshots.idleDaysFor(c));if(Number.isFinite(d)&&d>0)return d;}}catch(e){}
+  const n=Number(c.daysSinceMovement||0);return Number.isFinite(n)&&n>0?n:0;
+ };
  function notificationItems(){
   const out=[]; const push=(car,type,date,status)=>out.push({id:`${car.id}-${type}-${date||''}`,car,type,date,status});
   (fleet||[]).forEach(c=>{
@@ -64,15 +76,7 @@
   const summary=document.getElementById('notify-summary');if(summary)summary.textContent=unread.length?` · ${unread.length} جديدة`:' · لا توجد جديدة';
   const count=document.getElementById('notify-count-label');if(count)count.textContent=shown.length?`عرض ${shown.length} من ${activeFilter==='unread'?unread.length:all.length}`:'لا توجد إشعارات';
   const _E = (v)=>typeof escapeHtml==='function'?escapeHtml(v):String(v==null?'':v);
-  /* ⭐ مدة الركود من idle_since المحفوظ في قاعدة البيانات
-     (YahmaSnapshots.idleDaysFor). daysSinceMovement ما كانش بيوصل
-     من Supabase أبداً (مفيش عمود له في vehicles)، فإشعار «سيارة راكدة»
-     ما كانش بيظهر خالص في الإنتاج. */
-  const idleDaysOf=(c)=>{
-   try{ if(window.YahmaSnapshots&&typeof window.YahmaSnapshots.idleDaysFor==='function'){const d=Number(window.YahmaSnapshots.idleDaysFor(c));if(Number.isFinite(d)&&d>0)return d;}}catch(e){}
-   const n=Number(c.daysSinceMovement||0);return Number.isFinite(n)&&n>0?n:0;
-  };
-  list.innerHTML=shown.length?shown.map(n=>{const isRead=read.has(n.id);const isNew=isRead?false:!shownToastIds.has(n.id);return `<button class="notify-item ${isRead?'is-read':''}${isNew?' new-item':''}" data-id="${_E(n.id)}" data-car="${_E(n.car.id)}" aria-label="${_E(n.car.plate)} — ${_E(fmtNotice(n))}"><span class="notify-dot ${_E(n.status.level)}"></span><span class="notify-item-body"><b>${_E(n.car.plate)}</b><span>${_E(fmtNotice(n))}</span><small>${_E(n.status.label)}</small></span><span class="notify-item-state">${isRead?'✓':'جديد'}</span></button>`}).join(''):'<div class="notify-empty">لا توجد إشعارات في هذا التصنيف</div>';
+    list.innerHTML=shown.length?shown.map(n=>{const isRead=read.has(n.id);const isNew=isRead?false:!shownToastIds.has(n.id);return `<button class="notify-item ${isRead?'is-read':''}${isNew?' new-item':''}" data-id="${_E(n.id)}" data-car="${_E(n.car.id)}" aria-label="${_E(n.car.plate)} — ${_E(fmtNotice(n))}"><span class="notify-dot ${_E(n.status.level)}"></span><span class="notify-item-body"><b>${_E(n.car.plate)}</b><span>${_E(fmtNotice(n))}</span><small>${_E(n.status.label)}</small></span><span class="notify-item-state">${isRead?'✓':'جديد'}</span></button>`}).join(''):'<div class="notify-empty">لا توجد إشعارات في هذا التصنيف</div>';
   shown.filter(n=>!read.has(n.id) && !shownToastIds.has(n.id)).forEach(n=>{setTimeout(()=>showToast(n),100);});
   list.querySelectorAll('.notify-item').forEach(x=>{x.onclick=()=>{const r=readSet();r.add(x.dataset.id);saveRead(r);close();openModal(x.dataset.car);draw();};});
  }
