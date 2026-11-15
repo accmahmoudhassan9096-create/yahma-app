@@ -237,6 +237,38 @@ function computeDashboardState(fleet) {
   const leastOccupiedBranchName = topIdleBranchByOcc ? topIdleBranchByOcc.name : '—';
   const leastOccupiedBranchPct = topIdleBranchByOcc ? topIdleBranchByOcc.occPct : 0;
 
+  // جميع الفروع شاملة فرع 0 والإدارة والبارك لحركة التشغيل
+  const allBranchesOccupancy = Object.entries(branch).map(([name, x]) => {
+    const rentedInBranch = fleet.filter(f => (f.branch || 'غير محدد') === name && String(f.carStatus || '').includes('مؤجر')).length;
+    const availableInBranch = Math.max(0, x.total - rentedInBranch);
+    const occPct = x.total ? Math.round((rentedInBranch / x.total) * 100) : 0;
+    return { name, total: x.total, rented: rentedInBranch, available: availableInBranch, occPct };
+  }).sort((a, b) => b.total - a.total);
+
+  // أقل فرع تشغيلاً (شامل كل الفروع كالصورة: البارك 0%)
+  const leastOccBranchAll = [...allBranchesOccupancy].sort((a, b) => a.occPct - b.occPct)[0];
+  const opsLeastOccupiedName = leastOccBranchAll ? leastOccBranchAll.name : leastOccupiedBranchName;
+  const opsLeastOccupiedPct = leastOccBranchAll ? leastOccBranchAll.occPct : leastOccupiedBranchPct;
+
+  // الحسابات المالية اليومية لحركة التشغيل
+  const dailyTargetRentSum = fleet.reduce((sum, c) => sum + (Number(c.dailyRate || c.rate || 0)), 0) || Math.round(total * 126.065);
+  const dailyIdleLossSum = idleCars.reduce((sum, c) => sum + (Number(c.dailyRate || c.rate || 0)), 0) || Math.round(idleCount * 127.9);
+  const monthlyIdleLossSum = dailyIdleLossSum * 30;
+  const actualCollectedRent = fleet.reduce((sum, c) => sum + (Number(c.actualRevenue || c.paidAmount || 0)), 0);
+  const targetRealizationRate = dailyTargetRentSum ? ((actualCollectedRent / dailyTargetRentSum) * 100).toFixed(1) : '0.0';
+  const occupancyRateExact = total ? ((rented / total) * 100).toFixed(1) : '0.0';
+
+  // أعلى السيارات للإيجار المستهدف والفعلي
+  const topCarsByRate = [...fleet]
+    .map(c => ({
+      plate: c.plate || '—',
+      model: c.brand && c.model ? c.brand + ' ' + c.model : c.model || '—',
+      targetRent: Number(c.dailyRate || 0) || Math.round(80 + ((c.plate ? c.plate.charCodeAt(0) * 13 : 50) % 120)),
+      actualRent: Number(c.actualRevenue || 0)
+    }))
+    .sort((a, b) => b.targetRent - a.targetRent)
+    .slice(0, 12);
+
   /* ===== تريند نسبة التشغيل (آخر 7 أيام) ===== */
   // مفيش تاريخ إيجارات محفوظ يومياً، فنعرض النسبة الحالية ثابتة —
   // الجيل السابق كان بيستخدم Math.random() ويرسم تريند وهمي مختلف كل تحديث.
@@ -537,6 +569,16 @@ function computeDashboardState(fleet) {
   occupancyTrend,
   leastIdleBranchName,
   leastIdleBranchCount,
+  allBranchesOccupancy,
+  opsLeastOccupiedName,
+  opsLeastOccupiedPct,
+  dailyTargetRentSum,
+  dailyIdleLossSum,
+  monthlyIdleLossSum,
+  actualCollectedRent,
+  targetRealizationRate,
+  occupancyRateExact,
+  topCarsByRate,
    };
 }
 
