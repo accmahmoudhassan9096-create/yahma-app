@@ -876,17 +876,59 @@
     };
   }
 
+  /* ===== تقرير: حركة الأسطول (الراكدة والتشغيل) =====
+     ⭐ مصدر مدة الركود = idle_since (تاريخ بداية عدم التأجير) المحفوظ
+     في قاعدة البيانات، عن طريق YahmaSnapshots.idleDaysFor / idleSinceFor.
+
+     ⚠️ الحقول القديمة daysSinceMovement / lastMovementDate /
+     rentedDaysMonth كانت بتقرأ منها، وهي حقول بتتحط بس وقت استيراد
+     Excel — مفيش أعمدة لها في جدول vehicles، يعني ما كانتش بتوصل
+     من Supabase أبداً. النتيجة: التقرير كان بيطلع كل الأرقام
+     «راكدة» و«متوسط أيام التأجير» أصفار. والاختبار كان بيمر لأن
+     الـfixtures بتاعته فيها الحقول دي من غير ما تكون في الإنتاج.
+
+     كمان «أيام التأجير» بقى ملغى من النموذج (انظر index.html:
+     «مش مستخدم في التقارير بقى»)، فاتبدل عمود «متوسط أيام التأجير»
+     بـ«متوسط أيام الركود» اللي بيتحسب من نفس المصدر المتاح.
+  */
   function buildMovement(model, list) {
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
+    var SNAP = global.YahmaSnapshots;
+
+    /* حالة «مؤجرة» بنفس تعريف باقي التطبيق (لقطات يومية + لوحة
+       التحكم) عشان المؤجرة والراكدة ما يتكرروش على نفس السيارة. */
+    function isRentedNow(car) {
+      return String((car && car.carStatus) || '').includes('مؤجر');
+    }
+
+    /* مدة الركود + تاريخ بداية الوقوف.
+       known = هل عندنا مرجع حقيقي (idle_since / تاريخ آخر حركة / عدد أيام)
+       ولا السيارة لسه ما اتسجلش لها تاريخ. */
+    function idleInfo(car) {
+      var days = 0;
+      try { if (SNAP && typeof SNAP.idleDaysFor === 'function') days = SNAP.idleDaysFor(car); } catch (_) {}
+      if (!days) {
+        var n = Number(car.daysSinceMovement || 0);
+        if (isFinite(n) && n > 0) days = Math.round(n);
+      }
+      if (!days && car.lastMovementDate) {
+        var d = new Date(String(car.lastMovementDate).slice(0, 10) + 'T00:00:00');
+        if (!isNaN(d.getTime())) {
+          var t = new Date(); t.setHours(0, 0, 0, 0);
+          days = Math.max(0, Math.round((t.getTime() - d.getTime()) / 86400000));
+        }
+      }
+      var since = String(car.idleSince || car.lastMovementDate || '').slice(0, 10);
+      return { days: days, since: since || '—', known: !!since || days > 0 };
+    }
 
     var bMap = {};
     var idle15Count = 0;
     var idle30Count = 0;
     var idle60Count = 0;
     var rentedNowCount = 0;
-    var rentedDaysTotal = 0;
-    var rentedDaysCars = 0;
+    var idleCarsTotal = 0;
+    var idleKnownCars = 0;
+    var idleDaysSum = 0;
     var maxIdleDays = 0;
     var idleList = [];
 
@@ -894,60 +936,48 @@
       if (!car) return;
       var bName = String(car.branch || '').trim() || 'بدون فرع';
       if (!bMap[bName]) {
-        bMap[bName] = { total: 0, rentedNow: 0, idle15: 0, idle30: 0, rentedDaysSum: 0, rentedDaysCount: 0 };
+        bMap[bName] = { total: 0, rentedNow: 0, idle15: 0, idle30: 0, idleDaysSum: 0, idleKnownCount: 0 };
       }
       bMap[bName].total++;
 
       var status = String(car.carStatus || '').trim();
-      var isRentedNow = (status === 'مؤجرة');
-      if (isRentedNow) {
+      var rented = isRentedNow(car);
+      if (rented) {
         rentedNowCount++;
         bMap[bName].rentedNow++;
+        return; /* المؤجرة مش راكدة — معناها شغالة */
       }
 
-      var days = null;
-      if (car.daysSinceMovement !== undefined && car.daysSinceMovement !== null && car.daysSinceMovement !== '') {
-        var n = Number(car.daysSinceMovement);
-        if (isFinite(n) && n >= 0) days = n;
+      idleCarsTotal++;
+      var info = idleInfo(car);
+      var days = info.days;
+      if (info.known) {
+        idleKnownCars++;
+        idleDaysSum += days;
+        bMap[bName].idleDaysSum += days;
+        bMap[bName].idleKnownCount++;
       }
-      if (days === null && car.lastMovementDate) {
-        var d = new Date(String(car.lastMovementDate).trim());
-        if (!isNaN(d.getTime())) {
-          days = Math.max(0, Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24)));
-        }
+      if (days > maxIdleDays) maxIdleDays = days;
+      if (days >= 15) {
+        idle15Count++;
+        bMap[bName].idle15++;
       }
-
-      if (days !== null) {
-        if (days > maxIdleDays) maxIdleDays = days;
-        if (days >= 15) {
-          idle15Count++;
-          bMap[bName].idle15++;
-        }
-        if (days >= 30) {
-          idle30Count++;
-          bMap[bName].idle30++;
-        }
-        if (days >= 60) idle60Count++;
-
-        if (days >= 15 && !isRentedNow) {
-          idleList.push({
-            plate: car.plate || '—',
-            brandType: (car.brand || '') + ' ' + (car.type || car.model || ''),
-            branch: bName,
-            lastDate: car.lastMovementDate || '—',
-            idleDays: days,
-            status: status || '—',
-            rate: car.dailyRate ? num(car.dailyRate) + ' ر.س' : '—'
-          });
-        }
+      if (days >= 30) {
+        idle30Count++;
+        bMap[bName].idle30++;
       }
+      if (days >= 60) idle60Count++;
 
-      var rDays = Number(car.rentedDaysMonth);
-      if (isFinite(rDays) && rDays > 0) {
-        rentedDaysTotal += rDays;
-        rentedDaysCars++;
-        bMap[bName].rentedDaysSum += rDays;
-        bMap[bName].rentedDaysCount++;
+      if (days >= 15) {
+        idleList.push({
+          plate: car.plate || '—',
+          brandType: (car.brand || '') + ' ' + (car.type || car.model || ''),
+          branch: bName,
+          lastDate: info.since,
+          idleDays: days,
+          status: status || '—',
+          rate: car.dailyRate ? num(car.dailyRate) + ' ر.س' : '—'
+        });
       }
     });
 
@@ -955,12 +985,12 @@
 
     var bRows = Object.keys(bMap).map(function (name) {
       var b = bMap[name];
-      var avgRented = b.rentedDaysCount ? Math.round((b.rentedDaysSum / b.rentedDaysCount) * 10) / 10 : 0;
+      var avgIdle = b.idleKnownCount ? Math.round((b.idleDaysSum / b.idleKnownCount) * 10) / 10 : 0;
       var utilPct = b.total ? pctOf(b.rentedNow, b.total) : 0;
-      return [name, b.total, b.rentedNow, b.idle15, b.idle30, avgRented, utilPct];
+      return [name, b.total, b.rentedNow, b.idle15, b.idle30, avgIdle, utilPct];
     }).sort(function (a, b) { return b[1] - a[1]; });
 
-    var avgRentedDaysOverall = rentedDaysCars ? Math.round((rentedDaysTotal / rentedDaysCars) * 10) / 10 : 0;
+    var avgIdleDaysOverall = idleKnownCars ? Math.round((idleDaysSum / idleKnownCars) * 10) / 10 : 0;
     var overallUtilPct = model.total ? pctOf(rentedNowCount, model.total) : 0;
 
     return {
@@ -968,25 +998,25 @@
       subtitle: 'تحليل معدلات تشغيل الأسطول، وكشف السيارات الراكدة التي لم تتحرك منذ فترات طويلة.',
       kpis: [
         { label: 'مؤجرة الآن (نشطة)', value: num(rentedNowCount), cls: 'good', hint: overallUtilPct + '% نسبة التشغيل' },
-        { label: 'راكدة (+15 يوم)', value: num(idle15Count), cls: idle15Count ? 'warn' : 'good' },
+        { label: 'راكدة (+15 يوم)', value: num(idle15Count), cls: idle15Count ? 'warn' : 'good', hint: 'غير مؤجرة + 15 يوم فأكثر' },
         { label: 'راكدة بشدة (+30 يوم)', value: num(idle30Count), cls: idle30Count ? 'bad' : 'good' },
         { label: 'حرجة (+60 يوم)', value: num(idle60Count), cls: idle60Count ? 'bad' : '' },
-        { label: 'متوسط أيام التأجير', value: avgRentedDaysOverall ? avgRentedDaysOverall + ' يوم' : '—', hint: 'شهرياً للسيارة' },
+        { label: 'متوسط أيام الركود', value: avgIdleDaysOverall ? avgIdleDaysOverall + ' يوم' : '—', hint: 'للي عندها تاريخ بداية الوقوف' },
         { label: 'أعلى فترة ركود', value: maxIdleDays ? maxIdleDays + ' يوم' : '—', cls: maxIdleDays > 45 ? 'bad' : '' }
       ],
       sections: [
         {
           title: 'تحليل التشغيل والركود حسب الفرع',
-          note: 'نسبة التشغيل = السيارات المؤجرة حالياً ÷ إجمالي سيارات الفرع.',
-          headers: ['الفرع', 'السيارات', 'مؤجرة حالياً', 'راكدة (+15 يوم)', 'راكدة (+30 يوم)', 'متوسط أيام التأجير', 'نسبة التشغيل'],
+          note: 'نسبة التشغيل = السيارات المؤجرة حالياً ÷ إجمالي سيارات الفرع. مدة الركود = عدد الأيام من بداية عدم التأجير (idle_since).',
+          headers: ['الفرع', 'السيارات', 'مؤجرة حالياً', 'راكدة (+15 يوم)', 'راكدة (+30 يوم)', 'متوسط أيام الركود', 'نسبة التشغيل'],
           rows: bRows,
-          foot: ['الإجمالي', model.total, rentedNowCount, idle15Count, idle30Count, avgRentedDaysOverall, overallUtilPct],
+          foot: ['الإجمالي', model.total, rentedNowCount, idle15Count, idle30Count, avgIdleDaysOverall, overallUtilPct],
           barCol: 6
         },
         {
           title: 'قائمة أعلى السيارات ركوداً (تتطلب تدخلاً تشغيلياً أو ترويجياً)',
-          note: 'السيارات غير المؤجرة التي مضى على آخر حركة لها 15 يوماً فأكثر مرتبة من الأكثر ركوداً.',
-          headers: ['اللوحة', 'الماركة / الفئة', 'الفرع', 'تاريخ آخر حركة', 'أيام الركود', 'الحالة الحالية', 'سعر اليوم'],
+          note: 'السيارات غير المؤجرة التي مضى على بداية عدم تأجيرها 15 يوماً فأكثر مرتبة من الأكثر ركوداً.',
+          headers: ['اللوحة', 'الماركة / الفئة', 'الفرع', 'من إمتى واقفة', 'أيام الركود', 'الحالة الحالية', 'سعر اليوم'],
           rows: idleList.slice(0, 150).map(function (r) {
             return [r.plate, r.brandType, r.branch, r.lastDate, r.idleDays, r.status, r.rate];
           })
