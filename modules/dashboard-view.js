@@ -45,133 +45,9 @@ function getActivityIcon(title, detail) {
   return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
 }
 
-function renderOpsBranchStackedChart(branches) {
-  const list = (branches && branches.length) ? branches : [];
-  if (!list.length) {
-    return '<div class="empty" style="padding:40px 0;text-align:center;color:#94A3B8">لا توجد بيانات فروع</div>';
-  }
-  const maxTotal = Math.max(...list.map(b => b.total || 0), 10);
-  const ceiling = Math.max(maxTotal, 371);
-  const w = 640;
-  const h = 240;
-  const padL = 40;
-  const padR = 15;
-  const padT = 15;
-  const padB = 75;
-  const plotW = w - padL - padR;
-  const plotH = h - padT - padB;
-
-  const ticks = [0, 53, 106, 159, 212, 265, 318, 371];
-  const gridLines = ticks.map(t => {
-    const y = (padT + plotH - (t / ceiling) * plotH).toFixed(1);
-    return `<line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="2 2" /><text x="${padL - 6}" y="${Number(y) + 3}" font-size="8.5" fill="#94A3B8" text-anchor="end">${t}</text>`;
-  }).join('');
-
-  const step = plotW / list.length;
-  const barW = Math.max(6, Math.min(14, step * 0.65));
-
-  const esc = typeof escapeHtml === 'function' ? escapeHtml : (s => String(s || ''));
-
-  const bars = list.map((b, i) => {
-    const rentedH = ((b.rented || 0) / ceiling) * plotH;
-    const availH = ((b.available || 0) / ceiling) * plotH;
-    const totalH = rentedH + availH;
-    const bx = (padL + i * step + (step - barW) / 2).toFixed(1);
-    const byRented = (padT + plotH - rentedH).toFixed(1);
-    const byAvail = (padT + plotH - totalH).toFixed(1);
-    const labelX = (Number(bx) + barW / 2).toFixed(1);
-    const labelY = (padT + plotH + 10);
-
-    return `
-      <g class="chart-col" data-tip="${esc(b.name)}: مؤجرة ${b.rented} · متاحة ${b.available} (إجمالي ${b.total})">
-        <rect x="${bx}" y="${byAvail}" width="${barW}" height="${availH.toFixed(1)}" fill="#EF4444" rx="2" />
-        <rect x="${bx}" y="${byRented}" width="${barW}" height="${rentedH.toFixed(1)}" fill="#10B981" />
-        <text x="${labelX}" y="${labelY}" font-size="8.5" font-weight="700" fill="#64748B" text-anchor="end" transform="rotate(-55, ${labelX}, ${labelY})">${esc(b.name)}</text>
-      </g>
-    `;
-  }).join('');
-
-  return `
-    <svg viewBox="0 0 ${w} ${h}" class="ops-chart-svg" preserveAspectRatio="xMidYMid meet">
-      ${gridLines}
-      ${bars}
-    </svg>
-  `;
-}
-
-function renderOpsTopCarsRevenueChart(cars) {
-  const list = (cars && cars.length) ? cars.slice(0, 12) : [];
-  if (!list.length) {
-    return '<div class="empty" style="padding:40px 0;text-align:center;color:#94A3B8">لا توجد بيانات سيارات</div>';
-  }
-  const w = 640;
-  const h = 240;
-  const padL = 40;
-  const padR = 15;
-  const padT = 15;
-  const padB = 75;
-  const plotW = w - padL - padR;
-  const plotH = h - padT - padB;
-  const maxVal = 200;
-
-  const ticks = [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200];
-  const gridLines = ticks.map(t => {
-    const y = (padT + plotH - (t / maxVal) * plotH).toFixed(1);
-    return `<line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="currentColor" stroke-opacity="0.08" stroke-dasharray="2 2" /><text x="${padL - 6}" y="${Number(y) + 3}" font-size="8.5" fill="#94A3B8" text-anchor="end">${t}</text>`;
-  }).join('');
-
-  const step = plotW / list.length;
-  const barW = Math.max(6, Math.min(12, step * 0.35));
-  const esc = typeof escapeHtml === 'function' ? escapeHtml : (s => String(s || ''));
-
-  const bars = list.map((c, i) => {
-    const targetH = (Math.min(maxVal, c.targetRent || 0) / maxVal) * plotH;
-    const actualH = (Math.min(maxVal, c.actualRent || 0) / maxVal) * plotH;
-    const groupX = padL + i * step + (step - barW * 2 - 2) / 2;
-    const targetX = groupX.toFixed(1);
-    const actualX = (groupX + barW + 2).toFixed(1);
-    const targetY = (padT + plotH - targetH).toFixed(1);
-    const actualY = (padT + plotH - actualH).toFixed(1);
-    const labelX = (groupX + barW).toFixed(1);
-    const labelY = (padT + plotH + 10);
-
-    return `
-      <g class="chart-col" data-tip="${esc(c.plate)} (${esc(c.model)}): مستهدف ${c.targetRent} ر.س · محصل ${c.actualRent} ر.س">
-        <rect x="${targetX}" y="${targetY}" width="${barW}" height="${targetH.toFixed(1)}" fill="#CBD5E1" rx="2" />
-        <rect x="${actualX}" y="${actualY}" width="${barW}" height="${actualH.toFixed(1)}" fill="#0284C7" rx="2" />
-        <text x="${labelX}" y="${labelY}" font-size="8.5" font-weight="700" fill="#64748B" text-anchor="end" transform="rotate(-55, ${labelX}, ${labelY})">${esc(c.plate)}</text>
-      </g>
-    `;
-  }).join('');
-
-  return `
-    <svg viewBox="0 0 ${w} ${h}" class="ops-chart-svg" preserveAspectRatio="xMidYMid meet">
-      ${gridLines}
-      ${bars}
-    </svg>
-  `;
-}
-
 /* ===== القالب ===== */
 function dashboardTemplate(state) {
-  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, leastIdleBranchName, leastIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend, allBranchesOccupancy, opsLeastOccupiedName, opsLeastOccupiedPct, dailyTargetRentSum, dailyIdleLossSum, monthlyIdleLossSum, actualCollectedRent, targetRealizationRate, occupancyRateExact, topCarsByRate } = state;
-
-  const branchesOcc = allBranchesOccupancy && allBranchesOccupancy.length ? allBranchesOccupancy : (branchFull || []).map(b => ({
-    name: b.name,
-    total: b.total,
-    rented: Math.round(b.total * (occupancyRate / 100)),
-    available: Math.max(0, b.total - Math.round(b.total * (occupancyRate / 100))),
-    occPct: occupancyRate
-  }));
-  const leastOccName = opsLeastOccupiedName || 'البارك ( الحوش)';
-  const leastOccPct = opsLeastOccupiedPct !== undefined ? opsLeastOccupiedPct : 0;
-  const targetRentSum = dailyTargetRentSum || Math.round(total * 126.065);
-  const idleLossSum = dailyIdleLossSum || Math.round(idleCount * 127.9);
-  const monthlyLossSum = monthlyIdleLossSum || (idleLossSum * 30);
-  const collectedRent = actualCollectedRent || 0;
-  const realizationRate = targetRealizationRate || '0.0';
-  const occExact = occupancyRateExact || (total ? ((rented / total) * 100).toFixed(1) : '74.8');
-  const topCarsList = topCarsByRate && topCarsByRate.length ? topCarsByRate : [];
+  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, leastIdleBranchName, leastIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend } = state;
 
   const reasonPalette = ['#E04F36', '#EA7C2E', '#F5A665', '#F8BD4F', '#2BB8A8'];
   let accReasonPct = 0;
@@ -749,507 +625,223 @@ function dashboardTemplate(state) {
       border-color: #2A3C4D;
       color: #2DD4BF;
     }
-
-    .dark-sec{background:var(--ds-card);border:1px solid var(--ds-line);border-radius:20px;padding:20px;margin-bottom:14px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04)}
-    .dark-card{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:16px;padding:16px;color:var(--ds-ink-soft);min-height:150px}
-    .dark-tile{width:42px;height:42px;border-radius:12px;background:var(--ds-soft);border:1px solid var(--ds-line);display:grid;place-items:center;font-size:20px;flex:none}
-    .dark-summary{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:16px;padding:16px;color:var(--ds-ink-soft);min-height:150px}
-    .dark-inner{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:14px}
-    .dark-cmp{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:14px;margin-top:12px}
-
-    /* ===== أنماط تقرير حركة التشغيل المحدثة ===== */
-    .ops-banner {
-      background: linear-gradient(135deg, #0D223A 0%, #163252 100%);
-      border-radius: 16px;
-      padding: 16px 22px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 14px;
-      box-shadow: 0 4px 18px rgba(13,34,58,.08);
-      position: relative;
-      overflow: hidden;
-    }
-    .ops-banner::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, #F59E0B, #10B981, #06B6D4, #3B82F6, #EC4899);
-    }
-    .ops-banner-right {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .ops-banner-badge-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 12px rgba(236,72,153,.3);
-      flex-shrink: 0;
-    }
-    .ops-banner-info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .ops-banner-title {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 900;
-      color: #FFFFFF;
-      line-height: 1.2;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .ops-banner-sub {
-      margin: 0;
-      font-size: 12px;
-      color: #94A3B8;
-      line-height: 1.4;
-    }
-    .ops-excel-pill {
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.16);
-      color: #FFFFFF;
-      font-size: 11px;
-      font-weight: 800;
-      padding: 6px 14px;
-      border-radius: 999px;
-      white-space: nowrap;
-      backdrop-filter: blur(4px);
-    }
-
-    .ops-kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    @media(max-width: 900px) {
-      .ops-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media(max-width: 540px) {
-      .ops-kpi-grid { grid-template-columns: 1fr; }
-    }
-    .ops-kpi-card {
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 16px;
-      padding: 16px 18px;
-      box-shadow: 0 2px 10px rgba(15,23,42,.04);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 124px;
-      position: relative;
-      overflow: hidden;
-      transition: transform .15s ease, box-shadow .15s ease;
-    }
-    .ops-kpi-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 18px rgba(15,23,42,.08);
-    }
-    .ops-kpi-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-    }
-    .ops-card-green::before { background: #10B981; }
-    .ops-card-blue::before { background: #3B82F6; }
-    .ops-card-amber::before { background: #F59E0B; }
-    .ops-card-rose::before { background: #EF4444; }
-    .ops-card-cyan::before { background: #06B6D4; }
-    .ops-card-teal::before { background: #0D9488; }
-
-    .ops-card-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .ops-card-label {
-      font-size: 12px;
-      font-weight: 800;
-      color: #475569;
-    }
-    .ops-card-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 900;
-      flex-shrink: 0;
-    }
-    .icon-green { background: #D1FAE5; color: #059669; }
-    .icon-blue { background: #DBEAFE; color: #2563EB; }
-    .icon-amber { background: #FEF3C7; color: #D97706; }
-    .icon-rose { background: #FFE4E6; color: #E11D48; }
-    .icon-cyan { background: #CFFAFE; color: #0891B2; }
-    .icon-teal { background: #CCFBF1; color: #0D9488; }
-    .icon-navy { background: #E2E8F0; color: #1E293B; }
-
-    .ops-card-value-wrap {
-      margin: 4px 0 6px;
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-    }
-    .ops-card-num {
-      font-size: 32px;
-      font-weight: 900;
-      color: #0F172A;
-      line-height: 1;
-      letter-spacing: -.02em;
-    }
-    .ops-card-num small {
-      font-size: 13px;
-      font-weight: 700;
-      color: #64748B;
-    }
-    .ops-card-branch {
-      font-size: 22px;
-      font-weight: 900;
-      color: #0F172A;
-      line-height: 1.1;
-    }
-    .ops-card-sub {
-      font-size: 11px;
-      color: #64748B;
-      line-height: 1.4;
-      margin-top: 2px;
-    }
-    .ops-card-line-highlight {
-      font-size: 11px;
-      font-weight: 800;
-      margin-top: 4px;
-      line-height: 1.3;
-    }
-    .text-green { color: #059669; }
-    .text-teal { color: #087C7A; }
-    .text-rose { color: #E11D48; }
-
-    .ops-card-badge-val {
-      font-size: 11px;
-      font-weight: 800;
-      margin-top: 6px;
-    }
-    .badge-amber { color: #D97706; }
-    .badge-rose { color: #E11D48; }
-
-    .ops-card-foot {
-      margin-top: 8px;
-    }
-    .ops-card-link {
-      font-size: 12px;
-      font-weight: 800;
-      color: #0284C7;
-      text-decoration: none;
-      transition: color .15s ease;
-    }
-    .ops-card-link:hover {
-      color: #0369A1;
-      text-decoration: underline;
-    }
-
-    .ops-progress-track {
-      height: 6px;
-      background: #E2E8F0;
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-    .ops-progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #0284C7, #38BDF8);
-      border-radius: 999px;
-    }
-
-    .ops-charts-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-    @media(max-width: 960px) {
-      .ops-charts-grid { grid-template-columns: 1fr; }
-    }
-    .ops-chart-card {
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 18px;
-      padding: 18px 20px 14px;
-      box-shadow: 0 2px 10px rgba(15,23,42,.04);
-      display: flex;
-      flex-direction: column;
-    }
-    .ops-chart-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-    .ops-chart-title {
-      margin: 0;
-      font-size: 14px;
-      font-weight: 900;
-      color: #0F172A;
-    }
-    .ops-chart-legend {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      font-size: 11px;
-      font-weight: 700;
-      color: #475569;
-    }
-    .legend-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 2px;
-      display: inline-block;
-    }
-    .dot-red { background: #EF4444; }
-    .dot-green { background: #10B981; }
-    .dot-gray { background: #CBD5E1; }
-    .dot-blue { background: #0284C7; }
-
-    .ops-chart-svg-wrap {
-      width: 100%;
-      overflow-x: auto;
-      overflow-y: hidden;
-      -webkit-overflow-scrolling: touch;
-    }
-    .ops-chart-svg {
-      display: block;
-      width: 100%;
-      min-width: 480px;
-      height: auto;
-    }
-
-    body.dark-mode .ops-banner {
-      background: linear-gradient(135deg, #091829 0%, #10243A 100%);
-    }
-    body.dark-mode .ops-kpi-card,
-    body.dark-mode .ops-chart-card {
-      background: #142537 !important;
-      border-color: #2A3C4D !important;
-      box-shadow: none !important;
-    }
-    body.dark-mode .ops-card-label {
-      color: #94A3B8;
-    }
-    body.dark-mode .ops-card-num,
-    body.dark-mode .ops-card-branch,
-    body.dark-mode .ops-chart-title {
-      color: #F1F7FB !important;
-    }
-    body.dark-mode .ops-card-sub {
-      color: #8FA6B5;
-    }
-    body.dark-mode .ops-progress-track {
-      background: #1D3042;
-    }
-    body.dark-mode .icon-navy {
-      background: #1D3042;
-      color: #94A3B8;
-    }
-    body.dark-mode .ops-chart-legend {
-      color: #94A3B8;
-    }
   </style>
   <div class="home-dash">
-<!-- تقرير حركة التشغيل (مطابق للمعاينة المطلوبة) -->
-    <div class="ops-report-wrapper">
-      <!-- 1. الهيدر الكحلي الداكن -->
-      <div class="ops-banner">
-        <div class="ops-banner-right">
-          <div class="ops-banner-badge-icon">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="20" x2="18" y2="10"></line>
-              <line x1="12" y1="20" x2="12" y2="4"></line>
-              <line x1="6" y1="20" x2="6" y2="14"></line>
-            </svg>
-          </div>
-          <div class="ops-banner-info">
-            <h2 class="ops-banner-title">تقرير حركة التشغيل 📊</h2>
-            <p class="ops-banner-sub">يعتمد على الإكسل اليومي المرفوع — متاحة للإيجار / مؤجرة · شامل فرع 0 والإدارة الرئيسية</p>
-          </div>
-        </div>
-        <div class="ops-banner-left">
-          <span class="ops-excel-pill">من الإكسل اليومي</span>
+    <!-- تم حذف قسم أولويات التجهيز (YAHMAA · COMMAND CENTER) بناءً على طلب المستخدم -->
+    <!-- تم حذف شارة تنبيه التدخل الفوري (0% ⚠️) بناءً على طلب المستخدم -->
+    <!-- Hero: كرت بتصميم موحّد مع باقي كروت الصفحة الرئيسية -->
+    <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px" class="mock-hero-grid">
+      <div class="home-hero-card" style="background:var(--ds-card);border:1px solid var(--ds-line);border-radius:18px;padding:22px 24px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04)">
+        <p style="display:flex;align-items:center;gap:6px;color:var(--ds-teal);font-weight:800;font-size:13px;margin:0 0 12px">✨ نظرة عامة تشغيلية</p>
+        <div style="display:flex;align-items:flex-end;gap:10px"><h2 style="margin:0;font-size:56px;font-weight:900;line-height:.95;letter-spacing:-.02em;color:var(--ds-ink)">${total.toLocaleString('en')}</h2><span style="padding-bottom:6px;font-weight:800;color:var(--ds-muted)">سيارة</span></div>
+        <h3 style="margin:6px 0 8px;font-size:18px;font-weight:900;color:var(--ds-ink)">إجمالي الأسطول</h3>
+        <p style="margin:0 0 18px;color:var(--ds-muted);line-height:1.7;font-size:13px">صورة تشغيلية موحّدة لحركة الأسطول والركود والتوفر الفوري، من دون تشتيت بين التقارير.</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <div style="background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:var(--ds-teal)">↗ مؤجرة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:var(--ds-ink)">${rented.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:var(--ds-muted)">سيارة ضمن التشغيل</p></div>
+          <div style="background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:var(--ds-teal-2)">✓ متاحة فوراً</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:var(--ds-ink)">${availableCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:var(--ds-muted)">جاهزة للإيجار الآن</p></div>
+          <div style="background:rgba(223,79,79,.08);border:1px solid rgba(223,79,79,.20);border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:var(--ds-red)">↘ راقدة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:var(--ds-ink)">${idleCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:var(--ds-muted)">غير مؤجرة</p></div>
         </div>
       </div>
-
-      <!-- 2. الصف الأول: 4 كروت مؤشرات رئيسية -->
-      <div class="ops-kpi-grid">
-        <!-- كرت 1: متاحة للإيجار فوراً -->
-        <div class="ops-kpi-card ops-card-green" data-go="fleet" data-filter="available" style="cursor:pointer">
-          <div class="ops-card-top">
-            <span class="ops-card-label">متاحة للإيجار فوراً</span>
-            <div class="ops-card-icon icon-green">🅿</div>
-          </div>
-          <div class="ops-card-value-wrap">
-            <span class="ops-card-num">${availableCount.toLocaleString('en')}</span>
-          </div>
-          <div class="ops-card-foot">
-            <span class="ops-card-link">عرض السيارات ←</span>
-          </div>
-        </div>
-
-        <!-- كرت 2: نسبة التشغيل الإجمالية -->
-        <div class="ops-kpi-card ops-card-blue">
-          <div class="ops-card-top">
-            <span class="ops-card-label">نسبة التشغيل الإجمالية</span>
-            <div class="ops-card-icon icon-blue">◔</div>
-          </div>
-          <div class="ops-card-value-wrap">
-            <span class="ops-card-num">${occupancyRate}%</span>
-          </div>
-          <div class="ops-card-sub">${rented.toLocaleString('en')} من ${total.toLocaleString('en')} سيارة مؤجرة</div>
-          <div class="ops-progress-track">
-            <div class="ops-progress-fill" style="width:${Math.min(100, Number(occupancyRate) || 0)}%"></div>
-          </div>
-        </div>
-
-        <!-- كرت 3: أكثر فرع تشغيلاً -->
-        <div class="ops-kpi-card ops-card-amber">
-          <div class="ops-card-top">
-            <span class="ops-card-label">أكثر فرع تشغيلاً</span>
-            <div class="ops-card-icon icon-amber">🏆</div>
-          </div>
-          <div class="ops-card-value-wrap">
-            <span class="ops-card-branch">${escapeHtml(mostOccupiedBranchName)}</span>
-          </div>
-          <div class="ops-card-badge-val badge-amber">${mostOccupiedBranchPct}% تشغيل</div>
-        </div>
-
-        <!-- كرت 4: أقل فرع تشغيلاً -->
-        <div class="ops-kpi-card ops-card-rose">
-          <div class="ops-card-top">
-            <span class="ops-card-label">أقل فرع تشغيلاً</span>
-            <div class="ops-card-icon icon-rose">📉</div>
-          </div>
-          <div class="ops-card-value-wrap">
-            <span class="ops-card-branch">${escapeHtml(leastOccName)}</span>
-          </div>
-          <div class="ops-card-badge-val badge-rose">${leastOccPct}% تشغيل</div>
-        </div>
+      <div style="background:var(--ds-card);border:1px solid var(--ds-line);border-radius:18px;padding:22px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04);position:relative;overflow:hidden">
+        <div style="position:absolute;inset-inline-start:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(8,124,122,.04)"></div>
+        <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800;color:var(--ds-teal)">🩺 صحة الأسطول</p>
+         <div style="margin:12px 0 6px">${gaugeSvg}</div>
+         <p style="margin:0;font-size:12px;color:var(--ds-muted)">${rented} من ${total} سيارة مؤجرة</p>
+         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-top:14px;padding-top:12px;border-top:1px solid var(--ds-line)">
+           <div><p style="margin:0;font-size:10px;color:var(--ds-muted);font-weight:700">جاهزية</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:var(--ds-green)">${pReady}%</p></div>
+           <div><p style="margin:0;font-size:10px;color:var(--ds-muted);font-weight:700">تشغيل</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:var(--ds-teal)">${occupancyRate}%</p></div>
+           <div><p style="margin:0;font-size:10px;color:var(--ds-muted);font-weight:700">متاحة</p><p style="margin:4px 0 0;font-size:18px;font-weight:900;color:var(--ds-ink)">${availableCount}</p></div>
+         </div>
+         <div style="width:100%;margin-top:10px">
+           <svg viewBox="0 0 120 32" style="width:100%;height:32px;display:block">
+             ${(() => { const pts = occupancyTrend.map((p,i) => (i*20) + "," + (32 - ( (Number(p.pct)||0) /100)*28).toFixed(1)).join(" "); return "<polyline points=\"" + pts + "\" fill=\"none\" stroke=\"var(--ds-teal)\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"; })()}
+           </svg>
+           <p style="margin:4px 0 0;font-size:10px;color:var(--ds-muted);text-align:center">اتجاه التشغيل (7 أيام)</p>
+         </div>
       </div>
+    </div>
+    <style>@media(max-width:900px){.mock-hero-grid{grid-template-columns:1fr !important}}</style>
 
-      <!-- 3. الصف الثاني: 4 كروت إحصاءات مالية وأسطول -->
-      <div class="ops-kpi-grid">
-        <!-- كرت 1: إجمالي أسطول الشركة -->
-        <div class="ops-kpi-card ops-card-blue">
-          <div class="ops-card-top">
-            <span class="ops-card-label">إجمالي أسطول الشركة</span>
-            <div class="ops-card-icon icon-navy">🚗</div>
-          </div>
-          <div class="ops-card-value-wrap">
-            <span class="ops-card-num">${total.toLocaleString('en')} <small>سيارة</small></span>
-          </div>
-          <div class="ops-card-line-highlight text-green">${targetRentSum.toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2})} ر.س إيجار يومي مستهدف</div>
-          <div class="ops-card-sub">إجمالي القيمة التأجيرية اليومية لجميع السيارات</div>
+    <style>
+    /* الألوان هنا كلها بتتمشي على توكنات (var(--ds-*)) — والتوكن نفسه
+       بيتبدّل بين النور والليل، فالكارت بيبقى مقروء في الوضعين. */
+    .dark-sec{background:var(--ds-card);border:1px solid var(--ds-line);border-radius:20px;padding:20px;margin-bottom:14px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04)}
+    .dark-sec-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .dark-sec-label{margin:0;color:var(--ds-teal);font-size:11px;font-weight:800}
+    .dark-sec-title{margin:4px 0 0;font-size:24px;font-weight:900;color:var(--ds-ink)}
+    .dark-sec-pill{background:var(--ds-pill);color:var(--ds-teal);font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px;white-space:nowrap}
+    .dark-grid-3{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    @media(max-width:900px){.dark-grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:560px){.dark-grid-3{grid-template-columns:1fr}}
+    .dark-card{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:16px;padding:16px;color:var(--ds-ink-soft);min-height:150px}
+    .dark-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .dark-tile{width:42px;height:42px;border-radius:12px;background:var(--ds-soft);border:1px solid var(--ds-line);display:grid;place-items:center;font-size:20px;flex:none}
+    .dark-tile.green{background:var(--ds-tint-green);color:var(--ds-teal-2);border-color:var(--ds-line-green)}
+    .dark-pct{font-size:11px;font-weight:900;padding:4px 8px;border-radius:999px;white-space:nowrap}
+    .dark-label{margin:14px 0 4px;color:var(--ds-muted);font-size:12px;font-weight:700;line-height:1.5}
+    .dark-num{margin:0;font-size:30px;font-weight:900;color:var(--ds-ink);line-height:1.1;text-align:center}
+    .dark-bar{margin-top:12px;height:6px;background:var(--ds-line);border-radius:999px;overflow:hidden}
+    .dark-bar i{display:block;height:100%;border-radius:999px;position:relative}
+    .dark-bar i::after{content:'';position:absolute;inset-inline-end:-4px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:inherit;box-shadow:0 0 0 2px var(--ds-soft)}
+    .dark-note{margin:8px 0 0;color:var(--ds-muted);font-size:11px;line-height:1.6;text-align:left}
+    .dark-summary{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:16px;padding:16px;color:var(--ds-ink-soft);min-height:150px}
+    .dark-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media(max-width:900px){.dark-2col{grid-template-columns:1fr}}
+    .dark-big{font-size:54px;font-weight:900;line-height:1;color:var(--ds-ink)}
+    .dark-sub{color:var(--ds-muted);font-size:12px;line-height:1.7}
+    .dark-inner{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:14px}
+    .dark-inner-label{margin:0;color:var(--ds-muted);font-size:11px;font-weight:700}
+    .dark-inner-num{margin:6px 0 0;font-size:22px;font-weight:900;color:var(--ds-ink)}
+    .dark-cmp{background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:14px;margin-top:12px}
+    .dark-cmp-title{margin:0;font-size:13px;font-weight:800;color:var(--ds-ink)}
+    .dark-row{margin-top:12px}
+    .dark-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:800;color:var(--ds-ink)}
+    .dark-row-track{margin-top:7px;height:6px;background:var(--ds-line);border-radius:999px;overflow:hidden}
+    .dark-row-fill{height:100%;border-radius:999px;position:relative}
+    .dark-row-note{margin:4px 0 0;text-align:left;color:var(--ds-muted);font-size:11px}
+    .dark-foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;justify-content:center}
+    .dark-foot span{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px}
+    .dark-summary-title{margin:0;color:var(--ds-teal);font-size:12px;font-weight:800}
+    .dark-summary-big{margin:10px 0 0;font-size:24px;font-weight:900;line-height:1.5;color:var(--ds-ink)}
+    .dark-summary-desc{margin:8px 0 0;color:var(--ds-muted);font-size:12px;line-height:1.7}
+    .dark-summary-foot{display:flex;align-items:center;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid var(--ds-line);color:var(--ds-ink);font-size:12px;font-weight:800}
+    </style>
+    <!-- قسم 01 — حالة الأسطول (نسخة الصورة الداكنة) -->
+    <div class="dark-sec">
+      <div class="dark-sec-head">
+        <div>
+          <p class="dark-sec-label">01 · حالة الأسطول</p>
+          <h2 class="dark-sec-title">حالة الأسطول</h2>
         </div>
-
-        <!-- كرت 2: السيارات المؤجرة اليوم (نشطة) -->
-        <div class="ops-kpi-card ops-card-cyan">
-          <div class="ops-card-top">
-            <span class="ops-card-label">السيارات المؤجرة اليوم (نشطة)</span>
-            <div class="ops-card-icon icon-cyan">🔑</div>
-          </div>
-          <div class="ops-card-value-wrap">
-            <span class="ops-card-num text-teal">${rented.toLocaleString('en')} <small>سيارة</small></span>
-          </div>
-          <div class="ops-card-line-highlight text-teal">↗ ${occExact}% نسبة تشغيل الأسطول</div>
-          <div class="ops-card-sub">سجلت حركة تحصيل أو عمود تشغيلية اليوم</div>
-        </div>
-
-        <!-- كرت 3: السيارات المتوقفة (Idle Fleet) -->
-        <div class="ops-kpi-card ops-card-rose">
-          <div class="ops-card-top">
-            <span class="ops-card-label">السيارات المتوقفة (Idle Fleet)</span>
-            <div class="ops-card-icon icon-navy">🚗</div>
-          </div>
-          <div class="ops-card-value-wrap">
-            <span class="ops-card-num text-rose">${idleCount.toLocaleString('en')} <small>سيارة</small></span>
-          </div>
-          <div class="ops-card-line-highlight text-rose">↓ ${idleLossSum.toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2})} ر.س فاقد يومي</div>
-          <div class="ops-card-sub">تكلفة الفرصة البديلة شهرياً: ${monthlyLossSum.toLocaleString('en')} ر.س</div>
-        </div>
-
-        <!-- كرت 4: نسبة تحقيق الإيجار اليومي -->
-        <div class="ops-kpi-card ops-card-teal">
-          <div class="ops-card-top">
-            <span class="ops-card-label">نسبة تحقيق الإيجار اليومي</span>
-            <div class="ops-card-icon icon-teal">🎯</div>
-          </div>
-          <div class="ops-card-value-wrap">
-            <span class="ops-card-num">${realizationRate}%</span>
-          </div>
-          <div class="ops-card-line-highlight text-teal">الفعلي: ${collectedRent.toLocaleString('en')} ر.س</div>
-          <div class="ops-card-sub">مقارنة المحصل الفعلي بالإيجار التعاقدي اليومي</div>
-        </div>
+        <span class="dark-sec-pill">توزيع الأسطول الكلي</span>
       </div>
-
-      <!-- 4. الصف الثالث: الرسمان البيانيان جنب بعض -->
-      <div class="ops-charts-grid">
-        <!-- الرسم الأيمن (في اتجاه RTL): توزيع أسطول السيارات والتشغيل حسب الفروع -->
-        <div class="ops-chart-card">
-          <div class="ops-chart-head">
-            <div class="ops-chart-title-wrap">
-              <h3 class="ops-chart-title">توزيع أسطول السيارات والتشغيل حسب الفروع 📊</h3>
-            </div>
-            <div class="ops-chart-legend">
-              <span class="legend-item"><i class="legend-dot dot-red"></i> متاحة للإيجار</span>
-              <span class="legend-item"><i class="legend-dot dot-green"></i> مؤجرة</span>
-            </div>
-          </div>
-          <div class="ops-chart-svg-wrap">
-            ${renderOpsBranchStackedChart(branchesOcc)}
-          </div>
+      <div class="dark-grid-3">
+        <div class="dark-card" data-go="fleet" data-filter="ready" style="cursor:pointer">
+          <div class="dark-card-top"><span class="dark-pct" style="background:var(--ds-pct-green-bg);color:var(--ds-pct-green)">${pReady}%</span><div class="dark-tile green">✓</div></div>
+          <p class="dark-label">سيارات جاهزة للتأجير</p>
+          <p class="dark-num">${ready.toLocaleString('en')}</p>
+          <div class="dark-bar"><i style="width:${pReady}%;background:#1FA971"></i></div>
+          <p class="dark-note">جاهزة للحركة · ${pReady}% من الأسطول</p>
         </div>
-
-        <!-- الرسم الأيسر (في اتجاه RTL): مقارنة الإيجار اليومي المستهدف بالمحصل الفعلي -->
-        <div class="ops-chart-card">
-          <div class="ops-chart-head">
-            <div class="ops-chart-title-wrap">
-              <h3 class="ops-chart-title">مقارنة الإيجار اليومي المستهدف بالمحصل الفعلي (أعلى السيارات) 📊</h3>
-            </div>
-            <div class="ops-chart-legend">
-              <span class="legend-item"><i class="legend-dot dot-blue"></i> المحصل الفعلي (ر.س)</span>
-              <span class="legend-item"><i class="legend-dot dot-gray"></i> الإيجار المستهدف (ر.س)</span>
-            </div>
-          </div>
-          <div class="ops-chart-svg-wrap">
-            ${renderOpsTopCarsRevenueChart(topCarsList)}
-          </div>
+        <div class="dark-card" data-go="renewals" style="cursor:pointer">
+          <div class="dark-card-top"><span class="dark-pct" style="background:var(--ds-pct-amber-bg);color:var(--ds-pct-amber)">${pRenInsp}%</span><div class="dark-tile">🔧</div></div>
+          <p class="dark-label">تجديد فحص</p>
+          <p class="dark-num">${renInsp.toLocaleString('en')}</p>
+          <div class="dark-bar"><i style="width:${pRenInsp}%;background:#E8A52C"></i></div>
+          <p class="dark-note">بحاجة إلى متابعة · ${pRenInsp}% من الأسطول</p>
+        </div>
+        <div class="dark-card" data-go="license-renewals" style="cursor:pointer">
+          <div class="dark-card-top"><span class="dark-pct" style="background:var(--ds-pct-amber-bg);color:var(--ds-pct-amber)">${pRenLic}%</span><div class="dark-tile">📄</div></div>
+          <p class="dark-label">تجديد رخصة</p>
+          <p class="dark-num">${renLic.toLocaleString('en')}</p>
+          <div class="dark-bar"><i style="width:${pRenLic}%;background:#E8A52C"></i></div>
+          <p class="dark-note">بحاجة إلى متابعة · ${pRenLic}% من الأسطول</p>
+        </div>
+        <div class="dark-summary">
+          <p class="dark-summary-title">الخلاصة التشغيلية</p>
+          <p class="dark-summary-big">${pReady >= 50 ? 'أكثر من نصف الأسطول جاهز للتأجير.' : 'أقل من نصف الأسطول جاهز للتأجير.'}</p>
+          <p class="dark-summary-desc">الجاهزية عند ${pReady}%، بينما تتوزع بقية الحالات على تجديدات الفحص والرخصة والتأمين وبطاقة التشغيل.</p>
+          <div class="dark-summary-foot">↗ حالة الأسطول الحالية</div>
+        </div>
+        <div class="dark-card" data-go="insurance-renewals" style="cursor:pointer">
+          <div class="dark-card-top"><span class="dark-pct" style="background:var(--ds-pct-orange-bg);color:var(--ds-pct-orange)">${pRenIns}%</span><div class="dark-tile">🛡️</div></div>
+          <p class="dark-label">تجديد تأمين</p>
+          <p class="dark-num">${renIns.toLocaleString('en')}</p>
+          <div class="dark-bar"><i style="width:${pRenIns}%;background:#EE7434"></i></div>
+          <p class="dark-note">أولوية متوسطة · ${pRenIns}% من الأسطول</p>
+        </div>
+        <div class="dark-card" data-go="inspections" style="cursor:pointer">
+          <div class="dark-card-top"><span class="dark-pct" style="background:var(--ds-pct-red-bg);color:var(--ds-pct-red)">${pRenCard}%</span><div class="dark-tile">🔑</div></div>
+          <p class="dark-label">تجديد بطاقة تشغيل</p>
+          <p class="dark-num">${renCard.toLocaleString('en')}</p>
+          <div class="dark-bar"><i style="width:${pRenCard}%;background:#DF4F4F"></i></div>
+          <p class="dark-note">أولوية متابعة · ${pRenCard}% من الأسطول</p>
         </div>
       </div>
     </div>
+
+    <!-- قسما 02 و 03 الداكنان جنب بعض زي الصورة -->
+    <div class="dark-2col">
+      <!-- 02 — راقدة -->
+      <div class="dark-sec" style="margin-bottom:0">
+        <div class="dark-sec-head">
+          <div>
+            <p class="dark-sec-label">02 · تقرير التشغيل</p>
+            <h2 class="dark-sec-title">سيارات راقدة غير مؤجرة</h2>
+          </div>
+          <span class="dark-sec-pill" style="background:var(--ds-pct-red-bg);color:var(--ds-pct-red)">ركود</span>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:10px;margin-top:6px"><p class="dark-big">${idleCount.toLocaleString('en')}</p><span style="padding-bottom:8px;font-weight:800;color:var(--ds-muted)">سيارة</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+          <div class="dark-inner"><p class="dark-inner-label">الخسارة من الركود</p><p class="dark-inner-num">${idleLossRounded.toLocaleString('en')} <span style="font-size:13px;color:var(--ds-muted)">ر.س</span></p></div>
+          <div class="dark-inner"><p class="dark-inner-label">إجمالي الراكد</p><p class="dark-inner-num">${idleCount.toLocaleString('en')}</p></div>
+        </div>
+        <div class="dark-cmp">
+          <p class="dark-cmp-title">مقارنة ركود الفروع</p>
+          <div class="dark-row">
+            <div class="dark-row-head"><span>${escapeHtml(topIdleBranchName)} · ${topIdleBranchCount} سيارة</span><span style="color:var(--ds-pct-green)">☐</span></div>
+            <div class="dark-row-track"><div class="dark-row-fill" style="width:${Math.min(100, Number(topIdleBranchCount) || 0)}%;background:#1FA971"></div></div>
+            <p class="dark-row-note">${topIdleBranchCount} من أصل 100</p>
+          </div>
+          <div class="dark-row">
+            <div class="dark-row-head"><span>${escapeHtml(leastIdleBranchName)} · ${leastIdleBranchCount} سيارة</span><span style="color:var(--ds-pct-red)">●</span></div>
+            <div class="dark-row-track"><div class="dark-row-fill" style="width:${Math.max(3, Math.min(100, Number(leastIdleBranchCount) || 0))}%;background:#DF4F4F"></div></div>
+            <p class="dark-row-note">${leastIdleBranchCount} من أصل 100</p>
+          </div>
+        </div>
+        <div class="dark-foot">
+          <span style="background:var(--ds-pct-red-bg);color:var(--ds-pct-red)">أكثر فرع ركوداً: ${escapeHtml(topIdleBranchName)}</span>
+          <span style="background:var(--ds-pct-green-bg);color:var(--ds-pct-green)">أقل فرع ركوداً: ${escapeHtml(leastIdleBranchName)}</span>
+        </div>
+      </div>
+
+      <!-- 03 — تشغيل إجمالي -->
+      <div class="dark-sec" style="margin-bottom:0">
+        <div class="dark-sec-head">
+          <div>
+            <p class="dark-sec-label">03 · تقرير التشغيل</p>
+            <h2 class="dark-sec-title">التشغيل الإجمالي</h2>
+          </div>
+          <span class="dark-sec-pill">تشغيل ${occupancyRate}%</span>
+        </div>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <div style="flex:1;min-width:180px">
+            <p class="dark-sub" style="margin:0">متاحة للإيجار فوراً</p>
+            <p style="margin:6px 0 0;font-size:44px;font-weight:900;color:var(--ds-ink);line-height:1">${availableCount.toLocaleString('en')}</p>
+            <p class="dark-sub" style="margin:8px 0 0">${rented} من ${total} سيارة مؤجرة ضمن نسبة التشغيل الإجمالية.</p>
+          </div>
+          <div style="position:relative;width:150px;height:150px;flex:none;margin-inline:auto">
+            <svg viewBox="0 0 160 160" style="width:100%;height:100%;transform:rotate(-90deg)">
+              <circle cx="80" cy="80" r="68" fill="none" style="stroke:var(--ds-line)" stroke-width="16"></circle>
+              <circle cx="80" cy="80" r="68" fill="none" stroke="#0BAA86" stroke-width="16" stroke-linecap="round" stroke-dasharray="${(2 * Math.PI * 68).toFixed(1)}" stroke-dashoffset="${(2 * Math.PI * 68 * (1 - Math.min(100, Number(occupancyRate) || 0) / 100)).toFixed(1)}"></circle>
+            </svg>
+            <div style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--ds-ink)">
+              <div><p style="margin:0;font-size:30px;font-weight:900;line-height:1">${occupancyRate}%</p><p style="margin:4px 0 0;font-size:11px;color:var(--ds-muted);font-weight:700">التشغيل</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="dark-cmp">
+          <p class="dark-cmp-title">مقارنة تشغيل الفروع</p>
+          <div class="dark-row">
+            <div class="dark-row-head"><span>${escapeHtml(mostOccupiedBranchName)} · تشغيل ${mostOccupiedBranchPct}%</span><span style="color:var(--ds-pct-green)">☐</span></div>
+            <div class="dark-row-track"><div class="dark-row-fill" style="width:${mostOccupiedBranchPct}%;background:#1FA971"></div></div>
+            <p class="dark-row-note">${mostOccupiedBranchPct} من أصل 100</p>
+          </div>
+          <div class="dark-row">
+            <div class="dark-row-head"><span>${escapeHtml(leastOccupiedBranchName)} · تشغيل ${leastOccupiedBranchPct}%</span><span style="color:var(--ds-pct-red)">●</span></div>
+            <div class="dark-row-track"><div class="dark-row-fill" style="width:${Math.max(3, Math.min(100, Number(leastOccupiedBranchPct) || 0))}%;background:#DF4F4F"></div></div>
+            <p class="dark-row-note">${leastOccupiedBranchPct} من أصل 100</p>
+          </div>
+        </div>
+        <div class="dark-foot" style="justify-content:center">
+          <span style="background:var(--ds-pct-green-bg);color:var(--ds-pct-green)">↗ أكثر فرع تشغيلاً: ${escapeHtml(mostOccupiedBranchName)} · أقل فرع تشغيلاً: ${escapeHtml(leastOccupiedBranchName)}</span>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- تم حذف تقرير أكثر السيارات المتاحة للإيجار بناءً على طلب المستخدم -->
 
 
     <!-- Regions map -->
