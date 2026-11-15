@@ -62,7 +62,16 @@ function loadReports(fleet) {
       REGION_DEFS: [{ id: 'central', label: 'المنطقة الوسطى' }]
     },
     YahmaReadiness: { vehicle: (c) => ({ ready: false, label: '', level: 'green', failed: [] }) },
-    YahmaPayments: { localByStatus: () => [], pendingList: () => [], renewedList: () => [], isRenewed: () => false },
+    YahmaPayments: {
+      localAll: () => [
+        { carId: 'c1', requestedAt: daysAgo(20), paidAt: daysAgo(19), status: 'paid' },
+        { carId: 'c2', requestedAt: daysAgo(10), paidAt: daysAgo(10), status: 'paid' }
+      ],
+      localByStatus: () => [],
+      pendingList: () => [],
+      renewedList: () => [],
+      isRenewed: () => false
+    },
     document: { getElementById: () => null, addEventListener: () => {} }
   };
   sandbox.window = sandbox;
@@ -122,15 +131,15 @@ test('تقرير حركة الأسطول: مدة الركود بتقرأ idle_si
 
   /* المؤجرة شغالة زي ما هي */
   assert.strictEqual(kpiValue(html, 'مؤجرة الآن (نشطة)'), '1', 'عدد المؤجرات غلط');
+  /* غير المؤجرة = 3 (فيهم اللي مالهاش تاريخ) */
+  assert.strictEqual(kpiValue(html, 'غير مؤجرة'), '3', 'عدد غير المؤجرات غلط');
 
   /* راكدة 15 يوم: c1 (40 يوم) + c2 (70 يوم) — c3 مالهوش تاريخ */
   assert.strictEqual(kpiValue(html, 'راكدة (+15 يوم)'), '2', 'عدد الراكدات (+15) غلط');
   assert.strictEqual(kpiValue(html, 'راكدة بشدة (+30 يوم)'), '2', 'عدد الراكدات (+30) غلط');
-  assert.strictEqual(kpiValue(html, 'حرجة (+60 يوم)'), '1', 'عدد الراكدات (+60) غلط');
 
-  /* متوسط أيام الركود = (40 + 70) / 2 = 55 */
+  /* متوسط أيام الركود = (40 + 70) / 2 = 55 — على السيارات اللي ليها تاريخ بس */
   assert.strictEqual(kpiValue(html, 'متوسط أيام الركود'), '55 يوم', 'متوسط أيام الركود غلط');
-  assert.strictEqual(kpiValue(html, 'أعلى فترة ركود'), '70 يوم', 'أعلى فترة ركود غلط');
 });
 
 test('تقرير حركة الأسطول: صف الفرع فيه أرقام الراكدة ومتوسط الركود', () => {
@@ -143,9 +152,13 @@ test('تقرير حركة الأسطول: صف الفرع فيه أرقام ال
   assert.ok(branch1, 'صف فرع 1 مش موجود');
   assert.strictEqual(branch1[1], '3', 'عدد سيارات فرع 1 غلط');
   assert.strictEqual(branch1[2], '0', 'المؤجرات في فرع 1 غلط');
-  assert.strictEqual(branch1[3], '2', 'الراكدات (+15) في فرع 1 غلط');
-  assert.strictEqual(branch1[4], '2', 'الراكدات (+30) في فرع 1 غلط');
-  assert.strictEqual(branch1[5], '55', 'متوسط أيام الركود في فرع 1 غلط');
+  assert.strictEqual(branch1[3], '3', 'غير المؤجرات في فرع 1 غلط');
+  assert.strictEqual(branch1[4], '2', 'الراكدات (+15) في فرع 1 غلط');
+  assert.strictEqual(branch1[5], '2', 'الراكدات (+30) في فرع 1 غلط');
+  assert.strictEqual(branch1[6], '1', 'الراكدات (+60) في فرع 1 غلط');
+  assert.strictEqual(branch1[7], '1', 'بلا نشاط في فرع 1 غلط');
+  assert.strictEqual(branch1[8], '55', 'متوسط أيام الركود في فرع 1 غلط');
+  assert.strictEqual(branch1[9], '0%', 'نسبة التشغيل في فرع 1 غلط');
 });
 
 test('تقرير حركة الأسطول: عمود «متوسط أيام التأجير» الميت اتشال', () => {
@@ -166,6 +179,34 @@ test('تقرير حركة الأسطول: السيارات المؤجرة ما �
   const html = renderReport(sandbox, 'movement');
 
   assert.strictEqual(kpiValue(html, 'مؤجرة الآن (نشطة)'), '1');
+  assert.strictEqual(kpiValue(html, 'غير مؤجرة'), '0');
   assert.strictEqual(kpiValue(html, 'راكدة (+15 يوم)'), '0', 'المؤجرة اتحسبت راكدة');
-  assert.strictEqual(kpiValue(html, 'أعلى فترة ركود'), '—', 'المؤجرة اتحسبت ليها ركود');
+  assert.strictEqual(kpiValue(html, 'متوسط أيام الركود'), '—', 'المؤجرة اتحسبت ليها ركود');
+});
+
+test('تقرير حركة الأسطول: بيقول إن فيه سيارات من غير تاريخ (مش بيكدب)', () => {
+  const fleet = productionShapeFleet();
+  const sandbox = loadReports(fleet);
+  const html = renderReport(sandbox, 'movement');
+
+  /* 3 غير مؤجرة، منهم 2 ليهم تاريخ و1 لأ — لازم التقرير يقول كده */
+  assert.ok(html.includes('2 سيارة من أصل 3 غير مؤجرة'), 'التقرير ما قالش التغطية');
+  assert.ok(html.includes('لسه مفيش لها تاريخ بداية مسجّل'), 'التقرير ما قالش إن فيه ناقص تاريخ');
+});
+
+test('تقرير حركة الأسطول: «بلا نشاط مسجّل» بيحسب من سجل الفحص', () => {
+  const fleet = productionShapeFleet();
+  const sandbox = loadReports(fleet);
+  const html = renderReport(sandbox, 'movement');
+
+  /* c1 و c2 عندهم سجل فحص، c3 لأ — فـ«بلا نشاط» = 1 */
+  assert.strictEqual(kpiValue(html, 'بلا نشاط مسجّل'), '1', 'عدد اللي بلا نشاط غلط');
+
+  const rows = tableRows(html);
+  const branch1 = rows.find((r) => r[0] === 'فرع 1');
+  assert.strictEqual(branch1[7], '1', 'عمود «بلا نشاط» في فرع 1 غلط');
+
+  /* والقائمة الثالثة لازم تطلع c3 (اللي مالوش نشاط) */
+  assert.ok(html.includes('سيارات غير مؤجرة بلا أي نشاط مسجّل'), 'قائمة «بلا نشاط» مش موجودة');
+  assert.ok(html.includes('3333 س ص ع'), 'سيارة c3 (بلا نشاط) مش في القائمة');
 });

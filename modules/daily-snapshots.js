@@ -71,7 +71,11 @@
     if (!car || isRentedStatus(car.carStatus)) return '';
     if (car.idleSince) return String(car.idleSince).slice(0, 10);
     var days = idleDaysFor(car, refDateIso);
-    if (days <= 0) return refDateIso || todayIso();
+    /* ⚠️ مفيش تاريخ ⇒ نرجّع فاضي، مش النهاردة.
+       الرجوع للنهاردة كان بيخلي التقرير يعرض «واقفة من 2026-11-15»
+       لكل سيارة مش مسجّلة — رقم مُضلِّل بيقول إن كل الأسطول واقف من
+       يومين. دلوقتي بيظهر «—» يعني: مش متسجّل. */
+    if (days <= 0) return '';
     var x = new Date((refDateIso || todayIso()) + 'T00:00:00');
     x.setDate(x.getDate() - days);
     return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
