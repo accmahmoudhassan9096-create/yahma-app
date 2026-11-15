@@ -331,8 +331,8 @@ body.dark-mode .top-dd-menu .more-item:hover{background:#111827;}
 body{background:var(--paper);background-image:radial-gradient(circle at 100% 0%,rgba(18,170,166,.09),transparent 42%),radial-gradient(circle at 0% 100%,rgba(240,168,59,.06),transparent 38%);}
 .sidebar{background:linear-gradient(180deg,#0B9996 0%,#08706F 100%);box-shadow:4px 0 28px rgba(4,91,90,.22);padding-top:22px;}
 .brand.yahma-brand{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;margin-bottom:24px;padding:0 4px;text-align:center;}
-.yahma-logo-wrap{width:100%;height:82px;display:flex;align-items:center;justify-content:center;}
-.yahma-logo{width:178px;height:auto;max-height:82px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.10));}
+.yahma-logo-wrap{width:100%;height:96px;display:flex;align-items:center;justify-content:center;}
+.yahma-logo{width:78px;height:78px;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(8,20,38,.16));}
 .yahma-brand-text .brand-name{font-size:15px;color:#fff;font-weight:700;line-height:1.35;}
 .yahma-brand-text .brand-sub{font-size:10.5px;color:rgba(255,255,255,.78);margin-top:2px;}
 .nav-item{color:#E5FFFF;border-radius:10px;padding:9.5px 11px;font-size:12px;}
@@ -377,8 +377,8 @@ input:focus,select:focus,textarea:focus{border-color:#18AAA6!important;box-shado
 ::-webkit-scrollbar-thumb:hover{background:#7FC5C2;}
 /* Make common headings and links echo the Yahma identity without changing functionality */
 .auth-card{border-top:4px solid #12AAA6;box-shadow:0 18px 50px rgba(8,112,111,.14);}
-.auth-card .yahma-logo-wrap{height:68px;}
-.auth-card .yahma-logo{width:150px;}
+.auth-card .yahma-logo-wrap{height:92px;}
+.auth-card .yahma-logo{width:84px;height:84px;}
 .auth-card .yahma-brand-text .brand-name{color:#087E7C;}
 .auth-card .yahma-brand-text .brand-sub{color:#647E80;}
 /* Yahma accent line for major cards */

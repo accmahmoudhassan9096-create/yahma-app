@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  assets/logo-mark.svg — علامة «يهماء» (مارك فقط، بدون نص).
+
+  ليش SVG مش PNG:
+    - المارك بيظهر في 3 مقاسات (44px في الـsidebar، ~72px في صفحة
+      الدخول، 192/512 لأيقونات التطبيق) — الـSVG بيطلع حاد في كلهم.
+    - حجمه صغير جداً مقارنة بـPNG.
+    - بيشتغل على أي خلفية (فاتحة أو غامقة) لأن بُناء مستقل.
+
+  الشكل:
+    - الوعاء (squircle) بلون الهوية الداكن (navy) مع هالة تركوازي
+      (yahma-turquoise) — نفس ألوان التطبيق.
+    - قوس ذهبي مفتوح من تحت = أفق/طريق.
+    - حرف الـY الذهبي = أول حرف «يهماء»، ومش بينزل للطريق.
+    - شرطات فيروزية تحت = الطريق اللي قدام.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="يهماء لتأجير السيارات">
+  <defs>
+    <linearGradient id="yahmaBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#173553"/>
+      <stop offset=".55" stop-color="#0E2238"/>
+      <stop offset="1" stop-color="#081523"/>
+    </linearGradient>
+    <radialGradient id="yahmaAurora" cx=".78" cy=".08" r=".72">
+      <stop offset="0" stop-color="#17AAA4" stop-opacity=".42"/>
+      <stop offset=".45" stop-color="#17AAA4" stop-opacity=".10"/>
+      <stop offset="1" stop-color="#17AAA4" stop-opacity="0"/>
+    </radialGradient>
+    <!-- ⚠️ userSpaceOnUse لازم: أي خط رأسي bbox بتاعه عرضه صفر،
+         في الـgradient بـobjectBoundingBox ما بيترسمش خالص. -->
+    <linearGradient id="yahmaGold" gradientUnits="userSpaceOnUse" x1="150" y1="110" x2="362" y2="400">
+      <stop offset="0" stop-color="#F4DFAC"/>
+      <stop offset=".42" stop-color="#DCB56A"/>
+      <stop offset="1" stop-color="#B3853A"/>
+    </linearGradient>
+    <radialGradient id="yahmaGlow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#E0BC74" stop-opacity=".26"/>
+      <stop offset="1" stop-color="#E0BC74" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- الوعاء -->
+  <rect width="512" height="512" rx="116" fill="url(#yahmaBg)"/>
+  <rect width="512" height="512" rx="116" fill="url(#yahmaAurora)"/>
+  <rect x="2.5" y="2.5" width="507" height="507" rx="113.5" fill="none" stroke="#FFFFFF" stroke-opacity=".10" stroke-width="5"/>
+
+  <!-- هالة ذهبية ناعمة ورا الحرف -->
+  <circle cx="256" cy="212" r="124" fill="url(#yahmaGlow)"/>
+
+  <!-- القوس الذهبي: من أسفل-الشمال لفوق وفوق-الجنوب (sweep=1 = الطُرقة الطويلة) -->
+  <path d="M135.6 339.7 A142 142 0 1 1 376.4 339.7" fill="none" stroke="url(#yahmaGold)" stroke-width="13" stroke-linecap="round" opacity=".92"/>
+
+  <!-- حرف الـY -->
+  <path d="M202 166 L256 232 L310 166" fill="none" stroke="url(#yahmaGold)" stroke-width="35" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M256 232 L256 302" fill="none" stroke="url(#yahmaGold)" stroke-width="35" stroke-linecap="round"/>
+
+  <!-- الطريق: شرطات فيروزية بتقلّ في العرض كل ما نزلت -->
+  <g fill="#17AAA4">
+    <rect x="244" y="324" width="24" height="11" rx="5.5" opacity=".95"/>
+    <rect x="238" y="352" width="36" height="14" rx="7" opacity=".7"/>
+    <rect x="230" y="386" width="52" height="18" rx="9" opacity=".45"/>
+  </g>
+</svg>
