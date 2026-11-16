@@ -210,7 +210,16 @@
       watch(reg);
       /* فحص التحديثات: عند فتح التطبيق وعند الرجوع من الخلفية */
       const check = function () {
-        try { reg.update(); } catch(_){yahmaErr(_,'app-version.js:140');}
+        try {
+          const p = reg.update();
+          /* reg.update() ترجع وعد — لو التحديث فشل (شبكة/كاش/ورقة متروكة)،
+             الوعد بيرفض ومفيش catch كان بيتسجّل كـ global:unhandledrejection
+             في تقرير الأخطاء ("Failed to update a ServiceWorker"). التطبيق
+             شغال تمام من غير تحديث الـSW، فنتجاهل الفشل بصمت هنا. */
+          if (p && typeof p.catch === 'function') {
+            p.catch(function () {});
+          }
+        } catch (_) { yahmaErr(_, 'app-version.js:140'); }
       };
       check();
       setTimeout(check, 4000);
