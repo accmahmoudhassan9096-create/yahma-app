@@ -190,18 +190,19 @@ function computeDashboardState(fleet) {
   const leastIdleBranchCount = leastIdleBranch ? leastIdleBranch[1] : 0;
 
   /* ===== تقارير التشغيل (Occupancy Report) ===== */
-  // سيارات متاحة للإيجار: حسب حالة السيارة (متاحة للايجار / موجودة / نشط)
-  // مفيش شرط وثائق هنا — الوثائق دي مكانها "تقرير الجاهزية" (vehicleReadiness).
-  // الشرط القديم كان !rented && ready، والـready بيطلب تواريخ خضراء (>30 يوم)،
-  // فكان بيستبعد سيارات حالتها متاحة لكن ورقها قريب من الانتهاء (amber) — وده
-  // اللي نزل الرقم من 933 لـ518.
+  /* «متاحة فوراً» في نظرة عامة تشغيلية تعتمد على حالة السيارة بس:
+     كل سيارة غير مؤجرة — عدا تحت الصيانة والخارجة من الخدمة.
+     مفيش أي شرط أوراق هنا: الوثائق مكانها تقارير التجديد.
+     التعريف القديم (carStatusReady: متاحة للايجار/موجودة/نشط فقط) كان
+     بيستبعد حالات زي «حجز» و«خدمة» وغيرها، فكان الرقم بيتجمّد على 924. */
   const availableForRent = fleet.filter(c => {
-    const status = String(c.carStatus || '').trim();
-    if (status.includes('مؤجر')) return false;
+    const s = String(c && c.carStatus || '').trim();
+    if (s.includes('مؤجر')) return false;
     try {
-      if (typeof carStatusReady === 'function') return carStatusReady(status);
+      if (typeof carStatusActive === 'function') return carStatusActive(s);
     } catch (_) {}
-    return status.includes('متاحة') || status.includes('متاحه') || status === 'موجودة' || status === 'نشط';
+    if (maintStatus(c) || outStatus(c)) return false;
+    return true;
   });
   const availableCount = availableForRent.length;
 
