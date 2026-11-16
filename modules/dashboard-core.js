@@ -9,29 +9,11 @@
   'use strict';
 
 function computeDashboardState(fleet) {
-  /* ===== قاعدة التقارير =====
-     • تقارير التجديد (الفحص / التأمين / الرخصة / بطاقة التشغيل) تعتمد على
-       أوراق الأسطول فقط (cardExpiry / licenseExpiry / insurance / inspection)
-       وتفضل زي ما هي (renInsp / renLic / renIns / renCard).
-     • باقي تقارير الصفحة الرئيسية (الجاهزية، المتاح للإيجار، التشغيل،
-       صحة الأسطول، الفروع) تعتمد على حالة السيارة carStatus:
-       مؤجرة / متاحة للإيجار / موجودة / نشط / تحت الصيانة / خارج الخدمة.
-     • readinessStats() لسه بتتستخدم في قسم «أسباب عدم الجاهزية» بس،
-       لأنه تقرير وثائق بحت. */
-  const isStatusReady = (c) => {
-    const status = String(c && c.carStatus || '').trim();
-    if (status.includes('مؤجر')) return false;
-    try { if (typeof carStatusReady === 'function') return carStatusReady(status); } catch (_) {}
-    return status.includes('متاحة') || status.includes('متاحه') || status === 'موجودة' || status === 'نشط';
-  };
-
   const st = readinessStats();
   const reasons = readinessReasons(st);
-  const total = fleet.length || 0;
-  // الجاهزية في تقارير الرئيسية = حالة السيارة (مش الأوراق)
-  const statusReadyCars = fleet.filter(isStatusReady);
-  const ready = statusReadyCars.length;
-  const notReady = Math.max(0, total - ready);
+  const total = st.total || 0;
+  const ready = st.ready || 0;
+  const notReady = Math.max(0, (st.out||0) + (st.other||0) + (st.inspection||0));
   const available = ready;
   const rented = fleet.filter(c => String(c.carStatus||'').includes('مؤجر')).length;
   // قيد التجهيز بالمعيار: أوراق ناقصة (كارت/رخصة/تأمين/فحص) — البطاقة تعرض الكل، والدونات يستبعد الصيانة والخارجة (لهما مواضعهما)
@@ -101,7 +83,7 @@ function computeDashboardState(fleet) {
       const b = String(c.branch || '').trim() || 'بدون فرع';
       const cur = byBranch.get(b) || { total: 0, ready: 0 };
       cur.total++;
-      if (isStatusReady(c)) cur.ready++;
+      try { if (vehicleReadiness(c).ready) cur.ready++; } catch(_){yahmaErr(_,'dashboard.js:53');}
       byBranch.set(b, cur);
     });
     Array.from(byBranch.entries())
@@ -141,7 +123,7 @@ function computeDashboardState(fleet) {
     branch[b] = branch[b] || { total: 0, ready: 0, city: '' };
     if (!branch[b].city && c.city) branch[b].city = String(c.city).trim();
     branch[b].total++;
-    if (isStatusReady(c)) branch[b].ready++;
+    if (vehicleReadiness(c).ready) branch[b].ready++;
   });
   const topBranches = Object.entries(branch)
     .map(([name, x]) => ({ name, ...x, notReady: x.total - x.ready, pct: x.total ? Math.round(x.ready / x.total * 100) : 0 }))
@@ -208,10 +190,19 @@ function computeDashboardState(fleet) {
   const leastIdleBranchCount = leastIdleBranch ? leastIdleBranch[1] : 0;
 
   /* ===== تقارير التشغيل (Occupancy Report) ===== */
-  // سيارات متاحة للإيجار = حالة السيارة بس (متاحة للايجار / موجودة / نشط)
-  // — نفس المعيار المستخدم في كل تقارير الصفحة الرئيسية. الأوراق مكانها
-  // تقارير التجديد بس، ومفيش شرط تواريخ هنا.
-  const availableForRent = statusReadyCars;
+  // سيارات متاحة للإيجار: حسب حالة السيارة (متاحة للايجار / موجودة / نشط)
+  // مفيش شرط وثائق هنا — الوثائق دي مكانها "تقرير الجاهزية" (vehicleReadiness).
+  // الشرط القديم كان !rented && ready، والـready بيطلب تواريخ خضراء (>30 يوم)،
+  // فكان بيستبعد سيارات حالتها متاحة لكن ورقها قريب من الانتهاء (amber) — وده
+  // اللي نزل الرقم من 933 لـ518.
+  const availableForRent = fleet.filter(c => {
+    const status = String(c.carStatus || '').trim();
+    if (status.includes('مؤجر')) return false;
+    try {
+      if (typeof carStatusReady === 'function') return carStatusReady(status);
+    } catch (_) {}
+    return status.includes('متاحة') || status.includes('متاحه') || status === 'موجودة' || status === 'نشط';
+  });
   const availableCount = availableForRent.length;
 
   // نسبة التشغيل = السيارات المؤجرة / الإجمالي * 100
