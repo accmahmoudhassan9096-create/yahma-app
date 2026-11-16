@@ -190,20 +190,14 @@ function computeDashboardState(fleet) {
   const leastIdleBranchCount = leastIdleBranch ? leastIdleBranch[1] : 0;
 
   /* ===== تقارير التشغيل (Occupancy Report) ===== */
-  /* «متاحة فوراً» في نظرة عامة تشغيلية تعتمد على حالة السيارة بس:
-     كل سيارة غير مؤجرة — عدا تحت الصيانة والخارجة من الخدمة.
-     مفيش أي شرط أوراق هنا: الوثائق مكانها تقارير التجديد.
-     التعريف القديم (carStatusReady: متاحة للايجار/موجودة/نشط فقط) كان
-     بيستبعد حالات زي «حجز» و«خدمة» وغيرها، فكان الرقم بيتجمّد على 924. */
-  const availableForRent = fleet.filter(c => {
-    const s = String(c && c.carStatus || '').trim();
-    if (s.includes('مؤجر')) return false;
-    try {
-      if (typeof carStatusActive === 'function') return carStatusActive(s);
-    } catch (_) {}
-    if (maintStatus(c) || outStatus(c)) return false;
-    return true;
-  });
+  /* «متاحة فوراً» = حالة السيارة «متاحة للايجار» فقط.
+     مفيش شروط تانية (لا أوراق، لا موجودة/نشط، لا حجز/خدمة). */
+  const normCareer = (v) => {
+    const raw = String(v == null ? '' : v).trim();
+    try { if (typeof normStatus === 'function') return normStatus(raw); } catch (_) {}
+    return raw.replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا').replace(/ة/g, 'ه').trim();
+  };
+  const availableForRent = fleet.filter(c => normCareer(c && c.carStatus) === 'متاحه للايجار');
   const availableCount = availableForRent.length;
 
   // نسبة التشغيل = السيارات المؤجرة / الإجمالي * 100
