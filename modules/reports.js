@@ -1750,8 +1750,49 @@
     var avgDays = idleCars.length ? Math.round((totalDays / idleCars.length) * 10) / 10 : 0;
     var maxDays = idleCars.length ? idleCars[0].idleDays : 0;
     var totalLoss = idleCars.reduce(function (s, c) { return s + c.loss; }, 0);
+
+    /* ===== توزيع السيارات غير المؤجرة على فترات مدة الوقوف =====
+       الفترات (بالأيام): حتى 5 · 6-10 · 11-15 · 16-30 · أكثر من 30.
+       لكل فترة: عدد السيارات، إجمالي الخسارة التقديرية، وقائمة اللوحات.
+       السيارات اللي مفيهاش تاريخ بداية (0 يوم) بتتحط في «غير محدد» */
+    var BUCKETS = [
+      { key: '0-5', label: 'حتى 5 أيام', min: 0, max: 5 },
+      { key: '6-10', label: '6 إلى 10 أيام', min: 6, max: 10 },
+      { key: '11-15', label: '11 إلى 15 يوم', min: 11, max: 15 },
+      { key: '16-30', label: '16 إلى 30 يوم', min: 16, max: 30 },
+      { key: '30+', label: 'أكثر من 30 يوم', min: 31, max: Infinity }
+    ];
+    function bucketOf(days) {
+      if (!days || days <= 0) return null; // غير محدد
+      for (var i = 0; i < BUCKETS.length; i++) {
+        if (days >= BUCKETS[i].min && days <= BUCKETS[i].max) return BUCKETS[i];
+      }
+      return BUCKETS[BUCKETS.length - 1];
+    }
+    var distMap = {};
+    BUCKETS.forEach(function (b) { distMap[b.key] = { count: 0, loss: 0, plates: [] }; });
+    var unknownBucket = { count: 0, loss: 0, plates: [] };
+    idleCars.forEach(function (c) {
+      var b = bucketOf(c.idleDays);
+      var target = b ? distMap[b.key] : unknownBucket;
+      target.count++;
+      target.loss += c.loss;
+      target.plates.push(c.plate);
+    });
+    var distRows = BUCKETS.map(function (b) {
+      var d = distMap[b.key];
+      return [b.label, num(d.count), num(Math.round(d.loss)), d.plates.length ? d.plates.slice(0, 25).join('، ') + (d.plates.length > 25 ? ' …' : '') : '—'];
+    });
+    if (unknownBucket.count) {
+      distRows.push(['غير محدد (بلا تاريخ بداية)', num(unknownBucket.count), num(Math.round(unknownBucket.loss)), unknownBucket.plates.slice(0, 25).join('، ') + (unknownBucket.plates.length > 25 ? ' …' : '')]);
+    }
+
+    function periodLabel(days) {
+      var b = bucketOf(days);
+      return b ? b.label : 'غير محدد';
+    }
     var rowsFormatted = idleCars.slice(0, 300).map(function (c) {
-      return [c.plate, c.brandType, c.branch, c.status, c.idleSinceDate, c.idleDays, num(c.rate), num(Math.round(c.loss))];
+      return [c.plate, c.brandType, c.branch, c.status, c.idleSinceDate, c.idleDays, periodLabel(c.idleDays), num(c.rate), num(Math.round(c.loss))];
     });
     return {
       title: 'مدة الوقوف بدون تأجير',
@@ -1764,9 +1805,15 @@
       ],
       sections: [
         {
+          title: 'توزيع السيارات غير المؤجرة حسب مدة الوقوف',
+          note: 'كل فترة بتوضّح عدد السيارات والخسارة التقديرية للفرص داخلها. السيارات بدون تاريخ بداية بتظهر في «غير محدد».',
+          headers: ['فترة الوقوف', 'عدد السيارات', 'خسارة تقديرية (ر.س)', 'اللوحات'],
+          rows: distRows
+        },
+        {
           title: 'السيارات غير المؤجرة مرتبة بمدة الوقوف',
           note: 'المدة = النهاردة - تاريخ بداية عدم التأجير (ناقص آخر حركة كتقدير للقديم).',
-          headers: ['اللوحة', 'الماركة / الفئة', 'الفرع', 'الحالة', 'من إمتى واقفة', 'واقفة كام يوم', 'سعر اليوم (ر.س)', 'خسارة تقديرية (ر.س)'],
+          headers: ['اللوحة', 'الماركة / الفئة', 'الفرع', 'الحالة', 'من إمتى واقفة', 'واقفة كام يوم', 'الفترة', 'سعر اليوم (ر.س)', 'خسارة تقديرية (ر.س)'],
           rows: rowsFormatted
         }
       ]

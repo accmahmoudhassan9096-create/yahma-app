@@ -210,3 +210,41 @@ test('تقرير حركة الأسطول: «بلا نشاط مسجّل» بيح�
   assert.ok(html.includes('سيارات غير مؤجرة بلا أي نشاط مسجّل'), 'قائمة «بلا نشاط» مش موجودة');
   assert.ok(html.includes('3333 س ص ع'), 'سيارة c3 (بلا نشاط) مش في القائمة');
 });
+
+/* ===== تقرير مدة الوقوف: التوزيع على الفترات ===== */
+function renderIdleDuration(fleet) {
+  const sandbox = loadReports(fleet);
+  return renderReport(sandbox, 'idleDuration');
+}
+
+test('تقرير مدة الوقوف: توزيع على فترات 5/10/15/30+ يوم', () => {
+  const fleet = [
+    { id: 'a', plate: 'AAAA', branch: 'ف1', carStatus: 'متاحة للإيجار', idleSince: daysAgo(4), dailyRate: 100 },   // حتى 5
+    { id: 'b', plate: 'BBBB', branch: 'ف1', carStatus: 'متاحة للإيجار', idleSince: daysAgo(9), dailyRate: 100 },   // 6-10
+    { id: 'c', plate: 'CCCC', branch: 'ف2', carStatus: 'متاحة للإيجار', idleSince: daysAgo(13), dailyRate: 100 },  // 11-15
+    { id: 'd', plate: 'DDDD', branch: 'ف2', carStatus: 'متاحة للإيجار', idleSince: daysAgo(25), dailyRate: 100 },  // 16-30
+    { id: 'e', plate: 'EEEE', branch: 'ف3', carStatus: 'متاحة للإيجار', idleSince: daysAgo(45), dailyRate: 100 },  // 30+
+    { id: 'f', plate: 'FFFF', branch: 'ف3', carStatus: 'متاحة للإيجار', idleSince: '', dailyRate: 100 }            // غير محدد
+  ];
+  const html = renderIdleDuration(fleet);
+
+  assert.ok(html.includes('توزيع السيارات غير المؤجرة حسب مدة الوقوف'), 'قسم التوزيع مش موجود');
+  assert.ok(html.includes('حتى 5 أيام'), 'فترة حتى 5 مش موجودة');
+  assert.ok(html.includes('6 إلى 10 أيام'), 'فترة 6-10 مش موجودة');
+  assert.ok(html.includes('11 إلى 15 يوم'), 'فترة 11-15 مش موجودة');
+  assert.ok(html.includes('16 إلى 30 يوم'), 'فترة 16-30 مش موجودة');
+  assert.ok(html.includes('أكثر من 30 يوم'), 'فترة 30+ مش موجودة');
+  assert.ok(html.includes('غير محدد (بلا تاريخ بداية)'), 'فترة غير محدد مش موجودة');
+
+  /* عمود «الفترة» في قائمة السيارات */
+  assert.ok(html.includes('الفترة'), 'عمود الفترة مش موجود في القائمة');
+});
+
+test('تقرير مدة الوقوف: المؤجرة ما بتظهرش في التوزيع', () => {
+  const fleet = [
+    { id: 'r', plate: 'RRRR', branch: 'ف1', carStatus: 'مؤجرة', idleSince: daysAgo(60), dailyRate: 200 }
+  ];
+  const html = renderIdleDuration(fleet);
+  assert.strictEqual(kpiValue(html, 'غير مؤجرة'), '0', 'المؤجرة ظهرت في التوزيع');
+  assert.ok(!html.includes('RRRR'), 'لوحة السيارة المؤجرة ما ينفعش تظهر');
+});
