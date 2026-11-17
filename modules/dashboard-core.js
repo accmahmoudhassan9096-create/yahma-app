@@ -9,48 +9,42 @@
   'use strict';
 
 function computeDashboardState(fleet) {
-  const st = readinessStats();
+  const cars = Array.isArray(fleet) ? fleet : [];
+  // لا تعتمد على المتغير العام fleet هنا: أثناء المزامنة أو الاختبارات قد
+  // يصل الرسم بأسطول أحدث من القيمة العامة، فتظهر أرقام قديمة في الرئيسية.
+  const st = (global.YahmaReadiness && typeof global.YahmaReadiness.stats === 'function')
+    ? global.YahmaReadiness.stats(cars)
+    : { total: cars.length, ready: 0, out: 0, other: 0, inspection: 0, maintenance: 0, reasons: {} };
   const reasons = readinessReasons(st);
   const total = st.total || 0;
   const ready = st.ready || 0;
-  const notReady = Math.max(0, (st.out||0) + (st.other||0) + (st.inspection||0));
+  const notReady = Math.max(0, total - ready);
   const available = ready;
-  const rented = fleet.filter(c => String(c.carStatus||'').includes('مؤجر')).length;
+  const rented = cars.filter(c => String(c.carStatus||'').includes('مؤجر')).length;
   // قيد التجهيز بالمعيار: أوراق ناقصة (كارت/رخصة/تأمين/فحص) — البطاقة تعرض الكل، والدونات يستبعد الصيانة والخارجة (لهما مواضعهما)
   const docFailing = c => vehicleReadiness(c).failed.some(x => x.key === 'card' || x.key === 'license' || x.key === 'insurance' || x.key === 'inspection');
   const outStatus = c => { const s = String(c.carStatus || ''); return s.includes('خارج') || s.includes('مسروق') || s.includes('محول') || s.includes('مفقود'); };
   const maintStatus = c => String(c.carStatus || '').includes('صيانة');
-  const inPrepExcl = fleet.filter(c => docFailing(c) && !maintStatus(c) && !outStatus(c)).length;
-  // بطاقات التجديد لكل وثيقة — مطابقة تمامًا للتبويبات والأرقام في الشريط الجانبي
-  let pendingInspIds = new Set();
-  try {
-    if (typeof loadInspectionPayments === 'function') loadInspectionPayments().forEach(item => pendingInspIds.add(String(item.carId)));
-    if (typeof loadPaidInspections === 'function') loadPaidInspections().forEach(item => pendingInspIds.add(String(item.carId)));
-    if (typeof loadRenewedInspections === 'function') loadRenewedInspections().forEach(item => pendingInspIds.add(String(item.carId)));
-    if (!pendingInspIds.size && typeof window !== 'undefined' && window.YahmaPayments && typeof window.YahmaPayments.localByStatus === 'function') {
-      ['pending','paid','renewed'].forEach(st => {
-        try { (window.YahmaPayments.localByStatus(st) || []).forEach(item => pendingInspIds.add(String(item.carId))); } catch(_) {}
-      });
-    }
-  } catch(_) {}
+  const inPrepExcl = cars.filter(c => docFailing(c) && !maintStatus(c) && !outStatus(c)).length;
+  // أرقام التبويبات هي مصدر الحقيقة؛ لا نعيد استبعاد سيارات الدفع هنا.
   const tabCount = (tab, extra) => {
     try {
       const fn = typeof fleetForTab === 'function' ? fleetForTab : (typeof window !== 'undefined' ? window.fleetForTab : null);
       if (typeof fn === 'function') {
-        const list = fn(tab, fleet);
+        const list = fn(tab, cars);
         return extra ? list.filter(extra).length : list.length;
       }
     } catch(_) {}
     return null;
   };
-  const countRenInsp = tabCount('renewals', c => !pendingInspIds.has(String(c.id)));
-  const renInsp = countRenInsp !== null ? countRenInsp : fleet.filter(c => (typeof inspectionDisplayStatus === 'function' ? inspectionDisplayStatus(c.inspectionStatus).level !== 'green' : c.inspectionStatus !== 'تم الفحص')).length;
+  const countRenInsp = tabCount('renewals');
+  const renInsp = countRenInsp !== null ? countRenInsp : cars.filter(c => (typeof inspectionDisplayStatus === 'function' ? inspectionDisplayStatus(c.inspectionStatus).level !== 'green' : c.inspectionStatus !== 'تم الفحص')).length;
 
   const countRenLic = tabCount('license-renewals');
-  const renLic = countRenLic !== null ? countRenLic : fleet.filter(c => (typeof dateStatus === 'function' ? dateStatus(c.licenseExpiry).level === 'red' : false)).length;
+  const renLic = countRenLic !== null ? countRenLic : cars.filter(c => (typeof dateStatus === 'function' ? dateStatus(c.licenseExpiry).level === 'red' : false)).length;
 
   const countRenIns = tabCount('insurance-renewals');
-  const renIns = countRenIns !== null ? countRenIns : fleet.filter(c => {
+  const renIns = countRenIns !== null ? countRenIns : cars.filter(c => {
     if (c.insuranceExpiry && typeof dateStatus === 'function') {
       if (dateStatus(c.insuranceExpiry).level === 'red') return true;
     }
@@ -68,8 +62,8 @@ function computeDashboardState(fleet) {
       ['قيد التجهيز (أوراق ناقصة)', inPrepExcl],
       ['غير جاهزة', notReady],
       ['مؤجرة', rented],
-      ['تحت الصيانة', fleet.filter(maintStatus).length],
-      ['خارج الخدمة', fleet.filter(outStatus).length],
+      ['تحت الصيانة', cars.filter(maintStatus).length],
+      ['خارج الخدمة', cars.filter(outStatus).length],
       ['فحص مطلوب', renInsp],
       ['رخص تحتاج متابعة', renLic],
       ['تأمين يحتاج متابعة', renIns],
@@ -79,7 +73,7 @@ function computeDashboardState(fleet) {
 
     /* توزيع الفروع — الجزء المفيد فعلًا في تقرير الحالة */
     const byBranch = new Map();
-    fleet.forEach(function (c) {
+    cars.forEach(function (c) {
       const b = String(c.branch || '').trim() || 'بدون فرع';
       const cur = byBranch.get(b) || { total: 0, ready: 0 };
       cur.total++;
@@ -100,12 +94,12 @@ function computeDashboardState(fleet) {
     };
   };
   const countRenCard = tabCount('inspections');
-  const renCard = countRenCard !== null ? countRenCard : fleet.filter(c => (typeof cardDisplayStatus === 'function' ? cardDisplayStatus(c.cardExpiry, c.cardStatus).level === 'red' : false)).length;
+  const renCard = countRenCard !== null ? countRenCard : cars.filter(c => (typeof cardDisplayStatus === 'function' ? cardDisplayStatus(c.cardExpiry, c.cardStatus).level === 'red' : false)).length;
 
   let finalReview = 0;
   // مراجعة نهائية
   try {
-    finalReview = fleet.filter(c => vehicleReadiness(c).ready && !(typeof prepChecklistForCar==='function' && prepChecklistForCar(c).final)).length;
+    finalReview = cars.filter(c => vehicleReadiness(c).ready && !(typeof prepChecklistForCar==='function' && prepChecklistForCar(c).final)).length;
   } catch(e) { finalReview = 0; }
 
   // نسب الكروت
@@ -118,7 +112,7 @@ function computeDashboardState(fleet) {
 
   // فروع
   const branch = {};
-  fleet.forEach(c => {
+  cars.forEach(c => {
     const b = c.branch || 'غير محدد';
     branch[b] = branch[b] || { total: 0, ready: 0, city: '' };
     if (!branch[b].city && c.city) branch[b].city = String(c.city).trim();
@@ -150,7 +144,7 @@ function computeDashboardState(fleet) {
       return beforeOk && afterOk;
     });
   };
-  const idleCars = fleet.filter(c => {
+  const idleCars = cars.filter(c => {
     const status = String(c.carStatus || '').trim();
     const isRented = status.includes('مؤجر');
     const branch = String(c.branch || '').trim();
@@ -197,7 +191,7 @@ function computeDashboardState(fleet) {
     try { if (typeof normStatus === 'function') return normStatus(raw); } catch (_) {}
     return raw.replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا').replace(/ة/g, 'ه').trim();
   };
-  const availableForRent = fleet.filter(c => normCareer(c && c.carStatus) === 'متاحه للايجار');
+  const availableForRent = cars.filter(c => normCareer(c && c.carStatus) === 'متاحه للايجار');
   const availableCount = availableForRent.length;
 
   // نسبة التشغيل = السيارات المؤجرة / الإجمالي * 100
@@ -221,7 +215,7 @@ function computeDashboardState(fleet) {
   const branchOccupancy = Object.entries(branch)
     .filter(([name]) => !ignoredBranches.includes(name) && !isReportExcludedBranch(name))
     .map(([name, x]) => {
-    const rentedInBranch = fleet.filter(f => (f.branch || 'غير محدد') === name && String(f.carStatus || '').includes('مؤجر')).length;
+    const rentedInBranch = cars.filter(f => (f.branch || 'غير محدد') === name && String(f.carStatus || '').includes('مؤجر')).length;
     const occPct = x.total ? Math.round((rentedInBranch / x.total) * 100) : 0;
     return { name, total: x.total, rented: rentedInBranch, occPct };
   });
@@ -233,10 +227,9 @@ function computeDashboardState(fleet) {
   const leastOccupiedBranchPct = topIdleBranchByOcc ? topIdleBranchByOcc.occPct : 0;
 
   /* ===== تريند نسبة التشغيل (آخر 7 أيام) ===== */
-  // مفيش تاريخ إيجارات محفوظ يومياً، فنعرض النسبة الحالية ثابتة —
-  // الجيل السابق كان بيستخدم Math.random() ويرسم تريند وهمي مختلف كل تحديث.
-  // لو فيه فلتر تاريخ عالمي، التريند ينتهي في اليوم ده بدل النهاردة.
-  const occupancyTrend = [];
+  // استخدم اللقطات اليومية المحفوظة إن وجدت. لا نرسم بيانات وهمية؛ عند عدم
+  // وجود سجل تاريخي نعرض القيمة الحالية فقط لكل الأيام كحل احتياطي واضح.
+  let occupancyTrend = [];
   let trendEnd = new Date();
   try {
     const gd = (typeof global.YahmaGlobalDate === 'object' && typeof global.YahmaGlobalDate.getSelectedDate === 'function')
@@ -247,11 +240,22 @@ function computeDashboardState(fleet) {
       if (!isNaN(parsed.getTime())) trendEnd = parsed;
     }
   } catch (_) {}
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(trendEnd.getTime());
-    d.setDate(d.getDate() - i);
-    const dayStr = d.toISOString().slice(0, 10);
-    occupancyTrend.push({ date: dayStr, pct: occupancyRate });
+  try {
+    const snapshots = global.YahmaSnapshots && typeof global.YahmaSnapshots.readLocal === 'function'
+      ? global.YahmaSnapshots.readLocal() : [];
+    occupancyTrend = snapshots
+      .filter(r => r && String(r.branch || '') === 'ALL' && r.snapshot_date && Number.isFinite(Number(r.occupancy_rate)))
+      .sort((a, b) => String(a.snapshot_date).localeCompare(String(b.snapshot_date)))
+      .slice(-7)
+      .map(r => ({ date: String(r.snapshot_date).slice(0, 10), pct: Number(r.occupancy_rate) }));
+  } catch (_) {}
+  if (!occupancyTrend.length) {
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(trendEnd.getTime());
+      d.setDate(d.getDate() - i);
+      const dayStr = d.toISOString().slice(0, 10);
+      occupancyTrend.push({ date: dayStr, pct: occupancyRate });
+    }
   }
   // خريطة الفروع: كل فرع بإحداثيات مدينته + نمو فرعي من اللقطات
   const branchFull = Object.entries(branch).map(([name, x]) => {
@@ -271,7 +275,7 @@ function computeDashboardState(fleet) {
   const regionStats = (typeof REGION_DEFS !== 'undefined' ? REGION_DEFS : []).map(r => ({ ...r, total: 0, branches: {} }));
   const regionById = {};
   regionStats.forEach(r => { regionById[r.id] = r; });
-  fleet.forEach(c => {
+  cars.forEach(c => {
     const b = (c.branch || 'غير محدد').trim() || 'غير محدد';
     const rid = (typeof regionOfBranch === 'function') ? regionOfBranch(b, c.city) : 'central';
     const r = regionById[rid] || regionById.central;
@@ -318,7 +322,7 @@ function computeDashboardState(fleet) {
       regHist.push(Object.assign({}, last || {}, {
         d: todayIso, west: (regionById.west || { total: 0 }).total, east: (regionById.east || { total: 0 }).total,
         central: (regionById.central || { total: 0 }).total, branches: branchSnap,
-        total: fleet.length, ready: ready, pct: pReady
+        total: cars.length, ready: ready, pct: pReady
       }));
       regHist = regHist.slice(-90);
       try { localStorage.setItem(REG_HIST_KEY, JSON.stringify(regHist)); } catch(e){yahmaErr(e,'dashboard.js:241');}
@@ -401,7 +405,7 @@ function computeDashboardState(fleet) {
       { n: needInsp, label: 'سيارات تحتاج فحص', go: 'renewals', alert: false, kind: 'inspection' },
       { n: cardSoon, label: 'بطاقات تشغيل منتهية', go: 'inspections', alert: false, kind: 'card' },
       { n: licSoon, label: 'رخص سير منتهية', go: 'license-renewals', alert: false, kind: 'license' },
-      { n: countRenIns, label: 'تأمين منتهي', go: 'insurance-renewals', alert: false, kind: 'insurance' },
+      { n: renIns, label: 'تأمين منتهي', go: 'insurance-renewals', alert: false, kind: 'insurance' },
       { n: overdue, label: 'مهام متأخرة', go: 'dashboard', alert: true, kind: null }
     ].filter(x => x.n > 0);
     if (!todayTasks.length) {
@@ -426,7 +430,7 @@ function computeDashboardState(fleet) {
   if (activity.length < 4) {
     try {
       const events = [];
-      fleet.forEach(c => {
+      cars.forEach(c => {
         (c.prepEvents || []).forEach(ev => events.push({
           time: ev.at || '',
           title: ev.title || 'حدث تجهيز',
@@ -537,5 +541,3 @@ function computeDashboardState(fleet) {
 
   global.YahmaDashboardCore = { computeDashboardState };
 })(typeof window !== 'undefined' ? window : this);
-
-

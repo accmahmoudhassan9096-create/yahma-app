@@ -110,5 +110,27 @@ test('أرقام لوحة التحكم تطابق أرقام التبويبات 
 
   const cardTask = state.todayTasks.find(t => t.go === 'inspections');
   assert.ok(cardTask, 'should have inspections task in todayTasks');
-  assert.strictEqual(cardTask.n, state.renCard, 'todayTasks card count must match renCard');
+  assert.strictEqual(cardTask.n, state.renCard, 'todayTasks card count must match state.renCard');
+});
+
+test('حساب الرئيسية يستخدم الأسطول الممرر ولا يعتمد على نسخة عامة قديمة', () => {
+  const ctx = setupEnvironment();
+  const passedFleet = [{
+    id: 'new-car',
+    carStatus: 'متاحة للإيجار',
+    inspectionStatus: 'تم الفحص',
+    licenseExpiry: '2028-01-01',
+    insuranceStatus: 'ساري',
+    cardExpiry: '2028-01-01'
+  }];
+  let received = null;
+  const originalStats = ctx.YahmaReadiness.stats;
+  ctx.YahmaReadiness.stats = (cars) => {
+    received = cars;
+    return originalStats(cars);
+  };
+
+  const state = ctx.YahmaDashboardCore.computeDashboardState(passedFleet);
+  assert.strictEqual(received, passedFleet, 'readiness must receive the fleet passed to the renderer');
+  assert.strictEqual(state.total, 1, 'dashboard total must come from the rendered fleet');
 });
