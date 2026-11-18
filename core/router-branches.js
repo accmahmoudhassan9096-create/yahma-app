@@ -140,7 +140,16 @@ function emailBranch(branchName, kind){
 }
 function whatsappBranch(branchName, kind){
   const b=getBranchByName(branchName);
-  const phone=(b&&b.phone)||prompt('رقم واتساب الفرع (مثال: 2010xxxxxxxx) — اتركه فارغًا للاختيار يدويًا:','')||'';
+  /* الرقم المتسجّل للفرع هو المصدر الأساسي — لو موجود ندخل محادثته على طول
+     من غير أي prompt. لو مش مسجّل، نسأل مرة ونحفظه في دليل الفروع. */
+  let phone=(b&&b.phone)?String(b.phone).trim():'';
+  if(!phone){
+    const asked=prompt('رقم واتساب فرع «'+branchName+'» (مثال: 2010xxxxxxxx)\nاتركه فارغًا لاختيار جهة الاتصال يدويًا:','');
+    if(asked!==null && String(asked).trim()){
+      phone=String(asked).trim();
+      if(b){ b.phone=phone; saveBranches(); }
+    }
+  }
   const st=branchStats(branchName);
   let list=st.cars, title='ملخص فرع '+branchName, headers, rows, filename;
   kind=kind||'summary';
@@ -176,7 +185,10 @@ function whatsappBranch(branchName, kind){
     phone:String(phone||'').trim(),
     filename,
     caption:'📋 '+title+' ('+list.length+') — مرفق PDF',
-    fallbackText:buildBranchMessage(branchName, kind)
+    fallbackText:buildBranchMessage(branchName, kind),
+    /* افتح محادثة الرقم المتسجّل فوراً داخل ضغطة الزر */
+    openWaNow: !!phone,
+    waText: buildBranchMessage(branchName, kind)
   });
 }
 

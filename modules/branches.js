@@ -72,7 +72,9 @@
           <td class="plate"><button type="button" class="br-name-btn" data-branch-cars="${escapeHtml(b.name||'')}" title="عرض سيارات هذا الفرع في الأسطول">${escapeHtml(b.name || '—')}</button></td>
           <td>${escapeHtml(b.manager || '—')}</td>
           <td>${escapeHtml(b.email || '—')}</td>
-          <td>${escapeHtml(b.phone || '—')}</td>
+          <td style="min-width:150px">
+            <input class="br-phone-edit" data-phone-id="${escapeHtml(b.id)}" value="${escapeHtml(b.phone || '')}" placeholder="2010xxxxxxxx" title="اكتب رقم واتساب الفرع واضغط Enter — هيحفظ فوراً" style="width:140px;padding:5px 8px;border:1px solid #CFE0DE;border-radius:7px;font-family:inherit;font-size:12px;direction:ltr;text-align:center;background:#F7FBFA">
+          </td>
           <td><b>${st.total}</b></td>
           <td><span class="tag green">${st.ready}</span></td>
           <td><span class="tag ${st.insp ? 'amber' : 'green'}">${st.insp}</span></td>
@@ -118,6 +120,26 @@
       tb.querySelectorAll('[data-mail-insp]').forEach(btn => btn.onclick = () => emailBranch(btn.dataset.mailInsp, 'insp'));
       tb.querySelectorAll('[data-mail-card]').forEach(btn => btn.onclick = () => emailBranch(btn.dataset.mailCard, 'card'));
       tb.querySelectorAll('[data-wa-insp]').forEach(btn => btn.onclick = () => whatsappBranch(btn.dataset.waInsp, 'insp'));
+
+      /* حفظ رقم واتساب الفرع مباشرة من الجدول (Enter أو فقدان التركيز) */
+      tb.querySelectorAll('.br-phone-edit').forEach(inp => {
+        const commit = () => {
+          const id = inp.dataset.phoneId;
+          const b = getBranches().find(x => String(x.id) === String(id));
+          if (!b) return;
+          const v = (inp.value || '').trim();
+          if (String(b.phone || '') === v) return;
+          b.phone = v;
+          saveBranches();
+          const hint = document.createElement('span');
+          hint.textContent = '✓';
+          hint.style.cssText = 'color:#0E7A5F;font-weight:800;margin-inline-start:6px';
+          inp.insertAdjacentElement('afterend', hint);
+          setTimeout(() => hint.remove(), 1200);
+        };
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+        inp.addEventListener('blur', commit);
+      });
     }
 
     $('btn-add-branch').onclick = () => openBranchModal(null);

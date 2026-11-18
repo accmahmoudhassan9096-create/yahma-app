@@ -312,6 +312,19 @@ async function sharePdfOnWhatsApp(opts){
   /* بيتسجل مرة واحدة قبل العودة من أي مسار ناجح */
   const histEntry={ title: title, rowsCount: rows.length, phone: phone, by: currentSenderName() };
 
+  /* ⭐ افتح محادثة واتساب فوراً داخل ضغطة المستخدم (قبل أي await)،
+     عشان المتصفحات مش بتحجب النافذة المنبثقة إلا لو جت بعد انتظار.
+     لما يكون رقم الفرع مسجّل، ندخل مباشرة لمحادثة الرقم بالرسالة. */
+  let waOpenedEarly=false;
+  if(opts.openWaNow && phone){
+    try{
+      const earlyMsg=opts.waText||caption;
+      shareOnWhatsApp(earlyMsg, phone);
+      waOpenedEarly=true;
+      recordWaHistory(Object.assign({}, histEntry, { pdfOk:null }));
+    }catch(e){ console.warn('early WA open failed', e); }
+  }
+
   const loading=document.createElement('div');
   loading.style.cssText='position:fixed;inset:0;background:rgba(13,24,54,.5);z-index:2147483647;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Tahoma,Arial,sans-serif;font-size:16px;font-weight:700';
   loading.innerHTML='<div style="background:#1F3C88;padding:18px 28px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.3)">جارِ تجهيز ملف PDF...</div>';
@@ -355,18 +368,33 @@ async function sharePdfOnWhatsApp(opts){
 
   recordWaHistory(Object.assign({}, histEntry, { pdfOk: pdfOk }));
 
-  // افتح واتساب دائمًا (بعد التنزيل)
-  setTimeout(()=>{
-    try{ shareOnWhatsApp(msg, phone||null); }
-    catch(e){ console.error(e); alert('تعذر فتح واتساب. انسخ الرسالة يدويًا.'); }
-  }, pdfOk?400:200);
-
-  if(pdfOk){
+  if(!waOpenedEarly){
+    // افتح واتساب بعد التنزيل (الحالة العادية)
     setTimeout(()=>{
-      alert('تم تنزيل PDF.\nافتح واتساب وأرفق الملف من التنزيلات (📎).');
-    }, 600);
+      try{ shareOnWhatsApp(msg, phone||null); }
+      catch(e){ console.error(e); alert('تعذر فتح واتساب. انسخ الرسالة يدويًا.'); }
+    }, pdfOk?400:200);
+
+    if(pdfOk){
+      setTimeout(()=>{
+        alert('تم تنزيل PDF.\nافتح واتساب وأرفق الملف من التنزيلات (📎).');
+      }, 600);
+    }else{
+      alert('تعذر إنشاء PDF تلقائيًا.\nسيُفتح واتساب بالنص، ويمكنك استخدام نافذة الطباعة لحفظ PDF.');
+    }
   }else{
-    alert('تعذر إنشاء PDF تلقائيًا.\nسيُفتح واتساب بالنص، ويمكنك استخدام نافذة الطباعة لحفظ PDF.');
+    /* المحادثة اتفتحت بالفعل — نكتفي بإشعار خفيف بدون alerts مزعجة */
+    if(pdfOk){
+      setTimeout(()=>{
+        try{
+          const t=document.createElement('div');
+          t.textContent='✓ تم تجهيز PDF — أرفقه من التنزيلات في المحادثة المفتوحة';
+          t.style.cssText='position:fixed;bottom:20px;left:20px;z-index:2147483647;background:#0E7A5F;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2)';
+          document.body.appendChild(t);
+          setTimeout(()=>t.remove(),3500);
+        }catch(_){}
+      }, 500);
+    }
   }
 }
 function carsToInspRows(cars){
@@ -381,12 +409,21 @@ function carsToCardRows(cars){
   ]);
 }
 
+function normalizeWaNumber(phone){
+  let num=String(phone||'').replace(/[^0-9]/g,'');
+  if(!num) return '';
+  // صيغة سعودية محلية بالضبط 10 أرقام تبدأ بصفر (05xxxxxxxx) → كود الدولة 966
+  if(num.length===10 && num.startsWith('0')) num='966'+num.slice(1);
+  // رقم سعودي بدون كود دولة (5xxxxxxxx = 9 أرقام) → أضف 966
+  else if(num.length===9 && num.startsWith('5')) num='966'+num;
+  return num;
+}
 function shareOnWhatsApp(text, phone){
   const msg=encodeURIComponent(text);
-  // لو رقم موجود: wa.me/2010xxxxxxx بدون + أو أصفار زائدة للدولة
+  // wa.me/<كود الدولة><الرقم> بدون + أو مسافات
   let url;
-  if(phone){
-    const num=String(phone).replace(/[^0-9]/g,'');
+  const num=phone?normalizeWaNumber(phone):'';
+  if(num){
     url='https://wa.me/'+num+'?text='+msg;
   }else{
     url='https://wa.me/?text='+msg;
