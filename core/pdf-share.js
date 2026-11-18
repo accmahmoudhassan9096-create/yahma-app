@@ -301,6 +301,17 @@ window.YahmaWAHistoryLog={
   }
 };
 
+/* إشعار خفيف (بدل alert مزعج) */
+function waToast(text){
+  try{
+    const t=document.createElement('div');
+    t.textContent=text;
+    t.style.cssText='position:fixed;bottom:20px;left:20px;z-index:2147483647;background:#0E7A5F;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2);font-family:inherit';
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(),4200);
+  }catch(_){}
+}
+
 async function sharePdfOnWhatsApp(opts){
   const title=opts.title||'تقرير الأسطول';
   const headers=opts.headers||[];
@@ -309,20 +320,17 @@ async function sharePdfOnWhatsApp(opts){
   const phone=(opts.phone||'').trim();
   const caption=opts.caption||('مرفق: '+title);
   const filename=((opts.filename||title)+'').replace(/[\\/:*?"<>|]+/g,'_')+'.pdf';
-  /* بيتسجل مرة واحدة قبل العودة من أي مسار ناجح */
   const histEntry={ title: title, rowsCount: rows.length, phone: phone, by: currentSenderName() };
 
-  /* ⭐ افتح محادثة واتساب فوراً داخل ضغطة المستخدم (قبل أي await)،
-     عشان المتصفحات مش بتحجب النافذة المنبثقة إلا لو جت بعد انتظار.
-     لما يكون رقم الفرع مسجّل، ندخل مباشرة لمحادثة الرقم بالرسالة. */
-  let waOpenedEarly=false;
+  /* ⭐ المطلوب: المرفق الفعلي يبقى PDF مش كلام.
+     - الموبايل/المتصفحات اللي بتدعم مشاركة الملفات: نبعث الـPDF كملف عبر
+       navigator.share({files}) → واتساب يستقبل ملف فعلي.
+     - الكمبيوتر: wa.me مش بيقدر يرفق ملف من الرابط، فنفتح محادثة الرقم
+       (بدون أي ?text) وننزّل PDF عشان المستخدم يرفقه بنفسه.
+     نفتح نافذة واتساب فوراً داخل ضغطة المستخدم قبل أي await عشان popup blocker. */
+  let waWin=null;
   if(opts.openWaNow && phone){
-    try{
-      const earlyMsg=opts.waText||caption;
-      shareOnWhatsApp(earlyMsg, phone);
-      waOpenedEarly=true;
-      recordWaHistory(Object.assign({}, histEntry, { pdfOk:null }));
-    }catch(e){ console.warn('early WA open failed', e); }
+    try{ waWin=window.open('about:blank','_blank'); }catch(_){}
   }
 
   const loading=document.createElement('div');
@@ -330,71 +338,50 @@ async function sharePdfOnWhatsApp(opts){
   loading.innerHTML='<div style="background:#1F3C88;padding:18px 28px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.3)">جارِ تجهيز ملف PDF...</div>';
   document.body.appendChild(loading);
 
-  let pdfOk=false;
+  let pdfOk=false, pdfBlob=null;
   try{
-    const blob=await generateReportPdfBlob(title, headers, rows, subtitle);
-    downloadBlob(blob, filename);
+    pdfBlob=await generateReportPdfBlob(title, headers, rows, subtitle);
+    downloadBlob(pdfBlob, filename);
     pdfOk=true;
 
-    // مشاركة مباشرة على الموبايل إن أمكن
-    try{
-      const file=new File([blob], filename, {type:'application/pdf'});
-      if(navigator.canShare && navigator.canShare({files:[file]})){
-        loading.remove();
-        await navigator.share({files:[file], title:title, text:caption});
-        recordWaHistory(Object.assign({}, histEntry, { pdfOk:true }));
-        return;
+    /* مشاركة الملف نفسه على الموبايل — PDF مش نص */
+    if(pdfBlob){
+      try{
+        const file=new File([pdfBlob], filename, {type:'application/pdf'});
+        if(navigator.canShare && navigator.canShare({files:[file]})){
+          loading.remove();
+          if(waWin){ try{ waWin.close(); }catch(_){} }
+          await navigator.share({files:[file], title:title, text:caption});
+          recordWaHistory(Object.assign({}, histEntry, { pdfOk:true, method:'file' }));
+          return;
+        }
+      }catch(shareErr){
+        if(shareErr && shareErr.name==='AbortError'){ loading.remove(); return; }
+        console.warn(shareErr);
       }
-    }catch(shareErr){
-      if(shareErr && shareErr.name==='AbortError'){ loading.remove(); return; }
-      console.warn(shareErr);
     }
   }catch(e){
     console.error('PDF error', e);
     pdfOk=false;
-    // fallback: نافذة طباعة/حفظ PDF
-    try{
-      if(typeof openPrintWindow==='function'){
-        openPrintWindow(title, subtitle, headers, rows, 'استخدم حفظ كـ PDF من نافذة الطباعة');
-      }
-    }catch(_){yahmaErr(_,'pdf-share.js:231');}
+    try{ if(typeof openPrintWindow==='function'){ openPrintWindow(title, subtitle, headers, rows, 'استخدم حفظ كـ PDF من نافذة الطباعة'); } }
+    catch(_){yahmaErr(_,'pdf-share.js:231');}
   }finally{
     loading.remove();
   }
 
-  const msg = pdfOk
-    ? (caption+'\n\nتم تنزيل الملف: '+filename+'\nأرفقه من مجلد التنزيلات 📎')
-    : ((opts.fallbackText||caption)+'\n\n(تعذر إنشاء PDF تلقائيًا — استخدم نافذة الطباعة إن ظهرت)');
+  recordWaHistory(Object.assign({}, histEntry, { pdfOk: pdfOk, method:'chat' }));
 
-  recordWaHistory(Object.assign({}, histEntry, { pdfOk: pdfOk }));
+  /* افتح محادثة الرقم بدون أي نص — الملف هيترفق يدوياً من التنزيلات */
+  const waUrl=phone?('https://wa.me/'+normalizeWaNumber(phone)):'https://wa.me/';
+  try{
+    if(waWin){ waWin.location.href=waUrl; }
+    else{ setTimeout(()=>window.open(waUrl,'_blank'), 200); }
+  }catch(e){ console.error('WA open failed', e); }
 
-  if(!waOpenedEarly){
-    // افتح واتساب بعد التنزيل (الحالة العادية)
-    setTimeout(()=>{
-      try{ shareOnWhatsApp(msg, phone||null); }
-      catch(e){ console.error(e); alert('تعذر فتح واتساب. انسخ الرسالة يدويًا.'); }
-    }, pdfOk?400:200);
-
-    if(pdfOk){
-      setTimeout(()=>{
-        alert('تم تنزيل PDF.\nافتح واتساب وأرفق الملف من التنزيلات (📎).');
-      }, 600);
-    }else{
-      alert('تعذر إنشاء PDF تلقائيًا.\nسيُفتح واتساب بالنص، ويمكنك استخدام نافذة الطباعة لحفظ PDF.');
-    }
+  if(pdfOk){
+    waToast('✓ تم تنزيل PDF — أرفق الملف من التنزيلات في المحادثة 📎');
   }else{
-    /* المحادثة اتفتحت بالفعل — نكتفي بإشعار خفيف بدون alerts مزعجة */
-    if(pdfOk){
-      setTimeout(()=>{
-        try{
-          const t=document.createElement('div');
-          t.textContent='✓ تم تجهيز PDF — أرفقه من التنزيلات في المحادثة المفتوحة';
-          t.style.cssText='position:fixed;bottom:20px;left:20px;z-index:2147483647;background:#0E7A5F;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2)';
-          document.body.appendChild(t);
-          setTimeout(()=>t.remove(),3500);
-        }catch(_){}
-      }, 500);
-    }
+    waToast('تعذر إنشاء PDF — استخدم نافذة الطباعة لحفظه');
   }
 }
 function carsToInspRows(cars){
