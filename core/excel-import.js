@@ -56,9 +56,36 @@ function workbookRowsAllSheets(wb){
   return { rows: merged, sheets };
 }
 
+/* ===== مؤشر تقدّم خفيف للاستيراد (عشان المستخدم ما يحسش إنه علّق) ===== */
+function importProgress(show, text){
+  let el = document.getElementById('yahma-import-progress');
+  if(!show){ if(el) el.remove(); return; }
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'yahma-import-progress';
+    el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(18,32,58,.45);display:flex;align-items:center;justify-content:center';
+    el.innerHTML = '<div style="background:#fff;border-radius:14px;padding:26px 34px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.25);min-width:260px;font-family:inherit">'
+      + '<div style="font-size:30px;margin-bottom:10px">⏳</div>'
+      + '<div id="yahma-import-progress-text" style="font-size:14px;font-weight:700;color:#12203A">جارِ معالجة الملف...</div>'
+      + '<div style="margin-top:12px;height:5px;background:#EEF2F7;border-radius:99px;overflow:hidden"><i style="display:block;height:100%;background:#0BAA86;animation:yh-progress 1.1s ease-in-out infinite"></i></div>'
+      + '</div>';
+    document.body.appendChild(el);
+    /* حركة بسيطة للشريط من غير ملف CSS خارجي */
+    if(!document.getElementById('yahma-import-progress-style')){
+      const st = document.createElement('style');
+      st.id = 'yahma-import-progress-style';
+      st.textContent = '@keyframes yh-progress{0%{width:8%;margin-inline-start:0}50%{width:60%;margin-inline-start:20%}100%{width:8%;margin-inline-start:92%}}';
+      document.head.appendChild(st);
+    }
+  }
+  const t = document.getElementById('yahma-import-progress-text');
+  if(t && text) t.textContent = text;
+}
+
 async function handleExcelFile(file){
   if(currentRole!=='admin'&&currentRole!=='ops'){ alert('ليس لديك صلاحية استيراد بيانات الأسطول.'); return; }
   if(!(await ensureXlsxReady())){ alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.'); return; }
+  importProgress(true, 'جارِ قراءة الملف...');
   let rows, wb, sheetInfo = null;
   try{
     const buf = await file.arrayBuffer();
@@ -66,8 +93,8 @@ async function handleExcelFile(file){
     const all = workbookRowsAllSheets(wb);
     rows = all.rows;
     sheetInfo = all.sheets;
-  }catch(e){ alert('تعذر قراءة الملف. تأكد أنه ملف إكسيل أو CSV صحيح.'); return; }
-  if(!rows.length){ alert('الملف فارغ أو لا يحتوي على بيانات.'); return; }
+  }catch(e){ importProgress(false); alert('تعذر قراءة الملف. تأكد أنه ملف إكسيل أو CSV صحيح.'); return; }
+  if(!rows.length){ importProgress(false); alert('الملف فارغ أو لا يحتوي على بيانات.'); return; }
   try{
     if(sheetInfo && sheetInfo.length>1){
       console.info('[yahma] sheets read: ' + JSON.stringify(sheetInfo));
@@ -112,6 +139,7 @@ async function handleExcelFile(file){
     else newCandidates++;
   });
   const soldMatches=new Set(plan.sold.map(record=>normalizePlateKey(record.car.plate)));  const soldCount=fleet.filter(car=>soldMatches.has(normalizePlateKey(car.plate))).length;
+  importProgress(false);
   const shouldContinue=confirm(
     `معاينة تحديث الأسطول:\n${plan.active.length} صف نشط (${updateCandidates} موجود للتحديث، ${newCandidates} جديد)\n`+
     `${soldCount} سيارة (مباعة / هلاك كلي) سيتم حذفها من جميع التبويبات\n\nسيتم تحديث الفرع وحالة السيارة وباقي البيانات دون نقل أي سيارة بين التبويبات.`+
@@ -121,29 +149,39 @@ async function handleExcelFile(file){
   );
   if(!shouldContinue) return;
 
+  importProgress(true, 'جارِ مطابقة السيارات...');
+  /* ⭐ تحسين الأداء: كان الكود بيعمل fleet.findIndex لكل صف في الشيت،
+     وكل findIndex بيمر على كل السيارات وينفّذ transferPlateVariants
+     (≈10 regex) لكل سيارة — يعني O(صفوف × سيارات) ≈ 16 مليون عملية
+     لشيت 4000 صف. دلوقتي بنبني خريطة مرة واحدة (O(سيارات)) ونستخدمها:
+     كل صيغة لوحة → رقم السيارة في fleet. كمان بنبني خريطة للتسلسلي. */
+  const tpv = (window.YahmaFleetExcel && typeof window.YahmaFleetExcel.transferPlateVariants === 'function')
+    ? window.YahmaFleetExcel.transferPlateVariants
+    : (p) => [normalizePlateKey(p)];
+  const plateIndex = new Map();   // variant -> index in fleet
+  const serialIndex = new Map();  // serial -> index in fleet
+  fleet.forEach((car, i) => {
+    (tpv(car.plate) || []).forEach(v => { if(v && !plateIndex.has(v)) plateIndex.set(v, i); });
+    const s = String(car.serial || '').trim();
+    if(s && s !== '0' && s !== 'بدون' && s !== 'لا يوجد' && !serialIndex.has(s)) serialIndex.set(s, i);
+  });
+
   let updated=0,inserted=0,ignored=0;
   const affectedIds=[];
   for(const record of plan.active){
-    const plateKey=normalizePlateKey(record.car.plate);
-    const variants = (window.YahmaFleetExcel && typeof window.YahmaFleetExcel.transferPlateVariants === 'function')
-      ? window.YahmaFleetExcel.transferPlateVariants(record.car.plate)
-      : [plateKey];
+    const variants = tpv(record.car.plate) || [];
 
-    // 1. مطابقة اللوحة بكل صيغها (عادي ومعكوس)
-    let idx = fleet.findIndex(car => {
-      const pVariants = (window.YahmaFleetExcel && typeof window.YahmaFleetExcel.transferPlateVariants === 'function')
-        ? window.YahmaFleetExcel.transferPlateVariants(car.plate)
-        : [normalizePlateKey(car.plate)];
-      return variants.some(v => pVariants.includes(v));
-    });
+    // 1. مطابقة اللوحة بكل صيغها (عادي ومعكوس) — O(1) عبر الخريطة
+    let idx = -1;
+    for(const v of variants){ if(plateIndex.has(v)){ idx = plateIndex.get(v); break; } }
 
     const car = record.car;
     const serialKey = String(car.serial || '').trim();
     const serialIsPlaceholder = !serialKey || serialKey === '0' || serialKey === 'بدون' || serialKey === 'لا يوجد';
 
-    // 2. إذا لم تتطابق اللوحة، نحاول المطابقة برقم الشاسيه/التسلسلي
-    if (idx < 0 && !serialIsPlaceholder) {
-      idx = fleet.findIndex(existing => String(existing.serial || '').trim() === serialKey);
+    // 2. إذا لم تتطابق اللوحة، نحاول المطابقة برقم الشاسيه/التسلسلي — O(1)
+    if (idx < 0 && !serialIsPlaceholder && serialIndex.has(serialKey)) {
+      idx = serialIndex.get(serialKey);
     }
 
     // إذا وُجدت السيارة في الأسطول، ندمج كل الحقول المحدثة
@@ -153,6 +191,10 @@ async function handleExcelFile(file){
       continue;
     }
 
+    /* السيارة الجديدة: نسجّل صيغ لوحتها في الخريطة عشان الصفوف المكررة
+       في نفس الشيت ما تعملش سيارتين منفصلتين */
+    (tpv(car.plate) || []).forEach(v => { if(v && !plateIndex.has(v)) plateIndex.set(v, fleet.length); });
+    if(!serialIsPlaceholder && !serialIndex.has(serialKey)) serialIndex.set(serialKey, fleet.length);
     fleet.push(car); inserted++; affectedIds.push(car.id);
   }
 
@@ -170,9 +212,16 @@ async function handleExcelFile(file){
 
   if(affectedIds.length||deletion.matched){
     log('استيراد Excel',`جديد: ${inserted}، محدث: ${updated}، محذوف كمباع: ${deletion.matched}، مكرر: ${ignored}`);
-    await saveData(affectedIds.length?affectedIds:undefined);
+    importProgress(true, 'جارِ حفظ البيانات...');
+    /* نحدّث الشاشة فوراً بالبيانات المحلية قبل الحفظ السحابي (اللي ممكن
+       ياخد وقت)، عشان المستخدم يشوف نتيجة الرفع على طول. */
     render();
+    try{ await saveData(affectedIds.length?affectedIds:undefined); }
+    catch(e){ console.warn('save after import failed', e); }
   }
+  /* أظهر رسالة النجاح فور انتهاء المطابقة والحفظ المحلي — حتى لو الحفظ
+     السحابي فشل، البيانات محفوظة محلياً ومطلوب إبلاغ المستخدم. */
+  importProgress(false);
   alert(`اكتمل الاستيراد: ${inserted} جديد، ${updated} محدث، ${deletion.matched} مباعة محذوفة، ${ignored} مكرر تم تجاهله.`+
     (deletion.failedCloud?`\nتنبيه: فشل حذف ${deletion.failedCloud} من Supabase؛ تحقق من الاتصال والصلاحيات.`:'')+
     (plan.skipped?`\nتم تجاهل ${plan.skipped} صف بدون رقم لوحة.`:'')+
