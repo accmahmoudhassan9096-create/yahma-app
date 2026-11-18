@@ -15,26 +15,77 @@ function buildInspectionWhatsAppMessage(cars){
    عليها Windows fonts، فالعربي بيطلع حروفه مقطّعة في الـPDF. */
 var YAHMA_PDF_FONT = "'Cairo','Noto Sans Arabic',Tahoma,'Segoe UI',Arial,sans-serif";
 
+/* ===== تصميم PDF موحّد بنفس شكل المعاينة المطلوبة =====
+   رأس أنيق: العنوان يمين + تاريخ التصدير وعدد السيارات شمال، فاصل داكن،
+   شريط تعريفي (تصنيف السيارات + العدد)، جدول برأس تيلي وخلايا حالات
+   ملوّنة (أخضر للسليم / أحمر لما يحتاج متابعة / أزرق للتاريخ)، وشريط
+   تيلي رأسي على الحافة. التلوين بيحصل أوتوماتيك من نص الخلية. */
 function buildPdfReportHtml(title, headers, rows, subtitle){
   const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const NAVY='#12203A', TEAL='#0E6E75', TEAL_DARK='#0B4D57';
+  const count=(rows||[]).length;
+
+  /* لون الخلية حسب كلمة الحالة — مطابق للصورة المعيارية */
+  function cellTone(raw){
+    const s=String(raw??'').trim();
+    if(!s || s==='—' || s==='-') return {fg:'#8A97A8', bg:''};
+    if(/لم يتم|لم يفحص|يحتاج فحص|منتهي|منتهية|ملغى|موقوف|لا يوجد|غير ساري|مفقود|مسروق|خارج الخدمة|متأخر|عالق/.test(s))
+      return {fg:'#B23A2E', bg:'#FBE7E4'};
+    if(/سليم|تم الفحص|ساري|نشط|متاح|موجودة|جاهز|تم التجديد|مكتمل|داخل الخدمة/.test(s))
+      return {fg:'#0E7A5F', bg:'#E4F5EE'};
+    if(/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(s)) // تاريخ
+      return {fg:'#123E9C', bg:''};
+    return {fg:'#17202B', bg:''};
+  }
+
   const head=(headers||[]).map(h=>'<th>'+esc(h)+'</th>').join('');
-  const body=(rows||[]).map(r=>'<tr>'+(r||[]).map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('');
+  const body=(rows||[]).map(r=>
+    '<tr>'+(r||[]).map(c=>{
+      const t=cellTone(c);
+      return '<td style="color:'+t.fg+';'+(t.bg?('background:'+t.bg+';'):'')+'">'+esc(c)+'</td>';
+    }).join('')+'</tr>'
+  ).join('');
+
+  /* عنوان التصنيف: يفضّل subtitle لو موجود، وإلا العنوان نفسه */
+  const classify=esc(subtitle||title);
   return (
-    '<div class="pdf-root" style="box-sizing:border-box;width:1000px;padding:24px;background:#ffffff;color:#1A2433;font-family:' + YAHMA_PDF_FONT + ';direction:rtl;text-align:right;">'+
-      '<style>.pdf-root *{font-family:' + YAHMA_PDF_FONT + ' !important}</style>'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #C6952E;padding-bottom:12px;margin-bottom:16px;">'+
-        '<div>'+
-          '<div style="font-size:22px;font-weight:800;color:#1F3C88;line-height:1.3;">'+esc(title)+'</div>'+
-          (subtitle?('<div style="font-size:13px;color:#5A6A7E;margin-top:6px;">'+esc(subtitle)+'</div>'):'')+
+    '<div class="pdf-root" style="box-sizing:border-box;width:1000px;padding:26px 30px;background:#ffffff;color:#17202B;font-family:' + YAHMA_PDF_FONT + ';direction:rtl;text-align:right;">'+
+      '<style>'+
+        '.pdf-root *{font-family:' + YAHMA_PDF_FONT + ' !important}'+
+        '.pdf-root table{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:16px}'+
+        '.pdf-root th{background:'+TEAL_DARK+';color:#fff;padding:10px 8px;font-size:12px;font-weight:700;text-align:right;border:1px solid #0A3E46;word-wrap:break-word}'+
+        '.pdf-root td{padding:9px 8px;border:1px solid #DCE6EA;font-size:11.5px;text-align:right;word-wrap:break-word;vertical-align:middle}'+
+        '.pdf-root tbody tr:nth-child(even) td{background:#F5FAFA}'+
+      '</style>'+
+
+      /* الشريط التيلي الرأسي على الحافة */
+      '<div style="position:absolute;right:0;top:0;bottom:0;width:7px;background:'+TEAL+';"></div>'+
+
+      /* الرأس: العنوان يمين، التاريخ والعدد شمال */
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">'+
+        '<div style="font-size:23px;font-weight:800;color:'+NAVY+';line-height:1.3;">'+esc(title)+'</div>'+
+        '<div style="text-align:left;color:#6B7280;font-size:11px;line-height:1.7;white-space:nowrap;">'+
+          '<div>تاريخ التصدير: '+esc(new Date().toLocaleString('ar-EG'))+'</div>'+
+          '<div>إجمالي السيارات '+count+'</div>'+
         '</div>'+
-        '<div style="font-size:12px;color:#5A6A7E;white-space:nowrap;">'+esc(new Date().toLocaleString('ar-EG'))+'</div>'+
       '</div>'+
-      '<div style="font-size:13px;margin-bottom:12px;color:#5A6A7E;">عدد السجلات: <b style="color:#1A2433;">'+(rows?rows.length:0)+'</b></div>'+
-      '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">'+
-        '<thead><tr style="background:#1F3C88;color:#fff;">'+head.replace(/<th>/g,'<th style="padding:9px 7px;font-size:12px;text-align:right;border:1px solid #16306e;word-wrap:break-word;">')+'</tr></thead>'+
-        '<tbody>'+(body||('<tr><td colspan="'+(headers||[]).length+'" style="padding:14px;text-align:center;">لا توجد بيانات</td></tr>')).replace(/<td>/g,'<td style="padding:8px 7px;border:1px solid #E5E7EB;font-size:11.5px;text-align:right;word-wrap:break-word;vertical-align:top;">')+
-        '</tbody></table>'+
-      '<div style="margin-top:18px;padding-top:10px;border-top:1px solid #E6EAF0;font-size:11px;color:#8A97A8;text-align:center;">نظام إدارة جاهزية الأسطول</div>'+
+
+      /* الفاصل الداكن */
+      '<div style="border-top:3px solid '+NAVY+';margin:12px 0 16px;"></div>'+
+
+      /* الشريط التعريفي */
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;background:#F7FAFC;border-right:4px solid '+TEAL+';padding:11px 16px;margin-bottom:6px;">'+
+        '<div style="font-size:12px;font-weight:700;color:#374151;">عدد السيارات المركبة '+count+' سيارات</div>'+
+        '<div style="font-size:14px;font-weight:800;color:'+NAVY+';">'+classify+'</div>'+
+      '</div>'+
+
+      /* الجدول */
+      '<table>'+
+        '<thead><tr>'+head+'</tr></thead>'+
+        '<tbody>'+(body||('<tr><td colspan="'+Math.max(1,(headers||[]).length)+'" style="text-align:center;padding:14px;">لا توجد بيانات</td></tr>'))+'</tbody>'+
+      '</table>'+
+
+      '<div style="margin-top:18px;padding-top:10px;border-top:1px solid #E6EAF0;font-size:10px;color:#8A97A8;text-align:center;">يهماء لتأجير السيارات — منصة تحضير الأسطول</div>'+
     '</div>'
   );
 }
