@@ -322,14 +322,22 @@ async function sharePdfOnWhatsApp(opts){
   const filename=((opts.filename||title)+'').replace(/[\\/:*?"<>|]+/g,'_')+'.pdf';
   const histEntry={ title: title, rowsCount: rows.length, phone: phone, by: currentSenderName() };
 
-  /* ⭐ المطلوب: المرفق الفعلي يبقى PDF مش كلام.
-     - الموبايل/المتصفحات اللي بتدعم مشاركة الملفات: نبعث الـPDF كملف عبر
-       navigator.share({files}) → واتساب يستقبل ملف فعلي.
-     - الكمبيوتر: wa.me مش بيقدر يرفق ملف من الرابط، فنفتح محادثة الرقم
-       (بدون أي ?text) وننزّل PDF عشان المستخدم يرفقه بنفسه.
-     نفتح نافذة واتساب فوراً داخل ضغطة المستخدم قبل أي await عشان popup blocker. */
+  /* ⭐ المطلوب: المرفق الفعلي يبقى PDF مش كلام، والمستخدم يضغط «إرسال» بس.
+     - الموبايل (متصفح يدعم مشاركة الملفات): نستخدم navigator.share({files})
+       اللي بيفتح واتساب بالـPDF مرفق وجاهز. ❗ممنوع نفتح أي popup قبلها —
+       window.open بيستهلك الـ user gesture فـnavigator.share بيفشل.
+     - الكمبيوتر: واتساب ويب مش بيسمح بإرفاق ملف من رابط (ده حد من واتساب)،
+       فنفتح محادثة الرقم وننزّل PDF عشان المستخدم يرفقه.
+     خاصية canShare بتُفحص دلوقتي (داخل الضغطة) قبل أي await. */
+  let canShareFiles=false;
+  try{
+    const probe=new File([''], 'probe.pdf', {type:'application/pdf'});
+    canShareFiles=!!(navigator.canShare && navigator.canShare({files:[probe]}));
+  }catch(_){ canShareFiles=false; }
+
+  /* على الموبايل: ما نفتحش popup خالص — نسيب الـ gesture لـnavigator.share */
   let waWin=null;
-  if(opts.openWaNow && phone){
+  if(!canShareFiles && opts.openWaNow && phone){
     try{ waWin=window.open('about:blank','_blank'); }catch(_){}
   }
 
@@ -341,25 +349,26 @@ async function sharePdfOnWhatsApp(opts){
   let pdfOk=false, pdfBlob=null;
   try{
     pdfBlob=await generateReportPdfBlob(title, headers, rows, subtitle);
-    downloadBlob(pdfBlob, filename);
     pdfOk=true;
 
-    /* مشاركة الملف نفسه على الموبايل — PDF مش نص */
-    if(pdfBlob){
+    /* الموبايل: مشاركة الملف نفسه فوراً — واتساب يفتح والمرفق جاهز ✅ */
+    if(canShareFiles && pdfBlob){
+      loading.remove();
+      const file=new File([pdfBlob], filename, {type:'application/pdf'});
       try{
-        const file=new File([pdfBlob], filename, {type:'application/pdf'});
-        if(navigator.canShare && navigator.canShare({files:[file]})){
-          loading.remove();
-          if(waWin){ try{ waWin.close(); }catch(_){} }
-          await navigator.share({files:[file], title:title, text:caption});
-          recordWaHistory(Object.assign({}, histEntry, { pdfOk:true, method:'file' }));
-          return;
-        }
+        await navigator.share({files:[file], title:title, text:caption});
+        recordWaHistory(Object.assign({}, histEntry, { pdfOk:true, method:'file' }));
+        return;
       }catch(shareErr){
-        if(shareErr && shareErr.name==='AbortError'){ loading.remove(); return; }
-        console.warn(shareErr);
+        if(shareErr && shareErr.name==='AbortError'){ return; }
+        console.warn('navigator.share failed', shareErr);
+        canShareFiles=false; // نكمل كمسار كمبيوتر
       }
+      document.body.appendChild(loading);
     }
+
+    /* الكمبيوتر / فشل المشاركة: نزّل الملف */
+    if(pdfBlob) downloadBlob(pdfBlob, filename);
   }catch(e){
     console.error('PDF error', e);
     pdfOk=false;
