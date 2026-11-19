@@ -1534,7 +1534,7 @@
     var W = 340, H = 180, padL = 36, padR = 14, padT = 22, padB = 28;
     var plotW = W - padL - padR, plotH = H - padT - padB;
     var step = plotW / Math.max(1, values.length - 1);
-    var pts = '', line = '', dots = '', labs = '', grid = '', gid = 'lg' + Math.floor(Math.random() * 1e9);
+    var pts = [], line = '', dots = '', labs = '', grid = '', gid = 'lg' + Math.floor(Math.random() * 1e9);
     var baseColor = color || '#6366f1';
     [0.25, 0.5, 0.75, 1].forEach(function (f) {
       var gy = padT + plotH - f * plotH;
@@ -1559,7 +1559,7 @@
     var W = 340, H = 180, padL = 36, padR = 14, padT = 22, padB = 28;
     var plotW = W - padL - padR, plotH = H - padT - padB;
     var step = plotW / Math.max(1, values.length - 1);
-    var pts = '', area = '', dots = '', labs = '', grid = '', gid = 'ag' + Math.floor(Math.random() * 1e9);
+    var pts = [], area = '', dots = '', labs = '', grid = '', gid = 'ag' + Math.floor(Math.random() * 1e9);
     var baseColor = color || '#059669';
     [0.25, 0.5, 0.75, 1].forEach(function (f) {
       var gy = padT + plotH - f * plotH;
