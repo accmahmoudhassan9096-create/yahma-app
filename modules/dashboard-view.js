@@ -66,14 +66,17 @@ function buildBranchOccupancyChart(branchOccupancy){
     const availH = (available / max) * 100;
     const name = String(b.name || '—');
     const short = name.length > 16 ? name.slice(0, 15) + '…' : name;
-    const tip = esc(name) + ': متاحة للإيجار ' + available + ' · مؤجرة ' + rented + ' (الإجمالي ' + total + ')';
+    /* النسب داخل العمود = نصيب كل جزء من إجمالي الفرع (المجموع 100%) */
+    const pctAvail = total ? Math.round((available / total) * 100) : 0;
+    const pctRented = total ? Math.round((rented / total) * 100) : 0;
+    const tip = esc(name) + ': متاحة للإيجار ' + available + ' (' + pctAvail + '%) · مؤجرة ' + rented + ' (' + pctRented + '%) · الإجمالي ' + total;
     /* ترتيب الأجزاء داخل العمود: أحمر (متاحة)فوق، أخضر (مؤجرة)تحت.
        الـflex column بـjustify-end بيخلي أول child في الأعلى. */
     return '<div class="boc-col" data-tip="' + tip + '" title="' + tip + '">'
       + '<div class="boc-total">' + nf(total) + '</div>'
       + '<div class="boc-stack">'
-        + '<div class="boc-seg available" style="height:' + availH.toFixed(1) + '%"><span class="boc-val">' + (available > 0 ? nf(available) : '') + '</span></div>'
-        + '<div class="boc-seg rented" style="height:' + rentedH.toFixed(1) + '%"><span class="boc-val">' + (rented > 0 ? nf(rented) : '') + '</span></div>'
+        + '<div class="boc-seg available" style="height:' + availH.toFixed(1) + '%"><span class="boc-val">' + (available > 0 ? pctAvail + '%' : '') + '</span></div>'
+        + '<div class="boc-seg rented" style="height:' + rentedH.toFixed(1) + '%"><span class="boc-val">' + (rented > 0 ? pctRented + '%' : '') + '</span></div>'
       + '</div>'
       + '<div class="boc-label">' + (i % labelEvery === 0 ? esc(short) : '') + '</div>'
     + '</div>';
@@ -81,17 +84,20 @@ function buildBranchOccupancyChart(branchOccupancy){
   const grid = ticks.map(t => '<div class="boc-grid" style="bottom:' + (t * 100) + '%"><span>' + nf(Math.round(max * t)) + '</span></div>').join('');
   const sumAvail = list.reduce((s, b) => s + (Number(b.available) || 0), 0);
   const sumRented = list.reduce((s, b) => s + (Number(b.rented) || 0), 0);
+  const grandTotal = sumAvail + sumRented;
+  const pctAvailAll = grandTotal ? Math.round((sumAvail / grandTotal) * 100) : 0;
+  const pctRentedAll = grandTotal ? Math.round((sumRented / grandTotal) * 100) : 0;
   return '<div class="boc-wrap">'
     + '<div class="boc-legend">'
-      + '<span><i class="boc-dot available"></i>متاحة للإيجار <b>' + nf(sumAvail) + '</b></span>'
-      + '<span><i class="boc-dot rented"></i>مؤجرة <b>' + nf(sumRented) + '</b></span>'
-      + '<span class="boc-legend-total">الإجمالي <b>' + nf(sumAvail + sumRented) + '</b></span>'
+      + '<span><i class="boc-dot available"></i>متاحة للإيجار <b>' + pctAvailAll + '%</b> <small>(' + nf(sumAvail) + ')</small></span>'
+      + '<span><i class="boc-dot rented"></i>مؤجرة <b>' + pctRentedAll + '%</b> <small>(' + nf(sumRented) + ')</small></span>'
+      + '<span class="boc-legend-total">الإجمالي <b>' + nf(grandTotal) + '</b></span>'
     + '</div>'
     + '<div class="boc-chart">'
       + grid
       + '<div class="boc-cols">' + bars + '</div>'
     + '</div>'
-    + '<div class="boc-foot">' + list.length + ' فرع · الأرقام داخل كل عمود = عدد السيارات</div>'
+    + '<div class="boc-foot">' + list.length + ' فرع · النسبة داخل كل جزء = نصيبه من سيارات الفرع · الرقم أعلى العمود = إجمالي الفرع</div>'
   + '</div>';
 }
 
@@ -719,6 +725,7 @@ function dashboardTemplate(state) {
     .boc-legend{display:flex;gap:22px;justify-content:center;align-items:center;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--ds-muted);flex-wrap:wrap}
     .boc-legend span{display:inline-flex;align-items:center;gap:7px}
     .boc-legend b{color:#12203A;font-weight:900}
+    .boc-legend small{color:#9AA7B5;font-size:10px;font-weight:600}
     .boc-legend-total{padding:4px 12px;background:#F1F5F7;border-radius:999px;color:#12203A}
     .boc-dot{width:12px;height:12px;border-radius:3px;display:inline-block;box-shadow:0 1px 3px rgba(0,0,0,.18)}
     /* اللون المطلوب: أحمر = متاحة للإيجار، أخضر = مؤجرة */
