@@ -67,11 +67,13 @@ function buildBranchOccupancyChart(branchOccupancy){
     const name = String(b.name || '—');
     const short = name.length > 16 ? name.slice(0, 15) + '…' : name;
     const tip = esc(name) + ': متاحة للإيجار ' + available + ' · مؤجرة ' + rented + ' (الإجمالي ' + total + ')';
+    /* ترتيب الأجزاء داخل العمود: أحمر (متاحة)فوق، أخضر (مؤجرة)تحت.
+       الـflex column بـjustify-end بيخلي أول child في الأعلى. */
     return '<div class="boc-col" data-tip="' + tip + '" title="' + tip + '">'
       + '<div class="boc-total">' + nf(total) + '</div>'
       + '<div class="boc-stack">'
-        + '<div class="boc-seg rented" style="height:' + rentedH.toFixed(1) + '%"><span class="boc-val">' + (rented > 0 ? nf(rented) : '') + '</span></div>'
         + '<div class="boc-seg available" style="height:' + availH.toFixed(1) + '%"><span class="boc-val">' + (available > 0 ? nf(available) : '') + '</span></div>'
+        + '<div class="boc-seg rented" style="height:' + rentedH.toFixed(1) + '%"><span class="boc-val">' + (rented > 0 ? nf(rented) : '') + '</span></div>'
       + '</div>'
       + '<div class="boc-label">' + (i % labelEvery === 0 ? esc(short) : '') + '</div>'
     + '</div>';
@@ -730,10 +732,10 @@ function dashboardTemplate(state) {
     .boc-total{font-size:9px;font-weight:900;color:#12203A;margin-bottom:2px;line-height:1}
     .boc-stack{width:100%;height:calc(100% - 58px);display:flex;flex-direction:column;justify-content:flex-end;border-radius:4px 4px 0 0;overflow:hidden;transition:transform .18s,box-shadow .18s;box-shadow:0 2px 8px rgba(0,0,0,.10)}
     .boc-col:hover .boc-stack{transform:translateY(-3px);box-shadow:0 8px 18px rgba(0,0,0,.18)}
-    .boc-seg{width:100%;position:relative;display:flex;align-items:flex-start;justify-content:center}
+    .boc-seg{width:100%;position:relative;display:flex;align-items:center;justify-content:center;min-height:0}
     .boc-seg.available{background:linear-gradient(180deg,#F8635B,#E23B33)}
     .boc-seg.rented{background:linear-gradient(180deg,#2FCB8F,#0FA96F)}
-    .boc-val{font-size:8px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35);line-height:1.2;padding-top:2px}
+    .boc-val{font-size:9px;font-weight:900;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45);line-height:1}
     .boc-label{height:58px;padding-top:7px;font-size:9px;font-weight:700;color:var(--ds-muted);text-align:center;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;overflow:hidden;direction:rtl}
     .boc-foot{text-align:center;margin-top:10px;font-size:10.5px;color:#8A97A8}
     @media(max-width:900px){.boc-chart{height:190px}.boc-label{font-size:7.5px;height:44px}.boc-stack{height:calc(100% - 52px)}}
