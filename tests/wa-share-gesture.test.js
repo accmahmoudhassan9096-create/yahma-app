@@ -33,12 +33,15 @@ test('sharePdfOnWhatsApp: canShare يُفحص قبل أول await', () => {
   assert.ok(canSharePos < firstAwait, 'canShare لازم يتفحص قبل تجهيز PDF (داخل الـ gesture)');
 });
 
-test('sharePdfOnWhatsApp: الـ popup مش بيتفتح على الموبايل', () => {
+test('sharePdfOnWhatsApp: واتساب بيترفع داخل الضغطة قبل أي await', () => {
   const body = bodyOf('sharePdfOnWhatsApp');
-  const winOpen = body.indexOf("window.open('about:blank'");
   const guard = body.indexOf('if(!canShareFiles && opts.openWaNow && phone)');
-  assert.ok(winOpen >= 0, 'مفيش window.open');
-  assert.ok(guard >= 0 && guard < winOpen, 'window.open لازم يكون محاط بشرط !canShareFiles');
+  const directOpen = body.indexOf("window.open(direct,'_blank'");
+  const firstAwait = body.indexOf('await generateReportPdfBlob');
+  assert.ok(guard >= 0, 'مفيش شرط فتح واتساب المبكر');
+  assert.ok(directOpen >= 0, 'مفيش فتح مباشر لـ wa.me');
+  assert.ok(directOpen < firstAwait, 'فتح واتساب لازم يكون قبل تجهيز PDF');
+  assert.ok(!body.includes("about:blank"), 'ما ينفعش about:blank — لازم wa.me مباشرة');
 });
 
 test('sharePdfOnWhatsApp: navigator.share بالملف موجود', () => {

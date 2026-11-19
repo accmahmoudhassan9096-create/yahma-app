@@ -335,10 +335,16 @@ async function sharePdfOnWhatsApp(opts){
     canShareFiles=!!(navigator.canShare && navigator.canShare({files:[probe]}));
   }catch(_){ canShareFiles=false; }
 
-  /* على الموبايل: ما نفتحش popup خالص — نسيب الـ gesture لـnavigator.share */
-  let waWin=null;
+  /* الكمبيوتر + رقم مسجّل: افتح محادثة واتساب فوراً داخل ضغطة المستخدم
+     (قبل أي await) — مباشرة بـ wa.me/<الرقم>، عشان
+     المتصفح ما يحجبش النافذة والمحادثة تفتح على طول. */
+  let waOpenedEarly=false;
   if(!canShareFiles && opts.openWaNow && phone){
-    try{ waWin=window.open('about:blank','_blank'); }catch(_){}
+    try{
+      const direct='https://wa.me/'+normalizeWaNumber(phone);
+      window.open(direct,'_blank','noopener');
+      waOpenedEarly=true;
+    }catch(e){ console.warn('early WA open failed', e); }
   }
 
   const loading=document.createElement('div');
@@ -378,17 +384,19 @@ async function sharePdfOnWhatsApp(opts){
     loading.remove();
   }
 
-  recordWaHistory(Object.assign({}, histEntry, { pdfOk: pdfOk, method:'chat' }));
+  recordWaHistory(Object.assign({}, histEntry, { pdfOk: pdfOk, method: waOpenedEarly?'chat-direct':'chat' }));
 
-  /* افتح محادثة الرقم بدون أي نص — الملف هيترفق يدوياً من التنزيلات */
-  const waUrl=phone?('https://wa.me/'+normalizeWaNumber(phone)):'https://wa.me/';
-  try{
-    if(waWin){ waWin.location.href=waUrl; }
-    else{ setTimeout(()=>window.open(waUrl,'_blank'), 200); }
-  }catch(e){ console.error('WA open failed', e); }
+  /* لو المحادثة اتفتحت بالفعل داخل الضغطة، ما نفتحهاش تاني */
+  if(!waOpenedEarly){
+    const waUrl=phone?('https://wa.me/'+normalizeWaNumber(phone)):'https://wa.me/';
+    try{ setTimeout(()=>window.open(waUrl,'_blank'), 200); }
+    catch(e){ console.error('WA open failed', e); }
+  }
 
   if(pdfOk){
-    waToast('✓ تم تنزيل PDF — أرفق الملف من التنزيلات في المحادثة 📎');
+    waToast(waOpenedEarly
+      ? '✓ المحادثة مفتوحة — PDF نزّل، أرفقه من التنزيلات 📎'
+      : '✓ تم تنزيل PDF — أرفق الملف من التنزيلات في المحادثة 📎');
   }else{
     waToast('تعذر إنشاء PDF — استخدم نافذة الطباعة لحفظه');
   }
