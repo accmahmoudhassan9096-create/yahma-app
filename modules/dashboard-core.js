@@ -216,8 +216,9 @@ function computeDashboardState(fleet) {
     .filter(([name]) => !ignoredBranches.includes(name) && !isReportExcludedBranch(name))
     .map(([name, x]) => {
     const rentedInBranch = cars.filter(f => (f.branch || 'غير محدد') === name && String(f.carStatus || '').includes('مؤجر')).length;
+    const availableInBranch = Math.max(0, x.total - rentedInBranch);
     const occPct = x.total ? Math.round((rentedInBranch / x.total) * 100) : 0;
-    return { name, total: x.total, rented: rentedInBranch, occPct };
+    return { name, total: x.total, rented: rentedInBranch, available: availableInBranch, occPct };
   });
   const topOccupiedBranch = [...branchOccupancy].sort((a, b) => b.occPct - a.occPct)[0];
   const topIdleBranchByOcc = [...branchOccupancy].sort((a, b) => a.occPct - b.occPct)[0];
@@ -533,6 +534,7 @@ function computeDashboardState(fleet) {
   mostOccupiedBranchPct,
   leastOccupiedBranchName,
   leastOccupiedBranchPct,
+  branchOccupancy,
   occupancyTrend,
   leastIdleBranchName,
   leastIdleBranchCount,

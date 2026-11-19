@@ -45,9 +45,47 @@ function getActivityIcon(title, detail) {
   return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
 }
 
+/* ===== رسم توزيع الأسطول والتشغيل حسب الفروع (أعمدة مكدّسة) ===== */
+function buildBranchOccupancyChart(branchOccupancy){
+  let list = Array.isArray(branchOccupancy) ? branchOccupancy : [];
+  // ترتيب الفروع بالأكبر أولاً — نفس شكل المعاينة (أعلى الأعمدة في النص)
+  list = list.slice().sort((a, b) => (Number(b.total)||0) - (Number(a.total)||0));
+  if(!list.length) return '<div class="empty">لا توجد بيانات فروع</div>';
+  const max = Math.max(1, ...list.map(b => Number(b.total) || 0));
+  const ticks = [0, 0.25, 0.5, 0.75, 1];
+  const labelEvery = Math.ceil(list.length / 24); // تخفيف التزاحم على المحور
+  const esc = (v) => typeof escapeHtml === 'function' ? escapeHtml(v) : String(v == null ? '' : v);
+  const bars = list.map((b, i) => {
+    const total = Number(b.total) || 0;
+    const rented = Number(b.rented) || 0;
+    const available = Number(b.available) || 0;
+    const totalH = (total / max) * 100;
+    const rentedH = (rented / max) * 100;
+    const availH = (available / max) * 100;
+    const name = String(b.name || '—');
+    const short = name.length > 14 ? name.slice(0, 13) + '…' : name;
+    const tip = esc(name) + ': مؤجرة ' + rented + ' · متاحة ' + available + ' (الإجمالي ' + total + ')';
+    return '<div class="boc-col" data-tip="' + tip + '" title="' + tip + '">'
+      + '<div class="boc-stack">'
+        + '<div class="boc-seg rented" style="height:' + rentedH.toFixed(1) + '%"></div>'
+        + '<div class="boc-seg available" style="height:' + availH.toFixed(1) + '%"></div>'
+      + '</div>'
+      + '<div class="boc-label">' + (i % labelEvery === 0 ? esc(short) : '') + '</div>'
+    + '</div>';
+  }).join('');
+  const grid = ticks.map(t => '<div class="boc-grid" style="bottom:' + (t * 100) + '%"><span>' + Math.round(max * t) + '</span></div>').join('');
+  return '<div class="boc-wrap">'
+    + '<div class="boc-legend"><span><i class="boc-dot available"></i>متاحة للإيجار</span><span><i class="boc-dot rented"></i>مؤجرة</span></div>'
+    + '<div class="boc-chart">'
+      + grid
+      + '<div class="boc-cols">' + bars + '</div>'
+    + '</div>'
+  + '</div>';
+}
+
 /* ===== القالب ===== */
 function dashboardTemplate(state) {
-  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, leastIdleBranchName, leastIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend } = state;
+  const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, leastIdleBranchName, leastIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend, branchOccupancy } = state;
 
   const reasonPalette = ['#E04F36', '#EA7C2E', '#F5A665', '#F8BD4F', '#2BB8A8'];
   let accReasonPct = 0;
@@ -663,6 +701,26 @@ function dashboardTemplate(state) {
     <style>@media(max-width:900px){.mock-hero-grid{grid-template-columns:1fr !important}}</style>
 
     <style>
+    /* ===== توزيع الأسطول والتشغيل حسب الفروع (أعمدة مكدّسة) ===== */
+    .boc-card{margin-top:14px}
+    .boc-wrap{padding:6px 4px 0}
+    .boc-legend{display:flex;gap:18px;justify-content:center;margin-bottom:12px;font-size:11.5px;font-weight:700;color:var(--ds-muted)}
+    .boc-legend span{display:inline-flex;align-items:center;gap:6px}
+    .boc-dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+    .boc-dot.available{background:#10B981}.boc-dot.rented{background:#EF4444}
+    .boc-chart{position:relative;height:210px;margin-inline-start:30px;border-bottom:1px solid var(--ds-line)}
+    .boc-grid{position:absolute;left:0;right:0;border-top:1px dashed rgba(120,140,160,.18)}
+    .boc-grid span{position:absolute;left:-34px;top:-8px;font-size:10px;color:var(--ds-muted)}
+    .boc-cols{position:absolute;inset:0;display:flex;align-items:flex-end;gap:3px;padding:0 4px}
+    .boc-col{flex:1;min-width:6px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;cursor:default}
+    .boc-stack{width:100%;height:calc(100% - 46px);display:flex;flex-direction:column;justify-content:flex-end;border-radius:3px 3px 0 0;overflow:hidden;transition:opacity .15s}
+    .boc-col:hover .boc-stack{opacity:.82}
+    .boc-seg{width:100%}
+    .boc-seg.available{background:#10B981}
+    .boc-seg.rented{background:#EF4444;border-radius:3px 3px 0 0}
+    .boc-label{height:46px;padding-top:6px;font-size:8.5px;color:var(--ds-muted);text-align:center;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;overflow:hidden;direction:rtl}
+    @media(max-width:900px){.boc-chart{height:170px}.boc-label{font-size:7.5px;height:38px}}
+
     /* الألوان هنا كلها بتتمشي على توكنات (var(--ds-*)) — والتوكن نفسه
        بيتبدّل بين النور والليل، فالكارت بيبقى مقروء في الوضعين. */
     .dark-sec{background:var(--ds-card);border:1px solid var(--ds-line);border-radius:20px;padding:20px;margin-bottom:14px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04)}
@@ -843,6 +901,14 @@ function dashboardTemplate(state) {
 
     <!-- تم حذف تقرير أكثر السيارات المتاحة للإيجار بناءً على طلب المستخدم -->
 
+    <!-- توزيع الأسطول والتشغيل حسب الفروع -->
+    <div class="home-card boc-card">
+      <div class="home-card-head">
+        <h3>📊 توزيع أسطول السيارات والتشغيل حسب الفروع</h3>
+        <span class="muted-small">مقارنة السيارات المؤجرة والمتاحة للإيجار في كل فرع</span>
+      </div>
+      ${buildBranchOccupancyChart(branchOccupancy)}
+    </div>
 
     <!-- Regions map -->
     <div class="home-card home-map-card">
