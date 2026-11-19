@@ -138,6 +138,26 @@ function emailBranch(branchName, kind){
   const email=to||prompt('بريد الفرع (أو اتركه فارغًا واختر من برنامج البريد):', '')||'';
   window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
 }
+/* فتح مباشر لمحادثة الفرع برسالة نصية — من غير تجهيز PDF.
+   الرقم المتسجل هو المصدر؛ لو مش موجود نسأل مرة ونحفظه. */
+function whatsappBranchText(branchName, kind){
+  const b=getBranchByName(branchName);
+  let phone=(b&&b.phone)?String(b.phone).trim():'';
+  if(!phone){
+    const asked=prompt('رقم واتساب فرع «'+branchName+'» (مثال: 2010xxxxxxxx)','');
+    if(asked!==null && String(asked).trim()){
+      phone=String(asked).trim();
+      if(b){ b.phone=phone; saveBranches(); }
+    }
+  }
+  const text=buildBranchMessage(branchName, kind||'insp');
+  if(phone && typeof shareOnWhatsApp==='function'){
+    shareOnWhatsApp(text, phone);
+  }else{
+    shareOnWhatsApp(text, null);
+  }
+}
+
 function whatsappBranch(branchName, kind){
   const b=getBranchByName(branchName);
   /* الرقم المتسجّل للفرع هو المصدر الأساسي — لو موجود ندخل محادثته على طول
@@ -203,6 +223,7 @@ function renderBranches(content){
     saveBranches,
     emailBranch,
     whatsappBranch,
+    whatsappBranchText,
     downloadBranchStatusTemplate,
     escapeHtml
   });

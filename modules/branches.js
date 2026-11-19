@@ -4,7 +4,7 @@
   function renderBranches(content, context) {
     const {
       fleet, getBranches, replaceBranches, ensureBranchName, branchStats,
-      openBranchModal, saveBranches, emailBranch, whatsappBranch,
+      openBranchModal, saveBranches, emailBranch, whatsappBranch, whatsappBranchText,
       downloadBranchStatusTemplate, escapeHtml
     } = context;
 
@@ -119,7 +119,7 @@
       tb.querySelectorAll('[data-mail-sum]').forEach(btn => btn.onclick = () => emailBranch(btn.dataset.mailSum, 'summary'));
       tb.querySelectorAll('[data-mail-insp]').forEach(btn => btn.onclick = () => emailBranch(btn.dataset.mailInsp, 'insp'));
       tb.querySelectorAll('[data-mail-card]').forEach(btn => btn.onclick = () => emailBranch(btn.dataset.mailCard, 'card'));
-      tb.querySelectorAll('[data-wa-insp]').forEach(btn => btn.onclick = () => whatsappBranch(btn.dataset.waInsp, 'insp'));
+      tb.querySelectorAll('[data-wa-insp]').forEach(btn => btn.onclick = () => whatsappBranchText(btn.dataset.waInsp, 'insp'));
 
       /* حفظ رقم واتساب الفرع مباشرة من الجدول (Enter أو فقدان التركيز) */
       tb.querySelectorAll('.br-phone-edit').forEach(inp => {
