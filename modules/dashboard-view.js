@@ -45,7 +45,9 @@ function getActivityIcon(title, detail) {
   return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
 }
 
-/* ===== رسم توزيع الأسطول والتشغيل حسب الفروع (أعمدة مكدّسة) ===== */
+/* ===== رسم توزيع الأسطول والتشغيل حسب الفروع (أعمدة مكدّسة — تصميم فخم) =====
+   الألوان: أحمر = متاحة للإيجار، أخضر = مؤجرة.
+   كل عمود فيه بياناته مكتوبة فوق الجزء نفسه + إجمالي الفرع أعلى العمود. */
 function buildBranchOccupancyChart(branchOccupancy){
   let list = Array.isArray(branchOccupancy) ? branchOccupancy : [];
   // ترتيب الفروع بالأكبر أولاً — نفس شكل المعاينة (أعلى الأعمدة في النص)
@@ -55,31 +57,39 @@ function buildBranchOccupancyChart(branchOccupancy){
   const ticks = [0, 0.25, 0.5, 0.75, 1];
   const labelEvery = Math.ceil(list.length / 24); // تخفيف التزاحم على المحور
   const esc = (v) => typeof escapeHtml === 'function' ? escapeHtml(v) : String(v == null ? '' : v);
+  const nf = (n) => (typeof num === 'function' ? num(n) : String(n));
   const bars = list.map((b, i) => {
     const total = Number(b.total) || 0;
     const rented = Number(b.rented) || 0;
     const available = Number(b.available) || 0;
-    const totalH = (total / max) * 100;
     const rentedH = (rented / max) * 100;
     const availH = (available / max) * 100;
     const name = String(b.name || '—');
-    const short = name.length > 14 ? name.slice(0, 13) + '…' : name;
-    const tip = esc(name) + ': مؤجرة ' + rented + ' · متاحة ' + available + ' (الإجمالي ' + total + ')';
+    const short = name.length > 16 ? name.slice(0, 15) + '…' : name;
+    const tip = esc(name) + ': متاحة للإيجار ' + available + ' · مؤجرة ' + rented + ' (الإجمالي ' + total + ')';
     return '<div class="boc-col" data-tip="' + tip + '" title="' + tip + '">'
+      + '<div class="boc-total">' + nf(total) + '</div>'
       + '<div class="boc-stack">'
-        + '<div class="boc-seg rented" style="height:' + rentedH.toFixed(1) + '%"></div>'
-        + '<div class="boc-seg available" style="height:' + availH.toFixed(1) + '%"></div>'
+        + '<div class="boc-seg rented" style="height:' + rentedH.toFixed(1) + '%"><span class="boc-val">' + (rented > 0 ? nf(rented) : '') + '</span></div>'
+        + '<div class="boc-seg available" style="height:' + availH.toFixed(1) + '%"><span class="boc-val">' + (available > 0 ? nf(available) : '') + '</span></div>'
       + '</div>'
       + '<div class="boc-label">' + (i % labelEvery === 0 ? esc(short) : '') + '</div>'
     + '</div>';
   }).join('');
-  const grid = ticks.map(t => '<div class="boc-grid" style="bottom:' + (t * 100) + '%"><span>' + Math.round(max * t) + '</span></div>').join('');
+  const grid = ticks.map(t => '<div class="boc-grid" style="bottom:' + (t * 100) + '%"><span>' + nf(Math.round(max * t)) + '</span></div>').join('');
+  const sumAvail = list.reduce((s, b) => s + (Number(b.available) || 0), 0);
+  const sumRented = list.reduce((s, b) => s + (Number(b.rented) || 0), 0);
   return '<div class="boc-wrap">'
-    + '<div class="boc-legend"><span><i class="boc-dot available"></i>متاحة للإيجار</span><span><i class="boc-dot rented"></i>مؤجرة</span></div>'
+    + '<div class="boc-legend">'
+      + '<span><i class="boc-dot available"></i>متاحة للإيجار <b>' + nf(sumAvail) + '</b></span>'
+      + '<span><i class="boc-dot rented"></i>مؤجرة <b>' + nf(sumRented) + '</b></span>'
+      + '<span class="boc-legend-total">الإجمالي <b>' + nf(sumAvail + sumRented) + '</b></span>'
+    + '</div>'
     + '<div class="boc-chart">'
       + grid
       + '<div class="boc-cols">' + bars + '</div>'
     + '</div>'
+    + '<div class="boc-foot">' + list.length + ' فرع · الأرقام داخل كل عمود = عدد السيارات</div>'
   + '</div>';
 }
 
@@ -702,24 +712,31 @@ function dashboardTemplate(state) {
 
     <style>
     /* ===== توزيع الأسطول والتشغيل حسب الفروع (أعمدة مكدّسة) ===== */
-    .boc-card{margin-top:14px}
-    .boc-wrap{padding:6px 4px 0}
-    .boc-legend{display:flex;gap:18px;justify-content:center;margin-bottom:12px;font-size:11.5px;font-weight:700;color:var(--ds-muted)}
-    .boc-legend span{display:inline-flex;align-items:center;gap:6px}
-    .boc-dot{width:11px;height:11px;border-radius:3px;display:inline-block}
-    .boc-dot.available{background:#10B981}.boc-dot.rented{background:#EF4444}
-    .boc-chart{position:relative;height:210px;margin-inline-start:30px;border-bottom:1px solid var(--ds-line)}
-    .boc-grid{position:absolute;left:0;right:0;border-top:1px dashed rgba(120,140,160,.18)}
-    .boc-grid span{position:absolute;left:-34px;top:-8px;font-size:10px;color:var(--ds-muted)}
-    .boc-cols{position:absolute;inset:0;display:flex;align-items:flex-end;gap:3px;padding:0 4px}
-    .boc-col{flex:1;min-width:6px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;cursor:default}
-    .boc-stack{width:100%;height:calc(100% - 46px);display:flex;flex-direction:column;justify-content:flex-end;border-radius:3px 3px 0 0;overflow:hidden;transition:opacity .15s}
-    .boc-col:hover .boc-stack{opacity:.82}
-    .boc-seg{width:100%}
-    .boc-seg.available{background:#10B981}
-    .boc-seg.rented{background:#EF4444;border-radius:3px 3px 0 0}
-    .boc-label{height:46px;padding-top:6px;font-size:8.5px;color:var(--ds-muted);text-align:center;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;overflow:hidden;direction:rtl}
-    @media(max-width:900px){.boc-chart{height:170px}.boc-label{font-size:7.5px;height:38px}}
+    .boc-card{margin-top:14px;background:linear-gradient(145deg,#ffffff 0%,#fbfdfd 100%);border:1px solid #E3EBEF;box-shadow:0 6px 22px rgba(16,36,58,.06)}
+    .boc-wrap{padding:10px 8px 0}
+    .boc-legend{display:flex;gap:22px;justify-content:center;align-items:center;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--ds-muted);flex-wrap:wrap}
+    .boc-legend span{display:inline-flex;align-items:center;gap:7px}
+    .boc-legend b{color:#12203A;font-weight:900}
+    .boc-legend-total{padding:4px 12px;background:#F1F5F7;border-radius:999px;color:#12203A}
+    .boc-dot{width:12px;height:12px;border-radius:3px;display:inline-block;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+    /* اللون المطلوب: أحمر = متاحة للإيجار، أخضر = مؤجرة */
+    .boc-dot.available{background:linear-gradient(180deg,#F8635B,#E23B33)}
+    .boc-dot.rented{background:linear-gradient(180deg,#2FCB8F,#0FA96F)}
+    .boc-chart{position:relative;height:230px;margin-inline-start:34px;border-bottom:2px solid #D7E1E6;background:linear-gradient(180deg,rgba(16,36,58,.015),transparent 60%)}
+    .boc-grid{position:absolute;left:0;right:0;border-top:1px dashed rgba(120,140,160,.16);z-index:0}
+    .boc-grid span{position:absolute;left:-38px;top:-8px;font-size:10px;color:#8A97A8;font-weight:700}
+    .boc-cols{position:absolute;inset:0;display:flex;align-items:flex-end;gap:3px;padding:0 5px;z-index:1}
+    .boc-col{flex:1;min-width:6px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative;cursor:default}
+    .boc-total{font-size:9px;font-weight:900;color:#12203A;margin-bottom:2px;line-height:1}
+    .boc-stack{width:100%;height:calc(100% - 58px);display:flex;flex-direction:column;justify-content:flex-end;border-radius:4px 4px 0 0;overflow:hidden;transition:transform .18s,box-shadow .18s;box-shadow:0 2px 8px rgba(0,0,0,.10)}
+    .boc-col:hover .boc-stack{transform:translateY(-3px);box-shadow:0 8px 18px rgba(0,0,0,.18)}
+    .boc-seg{width:100%;position:relative;display:flex;align-items:flex-start;justify-content:center}
+    .boc-seg.available{background:linear-gradient(180deg,#F8635B,#E23B33)}
+    .boc-seg.rented{background:linear-gradient(180deg,#2FCB8F,#0FA96F)}
+    .boc-val{font-size:8px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35);line-height:1.2;padding-top:2px}
+    .boc-label{height:58px;padding-top:7px;font-size:9px;font-weight:700;color:var(--ds-muted);text-align:center;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;overflow:hidden;direction:rtl}
+    .boc-foot{text-align:center;margin-top:10px;font-size:10.5px;color:#8A97A8}
+    @media(max-width:900px){.boc-chart{height:190px}.boc-label{font-size:7.5px;height:44px}.boc-stack{height:calc(100% - 52px)}}
 
     /* الألوان هنا كلها بتتمشي على توكنات (var(--ds-*)) — والتوكن نفسه
        بيتبدّل بين النور والليل، فالكارت بيبقى مقروء في الوضعين. */
