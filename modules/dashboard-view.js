@@ -101,76 +101,34 @@ function buildBranchOccupancyChart(branchOccupancy){
   + '</div>';
 }
 
-/* ===== مؤشر نسبة التشغيل — gauge داكن فخم بدرّج أزرق/أخضر وإبرة ===== */
-function buildOccupancyGauge(pct, deltaPct){
-  const p = Math.min(100, Math.max(0, Number(pct) || 0));
-  const delta = (deltaPct == null || !isFinite(Number(deltaPct))) ? null : Number(deltaPct);
-  const cx = 120, cy = 118, r = 84;
-  // قوس من 135° إلى 405° (270 درجة)
-  const startA = 135, endA = 405;
-  const pt = (ang, rr) => {
-    const a = ang * Math.PI / 180;
-    return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)];
-  };
-  const arc = (a0, a1, rr) => {
-    const s = pt(a0, rr), e = pt(a1, rr);
-    const large = (a1 - a0) > 180 ? 1 : 0;
-    return `M ${s[0].toFixed(1)} ${s[1].toFixed(1)} A ${rr} ${rr} 0 ${large} 1 ${e[0].toFixed(1)} ${e[1].toFixed(1)}`;
-  };
-  const needleAng = startA + (p / 100) * (endA - startA);
-  const needleTip = pt(needleAng, r - 14);
-  const needleBase = pt(needleAng + 180, 12);
-  const valS = pt(startA, r - 22), valE = pt(endA, r - 22);
-  const gId = 'occGrad' + Math.floor(Math.random() * 1e9);
-  const ticks = [];
-  for (let i = 0; i <= 30; i++) {
-    const ang = startA + (i / 30) * (endA - startA);
-    const isMaj = i % 5 === 0;
-    const a = pt(ang, r + 10), b = pt(ang, r + (isMaj ? 20 : 15));
-    ticks.push(`<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" stroke="${isMaj ? 'rgba(180,220,235,.55)' : 'rgba(150,190,210,.22)'}" stroke-width="${isMaj ? 2 : 1}"/>`);
-  }
-  const deltaHtml = delta !== null
-    ? `<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);color:#34d399;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:800">${delta >= 0 ? '▲ +' : '▼ '}${Math.abs(delta).toFixed(1)}% <span style="color:#9fb4c4;font-weight:600">مقارنة بالأسبوع السابق</span></div>`
-    : '';
-  return `<div class="occ-gauge-wrap">
-    <div class="occ-gauge-head">
-      <div style="font-size:16px;font-weight:900;color:#eaf4f8">مؤشر نسبة التشغيل</div>
-      <div style="font-size:11px;color:#8fa6b5;margin-top:2px">سوق العمل السعودي</div>
+/* ===== مؤشر نسبة التشغيل — حلقة تقدّم بسيطة وأنيقة =====
+   حلقة خضراء على خلفية رمادية فاتحة + النسبة في النص + كلمة «التشغيل». */
+function buildOccupancyGauge(pct){
+  const p = Math.min(100, Math.max(0, Math.round(Number(pct) || 0)));
+  const cx = 60, cy = 60, r = 50;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - p / 100);
+  const gId = 'occSimple' + Math.floor(Math.random() * 1e9);
+  return `<div class="occ-ring-wrap">
+    <svg viewBox="0 0 120 120" class="occ-ring-svg">
+      <defs><linearGradient id="${gId}" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#12b39a"/><stop offset="100%" stop-color="#0f9d7a"/>
+      </linearGradient></defs>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#EDF0F4" stroke-width="11"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="url(#${gId})" stroke-width="11" stroke-linecap="round"
+        stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"
+        transform="rotate(-90 ${cx} ${cy})" class="occ-arc"/>
+    </svg>
+    <div class="occ-ring-center">
+      <b dir="ltr">${p}%</b>
+      <span>التشغيل</span>
     </div>
-    <div class="occ-gauge-stage">
-      <svg viewBox="0 0 240 210" class="occ-gauge-svg">
-        <defs>
-          <linearGradient id="${gId}" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#0ea5b7"/>
-            <stop offset="55%" stop-color="#16c3c9"/>
-            <stop offset="100%" stop-color="#34e39a"/>
-          </linearGradient>
-        </defs>
-        <circle cx="${cx}" cy="${cy}" r="${r + 26}" fill="rgba(10,30,42,.25)"/>
-        ${ticks.join('')}
-        <path d="${arc(startA, endA, r)}" fill="none" stroke="rgba(120,165,185,.16)" stroke-width="14" stroke-linecap="round"/>
-        <path d="${arc(startA, startA + (p/100)*(endA-startA), r)}" fill="none" stroke="url(#${gId})" stroke-width="14" stroke-linecap="round" class="occ-arc"/>
-        <line x1="${needleBase[0].toFixed(1)}" y1="${needleBase[1].toFixed(1)}" x2="${needleTip[0].toFixed(1)}" y2="${needleTip[1].toFixed(1)}" stroke="#6ff2d0" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="${cx}" cy="${cy}" r="7" fill="#0c2c3a" stroke="#34e39a" stroke-width="3"/>
-        <text x="${valS[0].toFixed(1)}" y="${valS[1].toFixed(1)}" fill="#8fa6b5" font-size="10" text-anchor="middle">0%</text>
-        <text x="${valE[0].toFixed(1)}" y="${valE[1].toFixed(1)}" fill="#8fa6b5" font-size="10" text-anchor="middle">100%</text>
-        <text x="${cx}" y="${cy - 30}" fill="#8fa6b5" font-size="11" font-weight="700" text-anchor="middle">نسبة التشغيل</text>
-        <text x="${cx}" y="${cy + 18}" fill="#5ef0c0" font-size="38" font-weight="900" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" direction="ltr">${p.toFixed(1)}%</text>
-      </svg>
-    </div>
-    ${deltaHtml ? `<div style="text-align:center">${deltaHtml}</div>` : ''}
   </div>`;
 }
 
 /* ===== القالب ===== */
 function dashboardTemplate(state) {
   const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, leastIdleBranchName, leastIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend, branchOccupancy } = state;
-
-  /* مؤشر نسبة التشغيل — حلقة تقدّم أيقونية داخل كارت «نظرة عامة تشغيلية» */
-  const occPct = Math.min(100, Math.max(0, Number(occupancyRate) || 0));
-  const occR = 40, occCirc = 2 * Math.PI * occR;
-  const occOffset = occCirc * (1 - occPct / 100);
-  const occColor = occPct >= 70 ? '#0BAA86' : occPct >= 40 ? '#E6A23C' : '#E64B4B';
 
   const reasonPalette = ['#E04F36', '#EA7C2E', '#F5A665', '#F8BD4F', '#2BB8A8'];
   let accReasonPct = 0;
@@ -751,17 +709,17 @@ function dashboardTemplate(state) {
   </style>
   <div class="home-dash">
     <style>
-      /* مؤشر نسبة التشغيل — gauge داكن فخم */
-      .occ-hero-grid{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:stretch}
-      .occ-gauge-panel{background:radial-gradient(120% 120% at 30% 10%,#14394a 0%,#0a2231 55%,#071a27 100%);border:1px solid rgba(52,227,154,.18);border-radius:16px;padding:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 22px rgba(7,26,39,.25);display:flex;align-items:center;justify-content:center}
-      .occ-gauge-wrap{width:100%;text-align:center}
-      .occ-gauge-head{margin-bottom:2px}
-      .occ-gauge-stage{width:100%;max-width:270px;margin:0 auto}
-      .occ-gauge-svg{width:100%;height:auto;display:block;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
+      /* مؤشر نسبة التشغيل — حلقة بسيطة وأنيقة */
+      .occ-hero-grid{display:grid;grid-template-columns:200px 1fr;gap:18px;align-items:center}
+      .occ-gauge-panel{display:flex;align-items:center;justify-content:center}
+      .occ-ring-wrap{position:relative;width:130px;height:130px}
+      .occ-ring-svg{width:100%;height:100%;display:block}
+      .occ-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+      .occ-ring-center b{font-size:24px;font-weight:900;color:var(--ds-ink);line-height:1;font-family:'Segoe UI',Arial,sans-serif;direction:ltr;unicode-bidi:isolate}
+      .occ-ring-center span{font-size:11px;font-weight:700;color:var(--ds-muted)}
       .occ-arc{transition:stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1)}
       .occ-hero-stats{min-width:0}
-      @media(max-width:1080px){.occ-hero-grid{grid-template-columns:1fr}.occ-gauge-panel{max-width:340px}}
-      @media(max-width:560px){.occ-gauge-panel{max-width:100%}}
+      @media(max-width:1080px){.occ-hero-grid{grid-template-columns:1fr;justify-items:center}.occ-gauge-panel{margin-bottom:6px}}
     </style>
     <!-- تم حذف قسم أولويات التجهيز (YAHMAA · COMMAND CENTER) بناءً على طلب المستخدم -->
     <!-- تم حذف شارة تنبيه التدخل الفوري (0% ⚠️) بناءً على طلب المستخدم -->
@@ -770,8 +728,8 @@ function dashboardTemplate(state) {
       <div class="home-hero-card" style="background:var(--ds-card);border:1px solid var(--ds-line);border-radius:18px;padding:18px 20px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04)">
         <p style="display:flex;align-items:center;gap:6px;color:var(--ds-teal);font-weight:800;font-size:13px;margin:0 0 12px">✨ نظرة عامة تشغيلية</p>
         <div class="occ-hero-grid">
-          <!-- مؤشر التشغيل الفخم -->
-          <div class="occ-gauge-panel">${buildOccupancyGauge(occupancyRate, null)}</div>
+          <!-- مؤشر التشغيل -->
+          <div class="occ-gauge-panel">${buildOccupancyGauge(occupancyRate)}</div>
           <!-- الأرقام -->
           <div class="occ-hero-stats">
             <div style="display:flex;align-items:flex-end;gap:10px"><h2 style="margin:0;font-size:50px;font-weight:900;line-height:.95;letter-spacing:-.02em;color:var(--ds-ink)">${total.toLocaleString('en')}</h2><span style="padding-bottom:6px;font-weight:800;color:var(--ds-muted)">سيارة</span></div>
