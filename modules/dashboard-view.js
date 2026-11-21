@@ -105,6 +105,12 @@ function buildBranchOccupancyChart(branchOccupancy){
 function dashboardTemplate(state) {
   const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, leastIdleBranchName, leastIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend, branchOccupancy } = state;
 
+  /* مؤشر نسبة التشغيل — حلقة تقدّم أيقونية داخل كارت «نظرة عامة تشغيلية» */
+  const occPct = Math.min(100, Math.max(0, Number(occupancyRate) || 0));
+  const occR = 40, occCirc = 2 * Math.PI * occR;
+  const occOffset = occCirc * (1 - occPct / 100);
+  const occColor = occPct >= 70 ? '#0BAA86' : occPct >= 40 ? '#E6A23C' : '#E64B4B';
+
   const reasonPalette = ['#E04F36', '#EA7C2E', '#F5A665', '#F8BD4F', '#2BB8A8'];
   let accReasonPct = 0;
   const reasonDonutConic = (reasonRows && reasonRows.length) ? reasonRows.map((r, i) => {
@@ -683,12 +689,39 @@ function dashboardTemplate(state) {
     }
   </style>
   <div class="home-dash">
+    <style>
+      /* مؤشر نسبة التشغيل — أيقوني وحديث داخل كارت نظرة عامة تشغيلية */
+      .occ-badge{position:absolute;top:18px;inset-inline-end:22px;display:flex;flex-direction:column;align-items:center;gap:4px;z-index:2}
+      .occ-ring{position:relative;width:76px;height:76px;filter:drop-shadow(0 4px 10px rgba(11,170,134,.18))}
+      .occ-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+      .occ-track{fill:none;stroke:var(--ds-line);stroke-width:9}
+      .occ-progress{fill:none;stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1)}
+      .occ-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+      .occ-icon{width:18px;height:18px;opacity:.9}
+      .occ-inner b{font-size:15px;font-weight:900;line-height:1;font-family:'Segoe UI',Arial,sans-serif;direction:ltr;unicode-bidi:isolate}
+      .occ-cap{font-size:10px;font-weight:800;color:var(--ds-muted);white-space:nowrap}
+      @media(max-width:560px){.occ-ring{width:60px;height:60px}.occ-badge{top:14px;inset-inline-end:14px}}
+    </style>
     <!-- تم حذف قسم أولويات التجهيز (YAHMAA · COMMAND CENTER) بناءً على طلب المستخدم -->
     <!-- تم حذف شارة تنبيه التدخل الفوري (0% ⚠️) بناءً على طلب المستخدم -->
     <!-- Hero: كرت بتصميم موحّد مع باقي كروت الصفحة الرئيسية -->
     <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px" class="mock-hero-grid">
-      <div class="home-hero-card" style="background:var(--ds-card);border:1px solid var(--ds-line);border-radius:18px;padding:22px 24px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04)">
-        <p style="display:flex;align-items:center;gap:6px;color:var(--ds-teal);font-weight:800;font-size:13px;margin:0 0 12px">✨ نظرة عامة تشغيلية</p>
+      <div class="home-hero-card" style="background:var(--ds-card);border:1px solid var(--ds-line);border-radius:18px;padding:22px 24px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04);position:relative">
+        <!-- مؤشر نسبة التشغيل — أيقوني وحديث -->
+        <div class="occ-badge" title="نسبة التشغيل = المؤجرة ÷ إجمالي الأسطول">
+          <div class="occ-ring">
+            <svg viewBox="0 0 100 100">
+              <circle class="occ-track" cx="50" cy="50" r="${occR}"></circle>
+              <circle class="occ-progress" cx="50" cy="50" r="${occR}" stroke="${occColor}" stroke-dasharray="${occCirc.toFixed(1)}" stroke-dashoffset="${occOffset.toFixed(1)}"></circle>
+            </svg>
+            <div class="occ-inner">
+              <svg class="occ-icon" viewBox="0 0 24 24" fill="none" stroke="${occColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-5a2 2 0 0 1 2-1h10a2 2 0 0 1 2 1l2 5"/><rect x="2" y="12" width="20" height="6" rx="1.5"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/></svg>
+              <b dir="ltr" style="color:${occColor};unicode-bidi:isolate">${occPct}%</b>
+            </div>
+          </div>
+          <span class="occ-cap">نسبة التشغيل</span>
+        </div>
+        <p style="display:flex;align-items:center;gap:6px;color:var(--ds-teal);font-weight:800;font-size:13px;margin:0 0 12px;padding-inline-end:96px">✨ نظرة عامة تشغيلية</p>
         <div style="display:flex;align-items:flex-end;gap:10px"><h2 style="margin:0;font-size:56px;font-weight:900;line-height:.95;letter-spacing:-.02em;color:var(--ds-ink)">${total.toLocaleString('en')}</h2><span style="padding-bottom:6px;font-weight:800;color:var(--ds-muted)">سيارة</span></div>
         <h3 style="margin:6px 0 8px;font-size:18px;font-weight:900;color:var(--ds-ink)">إجمالي الأسطول</h3>
         <p style="margin:0 0 18px;color:var(--ds-muted);line-height:1.7;font-size:13px">صورة تشغيلية موحّدة لحركة الأسطول والركود والتوفر الفوري، من دون تشتيت بين التقارير.</p>
