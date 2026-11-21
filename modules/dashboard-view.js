@@ -101,6 +101,67 @@ function buildBranchOccupancyChart(branchOccupancy){
   + '</div>';
 }
 
+/* ===== مؤشر نسبة التشغيل — gauge داكن فخم بدرّج أزرق/أخضر وإبرة ===== */
+function buildOccupancyGauge(pct, deltaPct){
+  const p = Math.min(100, Math.max(0, Number(pct) || 0));
+  const delta = (deltaPct == null || !isFinite(Number(deltaPct))) ? null : Number(deltaPct);
+  const cx = 120, cy = 118, r = 84;
+  // قوس من 135° إلى 405° (270 درجة)
+  const startA = 135, endA = 405;
+  const pt = (ang, rr) => {
+    const a = ang * Math.PI / 180;
+    return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)];
+  };
+  const arc = (a0, a1, rr) => {
+    const s = pt(a0, rr), e = pt(a1, rr);
+    const large = (a1 - a0) > 180 ? 1 : 0;
+    return `M ${s[0].toFixed(1)} ${s[1].toFixed(1)} A ${rr} ${rr} 0 ${large} 1 ${e[0].toFixed(1)} ${e[1].toFixed(1)}`;
+  };
+  const needleAng = startA + (p / 100) * (endA - startA);
+  const needleTip = pt(needleAng, r - 14);
+  const needleBase = pt(needleAng + 180, 12);
+  const valS = pt(startA, r - 22), valE = pt(endA, r - 22);
+  const gId = 'occGrad' + Math.floor(Math.random() * 1e9);
+  const ticks = [];
+  for (let i = 0; i <= 30; i++) {
+    const ang = startA + (i / 30) * (endA - startA);
+    const isMaj = i % 5 === 0;
+    const a = pt(ang, r + 10), b = pt(ang, r + (isMaj ? 20 : 15));
+    ticks.push(`<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" stroke="${isMaj ? 'rgba(180,220,235,.55)' : 'rgba(150,190,210,.22)'}" stroke-width="${isMaj ? 2 : 1}"/>`);
+  }
+  const deltaHtml = delta !== null
+    ? `<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);color:#34d399;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:800">${delta >= 0 ? '▲ +' : '▼ '}${Math.abs(delta).toFixed(1)}% <span style="color:#9fb4c4;font-weight:600">مقارنة بالأسبوع السابق</span></div>`
+    : '';
+  return `<div class="occ-gauge-wrap">
+    <div class="occ-gauge-head">
+      <div style="font-size:16px;font-weight:900;color:#eaf4f8">مؤشر نسبة التشغيل</div>
+      <div style="font-size:11px;color:#8fa6b5;margin-top:2px">سوق العمل السعودي</div>
+    </div>
+    <div class="occ-gauge-stage">
+      <svg viewBox="0 0 240 210" class="occ-gauge-svg">
+        <defs>
+          <linearGradient id="${gId}" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#0ea5b7"/>
+            <stop offset="55%" stop-color="#16c3c9"/>
+            <stop offset="100%" stop-color="#34e39a"/>
+          </linearGradient>
+        </defs>
+        <circle cx="${cx}" cy="${cy}" r="${r + 26}" fill="rgba(10,30,42,.25)"/>
+        ${ticks.join('')}
+        <path d="${arc(startA, endA, r)}" fill="none" stroke="rgba(120,165,185,.16)" stroke-width="14" stroke-linecap="round"/>
+        <path d="${arc(startA, startA + (p/100)*(endA-startA), r)}" fill="none" stroke="url(#${gId})" stroke-width="14" stroke-linecap="round" class="occ-arc"/>
+        <line x1="${needleBase[0].toFixed(1)}" y1="${needleBase[1].toFixed(1)}" x2="${needleTip[0].toFixed(1)}" y2="${needleTip[1].toFixed(1)}" stroke="#6ff2d0" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="${cx}" cy="${cy}" r="7" fill="#0c2c3a" stroke="#34e39a" stroke-width="3"/>
+        <text x="${valS[0].toFixed(1)}" y="${valS[1].toFixed(1)}" fill="#8fa6b5" font-size="10" text-anchor="middle">0%</text>
+        <text x="${valE[0].toFixed(1)}" y="${valE[1].toFixed(1)}" fill="#8fa6b5" font-size="10" text-anchor="middle">100%</text>
+        <text x="${cx}" y="${cy - 30}" fill="#8fa6b5" font-size="11" font-weight="700" text-anchor="middle">نسبة التشغيل</text>
+        <text x="${cx}" y="${cy + 18}" fill="#5ef0c0" font-size="38" font-weight="900" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" direction="ltr">${p.toFixed(1)}%</text>
+      </svg>
+    </div>
+    ${deltaHtml ? `<div style="text-align:center">${deltaHtml}</div>` : ''}
+  </div>`;
+}
+
 /* ===== القالب ===== */
 function dashboardTemplate(state) {
   const { activity, available, branchFull, colors, conicParts, dFinal, dNeed, dPrep, dReady, expiringCars, fmtTime, gaugeSvg, histBase, idleCount, idleLossRounded, topIdleBranchName, topIdleBranchCount, leastIdleBranchName, leastIdleBranchCount, isToday, mapMode, pReady, pRenCard, pRenIns, pRenInsp, pRenLic, pct, ready, reasonRows, regionById, regionStats, renCard, renIns, renInsp, renLic, rented, stOf, todayCount, todayIso, todayTasks, topBranches, total, trend, trendSvg, availableCount, occupancyRate, topAvailableCars, mostOccupiedBranchName, mostOccupiedBranchPct, leastOccupiedBranchName, leastOccupiedBranchPct, occupancyTrend, branchOccupancy } = state;
@@ -690,45 +751,38 @@ function dashboardTemplate(state) {
   </style>
   <div class="home-dash">
     <style>
-      /* مؤشر نسبة التشغيل — أيقوني وحديث داخل كارت نظرة عامة تشغيلية */
-      .occ-badge{position:absolute;top:18px;inset-inline-end:22px;display:flex;flex-direction:column;align-items:center;gap:4px;z-index:2}
-      .occ-ring{position:relative;width:76px;height:76px;filter:drop-shadow(0 4px 10px rgba(11,170,134,.18))}
-      .occ-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
-      .occ-track{fill:none;stroke:var(--ds-line);stroke-width:9}
-      .occ-progress{fill:none;stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1)}
-      .occ-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
-      .occ-icon{width:18px;height:18px;opacity:.9}
-      .occ-inner b{font-size:15px;font-weight:900;line-height:1;font-family:'Segoe UI',Arial,sans-serif;direction:ltr;unicode-bidi:isolate}
-      .occ-cap{font-size:10px;font-weight:800;color:var(--ds-muted);white-space:nowrap}
-      @media(max-width:560px){.occ-ring{width:60px;height:60px}.occ-badge{top:14px;inset-inline-end:14px}}
+      /* مؤشر نسبة التشغيل — gauge داكن فخم */
+      .occ-hero-grid{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:stretch}
+      .occ-gauge-panel{background:radial-gradient(120% 120% at 30% 10%,#14394a 0%,#0a2231 55%,#071a27 100%);border:1px solid rgba(52,227,154,.18);border-radius:16px;padding:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 22px rgba(7,26,39,.25);display:flex;align-items:center;justify-content:center}
+      .occ-gauge-wrap{width:100%;text-align:center}
+      .occ-gauge-head{margin-bottom:2px}
+      .occ-gauge-stage{width:100%;max-width:270px;margin:0 auto}
+      .occ-gauge-svg{width:100%;height:auto;display:block;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
+      .occ-arc{transition:stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1)}
+      .occ-hero-stats{min-width:0}
+      @media(max-width:1080px){.occ-hero-grid{grid-template-columns:1fr}.occ-gauge-panel{max-width:340px}}
+      @media(max-width:560px){.occ-gauge-panel{max-width:100%}}
     </style>
     <!-- تم حذف قسم أولويات التجهيز (YAHMAA · COMMAND CENTER) بناءً على طلب المستخدم -->
     <!-- تم حذف شارة تنبيه التدخل الفوري (0% ⚠️) بناءً على طلب المستخدم -->
     <!-- Hero: كرت بتصميم موحّد مع باقي كروت الصفحة الرئيسية -->
     <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:14px" class="mock-hero-grid">
-      <div class="home-hero-card" style="background:var(--ds-card);border:1px solid var(--ds-line);border-radius:18px;padding:22px 24px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04);position:relative">
-        <!-- مؤشر نسبة التشغيل — أيقوني وحديث -->
-        <div class="occ-badge" title="نسبة التشغيل = المؤجرة ÷ إجمالي الأسطول">
-          <div class="occ-ring">
-            <svg viewBox="0 0 100 100">
-              <circle class="occ-track" cx="50" cy="50" r="${occR}"></circle>
-              <circle class="occ-progress" cx="50" cy="50" r="${occR}" stroke="${occColor}" stroke-dasharray="${occCirc.toFixed(1)}" stroke-dashoffset="${occOffset.toFixed(1)}"></circle>
-            </svg>
-            <div class="occ-inner">
-              <svg class="occ-icon" viewBox="0 0 24 24" fill="none" stroke="${occColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-5a2 2 0 0 1 2-1h10a2 2 0 0 1 2 1l2 5"/><rect x="2" y="12" width="20" height="6" rx="1.5"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/></svg>
-              <b dir="ltr" style="color:${occColor};unicode-bidi:isolate">${occPct}%</b>
+      <div class="home-hero-card" style="background:var(--ds-card);border:1px solid var(--ds-line);border-radius:18px;padding:18px 20px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04)">
+        <p style="display:flex;align-items:center;gap:6px;color:var(--ds-teal);font-weight:800;font-size:13px;margin:0 0 12px">✨ نظرة عامة تشغيلية</p>
+        <div class="occ-hero-grid">
+          <!-- مؤشر التشغيل الفخم -->
+          <div class="occ-gauge-panel">${buildOccupancyGauge(occupancyRate, null)}</div>
+          <!-- الأرقام -->
+          <div class="occ-hero-stats">
+            <div style="display:flex;align-items:flex-end;gap:10px"><h2 style="margin:0;font-size:50px;font-weight:900;line-height:.95;letter-spacing:-.02em;color:var(--ds-ink)">${total.toLocaleString('en')}</h2><span style="padding-bottom:6px;font-weight:800;color:var(--ds-muted)">سيارة</span></div>
+            <h3 style="margin:6px 0 8px;font-size:17px;font-weight:900;color:var(--ds-ink)">إجمالي الأسطول</h3>
+            <p style="margin:0 0 14px;color:var(--ds-muted);line-height:1.7;font-size:12.5px">صورة تشغيلية موحّدة لحركة الأسطول والركود والتوفر الفوري، من دون تشتيت بين التقارير.</p>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+              <div style="background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:12px;padding:10px"><p style="margin:0;font-size:11px;font-weight:800;color:var(--ds-teal)">↗ مؤجرة</p><p style="margin:5px 0 0;font-size:20px;font-weight:900;color:var(--ds-ink)">${rented.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:10px;color:var(--ds-muted)">ضمن التشغيل</p></div>
+              <div style="background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:12px;padding:10px"><p style="margin:0;font-size:11px;font-weight:800;color:var(--ds-teal-2)">✓ متاحة فوراً</p><p style="margin:5px 0 0;font-size:20px;font-weight:900;color:var(--ds-ink)">${availableCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:10px;color:var(--ds-muted)">جاهزة للإيجار</p></div>
+              <div style="background:rgba(223,79,79,.08);border:1px solid rgba(223,79,79,.20);border-radius:12px;padding:10px"><p style="margin:0;font-size:11px;font-weight:800;color:var(--ds-red)">↘ راقدة</p><p style="margin:5px 0 0;font-size:20px;font-weight:900;color:var(--ds-ink)">${idleCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:10px;color:var(--ds-muted)">غير مؤجرة</p></div>
             </div>
           </div>
-          <span class="occ-cap">نسبة التشغيل</span>
-        </div>
-        <p style="display:flex;align-items:center;gap:6px;color:var(--ds-teal);font-weight:800;font-size:13px;margin:0 0 12px;padding-inline-end:96px">✨ نظرة عامة تشغيلية</p>
-        <div style="display:flex;align-items:flex-end;gap:10px"><h2 style="margin:0;font-size:56px;font-weight:900;line-height:.95;letter-spacing:-.02em;color:var(--ds-ink)">${total.toLocaleString('en')}</h2><span style="padding-bottom:6px;font-weight:800;color:var(--ds-muted)">سيارة</span></div>
-        <h3 style="margin:6px 0 8px;font-size:18px;font-weight:900;color:var(--ds-ink)">إجمالي الأسطول</h3>
-        <p style="margin:0 0 18px;color:var(--ds-muted);line-height:1.7;font-size:13px">صورة تشغيلية موحّدة لحركة الأسطول والركود والتوفر الفوري، من دون تشتيت بين التقارير.</p>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-          <div style="background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:var(--ds-teal)">↗ مؤجرة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:var(--ds-ink)">${rented.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:var(--ds-muted)">سيارة ضمن التشغيل</p></div>
-          <div style="background:var(--ds-soft);border:1px solid var(--ds-line);border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:var(--ds-teal-2)">✓ متاحة فوراً</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:var(--ds-ink)">${availableCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:var(--ds-muted)">جاهزة للإيجار الآن</p></div>
-          <div style="background:rgba(223,79,79,.08);border:1px solid rgba(223,79,79,.20);border-radius:14px;padding:12px 14px"><p style="margin:0;font-size:12px;font-weight:800;color:var(--ds-red)">↘ راقدة</p><p style="margin:6px 0 0;font-size:22px;font-weight:900;color:var(--ds-ink)">${idleCount.toLocaleString('en')}</p><p style="margin:2px 0 0;font-size:11px;color:var(--ds-muted)">غير مؤجرة</p></div>
         </div>
       </div>
       <div style="background:var(--ds-card);border:1px solid var(--ds-line);border-radius:18px;padding:22px;color:var(--ds-ink-soft);box-shadow:0 4px 18px rgba(16,36,58,.04);position:relative;overflow:hidden">
