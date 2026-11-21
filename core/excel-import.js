@@ -102,7 +102,16 @@ async function handleExcelFile(file){
   }catch(_){yahmaErr(_,'excel-import.js:68');}
 
   const plan=window.YahmaFleetExcel.parseImportRows(rows,uid);
-  if(!plan.active.length&&!plan.sold.length){ alert('لم يتم العثور على صف يحتوي على رقم لوحة صحيح. تأكد من مطابقة أسماء الأعمدة لنموذج الإكسيل.'); return; }
+  if(!plan.active.length&&!plan.sold.length){ importProgress(false); alert('لم يتم العثور على صف يحتوي على رقم لوحة صحيح. تأكد من مطابقة أسماء الأعمدة لنموذج الإكسيل.'); return; }
+  /* تجاهل العربيات اللي حذفها المستخدم يدويًا (قائمة المستبعدين) — في صمت */
+  let excludedSkipped=0;
+  try{
+    if(typeof isPlateExcluded==='function' && Array.isArray(plan.active)){
+      const before=plan.active.length;
+      plan.active=plan.active.filter(rec=>!isPlateExcluded(rec.car&&rec.car.plate));
+      excludedSkipped=before-plan.active.length;
+    }
+  }catch(_){yahmaErr(_,'excel-import:excluded');}
   try{ stampImportBranch(plan); }catch(_){yahmaErr(_,'excel-import.js:72');}
   /* ورقة تحديثات الكروت (الثانية في ملف كروت التشغيل): تُطبَّق فوق الأساسية */
   try{
@@ -144,6 +153,7 @@ async function handleExcelFile(file){
     `معاينة تحديث الأسطول:\n${plan.active.length} صف نشط (${updateCandidates} موجود للتحديث، ${newCandidates} جديد)\n`+
     `${soldCount} سيارة (مباعة / هلاك كلي) سيتم حذفها من جميع التبويبات\n\nسيتم تحديث الفرع وحالة السيارة وباقي البيانات دون نقل أي سيارة بين التبويبات.`+
     (plan.cardUpdates?`\n${plan.cardUpdates} سيارة شملها تحديث ورقة الكروت (حالة/فرع).`:'')+
+    (excludedSkipped?`\n⛔ تم تجاهل ${excludedSkipped} سيارة حذفها المستخدم يدويًا (لن تُعاد للأسطول).`:'')+
     ((plan.unknown&&plan.unknown.length)?`\n\n⚠ أعمدة غير معروفة سيتم تجاهلها: ${plan.unknown.slice(0,8).join('، ')}${plan.unknown.length>8?` (+${plan.unknown.length-8})`:''}`:'')+
     `\nمتابعة؟`
   );
@@ -223,6 +233,7 @@ async function handleExcelFile(file){
      السحابي فشل، البيانات محفوظة محلياً ومطلوب إبلاغ المستخدم. */
   importProgress(false);
   alert(`اكتمل الاستيراد: ${inserted} جديد، ${updated} محدث، ${deletion.matched} مباعة محذوفة، ${ignored} مكرر تم تجاهله.`+
+    (excludedSkipped?`\n⛔ ${excludedSkipped} سيارة مستبعدة (حذفها المستخدم يدويًا) لم تُعاد.`:'')+
     (deletion.failedCloud?`\nتنبيه: فشل حذف ${deletion.failedCloud} من Supabase؛ تحقق من الاتصال والصلاحيات.`:'')+
     (plan.skipped?`\nتم تجاهل ${plan.skipped} صف بدون رقم لوحة.`:'')+
     (deletion.notFound?`\nلوحات مباعة غير موجودة: ${deletion.notFound}.`:'') );

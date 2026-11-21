@@ -5,6 +5,52 @@
 
 const STORAGE_KEY = 'fleet-data-v2';
 const BRANCHES_KEY = 'fleet-branches-v1';
+const EXCLUDED_KEY = 'fleet-excluded-cars-v1'; // عربيات حذفها المستخدم يدويًا — ما ترجعش بالشيت
+
+/* ===== العربيات المستبعدة (حذف يدوي) =====
+   لما المستخدم يحذف/يؤرشف عربية من نافذة التعديل، بتتسجّل لوحتها هنا.
+   رفع الشيت يتجاهل أي لوحة في القائمة دي، ومفيش رجوع إلا بالاستعادة
+   أو بإضافة العربية يدويًا. التخزين محلي + بنحاول نزامن حقل على Supabase
+   لو الجدول متاح (عمود excluded). */
+function excludedCars(){
+  try{ const a=JSON.parse(localStorage.getItem(EXCLUDED_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(_){ return []; }
+}
+function saveExcludedCars(list){
+  try{ localStorage.setItem(EXCLUDED_KEY, JSON.stringify(list)); }catch(_){yahmaErr(_,'excluded:save');}
+}
+function excludedKeyOf(value){
+  let s=String(value??'').replace(/[ً-ْ]/g,'').replace(/[إأآٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي');
+  s=s.replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])
+     .replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
+     .replace(/\s+/g,'').replace(/[-_]/g,'').trim().toLowerCase();
+  return s;
+}
+function isPlateExcluded(plate){
+  const k=excludedKeyOf(plate);
+  if(!k) return false;
+  return excludedCars().some(x=>excludedKeyOf(x&&x.plate)===k);
+}
+function excludeCar(car, source){
+  if(!car) return false;
+  const plate=String(car.plate||'').trim();
+  const k=excludedKeyOf(plate);
+  if(!k) return false;
+  const list=excludedCars();
+  if(list.some(x=>excludedKeyOf(x&&x.plate)===k)) return false;
+  list.unshift({ plate, key:k, carId:String(car.id||''), brand:String(car.brand||''),
+    model:String(car.model||''), branch:String(car.branch||''), owner:String(car.owner||''),
+    at:new Date().toISOString(), source:source||'manual' });
+  saveExcludedCars(list);
+  return true;
+}
+function restoreExcludedCar(keyOrPlate){
+  const k=excludedKeyOf(keyOrPlate);
+  const list=excludedCars();
+  const item=list.find(x=>excludedKeyOf(x&&x.plate)===k || String(x&&x.key)===k);
+  if(!item) return null;
+  saveExcludedCars(list.filter(x=>x!==item));
+  return item;
+}
 let fleet = [];
 let branches = []; // {id,name,email,phone,manager,notes}
 let editingId = null;

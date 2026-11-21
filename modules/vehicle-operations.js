@@ -102,11 +102,13 @@
       car.carStatus = 'مؤرشفة';
       car.archivedAt = new Date().toISOString();
       car.archivedBy = context.userEmail || 'local-user';
+      /* سجّل اللوحة في قائمة المستبعدين عشان ما ترجعش مع رفع الشيت */
+      try{ if(typeof excludeCar==='function') excludeCar(car,'manual-archive'); }catch(_){}
       await context.saveData([editingId]);
       context.log('أرشفة سيارة', car.plate || editingId);
       context.closeModal();
       context.render();
-      context.alert('تمت أرشفة السيارة ويمكن استعادتها بتغيير حالتها إلى نشط.');
+      context.alert('تمت أرشفة السيارة ولن تعود مع رفع الشيت.\nلإعادتها: استخدم قائمة العربيات المستبعدة.');
     } catch (error) {
       console.error(error);
       context.alert('فشلت الأرشفة: ' + (error.message || error));

@@ -188,6 +188,7 @@
       <input type="file" id="fleet-file-input" accept=".xlsx,.xls,.csv" style="display:none">
     </div>
     ${canDelete ? '<button class="btn btn-ghost" id="fleet-clean-duplicates" type="button" title="فحص الأسطول واكتشاف وحذف أي سيارات مكررة" style="color:var(--ds-teal)">🔍 فحص وحذف المكرر</button>' : ''}
+    <button class="btn btn-ghost" id="fleet-excluded-btn" type="button" title="السيارات المستبعدة (اللي حذفتها يدويًا) — استعادتها أو إدارتها" style="color:#9A5B12;border-color:#E6CBA0;background:#FBF3E6">🚫 المستبعدة <span id="fleet-excluded-count" style="background:#E6CBA0;color:#7A4A08;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:800">${(typeof excludedCars==='function'?excludedCars().length:0)}</span></button>
     <button class="btn btn-ghost" id="fleet-clear-filters" title="إلغاء جميع الفلاتر">↺ مسح الفلاتر</button>
     <button class="btn btn-ghost" id="fleet-export-custom" title="تصدير مخصص — اختيار الأعمدة">⚙️ تصدير مخصص</button>
     <div class="bulk-bar" id="bulk-bar" style="display:none">
@@ -841,6 +842,45 @@
 
   $('fleet-clean-duplicates')?.addEventListener('click', async () => {
     await handleDeduplicateFleet(cars);
+  });
+  /* عرض العربيات المستبعدة (حذفها المستخدم يدويًا) مع إمكانية الاستعادة */
+  $('fleet-excluded-btn')?.addEventListener('click', () => {
+    if(typeof excludedCars!=='function'){ alert('قائمة المستبعدة غير متاحة.'); return; }
+    const list=excludedCars();
+    const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const overlay=document.createElement('div');
+    overlay.className='overlay'; overlay.style.display='flex';
+    overlay.innerHTML='<div class="modal" style="max-width:620px;max-height:85vh;overflow:auto">'
+      +'<h2>🚫 العربيات المستبعدة <span style="font-size:13px;color:var(--muted);font-weight:600">('+list.length+')</span></h2>'
+      +'<p class="muted-small" style="margin:0 0 12px">عربيات حذفتها يدويًا — لا تعود للأسطول مع رفع الشيت. استخدم «استعادة» لإعادتها (أو أضفها يدويًا).</p>'
+      + (list.length ? '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--ds-soft)"><th style="padding:8px;text-align:right">اللوحة</th><th style="padding:8px;text-align:right">الماركة / الموديل</th><th style="padding:8px;text-align:right">الفرع</th><th style="padding:8px;text-align:right">تاريخ الحذف</th><th style="padding:8px"></th></tr></thead><tbody>'
+        + list.map((x,i)=>'<tr style="border-bottom:1px solid var(--line)"><td style="padding:7px 8px;font-weight:800">'+esc(x.plate)+'</td><td style="padding:7px 8px">'+esc((x.brand||'')+' '+(x.model||'')).trim()+'</td><td style="padding:7px 8px">'+esc(x.branch||'—')+'</td><td style="padding:7px 8px;color:var(--muted)">'+esc(String(x.at||'').slice(0,10))+'</td><td style="padding:7px 8px"><button type="button" class="btn btn-ghost btn-small" data-restore="'+i+'">↩ استعادة</button></td></tr>').join('')
+        +'</tbody></table>' : '<div class="empty">لا توجد عربيات مستبعدة حاليًا.</div>')
+      +'<div class="modal-actions"><div></div><div class="modal-actions-right"><button class="btn btn-ghost" type="button" id="excl-close">إغلاق</button></div></div>'
+      +'</div>';
+    document.body.appendChild(overlay);
+    overlay.querySelector('#excl-close').onclick=()=>overlay.remove();
+    overlay.onclick=e=>{ if(e.target===overlay) overlay.remove(); };
+    overlay.querySelectorAll('[data-restore]').forEach(btn=>btn.onclick=()=>{
+      const item=list[+btn.dataset.restore];
+      if(!item) return;
+      if(!confirm('استعادة العربية '+item.plate+' للأسطول؟\n(ستظهر من جديد ويمكن أن تُحدَّث بالشيت)')) return;
+      const restored=restoreExcludedCar(item.key||item.plate);
+      overlay.remove();
+      if(restored){
+        /* أعد تفعيل العربية في الأسطول (كانت مؤرشفة) واحفظ */
+        try{
+          const target=fleet.find(c=>String(c.id)===String(restored.carId) || excludedKeyOf(c.plate)===String(restored.key));
+          if(target){
+            target.carStatus='نشط';
+            delete target.archivedAt;
+            if(typeof saveData==='function'){ saveData([target.id]).catch(()=>{}); }
+          }
+        }catch(_){}
+        if(typeof window.render==='function') window.render();
+        else render(content, fleet);
+      }
+    });
   });
   $('fleet-clear-filters')?.addEventListener('click',()=>{if(search) search.value='';filters.forEach(el=>{if(el) el.value='';});activeQuick='';selectedIds.clear();_filterCacheKey=null;_filterCacheRows=null;resetAndDraw();updateBulkBar();});
   window._yahmaModuleExport = function(fmt){
