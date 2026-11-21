@@ -50,8 +50,9 @@ function getActivityIcon(title, detail) {
    كل عمود فيه بياناته مكتوبة فوق الجزء نفسه + إجمالي الفرع أعلى العمود. */
 function buildBranchOccupancyChart(branchOccupancy){
   let list = Array.isArray(branchOccupancy) ? branchOccupancy : [];
-  // ترتيب الفروع بالأكبر أولاً — نفس شكل المعاينة (أعلى الأعمدة في النص)
-  list = list.slice().sort((a, b) => (Number(b.total)||0) - (Number(a.total)||0));
+  const occ = (b) => Number(b && b.occPct) || (Number(b && b.total) ? Math.round((Number(b.rented)||0) / Number(b.total) * 100) : 0);
+  // ترتيب الفروع بنسبة التشغيل (مش بالعدد) — الأعلى أولاً
+  list = list.slice().sort((a, b) => occ(b) - occ(a));
   if(!list.length) return '<div class="empty">لا توجد بيانات فروع</div>';
   const max = Math.max(1, ...list.map(b => Number(b.total) || 0));
   const ticks = [0, 0.25, 0.5, 0.75, 1];
@@ -66,14 +67,15 @@ function buildBranchOccupancyChart(branchOccupancy){
     const availH = (available / max) * 100;
     const name = String(b.name || '—');
     const short = name.length > 16 ? name.slice(0, 15) + '…' : name;
+    const occPct = occ(b);
     /* النسب داخل العمود = نصيب كل جزء من إجمالي الفرع (المجموع 100%) */
     const pctAvail = total ? Math.round((available / total) * 100) : 0;
     const pctRented = total ? Math.round((rented / total) * 100) : 0;
-    const tip = esc(name) + ': متاحة للإيجار ' + available + ' (' + pctAvail + '%) · مؤجرة ' + rented + ' (' + pctRented + '%) · الإجمالي ' + total;
-    /* ترتيب الأجزاء داخل العمود: أحمر (متاحة)فوق، أخضر (مؤجرة)تحت.
-       الـflex column بـjustify-end بيخلي أول child في الأعلى. */
-    return '<div class="boc-col" data-tip="' + tip + '" title="' + tip + '">'
-      + '<div class="boc-total">' + nf(total) + '</div>'
+    const isTop = i === 0, isBottom = i === list.length - 1;
+    const focusCls = isTop ? ' boc-top' : isBottom ? ' boc-bottom' : '';
+    const tip = esc(name) + ': تشغيل ' + occPct + '% · مؤجرة ' + rented + ' · متاحة ' + available + ' · الإجمالي ' + total;
+    return '<div class="boc-col' + focusCls + '" data-tip="' + tip + '" title="' + tip + '">'
+      + '<div class="boc-total">' + occPct + '%</div>'
       + '<div class="boc-stack">'
         + '<div class="boc-seg available" style="height:' + availH.toFixed(1) + '%"><span class="boc-val">' + (available > 0 ? pctAvail + '%' : '') + '</span></div>'
         + '<div class="boc-seg rented" style="height:' + rentedH.toFixed(1) + '%"><span class="boc-val">' + (rented > 0 ? pctRented + '%' : '') + '</span></div>'
@@ -97,7 +99,7 @@ function buildBranchOccupancyChart(branchOccupancy){
       + grid
       + '<div class="boc-cols">' + bars + '</div>'
     + '</div>'
-    + '<div class="boc-foot">' + list.length + ' فرع · النسبة داخل كل جزء = نصيبه من سيارات الفرع · الرقم أعلى العمود = إجمالي الفرع</div>'
+    + '<div class="boc-foot">' + list.length + ' فرع · مرتّب بنسبة التشغيل · النسبة داخل كل جزء = نصيبه من سيارات الفرع · الرقم أعلى العمود = نسبة تشغيل الفرع</div>'
   + '</div>';
 }
 
@@ -766,6 +768,23 @@ function dashboardTemplate(state) {
     <style>
     /* ===== توزيع الأسطول والتشغيل حسب الفروع (أعمدة مكدّسة) ===== */
     .boc-card{margin-top:14px;background:linear-gradient(145deg,#ffffff 0%,#fbfdfd 100%);border:1px solid #E3EBEF;box-shadow:0 6px 22px rgba(16,36,58,.06)}
+    /* بطاقتا أكثر/أقل فرع تشغيل */
+    .boc-focus{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:4px 0 14px}
+    .boc-focus-card{display:flex;align-items:center;gap:11px;border-radius:12px;padding:11px 14px;border:1px solid transparent}
+    .boc-focus-card.best{background:linear-gradient(120deg,rgba(16,185,129,.10),rgba(16,185,129,.03));border-color:rgba(16,185,129,.22)}
+    .boc-focus-card.worst{background:linear-gradient(120deg,rgba(225,79,79,.09),rgba(225,79,79,.02));border-color:rgba(225,79,79,.20)}
+    .boc-focus-ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:14px;flex:0 0 30px}
+    .best .boc-focus-ico{background:rgba(16,185,129,.16);color:#0E9E6E}
+    .worst .boc-focus-ico{background:rgba(225,79,79,.14);color:#D84B4B}
+    .boc-focus-body{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+    .boc-focus-label{font-size:10.5px;font-weight:700;color:var(--ds-muted)}
+    .boc-focus-name{font-size:14px;font-weight:900;color:var(--ds-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .boc-focus-pct{font-size:20px;font-weight:900;line-height:1}
+    .best .boc-focus-pct{color:#0E9E6E}.worst .boc-focus-pct{color:#D84B4B}
+    @media(max-width:700px){.boc-focus{grid-template-columns:1fr}}
+    /* تمييز أعلى/أقل فرع داخل الرسم */
+    .boc-col.boc-top .boc-stack,.boc-col.boc-bottom .boc-stack{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 4px 14px rgba(0,0,0,.22)}
+    .boc-col.boc-top .boc-total{color:#0E9E6E}.boc-col.boc-bottom .boc-total{color:#D84B4B}
     .boc-wrap{padding:10px 8px 0}
     .boc-legend{display:flex;gap:22px;justify-content:center;align-items:center;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--ds-muted);flex-wrap:wrap}
     .boc-legend span{display:inline-flex;align-items:center;gap:7px}
@@ -896,7 +915,26 @@ function dashboardTemplate(state) {
     <div class="home-card boc-card">
       <div class="home-card-head">
         <h3>📊 توزيع أسطول السيارات والتشغيل حسب الفروع</h3>
-        <span class="muted-small">مقارنة السيارات المؤجرة والمتاحة للإيجار في كل فرع</span>
+        <span class="muted-small">مرتّب بنسبة التشغيل — أعلى فرع وأقل فرع في المقدمة</span>
+      </div>
+      <!-- بطاقتا أكثر/أقل فرع تشغيل (حسب النسبة مش العدد) -->
+      <div class="boc-focus">
+        <div class="boc-focus-card best">
+          <div class="boc-focus-ico">▲</div>
+          <div class="boc-focus-body">
+            <span class="boc-focus-label">أكثر فرع تشغيل</span>
+            <b class="boc-focus-name">${escapeHtml(mostOccupiedBranchName)}</b>
+          </div>
+          <span class="boc-focus-pct">${mostOccupiedBranchPct}%</span>
+        </div>
+        <div class="boc-focus-card worst">
+          <div class="boc-focus-ico">▼</div>
+          <div class="boc-focus-body">
+            <span class="boc-focus-label">أقل فرع تشغيل</span>
+            <b class="boc-focus-name">${escapeHtml(leastOccupiedBranchName)}</b>
+          </div>
+          <span class="boc-focus-pct">${leastOccupiedBranchPct}%</span>
+        </div>
       </div>
       ${buildBranchOccupancyChart(branchOccupancy)}
     </div>
