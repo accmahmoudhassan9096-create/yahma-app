@@ -620,6 +620,82 @@ async function removeSoldVehiclesByPlates(plates,options={}){
   }
   return {matched:matched.length,deletedCloud,failedCloud,notFound,cancelled:false};
 }
+/* ===== إزالة السيارات المكررة (نفس رقم اللوحة أكثر من مرة) =====
+   نحتفظ بنسخة واحدة لكل لوحة (الأحدث updatedAt أو أول واحدة)،
+   ونحذف باقي النسخ من الأسطول والسحابة. التعديل على كل الأسطول. */
+async function removeDuplicatePlates(options={}){
+  const {skipConfirm=false,silent=false}=options;
+  if(typeof currentRole!=='undefined' && currentRole!=='admin' && currentRole!=='ops'){
+    if(!silent) alert('ليس لديك صلاحية حذف التكرارات.');
+    return {removed:0,cancelled:true};
+  }
+  const tpv=(typeof window!=='undefined'&&window.YahmaFleetExcel&&window.YahmaFleetExcel.transferPlateVariants)
+    ? (p)=>window.YahmaFleetExcel.transferPlateVariants(p)
+    : (p)=>[normalizePlateKey(p)];
+  const seen=new Map();      // plateKey -> index in fleet (المحتفظ بها)
+  const dupIds=[];           // معرّفات النسخ الزائدة
+  const dupPlates=[];        // أرقام اللوحات اللي فيها تكرار (للعرض)
+  const dupKeys=new Set();
+
+  fleet.forEach((car, idx) => {
+    if(!car) return;
+    const keys=tpv(car.plate).filter(Boolean);
+    const key=keys[0] || normalizePlateKey(car.plate);
+    if(!key) return;
+    if(!seen.has(key)){
+      seen.set(key, idx);
+      return;
+    }
+    /* لو النسخة الجديدة أحدث، نبدّل المحتفظ بها ونضيف القديمة للحذف */
+    const keepIdx=seen.get(key);
+    const keep=fleet[keepIdx];
+    if(car.updatedAt && String(car.updatedAt) > String(keep.updatedAt||'')){
+      dupIds.push(String(keep.id));
+      seen.set(key, idx);
+    }else{
+      dupIds.push(String(car.id));
+    }
+    if(!dupKeys.has(key)){ dupKeys.add(key); dupPlates.push(car.plate||key); }
+  });
+
+  if(!dupIds.length){
+    if(!silent) alert('لا توجد سيارات مكررة (نفس اللوحة أكثر من مرة).');
+    return {removed:0};
+  }
+  if(!skipConfirm && !confirm('تم العثور على '+dupIds.length+' سيارة مكررة (نفس اللوحة) ضمن '+dupKeys.size+' لوحة.\n\n'
+      +dupPlates.slice(0,12).join('، ')+(dupPlates.length>12?'…':'')
+      +'\n\nسيتم الاحتفاظ بنسخة واحدة لكل لوحة وحذف الباقي من الأسطول'
+      +((!window._demoMode && window.supabaseReady)?' وSupabase':'')+'. متابعة؟')){
+    return {removed:0,cancelled:true};
+  }
+
+  const idSet=new Set(dupIds.map(String));
+  const removedCars=fleet.filter(c=>idSet.has(String(c.id)));
+  const remaining=fleet.filter(c=>!idSet.has(String(c.id)));
+
+  try{ if(window.YahmaUndo) window.YahmaUndo.record(removedCars,{source:'removeDuplicatePlates'}); }catch(_){yahmaErr(_,'dedup:undo');}
+  try{ if(window.YahmaPayments&&typeof window.YahmaPayments.cancel==='function') dupIds.forEach(cid=>{try{window.YahmaPayments.cancel(null,cid);}catch(_){}}); }catch(_){}
+
+  let deletedCloud=0;
+  if(!window._demoMode && window.supabaseReady && window.supabaseClient){
+    try{
+      for(let i=0;i<dupIds.length;i+=100){
+        const chunk=dupIds.slice(i,i+100);
+        const {error}=await window.supabaseClient.from(VEH_TABLE).delete().in('car_id',chunk);
+        if(error) throw error;
+        deletedCloud+=chunk.length;
+        chunk.forEach(id=>cloudVehicleIds.delete(id));
+      }
+    }catch(e){ console.error('dedup cloud delete failed', e); }
+  }
+
+  fleet=remaining;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(fleet));
+  try{ if(window.YahmaDB&&window.YahmaDB.saveFleet) await window.YahmaDB.saveFleet(fleet); }catch(_){yahmaErr(_,'dedup:db');}
+  pingSync();
+  if(!silent) render();
+  return {removed:removedCars.length, deletedCloud};
+}
 async function handleSoldExcelFile(file){
   if(!(await ensureXlsxReady())){ alert('مكتبة Excel غير متاحة. تأكد من الاتصال بالإنترنت.'); return; }
   let rows;

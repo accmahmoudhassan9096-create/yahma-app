@@ -48,6 +48,7 @@ function renderFollowUp(content){
         <strong>كروت منتهية:</strong> <span class="wa-count">${needCard}</span>
       </div>
       <div class="wa-toolbar-actions">
+        <button class="btn btn-ghost btn-small" id="fu-dedup-btn" title="حذف السيارات المكررة (نفس اللوحة أكثر من مرة) من كل الأسطول" style="color:#9A5B12;border-color:#E6CBA0;background:#FBF3E6">🧹 مسح المكررات</button>
         <button class="btn btn-primary btn-small" id="fu-upload-btn" title="رفع شيت الكروت — يحدّث بيانات الكارت فقط">📥 رفع شيت الكروت</button>
         <input type="file" id="file-fu-upload" accept=".xlsx,.xls,.csv" style="display:none">
       </div>
@@ -540,6 +541,19 @@ function renderFollowUp(content){
   $('fu-export-xlsx')?.addEventListener('click',()=>exportFu('xlsx'));
   $('fu-export-pdf')?.addEventListener('click',()=>exportFu('pdf'));
   $('fu-upload-btn')?.addEventListener('click',()=>$('file-fu-upload')?.click());
+  /* مسح السيارات المكررة (نفس اللوحة أكتر من مرة) من كل الأسطول */
+  $('fu-dedup-btn')?.addEventListener('click',async (e)=>{
+    if(typeof removeDuplicatePlates!=='function'){ alert('دالة مسح التكرارات غير متاحة.'); return; }
+    const btn=e.currentTarget; btn.disabled=true; const old=btn.textContent; btn.textContent='جارِ الفحص...';
+    try{
+      const res=await removeDuplicatePlates();
+      if(res && !res.cancelled && res.removed>0){
+        selectedFuIds.clear();
+        render();
+      }
+    }catch(err){ console.error(err); alert('تعذر مسح التكرارات: '+(err&&err.message||err)); }
+    finally{ btn.disabled=false; btn.textContent=old; }
+  });
   $('file-fu-upload')?.addEventListener('change',async e=>{
     const file=e.target.files[0];
     if(!file) return;
