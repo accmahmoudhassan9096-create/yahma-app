@@ -128,7 +128,7 @@ function computeDashboardState(fleet) {
   // سيارات راقدة: أي سيارة غير مؤجرة (مبدأ المستخدم)
   const ignoredBranches = ['0', 'الإدارة الرئيسيه', 'الإدارة الرئيسية'];
   // فروع مستبعدة من ترتيب "أكتر/أقل فرع ركوداً أو تشغيلاً" (الـ ranking فقط، العدد الإجمالي يفضّل كما هو)
-  const REPORT_EXCLUDED_BRANCHES = ['الإدارة الرئيسية', 'البارك', 'السيارات المستبعدة', 'خريص', 'مركز بيع', 'مركز البيع', 'عبد الرحمن', 'فرع 2', 'غير محدد'];
+  const REPORT_EXCLUDED_BRANCHES = ['الإدارة الرئيسية', 'البارك', 'السيارات المستبعدة', 'خريص', 'مركز بيع', 'مركز البيع', 'عبد الرحمن', 'فرع 2', 'ظهرة لبن', 'غير محدد'];
   const normBranch = (s) => String(s || '').replace(/[ً-ْ]/g, '').replace(/[إأآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/\s+/g, ' ').trim();
   const isReportExcludedBranch = (name) => {
     const n = normBranch(name);
