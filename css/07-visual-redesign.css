@@ -671,3 +671,28 @@ body.dark-mode .app { background: linear-gradient(145deg, #0C1522 0%, #111E31 10
 /* النصوصsecondary في الوضع الليلي: رمادي أفتح شوية عشان ما تتعبش العين */
 body.dark-mode .br-stat-ready { color: #5EE0A8 !important; }
 body.dark-mode .br-stat-unready { color: #FF9A9A !important; }
+
+/* ============================================================
+   أيقونات القائمة الجانبية — لون هادئ ومميّز لكل تبويب
+   كل أيقونة في «شيبس» شفاف خفيف بلون التبويب ( على الخلفية الداكنة )
+   ============================================================ */
+.sidebar .nav-item svg{
+  width:24px!important;height:24px!important;flex-basis:24px!important;
+  padding:4px!important;border-radius:7px!important;opacity:1!important;
+  box-sizing:border-box!important;transition:background .18s,color .18s;
+}
+.sidebar .nav-item[data-tab="dashboard"] svg{color:#5EEAD4;background:rgba(45,212,191,.14)}
+.sidebar .nav-item[data-tab="users"] svg{color:#A5B4FC;background:rgba(129,140,248,.14)}
+.sidebar .nav-item[data-tab="fleet"] svg{color:#7DD3FC;background:rgba(56,189,248,.14)}
+.sidebar .nav-item[data-tab="branches"] svg{color:#C4B5FD;background:rgba(167,139,250,.14)}
+.sidebar .nav-item[data-tab="renewals"] svg{color:#FCD34D;background:rgba(245,158,11,.14)}
+.sidebar .nav-item[data-tab="payments"] svg{color:#FDA4AF;background:rgba(244,63,94,.13)}
+.sidebar .nav-item[data-tab="paid"] svg{color:#6EE7B7;background:rgba(16,185,129,.14)}
+.sidebar .nav-item[data-tab="renewed"] svg{color:#67E8F9;background:rgba(6,182,212,.14)}
+.sidebar .nav-item[data-tab="license-renewals"] svg{color:#FDBA74;background:rgba(249,115,22,.13)}
+.sidebar .nav-item[data-tab="insurance-renewals"] svg{color:#A5B4FC;background:rgba(99,102,241,.13)}
+.sidebar .nav-item[data-tab="inspections"] svg{color:#5EEAD4;background:rgba(20,184,166,.14)}
+.sidebar .nav-item[data-tab="reports"] svg{color:#93C5FD;background:rgba(59,130,246,.14)}
+.sidebar .nav-item[data-tab="audit"] svg{color:#CBD5E1;background:rgba(148,163,184,.13)}
+/* التبويب النشط: زود اللمعة بدون تغيير اللون */
+.sidebar .nav-item.active svg{filter:drop-shadow(0 0 5px currentColor)}
